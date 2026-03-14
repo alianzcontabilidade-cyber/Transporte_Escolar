@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = 'https://transporteescolar-production.up.railway.app';
 
 function getToken() {
   return localStorage.getItem('token');
@@ -6,28 +6,60 @@ function getToken() {
 
 async function call(procedure: string, input: any, type: 'query' | 'mutation' = 'query') {
   const token = getToken();
-  const headers: any = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  let url = `${API_URL}/api/trpc/${procedure}`;
-  let options: RequestInit = { headers };
+  let url: string;
+  let options: RequestInit;
 
   if (type === 'query') {
-    url += `?input=${encodeURIComponent(JSON.stringify(input))}`;
-    options.method = 'GET';
+    const inputParam = encodeURIComponent(JSON.stringify({ '0': { json: input } }));
+    url = `${API_URL}/api/trpc/${procedure}?batch=1&input=${inputParam}`;
+    options = { method: 'GET', headers };
   } else {
-    options.method = 'POST';
-    options.body = JSON.stringify({ json: input });
+    url = `${API_URL}/api/trpc/${procedure}?batch=1`;
+    options = {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ '0': { json: input } }),
+    };
   }
 
-  const res = await fetch(url, options);
-  const data = await res.json();
-
-  if (data?.error) {
-    throw new Error(data.error.json?.message || 'Erro na requisição');
+  let res: Response;
+  try {
+    res = await fetch(url, options);
+  } catch (err: any) {
+    throw new Error('Não foi possível conectar à API. Verifique sua conexão.');
   }
 
-  return data?.result?.data?.json ?? data?.result?.data;
+  const text = await res.text();
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Resposta inválida da API: ${text.substring(0, 100)}`);
+  }
+
+  // tRPC v11 batch response is an array
+  const result = Array.isArray(data) ? data[0] : data;
+
+  if (result?.error) {
+    const msg =
+      result.error?.json?.message ||
+      result.error?.data?.message ||
+      result.error?.message ||
+      JSON.stringify(result.error);
+    throw new Error(msg);
+  }
+
+  // Handle both tRPC v10 and v11 response formats
+  if (result?.result?.data?.json !== undefined) return result.result.data.json;
+  if (result?.result?.data !== undefined) return result.result.data;
+  if (result?.result !== undefined) return result.result;
+  return result;
 }
 
 export const api = {

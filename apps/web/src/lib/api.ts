@@ -1,4 +1,4 @@
-const API_URL = 'https://transporteescolar-production.up.railway.app';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
 
 function getToken() {
   return localStorage.getItem('token');

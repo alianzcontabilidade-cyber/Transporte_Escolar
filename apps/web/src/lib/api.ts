@@ -16,7 +16,7 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
   let options: RequestInit;
 
   if (type === 'query') {
-    const inputParam = encodeURIComponent(JSON.stringify({ '0': { json: input } }));
+    const inputParam = encodeURIComponent(JSON.stringify({ '0': input }));
     url = `${API_URL}/api/trpc/${procedure}?batch=1&input=${inputParam}`;
     options = { method: 'GET', headers };
   } else {
@@ -24,7 +24,7 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
     options = {
       method: 'POST',
       headers,
-      body: JSON.stringify({ '0': { json: input } }),
+      body: JSON.stringify({ '0': input }),
     };
   }
 

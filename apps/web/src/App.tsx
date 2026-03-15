@@ -16,6 +16,8 @@ import ContractsPage from './pages/ContractsPage';
 import AttendancePage from './pages/AttendancePage';
 import GuardianPage from './pages/GuardianPage';
 import SuperAdminPage from './pages/SuperAdminPage';
+import AIRoutesPage from './pages/AIRoutesPage';
+import PredictivePage from './pages/PredictivePage';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -37,14 +39,16 @@ export default function App() {
         <Route path="motoristas" element={<DriversPage />} />
         <Route path="veiculos" element={<VehiclesPage />} />
         <Route path="escolas" element={<SchoolsPage />} />
+        <Route path="frequencia" element={<AttendancePage />} />
         <Route path="relatorios" element={<ReportsPage />} />
         <Route path="contratos" element={<ContractsPage />} />
-        <Route path="frequencia" element={<AttendancePage />} />
         <Route path="portal-responsavel" element={<GuardianPage />} />
         <Route path="super-admin" element={<SuperAdminPage />} />
+        <Route path="ia-rotas" element={<AIRoutesPage />} />
+        <Route path="manutencao-preditiva" element={<PredictivePage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-        }
+}

@@ -1,9 +1,5 @@
-// Detecta se está rodando no mesmo servidor da API (Railway unificado)
-// ou em servidor separado
 const API_URL = (() => {
-  // Se a variável de ambiente estiver definida, usa ela
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  // Senão usa URL relativa (mesmo servidor)
   return '';
 })();
 
@@ -11,7 +7,7 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
-async function call(procedure: string, input: any, type: 'query' | 'mutatiohhn' = 'query') {
+async function call(procedure: string, input: any, type: 'query' | 'mutation' = 'query') {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -19,18 +15,19 @@ async function call(procedure: string, input: any, type: 'query' | 'mutatiohhn' 
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    let url: string;
+  let url: string;
   let options: RequestInit;
 
   if (type === 'query') {
-    url = `${API_URL}/api/trpc/${procedure}?batch=1&input=${encodeURIComponent(inputWrapped)}`;
+    url = `${API_URL}/api/trpc/${procedure}?input=${encodeURIComponent(JSON.stringify(input))}`;
     options = { method: 'GET', headers };
   } else {
-    url = `${API_URL}/api/trpc/${procedure}?batch=1`;
+    url = `${API_URL}/api/trpc/${procedure}`;
     options = {
       method: 'POST',
       headers,
-      body: JSON.stringify(input),    };
+      body: JSON.stringify(input),
+    };
   }
 
   let res: Response;
@@ -48,16 +45,14 @@ async function call(procedure: string, input: any, type: 'query' | 'mutatiohhn' 
     throw new Error(`Resposta inválida: ${text.substring(0, 200)}`);
   }
 
-  const result = Array.isArray(data) ? data[0] : data;
-  if (result?.error) {
-    const msg = result.error?.json?.message || result.error?.data?.message || result.error?.message || JSON.stringify(result.error);
+  if (data?.error) {
+    const msg = data.error?.data?.message || data.error?.message || JSON.stringify(data.error);
     throw new Error(msg);
   }
 
-  if (result?.result?.data?.json !== undefined) return result.result.data.json;
-  if (result?.result?.data !== undefined) return result.result.data;
-  if (result?.result !== undefined) return result.result;
-  return result;
+  if (data?.result?.data !== undefined) return data.result.data;
+  if (data?.result !== undefined) return data.result;
+  return data;
 }
 
 export const api = {

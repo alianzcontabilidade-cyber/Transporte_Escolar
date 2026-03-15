@@ -11,7 +11,7 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
-async function call(procedure: string, input: any, type: 'query' | 'mutation' = 'query') {
+async function call(procedure: string, input: any, type: 'query' | 'mutatiohhn' = 'query') {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -19,8 +19,7 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const inputWrapped = JSON.stringify({ '0': { json: input } });
-  let url: string;
+    let url: string;
   let options: RequestInit;
 
   if (type === 'query') {
@@ -31,8 +30,7 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
     options = {
       method: 'POST',
       headers,
-      body: JSON.stringify({ '0': { json: input } }),
-    };
+      body: JSON.stringify(input),    };
   }
 
   let res: Response;

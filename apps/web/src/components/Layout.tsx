@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
-import { Bus, LayoutDashboard, MapPin, Users, Truck, School, FileText, LogOut, Radio, Wifi, WifiOff, Settings, ClipboardList } from 'lucide-react';
+import { Bus, LayoutDashboard, MapPin, Users, Truck, School, FileText, LogOut, Radio, Wifi, WifiOff, Settings, ClipboardList, QrCode, Heart, Shield } from 'lucide-react';
 
 const nav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -11,8 +11,11 @@ const nav = [
   { to: '/motoristas', icon: Truck, label: 'Motoristas' },
   { to: '/veiculos', icon: Bus, label: 'Veículos' },
   { to: '/escolas', icon: School, label: 'Escolas' },
+  { to: '/frequencia', icon: QrCode, label: 'Frequência' },
   { to: '/relatorios', icon: FileText, label: 'Relatórios' },
   { to: '/contratos', icon: ClipboardList, label: 'Contratos' },
+  { to: '/portal-responsavel', icon: Heart, label: 'Portal Responsável' },
+  { to: '/super-admin', icon: Shield, label: 'Super Admin' },
   { to: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
 
@@ -32,15 +35,15 @@ export default function Layout() {
             <span className="font-bold text-gray-900 text-lg">TransEscolar</span>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {nav.map(({ to, icon: Icon, label, end }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-              <Icon size={17} />{label}
+              <Icon size={16} />{label}
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-200 space-y-2">
+        <div className="p-3 border-t border-gray-200 space-y-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 text-xs">
             {connected
               ? <><Wifi size={13} className="text-green-500" /><span className="text-green-600">Tempo real ativo</span></>
@@ -65,4 +68,4 @@ export default function Layout() {
       </main>
     </div>
   );
-              }
+    }

@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import RoutesPage from './pages/RoutesPage';
 import StudentsPage from './pages/StudentsPage';
 import DriversPage from './pages/DriversPage';
+import MonitoresPage from './pages/MonitoresPage';
 import VehiclesPage from './pages/VehiclesPage';
 import SchoolsPage from './pages/SchoolsPage';
 import MonitorPage from './pages/MonitorPage';
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="rotas" element={<RoutesPage />} />
         <Route path="alunos" element={<StudentsPage />} />
         <Route path="motoristas" element={<DriversPage />} />
+        <Route path="monitores" element={<MonitoresPage />} />
         <Route path="veiculos" element={<VehiclesPage />} />
         <Route path="escolas" element={<SchoolsPage />} />
         <Route path="frequencia" element={<AttendancePage />} />

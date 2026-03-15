@@ -1,191 +1,365 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
-import { User, Settings, Shield, Building, Key, Plus, Edit2, Trash2, Eye, EyeOff, X, Save, Camera } from 'lucide-react';
+import { useQuery, useMutation } from '../lib/hooks';
+import { api } from '../lib/api';
+import { Settings, Shield, Building, User, Plus, X, Camera, Pencil, Trash2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
-const ROLES = [
-  { value: 'municipal_admin', label: 'Administrador Municipal', color: 'bg-purple-100 text-purple-700' },
-  { value: 'secretary', label: 'Secretário de Educação', color: 'bg-blue-100 text-blue-700' },
-  { value: 'operator', label: 'Operador', color: 'bg-green-100 text-green-700' },
-  { value: 'driver', label: 'Motorista', color: 'bg-orange-100 text-orange-700' },
-  { value: 'monitor', label: 'Monitor', color: 'bg-yellow-100 text-yellow-700' },
-];
 const TABS = [
   { id: 'users', label: 'Usuários', icon: User },
-  { id: 'profile', label: 'Meu Perfil', icon: Settings },
   { id: 'municipality', label: 'Prefeitura', icon: Building },
   { id: 'security', label: 'Segurança', icon: Shield },
 ];
-const fmt = (v: string, type: string) => {
-  if (type==='cpf') return v.replace(/\D/g,'').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4').substring(0,14);
-  if (type==='phone') return v.replace(/\D/g,'').replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3').substring(0,15);
-  if (type==='cnpj') return v.replace(/\D/g,'').replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5').substring(0,18);
-  return v;
+
+const ROLES = [
+  { value: 'super_admin', label: 'Super Admin' },
+  { value: 'municipal_admin', label: 'Admin Municipal' },
+  { value: 'operator', label: 'Operador' },
+  { value: 'driver', label: 'Motorista' },
+  { value: 'guardian', label: 'Responsável' },
+];
+
+const ROLE_COLORS: any = {
+  super_admin: 'bg-purple-100 text-purple-700',
+  municipal_admin: 'bg-primary-100 text-primary-700',
+  operator: 'bg-blue-100 text-blue-700',
+  driver: 'bg-orange-100 text-orange-700',
+  guardian: 'bg-green-100 text-green-700',
 };
 
-function PhotoUpload({ value, onChange, label, rounded=true, size='md' }: any) {
+function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
-  const dim = size==='lg'?'w-32 h-32':'w-20 h-20';
-  const rx = rounded?'rounded-full':'rounded-xl';
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={`relative ${dim} ${rx} bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary-400 transition-colors`} onClick={() => ref.current?.click()}>
-        {value ? <img src={value} alt="foto" className="w-full h-full object-cover" /> : <Camera size={24} className="text-gray-400" />}
+      <div className="relative w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary-400" onClick={() => ref.current?.click()}>
+        {value ? <img src={value} alt="logo" className="w-full h-full object-cover"/> : <Camera size={24} className="text-gray-400"/>}
+        <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center border-2 border-white"><Camera size={10} className="text-white"/></div>
       </div>
-      <span className="text-xs text-gray-500 text-center">{label}</span>
-      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => onChange(ev.target?.result as string); r.readAsDataURL(f); } }} />
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={function(e){const f=e.target.files?.[0];if(f){const rd=new FileReader();rd.onload=function(ev){onChange(ev.target?.result);};rd.readAsDataURL(f);}}}/>
     </div>
   );
 }
 
-interface UserForm { id?: number; fullName: string; cpf: string; birthDate: string; email: string; phone: string; role: string; login: string; password: string; confirmPassword: string; active: boolean; }
-const emptyUser: UserForm = { fullName:'',cpf:'',birthDate:'',email:'',phone:'',role:'operator',login:'',password:'',confirmPassword:'',active:true };
+const emptyUser = { name:'', email:'', role:'operator', password:'', confirmPassword:'' };
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('users');
-  const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserForm>(emptyUser);
+  const municipalityId = user?.municipalityId || 0;
+  const [activeTab, setActiveTab] = useState('users');
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editUserId, setEditUserId] = useState<number|null>(null);
+  const [userForm, setUserForm] = useState<any>(emptyUser);
   const [showPass, setShowPass] = useState(false);
-  const [users, setUsers] = useState([{ id:1, fullName:user?.name||'', cpf:'000.000.000-00', birthDate:'', email:user?.email||'', phone:'(63) 99206-7951', role:'municipal_admin', login:user?.email||'', active:true }]);
-  const [formErr, setFormErr] = useState('');
-  const [saveMsg, setSaveMsg] = useState('');
-  const [profile, setProfile] = useState({ fullName:user?.name||'', email:user?.email||'', phone:'', cpf:'', birthDate:'', photo:'' });
-  const [mun, setMun] = useState({ name:'', cnpj:'', state:'', city:'', address:'', phone:'', email:'', responsible:'', logo:'' });
-  const [pwd, setPwd] = useState({ current:'', novo:'', confirm:'' });
-  const [showPwds, setShowPwds] = useState({ current:false, novo:false, confirm:false });
+  const [userErr, setUserErr] = useState('');
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<any>(null);
+  const [munForm, setMunForm] = useState({ name:'', cnpj:'', address:'', phone:'', email:'', logo:'' });
+  const [munSaved, setMunSaved] = useState(false);
+  const [secForm, setSecForm] = useState({ currentPassword:'', newPassword:'', confirmNewPassword:'' });
+  const [secMsg, setSecMsg] = useState('');
 
-  const showSuccess = (msg: string) => { setSaveMsg(msg); setTimeout(() => setSaveMsg(''), 3000); };
-  const openNew = () => { setEditingUser(emptyUser); setFormErr(''); setShowModal(true); };
-  const openEdit = (u: any) => { setEditingUser({...u,password:'',confirmPassword:''}); setFormErr(''); setShowModal(true); };
-  const deleteUser = (id: number) => { if (confirm('Excluir usuário?')) setUsers(u => u.filter(x => x.id!==id)); };
-  const saveUser = () => {
-    if (!editingUser.fullName||!editingUser.email||!editingUser.login) { setFormErr('Preencha os campos obrigatórios.'); return; }
-    if (!editingUser.id&&!editingUser.password) { setFormErr('Informe uma senha.'); return; }
-    if (editingUser.password&&editingUser.password!==editingUser.confirmPassword) { setFormErr('Senhas não coincidem.'); return; }
-    if (!editingUser.id) setUsers(u => [...u,{...editingUser,id:Math.max(0,...u.map(x=>x.id||0))+1}]);
-    else setUsers(u => u.map(x => x.id===editingUser.id?{...x,...editingUser}:x));
-    setShowModal(false); showSuccess('Usuário salvo!');
+  const { data: users, refetch: refetchUsers } = useQuery(function(){ return api.users.list({ municipalityId }); }, [municipalityId]);
+  const { mutate: createUser, loading: creatingUser } = useMutation(api.users.create);
+  const { mutate: updateUser, loading: updatingUser } = useMutation(api.users.update);
+  const { mutate: deleteUser } = useMutation(api.users.delete);
+
+  const sf = function(k: string, setter: any){ return function(e: any){ setter((f: any) => ({...f, [k]: e.target.value})); }; };
+  const allUsers = (users as any)||[];
+
+  const openNewUser = function(){ setUserForm(emptyUser); setEditUserId(null); setUserErr(''); setShowUserModal(true); };
+  const openEditUser = function(u: any){ setUserForm({...emptyUser, name:u.name, email:u.email, role:u.role}); setEditUserId(u.id); setUserErr(''); setShowUserModal(true); };
+
+  const saveUser = function(){
+    if (!userForm.name||!userForm.email){ setUserErr('Nome e e-mail obrigatórios.'); return; }
+    if (!editUserId && !userForm.password){ setUserErr('Senha obrigatória para novo usuário.'); return; }
+    if (userForm.password && userForm.password !== userForm.confirmPassword){ setUserErr('Senhas não coincidem.'); return; }
+    const payload = { municipalityId, name:userForm.name, email:userForm.email, role:userForm.role, ...(userForm.password?{password:userForm.password}:{}) };
+    if (editUserId!==null){
+      updateUser({id:editUserId,...payload},{onSuccess:function(){refetchUsers();setShowUserModal(false);},onError:function(e:any){setUserErr(e?.message||'Erro');}});
+    } else {
+      createUser(payload,{onSuccess:function(){refetchUsers();setShowUserModal(false);},onError:function(e:any){setUserErr(e?.message||'Erro');}});
+    }
   };
-  const roleInfo = (r: string) => ROLES.find(x => x.value===r)||ROLES[2];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Configurações</h1><p className="text-gray-500 mt-1">Gerencie usuários, perfis e dados do sistema</p></div>
-      {saveMsg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2"><Shield size={16}/> {saveMsg}</div>}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-        {TABS.map(t => { const Icon=t.icon; return (<button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab===t.id?'bg-white shadow text-primary-600':'text-gray-500 hover:text-gray-700'}`}><Icon size={16}/> {t.label}</button>); })}
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"><Settings size={20} className="text-gray-600"/></div>
+        <div><h1 className="text-2xl font-bold text-gray-900">Configurações</h1><p className="text-gray-500">Gerencie usuários, prefeitura e segurança</p></div>
       </div>
 
-      {tab==='users' && (
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+        {TABS.map(function(tab){return(
+          <button key={tab.id} onClick={function(){setActiveTab(tab.id);}} className={'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all '+(activeTab===tab.id?'bg-white shadow text-primary-600':'text-gray-500 hover:text-gray-700')}>
+            <tab.icon size={15}/>{tab.label}
+          </button>
+        );})}
+      </div>
+
+      {/* ABA: Usuários */}
+      {activeTab==='users'&&(
         <div>
-          <div className="flex justify-between items-center mb-4"><div><h2 className="text-lg font-semibold text-gray-800">Usuários do Sistema</h2><p className="text-sm text-gray-500">{users.length} usuário(s)</p></div><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Usuário</button></div>
-          <div className="card overflow-hidden p-0">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200"><tr>{['Usuário','CPF','Contato','Perfil','Status','Ações'].map(h => <th key={h} className={`text-${h==='Ações'?'right':'left'} px-4 py-3 text-xs font-semibold text-gray-500 uppercase`}>{h}</th>)}</tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {users.map(u => { const role=roleInfo(u.role); return (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-sm">{u.fullName.charAt(0)}</div><div><p className="font-medium text-gray-800 text-sm">{u.fullName}</p><p className="text-xs text-gray-400">{u.login}</p></div></div></td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{u.cpf||'—'}</td>
-                    <td className="px-4 py-3"><p className="text-sm text-gray-600">{u.email}</p><p className="text-xs text-gray-400">{u.phone}</p></td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${role.color}`}>{role.label}</span></td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${u.active?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{u.active?'Ativo':'Inativo'}</span></td>
-                    <td className="px-4 py-3 text-right"><button onClick={() => openEdit(u)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg mr-1"><Edit2 size={15}/></button>{u.id!==1&&<button onClick={() => deleteUser(u.id!)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button>}</td>
-                  </tr>
-                ); })}
-              </tbody>
-            </table>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Usuários do Sistema</h2>
+            <button onClick={openNewUser} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Usuário</button>
+          </div>
+          <div className="grid gap-3">
+            {allUsers.map(function(u: any){ return(
+              <div key={u.id} className="card flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center font-bold text-primary-600 flex-shrink-0">{u.name?.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{u.name}</p>{u.id===user?.id&&<span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10}/>Você</span>}</div>
+                  <p className="text-sm text-gray-500">{u.email}</p>
+                </div>
+                <span className={'text-xs px-2 py-0.5 rounded-full font-medium '+(ROLE_COLORS[u.role]||'bg-gray-100 text-gray-600')}>{ROLES.find(r=>r.value===u.role)?.label||u.role}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={function(){openEditUser(u);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={14}/></button>
+                  {u.id!==user?.id&&<button onClick={function(){setConfirmDeleteUser(u);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>}
+                </div>
+              </div>
+            );})}
+            {!allUsers.length&&<div className="card text-center py-10"><User size={36} className="text-gray-200 mx-auto mb-2"/><p className="text-gray-400">Nenhum usuário cadastrado</p></div>}
           </div>
         </div>
       )}
 
-      {tab==='profile' && (
-        <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Meu Perfil</h2>
-          <div className="flex items-center gap-6 mb-6 p-4 bg-gray-50 rounded-xl">
-            <PhotoUpload value={profile.photo} onChange={(v: string) => setProfile(p => ({...p,photo:v}))} label="Alterar foto" />
-            <div><p className="font-semibold text-gray-800">{user?.name}</p><p className="text-sm text-gray-500">{roleInfo(user?.role||'').label}</p><p className="text-sm text-gray-400">{user?.email}</p></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="label">Nome Completo *</label><input className="input" value={profile.fullName} onChange={e => setProfile(p => ({...p,fullName:e.target.value}))} /></div>
-            <div><label className="label">CPF</label><input className="input" value={profile.cpf} onChange={e => setProfile(p => ({...p,cpf:fmt(e.target.value,'cpf')}))} placeholder="000.000.000-00" /></div>
-            <div><label className="label">Data de Nascimento</label><input className="input" type="date" value={profile.birthDate} onChange={e => setProfile(p => ({...p,birthDate:e.target.value}))} /></div>
-            <div><label className="label">Telefone</label><input className="input" value={profile.phone} onChange={e => setProfile(p => ({...p,phone:fmt(e.target.value,'phone')}))} /></div>
-            <div><label className="label">E-mail *</label><input className="input" type="email" value={profile.email} onChange={e => setProfile(p => ({...p,email:e.target.value}))} /></div>
-          </div>
-          <button onClick={() => showSuccess('Perfil atualizado!')} className="btn-primary mt-4 flex items-center gap-2"><Save size={16}/> Salvar Perfil</button>
-        </div>
-      )}
-
-      {tab==='municipality' && (
-        <div className="card max-w-2xl">
+      {/* ABA: Prefeitura */}
+      {activeTab==='municipality'&&(
+        <div className="card max-w-2xl space-y-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Dados da Prefeitura</h2>
-          <div className="flex items-center gap-6 mb-6 p-4 bg-gray-50 rounded-xl">
-            <PhotoUpload value={mun.logo} onChange={(v: string) => setMun(m => ({...m,logo:v}))} label="Logo da prefeitura" rounded={false} size="lg" />
-            <div>
-              <p className="font-medium text-gray-700 text-sm">Importe o brasão ou logo da prefeitura</p>
-              <p className="text-xs text-gray-400 mt-1">PNG, JPG ou SVG. Recomendado 200×200px</p>
-              {mun.logo && <button onClick={() => setMun(m => ({...m,logo:''}))} className="text-xs text-red-500 hover:underline mt-2 block">Remover logo</button>}
-            </div>
+          <div className="flex justify-center mb-4">
+            <PhotoUpload value={munForm.logo} onChange={function(v:string){setMunForm(f=>({...f,logo:v}));}}/>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="label">Nome da Prefeitura *</label><input className="input" value={mun.name} onChange={e => setMun(m => ({...m,name:e.target.value}))} /></div>
-            <div><label className="label">CNPJ</label><input className="input" value={mun.cnpj} onChange={e => setMun(m => ({...m,cnpj:fmt(e.target.value,'cnpj')}))} placeholder="00.000.000/0000-00" /></div>
-            <div><label className="label">Responsável</label><input className="input" value={mun.responsible} onChange={e => setMun(m => ({...m,responsible:e.target.value}))} /></div>
-            <div><label className="label">Estado</label><input className="input" value={mun.state} onChange={e => setMun(m => ({...m,state:e.target.value}))} /></div>
-            <div><label className="label">Cidade</label><input className="input" value={mun.city} onChange={e => setMun(m => ({...m,city:e.target.value}))} /></div>
-            <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={mun.address} onChange={e => setMun(m => ({...m,address:e.target.value}))} /></div>
-            <div><label className="label">Telefone</label><input className="input" value={mun.phone} onChange={e => setMun(m => ({...m,phone:fmt(e.target.value,'phone')}))} /></div>
-            <div><label className="label">E-mail</label><input className="input" type="email" value={mun.email} onChange={e => setMun(m => ({...m,email:e.target.value}))} /></div>
+            <div className="col-span-2"><label className="label">Nome da Prefeitura</label><input className="input" value={munForm.name} onChange={sf('name',setMunForm)} placeholder="Ex: Prefeitura Municipal de Palmas"/></div>
+            <div><label className="label">CNPJ</label><input className="input" value={munForm.cnpj} onChange={sf('cnpj',setMunForm)} placeholder="00.000.000/0000-00"/></div>
+            <div><label className="label">Telefone</label><input className="input" value={munForm.phone} onChange={sf('phone',setMunForm)} placeholder="(00) 0000-0000"/></div>
+            <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={munForm.address} onChange={sf('address',setMunForm)}/></div>
+            <div className="col-span-2"><label className="label">E-mail institucional</label><input className="input" type="email" value={munForm.email} onChange={sf('email',setMunForm)}/></div>
           </div>
-          <button onClick={() => showSuccess('Dados salvos!')} className="btn-primary mt-4 flex items-center gap-2"><Save size={16}/> Salvar</button>
-        </div>
-      )}
-
-      {tab==='security' && (
-        <div className="card max-w-lg">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Alterar Senha</h2>
-          <div className="space-y-4">
-            {(['current','novo','confirm'] as const).map((f,i) => (
-              <div key={f}><label className="label">{['Senha atual','Nova senha','Confirmar nova senha'][i]}</label>
-                <div className="relative"><input type={showPwds[f]?'text':'password'} className="input pr-10" value={pwd[f]} onChange={e => setPwd(p => ({...p,[f]:e.target.value}))} />
-                  <button type="button" className="absolute right-3 top-2.5 text-gray-400" onClick={() => setShowPwds(p => ({...p,[f]:!p[f]}))}>
-                    {showPwds[f]?<EyeOff size={18}/>:<Eye size={18}/>}
-                  </button>
-                </div>
-              </div>
-            ))}
-            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-600"><p className="font-medium mb-1">Requisitos:</p><ul className="list-disc list-inside space-y-0.5"><li>Mínimo 8 caracteres</li><li>Maiúscula e minúscula</li><li>Número e caractere especial</li></ul></div>
-            <button onClick={() => { showSuccess('Senha alterada!'); setPwd({current:'',novo:'',confirm:''}); }} className="btn-primary w-full flex items-center justify-center gap-2"><Key size={16}/> Alterar Senha</button>
+          <div className="flex justify-end pt-2">
+            <button onClick={function(){setMunSaved(true);setTimeout(function(){setMunSaved(false);},3000);}} className="btn-primary flex items-center gap-2">{munSaved?<><CheckCircle size={15}/> Salvo!</>:'Salvar'}</button>
           </div>
         </div>
       )}
 
-      {showModal && (
+      {/* ABA: Segurança */}
+      {activeTab==='security'&&(
+        <div className="card max-w-md space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2"><Shield size={18} className="text-primary-500"/>Alterar Senha</h2>
+          {secMsg&&<div className={'p-3 rounded-lg text-sm '+(secMsg.includes('sucesso')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200')}>{secMsg}</div>}
+          <div><label className="label">Senha atual</label>
+            <div className="relative"><input type={showPass?'text':'password'} className="input pr-10" value={secForm.currentPassword} onChange={sf('currentPassword',setSecForm)}/><button type="button" onClick={function(){setShowPass(p=>!p);}} className="absolute right-3 top-2.5 text-gray-400">{showPass?<EyeOff size={18}/>:<Eye size={18}/>}</button></div>
+          </div>
+          <div><label className="label">Nova senha</label><input type="password" className="input" value={secForm.newPassword} onChange={sf('newPassword',setSecForm)}/></div>
+          <div><label className="label">Confirmar nova senha</label><input type="password" className="input" value={secForm.confirmNewPassword} onChange={sf('confirmNewPassword',setSecForm)}/></div>
+          <button onClick={function(){
+            if(!secForm.currentPassword||!secForm.newPassword){setSecMsg('Preencha todos os campos.');return;}
+            if(secForm.newPassword!==secForm.confirmNewPassword){setSecMsg('Novas senhas não coincidem.');return;}
+            if(secForm.newPassword.length<6){setSecMsg('Senha deve ter pelo menos 6 caracteres.');return;}
+            setSecMsg('Senha alterada com sucesso!');
+            setSecForm({currentPassword:'',newPassword:'',confirmNewPassword:''});
+          }} className="btn-primary w-full">Alterar Senha</button>
+        </div>
+      )}
+
+      {/* Modal Confirmar Exclusão Usuário */}
+      {confirmDeleteUser&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editingUser.id?'Editar Usuário':'Novo Usuário'}</h3><button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
-            <div className="p-5 space-y-4">
-              {formErr && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2"><label className="label">Nome Completo *</label><input className="input" value={editingUser.fullName} onChange={e => setEditingUser(u => ({...u,fullName:e.target.value}))} /></div>
-                <div><label className="label">CPF</label><input className="input" value={editingUser.cpf} onChange={e => setEditingUser(u => ({...u,cpf:fmt(e.target.value,'cpf')}))} placeholder="000.000.000-00" /></div>
-                <div><label className="label">Data de Nascimento</label><input className="input" type="date" value={editingUser.birthDate} onChange={e => setEditingUser(u => ({...u,birthDate:e.target.value}))} /></div>
-                <div><label className="label">E-mail *</label><input className="input" type="email" value={editingUser.email} onChange={e => setEditingUser(u => ({...u,email:e.target.value}))} /></div>
-                <div><label className="label">Telefone</label><input className="input" value={editingUser.phone} onChange={e => setEditingUser(u => ({...u,phone:fmt(e.target.value,'phone')}))} /></div>
-                <div><label className="label">Login *</label><input className="input" value={editingUser.login} onChange={e => setEditingUser(u => ({...u,login:e.target.value}))} /></div>
-                <div><label className="label">Perfil *</label><select className="input" value={editingUser.role} onChange={e => setEditingUser(u => ({...u,role:e.target.value}))}>{ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}</select></div>
-                <div><label className="label">{editingUser.id?'Nova Senha (opcional)':'Senha *'}</label>
-                  <div className="relative"><input type={showPass?'text':'password'} className="input pr-10" value={editingUser.password} onChange={e => setEditingUser(u => ({...u,password:e.target.value}))} /><button type="button" className="absolute right-3 top-2.5 text-gray-400" onClick={() => setShowPass(p=>!p)}>{showPass?<EyeOff size={18}/>:<Eye size={18}/>}</button></div>
-                </div>
-                <div><label className="label">Confirmar Senha</label><input type="password" className="input" value={editingUser.confirmPassword} onChange={e => setEditingUser(u => ({...u,confirmPassword:e.target.value}))} /></div>
-                <div className="col-span-2 flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><input type="checkbox" id="active" checked={editingUser.active} onChange={e => setEditingUser(u => ({...u,active:e.target.checked}))} className="w-4 h-4 accent-primary-500" /><label htmlFor="active" className="text-sm">Usuário ativo — pode acessar o sistema</label></div>
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={saveUser} className="btn-primary flex-1 flex items-center justify-center gap-2"><Save size={16}/> Salvar</button></div>
-          </div>
-        </div>
-      )}
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <Trash2 size={28} className="text-red-400 mx-auto mb-3"/>
+            <h3 className="font-bold mb-2">Excluir {confirmDeleteUser.name}?</h3>
+            <p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+import { useAuth } from '../lib/auth';
+import { useQuery, useMutation } from '../lib/hooks';
+import { api } from '../lib/api';
+import { Settings, Shield, Building, User, Plus, X, Camera, Pencil, Trash2, Eye, EyeOff, CheckCircle } from 'lucide-react';
+
+const TABS = [
+  { id: 'users', label: 'Usuários', icon: User },
+  { id: 'municipality', label: 'Prefeitura', icon: Building },
+  { id: 'security', label: 'Segurança', icon: Shield },
+];
+
+const ROLES = [
+  { value:'super_admin', label:'Super Admin' },
+  { value:'municipal_admin', label:'Admin Municipal' },
+  { value:'operator', label:'Operador' },
+  { value:'driver', label:'Motorista' },
+  { value:'guardian', label:'Responsável' },
+];
+
+const ROLE_COLORS: any = {
+  super_admin:'bg-purple-100 text-purple-700',
+  municipal_admin:'bg-primary-100 text-primary-700',
+  operator:'bg-blue-100 text-blue-700',
+  driver:'bg-orange-100 text-orange-700',
+  guardian:'bg-green-100 text-green-700',
+};
+
+function PhotoUpload({ value, onChange }: any) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary-400" onClick={() => ref.current?.click()}>
+        {value?<img src={value} alt="logo" className="w-full h-full object-cover"/>:<Camera size={24} className="text-gray-400"/>}
+        <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center border-2 border-white"><Camera size={10} className="text-white"/></div>
+      </div>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={function(e){const f=e.target.files?.[0];if(f){const rd=new FileReader();rd.onload=function(ev){onChange(ev.target?.result);};rd.readAsDataURL(f);}}}/>
     </div>
   );
 }
+
+const emptyUser = { name:'', email:'', role:'operator', password:'', confirmPassword:'' };
+
+export default function SettingsPage() {
+  const { user } = useAuth();
+  const municipalityId = user?.municipalityId || 0;
+  const [activeTab, setActiveTab] = useState('users');
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editUserId, setEditUserId] = useState<number|null>(null);
+  const [userForm, setUserForm] = useState<any>(emptyUser);
+  const [showPass, setShowPass] = useState(false);
+  const [userErr, setUserErr] = useState('');
+  const [confirmDelUser, setConfirmDelUser] = useState<any>(null);
+  const [munForm, setMunForm] = useState({ name:'', cnpj:'', address:'', phone:'', email:'', logo:'' });
+  const [munSaved, setMunSaved] = useState(false);
+  const [secForm, setSecForm] = useState({ cur:'', nw:'', conf:'' });
+  const [secMsg, setSecMsg] = useState('');
+
+  const { data: users, refetch } = useQuery(function(){ return api.users.list({ municipalityId }); }, [municipalityId]);
+  const { mutate: createUser, loading: creating } = useMutation(api.users.create);
+  const { mutate: updateUser, loading: updating } = useMutation(api.users.update);
+  const { mutate: deleteUser } = useMutation(api.users.delete);
+
+  const sf = function(k:string, set:any){ return function(e:any){ set((f:any)=>({...f,[k]:e.target.value})); }; };
+  const allUsers = (users as any)||[];
+
+  const openNew = function(){ setUserForm(emptyUser); setEditUserId(null); setUserErr(''); setShowUserModal(true); };
+  const openEdit = function(u:any){ setUserForm({...emptyUser,name:u.name,email:u.email,role:u.role}); setEditUserId(u.id); setUserErr(''); setShowUserModal(true); };
+
+  const saveUser = function(){
+    if(!userForm.name||!userForm.email){ setUserErr('Nome e e-mail obrigatórios.'); return; }
+    if(!editUserId&&!userForm.password){ setUserErr('Senha obrigatória para novo usuário.'); return; }
+    if(userForm.password&&userForm.password!==userForm.confirmPassword){ setUserErr('Senhas não coincidem.'); return; }
+    const p = { municipalityId, name:userForm.name, email:userForm.email, role:userForm.role, ...(userForm.password?{password:userForm.password}:{}) };
+    if(editUserId!==null){ updateUser({id:editUserId,...p},{onSuccess:function(){refetch();setShowUserModal(false);},onError:function(e:any){setUserErr(e?.message||'Erro');}}); }
+    else { createUser(p,{onSuccess:function(){refetch();setShowUserModal(false);},onError:function(e:any){setUserErr(e?.message||'Erro');}}); }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"><Settings size={20} className="text-gray-600"/></div>
+        <div><h1 className="text-2xl font-bold text-gray-900">Configurações</h1><p className="text-gray-500">Gerencie usuários, prefeitura e segurança</p></div>
+      </div>
+
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+        {TABS.map(function(tab){return(
+          <button key={tab.id} onClick={function(){setActiveTab(tab.id);}} className={'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all '+(activeTab===tab.id?'bg-white shadow text-primary-600':'text-gray-500 hover:text-gray-700')}>
+            <tab.icon size={15}/>{tab.label}
+          </button>
+        );})}
+      </div>
+
+      {activeTab==='users'&&(
+        <div>
+          <div className="flex items-center justify-between mb-4"><h2 className="text-lg font-semibold text-gray-800">Usuários do Sistema</h2><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Usuário</button></div>
+          <div className="grid gap-3">
+            {allUsers.map(function(u:any){return(
+              <div key={u.id} className="card flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center font-bold text-primary-600 flex-shrink-0">{u.name?.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{u.name}</p>{u.id===user?.id&&<span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10}/>Você</span>}</div>
+                  <p className="text-sm text-gray-500">{u.email}</p>
+                </div>
+                <span className={'text-xs px-2 py-0.5 rounded-full font-medium '+(ROLE_COLORS[u.role]||'bg-gray-100 text-gray-600')}>{ROLES.find(r=>r.value===u.role)?.label||u.role}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={function(){openEdit(u);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={14}/></button>
+                  {u.id!==user?.id&&<button onClick={function(){setConfirmDelUser(u);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>}
+                </div>
+              </div>
+            );})}
+            {!allUsers.length&&<div className="card text-center py-10"><User size={36} className="text-gray-200 mx-auto mb-2"/><p className="text-gray-400">Nenhum usuário cadastrado</p></div>}
+          </div>
+        </div>
+      )}
+
+      {activeTab==='municipality'&&(
+        <div className="card max-w-2xl space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Dados da Prefeitura</h2>
+          <div className="flex justify-center mb-4"><PhotoUpload value={munForm.logo} onChange={function(v:string){setMunForm(f=>({...f,logo:v}));}}/></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2"><label className="label">Nome da Prefeitura</label><input className="input" value={munForm.name} onChange={sf('name',setMunForm)} placeholder="Ex: Prefeitura Municipal de Palmas"/></div>
+            <div><label className="label">CNPJ</label><input className="input" value={munForm.cnpj} onChange={sf('cnpj',setMunForm)} placeholder="00.000.000/0000-00"/></div>
+            <div><label className="label">Telefone</label><input className="input" value={munForm.phone} onChange={sf('phone',setMunForm)} placeholder="(00) 0000-0000"/></div>
+            <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={munForm.address} onChange={sf('address',setMunForm)}/></div>
+            <div className="col-span-2"><label className="label">E-mail institucional</label><input className="input" type="email" value={munForm.email} onChange={sf('email',setMunForm)}/></div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <button onClick={function(){setMunSaved(true);setTimeout(function(){setMunSaved(false);},3000);}} className="btn-primary flex items-center gap-2">{munSaved?<><CheckCircle size={15}/> Salvo!</>:'Salvar'}</button>
+          </div>
+        </div>
+import { useAuth } from '../lib/auth';
+import { useQuery, useMutation } from '../lib/hooks';
+import { api } from '../lib/api';
+import { Settings, Shield, Building, User, Plus, X, Pencil, Trash2, Eye, EyeOff, CheckCircle, Camera } from 'lucide-react';
+
+const TABS = [
+  { id: 'users', label: 'Usuários', icon: User },
+  { id: 'municipality', label: 'Prefeitura', icon: Building },
+  { id: 'security', label: 'Segurança', icon: Shield },
+];
+const ROLES = [
+  { value:'super_admin', label:'Super Admin' },
+  { value:'municipal_admin', label:'Admin Municipal' },
+  { value:'operator', label:'Operador' },
+  { value:'driver', label:'Motorista' },
+  { value:'guardian', label:'Responsável' },
+];
+const RC: any = { super_admin:'bg-purple-100 text-purple-700', municipal_admin:'bg-primary-100 text-primary-700', operator:'bg-blue-100 text-blue-700', driver:'bg-orange-100 text-orange-700', guardian:'bg-green-100 text-green-700' };
+
+export default function SettingsPage() {
+  const { user } = useAuth();
+  const mid = user?.municipalityId || 0;
+  const [tab, setTab] = useState('users');
+  const [modal, setModal] = useState(false);
+  const [eid, setEid] = useState<number|null>(null);
+  const [uf, setUf] = useState<any>({ name:'', email:'', role:'operator', password:'', cp:'' });
+  const [sp, setSp] = useState(false);
+  const [uerr, setUerr] = useState('');
+  const [del, setDel] = useState<any>(null);
+  const [mun, setMun] = useState({ name:'', cnpj:'', address:'', phone:'', email:'' });
+  const [ms, setMs] = useState(false);
+  const [sec, setSec] = useState({ cur:'', nw:'', cf:'' });
+  const [sm, setSm] = useState('');
+  const { data: users, refetch } = useQuery(function(){ return api.users.list({ municipalityId: mid }); }, [mid]);
+  const { mutate: cu, loading: cr } = useMutation(api.users.create);
+  const { mutate: uu, loading: up } = useMutation(api.users.update);
+  const { mutate: du } = useMutation(api.users.delete);
+  const sf = function(k:string, s:any){ return function(e:any){ s((f:any)=>({...f,[k]:e.target.value})); }; };
+  const all = (users as any)||[];
+  const openN = function(){ setUf({name:'',email:'',role:'operator',password:'',cp:''});setEid(null);setUerr('');setModal(true); };
+  const openE = function(u:any){ setUf({name:u.name,email:u.email,role:u.role,password:'',cp:''});setEid(u.id);setUerr('');setModal(true); };
+  const save = function(){
+    if(!uf.name||!uf.email){setUerr('Nome e e-mail obrigatórios.');return;}
+    if(!eid&&!uf.password){setUerr('Senha obrigatória.');return;}
+    if(uf.password&&uf.password!==uf.cp){setUerr('Senhas não coincidem.');return;}
+    const p={municipalityId:mid,name:uf.name,email:uf.email,role:uf.role,...(uf.password?{password:uf.password}:{})};
+    if(eid!==null){uu({id:eid,...p},{onSuccess:function(){refetch();setModal(false);},onError:function(e:any){setUerr(e?.message||'Erro');}});}
+    else{cu(p,{onSuccess:function(){refetch();setModal(false);},onError:function(e:any){setUerr(e?.message||'Erro');}});}
+  };
+  return (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6"><div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"><Settings size={20} className="text-gray-600"/></div><div><h1 className="text-2xl font-bold text-gray-900">Configurações</h1><p className="text-gray-500">Gerencie usuários, prefeitura e segurança</p></div></div>
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+        {TABS.map(function(t){return(<button key={t.id} onClick={function(){setTab(t.id);}} className={'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all '+(tab===t.id?'bg-white shadow text-primary-600':'text-gray-500 hover:text-gray-700')}><t.icon size={15}/>{t.label}</button>);})}
+      </div>
+      {tab==='users'&&(<div><div className="flex items-center justify-between mb-4"><h2 className="text-lg font-semibold">Usuários do Sistema</h2><button onClick={openN} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Usuário</button></div><div className="grid gap-3">{all.map(function(u:any){return(<div key={u.id} className="card flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center font-bold text-primary-600 flex-shrink-0">{u.name?.charAt(0)}</div><div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{u.name}</p>{u.id===user?.id&&<span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10}/>Você</span>}</div><p className="text-sm text-gray-500">{u.email}</p></div><span className={'text-xs px-2 py-0.5 rounded-full font-medium '+(RC[u.role]||'bg-gray-100 text-gray-600')}>{ROLES.find(r=>r.value===u.role)?.label||u.role}</span><div className="flex items-center gap-1"><button onClick={function(){openE(u);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={14}/></button>{u.id!==user?.id&&<button onClick={function(){setDel(u);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>}</div></div>);})}{!all.length&&<div className="card text-center py-10"><User size={36} className="text-gray-200 mx-auto mb-2"/><p className="text-gray-400">Nenhum usuário</p></div>}</div></div>)}
+      {tab==='municipality'&&(<div className="card max-w-2xl space-y-4"><h2 className="text-lg font-semibold mb-4">Dados da Prefeitura</h2><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><label className="label">Nome da Prefeitura</label><input className="input" value={mun.name} onChange={sf('name',setMun)} placeholder="Ex: Prefeitura Municipal de Palmas"/></div><div><label className="label">CNPJ</label><input className="input" value={mun.cnpj} onChange={sf('cnpj',setMun)} placeholder="00.000.000/0000-00"/></div><div><label className="label">Telefone</label><input className="input" value={mun.phone} onChange={sf('phone',setMun)}/></div><div className="col-span-2"><label className="label">Endereço</label><input className="input" value={mun.address} onChange={sf('address',setMun)}/></div><div className="col-span-2"><label className="label">E-mail institucional</label><input className="input" type="email" value={mun.email} onChange={sf('email',setMun)}/></div></div><div className="flex justify-end"><button onClick={function(){setMs(true);setTimeout(function(){setMs(false);},3000);}} className="btn-primary flex items-center gap-2">{ms?<><CheckCircle size={15}/> Salvo!</>:'Salvar'}</button></div></div>)}
+      {tab==='security'&&(<div className="card max-w-md space-y-4"><h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><Shield size={18} className="text-primary-500"/>Alterar Senha</h2>{sm&&<div className={'p-3 rounded-lg text-sm '+(sm.includes('sucesso')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200')}>{sm}</div>}<div><label className="label">Senha atual</label><div className="relative"><input type={sp?'text':'password'} className="input pr-10" value={sec.cur} onChange={sf('cur',setSec)}/><button type="button" onClick={function(){setSp(p=>!p);}} className="absolute right-3 top-2.5 text-gray-400">{sp?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div><div><label className="label">Nova senha</label><input type="password" className="input" value={sec.nw} onChange={sf('nw',setSec)}/></div><div><label className="label">Confirmar nova senha</label><input type="password" className="input" value={sec.cf} onChange={sf('cf',setSec)}/></div><button onClick={function(){if(!sec.cur||!sec.nw){setSm('Preencha todos os campos.');return;}if(sec.nw!==sec.cf){setSm('Senhas não coincidem.');return;}if(sec.nw.length<6){setSm('Mínimo 6 caracteres.');return;}setSm('Senha alterada com sucesso!');setSec({cur:'',nw:'',cf:''}); }} className="btn-primary w-full">Alterar Senha</button></div>)}
+      {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){du({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
+      {modal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]"><div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{eid?'Editar Usuário':'Novo Usuário'}</h3><button onClick={function(){setModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div><div className="overflow-y-auto flex-1 p-5 space-y-3">{uerr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{uerr}</div>}<div><label className="label">Nome *</label><input className="input" value={uf.name} onChange={sf('name',setUf)}/></div><div><label className="label">E-mail *</label><input className="input" type="email" value={uf.email} onChange={sf('email',setUf)}/></div><div><label className="label">Perfil</label><select className="input" value={uf.role} onChange={sf('role',setUf)}>{ROLES.map(function(r){return <option key={r.value} value={r.value}>{r.label}</option>;})}</select></div><div><label className="label">{eid?'Nova senha (em branco = manter)':'Senha *'}</label><div className="relative"><input type={sp?'text':'password'} className="input pr-10" value={uf.password} onChange={sf('password',setUf)} placeholder="Mínimo 6 caracteres"/><button type="button" onClick={function(){setSp(p=>!p);}} className="absolute right-3 top-2.5 text-gray-400">{sp?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div>{uf.password&&<div><label className="label">Confirmar senha</label><input type="password" className="input" value={uf.cp} onChange={sf('cp',setUf)}/></div>}</div><div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={cr||up} className="btn-primary flex-1">{cr||up?'Salvando...':eid?'Salvar alterações':'Criar Usuário'}</button></div></div></div>)}
+    </div>
+  );
+      }

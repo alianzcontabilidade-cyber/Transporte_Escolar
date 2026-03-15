@@ -778,6 +778,70 @@ export const notificationsRouter = t.router({
     }),
 });
 
+
+// ============================================
+// USERS ROUTER
+// ============================================
+export const usersRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        municipalityId: users.municipalityId,
+        createdAt: users.createdAt,
+      }).from(users)
+        .where(eq(users.municipalityId, input.municipalityId));
+    }),
+  create: protectedProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string(),
+      email: z.string().email(),
+      role: z.string().default('operator'),
+      password: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash(input.password, 10);
+      const [newUser] = await db.insert(users).values({
+        municipalityId: input.municipalityId,
+        name: input.name,
+        email: input.email,
+        role: input.role,
+        password: hashedPassword,
+      });
+      return { success: true, id: newUser.insertId };
+    }),
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+      role: z.string().optional(),
+      password: z.string().min(6).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, password, ...rest } = input;
+      const updateData: any = { ...rest };
+      if (password) {
+        const bcrypt = await import('bcryptjs');
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+      await db.update(users).set(updateData).where(eq(users.id, id));
+      return { success: true };
+    }),
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(users).where(eq(users.id, input.id));
+      return { success: true };
+    }),
+});
+
 // ============================================
 // MAIN ROUTER
 // ============================================
@@ -794,4 +858,5 @@ export const appRouter = t.router({
   notifications: notificationsRouter,
 });
 
+  users: usersRouter,
 export type AppRouter = typeof appRouter;

@@ -2,54 +2,107 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { School, Plus, Trash2, X } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users } from 'lucide-react';
 
-function Modal({ title, onClose, children }: any) {
-  return <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-xl w-full max-w-md"><div className="flex items-center justify-between p-6 border-b border-gray-200"><h3 className="font-semibold text-gray-900">{title}</h3><button onClick={onClose}><X size={20} /></button></div><div className="p-6">{children}</div></div></div>;
-}
+const emptyForm = { name:'', address:'', city:'', state:'', phone:'', email:'', directorName:'', studentCount:'', observations:'' };
 
 export default function SchoolsPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId || 0;
-  const [show, setShow] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'fundamental', address: '', phone: '', email: '', directorName: '' });
-  const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
-  const { mutate: create, loading } = useMutation(api.schools.create);
+  const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState<number|null>(null);
+  const [form, setForm] = useState<any>(emptyForm);
+  const [search, setSearch] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [formErr, setFormErr] = useState('');
+  const { data: schools, refetch } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
+  const { mutate: create, loading: creating } = useMutation(api.schools.create);
+  const { mutate: update, loading: updating } = useMutation(api.schools.update);
   const { mutate: remove } = useMutation(api.schools.delete);
-  const set = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
-  const typeLabel = (t: string) => ({ infantil:'Infantil',fundamental:'Fundamental',medio:'Médio',tecnico:'Técnico',especial:'Especial' }[t]||t);
+
+  const setField = function(k: string) { return function(e: any) { setForm(function(f: any) { return {...f,[k]:e.target.value}; }); }; };
+  const all = (schools as any)||[];
+  const filtered = all.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.city||'').toLowerCase().includes(q)||(s.address||'').toLowerCase().includes(q); });
+
+  const openNew = function() { setForm(emptyForm); setEditId(null); setFormErr(''); setShowModal(true); };
+  const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setFormErr(''); setShowModal(true); };
+
+  const save = function() {
+    if (!form.name) { setFormErr('Nome é obrigatório.'); return; }
+    const payload = { municipalityId, name:form.name, address:form.address||undefined, city:form.city||undefined, state:form.state||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined, studentCount:form.studentCount?parseInt(form.studentCount):undefined, observations:form.observations||undefined };
+    if (editId!==null) {
+      update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
+    } else {
+      create(payload,{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
+    }
+  };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500 mt-1">{(schools as any)?.length ?? 0} escola(s)</p></div>
-        <button className="btn-primary flex items-center gap-2" onClick={() => setShow(true)}><Plus size={16} /> Nova Escola</button>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
+        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Nova Escola</button>
       </div>
-      <div className="grid gap-4">
-        {(schools as any)?.map((s: any) => (
-          <div key={s.id} className="card flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><School size={18} className="text-blue-600" /></div>
-              <div><p className="font-semibold text-gray-900">{s.name}</p><span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{typeLabel(s.type||'fundamental')}</span>{s.address && <span className="text-xs text-gray-500 ml-2">{s.address}</span>}</div>
+
+      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, cidade ou endereço..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.map(function(s: any){ return (
+          <div key={s.id} className="card hover:border-primary-200 transition-colors">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0"><School size={20} className="text-emerald-600"/></div>
+              <div className="flex items-center gap-1">
+                <button onClick={function(){openEdit(s);}} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors" title="Editar"><Pencil size={14}/></button>
+                <button onClick={function(){setConfirmDelete(s);}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={14}/></button>
+              </div>
             </div>
-            <button className="p-2 text-gray-400 hover:text-red-500 rounded-lg" onClick={() => { if(confirm('Remover?')) remove({ id: s.id }, { onSuccess: refetch }); }}><Trash2 size={16} /></button>
+            <p className="font-bold text-gray-900">{s.name}</p>
+            <div className="mt-2 space-y-1">
+              {(s.address||s.city)&&<p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10}/>{[s.address,s.city,s.state].filter(Boolean).join(', ')}</p>}
+              {s.phone&&<p className="text-xs text-gray-500 flex items-center gap-1"><Phone size={10}/>{s.phone}</p>}
+              {s.email&&<p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10}/>{s.email}</p>}
+              {s.directorName&&<p className="text-xs text-gray-500">Diretor(a): {s.directorName}</p>}
+              {s.studentCount&&<p className="text-xs text-gray-500 flex items-center gap-1"><Users size={10}/>{s.studentCount} alunos</p>}
+            </div>
           </div>
-        ))}
-        {!(schools as any)?.length && <div className="card text-center py-12"><School size={40} className="text-gray-300 mx-auto mb-3" /><p className="text-gray-500">Nenhuma escola</p><button className="btn-primary mt-4" onClick={() => setShow(true)}>Adicionar</button></div>}
+        );})}
+        {!filtered.length&&!search&&<div className="col-span-3 card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhuma escola cadastrada</p><button className="btn-primary" onClick={openNew}>Adicionar escola</button></div>}
+        {!filtered.length&&search&&<div className="col-span-3 card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
-      {show && <Modal title="Nova Escola" onClose={() => setShow(false)}>
-        <div className="space-y-3">
-          <div><label className="label">Nome *</label><input className="input" value={form.name} onChange={set('name')} /></div>
-          <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={set('type')}><option value="infantil">Infantil</option><option value="fundamental">Fundamental</option><option value="medio">Médio</option><option value="tecnico">Técnico</option><option value="especial">Especial</option></select></div>
-          <div><label className="label">Endereço</label><input className="input" value={form.address} onChange={set('address')} /></div>
-          <div className="grid grid-cols-2 gap-3"><div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={set('phone')} /></div><div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={set('email')} /></div></div>
-          <div><label className="label">Diretor</label><input className="input" value={form.directorName} onChange={set('directorName')} /></div>
-          <div className="flex gap-3 pt-2">
-            <button className="btn-secondary flex-1" onClick={() => setShow(false)}>Cancelar</button>
-            <button className="btn-primary flex-1" disabled={loading} onClick={() => create({ municipalityId, ...form }, { onSuccess: () => { refetch(); setShow(false); } })}>{loading ? 'Salvando...' : 'Salvar'}</button>
+
+      {confirmDelete&&(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-red-500"/></div>
+            <h3 className="font-bold text-gray-800 mb-2">Excluir {confirmDelete.name}?</h3>
+            <p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3"><button onClick={function(){setConfirmDelete(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:confirmDelete.id},{onSuccess:function(){refetch();setConfirmDelete(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div>
           </div>
         </div>
-      </Modal>}
+      )}
+
+      {showModal&&(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Escola':'Nova Escola'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+            <div className="overflow-y-auto flex-1 p-5 space-y-3">
+              {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2"><label className="label">Nome da escola *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Ex: Escola Municipal Centro"/></div>
+                <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
+                <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
+                <div><label className="label">Estado</label><input className="input" value={form.state} onChange={setField('state')} placeholder="Ex: TO"/></div>
+                <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={setField('phone')} placeholder="(00) 0000-0000"/></div>
+                <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
+                <div><label className="label">Diretor(a)</label><input className="input" value={form.directorName} onChange={setField('directorName')}/></div>
+                <div><label className="label">Nº de alunos</label><input className="input" type="number" value={form.studentCount} onChange={setField('studentCount')}/></div>
+                <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Escola'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+        }

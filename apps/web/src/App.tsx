@@ -20,11 +20,17 @@ import SuperAdminPage from './pages/SuperAdminPage';
 import AIRoutesPage from './pages/AIRoutesPage';
 import PredictivePage from './pages/PredictivePage';
 
-function Protected({ children }: { children: React.ReactNode }) {
+// Rota protegida com controle de perfil
+function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
+
+const ADMIN = ['super_admin', 'municipal_admin'];
+const ADMIN_OP = ['super_admin', 'municipal_admin', 'operator'];
+const ALL_STAFF = ['super_admin', 'municipal_admin', 'operator', 'driver'];
 
 export default function App() {
   const { user } = useAuth();
@@ -32,25 +38,25 @@ export default function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
-      <Route path="/" element={<Protected><Layout /></Protected>}>
-        <Route index element={<DashboardPage />} />
-        <Route path="monitor" element={<MonitorPage />} />
-        <Route path="rotas" element={<RoutesPage />} />
-        <Route path="alunos" element={<StudentsPage />} />
-        <Route path="motoristas" element={<DriversPage />} />
-        <Route path="monitores" element={<MonitoresPage />} />
-        <Route path="veiculos" element={<VehiclesPage />} />
-        <Route path="escolas" element={<SchoolsPage />} />
-        <Route path="frequencia" element={<AttendancePage />} />
-        <Route path="relatorios" element={<ReportsPage />} />
-        <Route path="contratos" element={<ContractsPage />} />
-        <Route path="portal-responsavel" element={<GuardianPage />} />
-        <Route path="super-admin" element={<SuperAdminPage />} />
-        <Route path="ia-rotas" element={<AIRoutesPage />} />
-        <Route path="manutencao-preditiva" element={<PredictivePage />} />
-        <Route path="configuracoes" element={<SettingsPage />} />
+      <Route path="/" element={<Guard><Layout /></Guard>}>
+        <Route index element={<Guard roles={ADMIN_OP}><DashboardPage /></Guard>} />
+        <Route path="monitor" element={<Guard roles={ALL_STAFF}><MonitorPage /></Guard>} />
+        <Route path="rotas" element={<Guard roles={ALL_STAFF}><RoutesPage /></Guard>} />
+        <Route path="alunos" element={<Guard roles={ADMIN_OP}><StudentsPage /></Guard>} />
+        <Route path="motoristas" element={<Guard roles={ADMIN_OP}><DriversPage /></Guard>} />
+        <Route path="monitores" element={<Guard roles={ADMIN_OP}><MonitoresPage /></Guard>} />
+        <Route path="veiculos" element={<Guard roles={ADMIN}><VehiclesPage /></Guard>} />
+        <Route path="escolas" element={<Guard roles={ADMIN_OP}><SchoolsPage /></Guard>} />
+        <Route path="frequencia" element={<Guard roles={ALL_STAFF}><AttendancePage /></Guard>} />
+        <Route path="relatorios" element={<Guard roles={ADMIN_OP}><ReportsPage /></Guard>} />
+        <Route path="contratos" element={<Guard roles={ADMIN}><ContractsPage /></Guard>} />
+        <Route path="portal-responsavel" element={<Guard roles={['super_admin','municipal_admin','guardian']}><GuardianPage /></Guard>} />
+        <Route path="super-admin" element={<Guard roles={['super_admin']}><SuperAdminPage /></Guard>} />
+        <Route path="ia-rotas" element={<Guard roles={ADMIN}><AIRoutesPage /></Guard>} />
+        <Route path="manutencao-preditiva" element={<Guard roles={ADMIN}><PredictivePage /></Guard>} />
+        <Route path="configuracoes" element={<Guard roles={ADMIN}><SettingsPage /></Guard>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-}
+      }

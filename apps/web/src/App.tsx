@@ -11,6 +11,7 @@ import VehiclesPage from './pages/VehiclesPage';
 import SchoolsPage from './pages/SchoolsPage';
 import MonitorPage from './pages/MonitorPage';
 import ReportsPage from './pages/ReportsPage';
+import SettingsPage from './pages/SettingsPage';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="veiculos" element={<VehiclesPage />} />
         <Route path="escolas" element={<SchoolsPage />} />
         <Route path="relatorios" element={<ReportsPage />} />
+                <Route path="configuracoes" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

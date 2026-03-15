@@ -90,4 +90,10 @@ export const api = {
     listActive: (input: any) => call('trips.listActive', input, 'query'),
     history: (input: any) => call('trips.history', input, 'query'),
   },
+  users: {
+    list: (input: any) => call('users.list', input, 'query'),
+    create: (input: any) => call('users.create', input, 'mutation'),
+    update: (input: any) => call('users.update', input, 'mutation'),
+    delete: (input: any) => call('users.delete', input, 'mutation'),
+  },
 };

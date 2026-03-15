@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
-import { Bus, LayoutDashboard, MapPin, Users, Truck, School, FileText, LogOut, Radio, Wifi, WifiOff } from 'lucide-react';
+import { Bus, LayoutDashboard, MapPin, Users, Truck, School, FileText, LogOut, Radio, Wifi, WifiOff, Settings } from 'lucide-react';
 
 const nav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -12,6 +12,7 @@ const nav = [
   { to: '/veiculos', icon: Bus, label: 'Veículos' },
   { to: '/escolas', icon: School, label: 'Escolas' },
   { to: '/relatorios', icon: FileText, label: 'Relatórios' },
+  { to: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
 
 export default function Layout() {

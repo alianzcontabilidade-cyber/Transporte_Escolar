@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
 import { Bus, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -16,11 +15,25 @@ export default function LoginPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const data = await api.auth.login({ email, password });
-      login(data.token, data.user);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/trpc/auth.login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json();
+      const data = json?.result?.data || json?.data || json;
+      if (data?.token && data?.user) {
+        login(data.token, data.user);
+      } else if (json?.error) {
+        throw new Error(json.error?.data?.message || json.error?.message || 'Credenciais inválidas');
+      } else {
+        throw new Error('Credenciais inválidas');
+      }
     } catch (err: any) {
       setError(err.message || 'Credenciais inválidas');
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,15 +55,19 @@ export default function LoginPage() {
               <label className="label">Senha</label>
               <div className="relative">
                 <input type={showPass ? 'text' : 'password'} className="input pr-10" value={password} onChange={e => setPassword(e.target.value)} required />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" className="absolute right-3 top-2.5 text-gray-400" onClick={() => setShowPass(!showPass)}>
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
-            <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">{loading ? 'Entrando...' : 'Entrar'}</button>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button type="submit" className="btn-primary w-full" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
           </form>
-          <p className="text-center text-sm text-gray-500 mt-6">Não tem conta?{' '}<Link to="/cadastro" className="text-primary-600 font-medium hover:underline">Cadastrar prefeitura</Link></p>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Não tem conta? <Link to="/cadastro" className="text-primary-600 hover:underline">Cadastrar prefeitura</Link>
+          </p>
         </div>
       </div>
     </div>

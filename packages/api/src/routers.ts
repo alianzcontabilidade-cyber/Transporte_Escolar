@@ -1,12 +1,12 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { db } from './db/index';
-import { 
-  municipalities, schools, users, vehicles, drivers, students, 
+import {
+  municipalities, schools, users, vehicles, drivers, students,
   guardians, routes, stops, stopStudents, trips, tripStopLogs,
   tripStudentLogs, notifications, locationHistory
 } from './db/schema';
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, sql, inArray } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 
@@ -22,6 +22,13 @@ const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (!['super_admin', 'municipal_admin', 'secretary'].includes(ctx.role || '')) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão de administrador' });
+  }
+  return next({ ctx });
+});
+
+const staffProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (!['super_admin', 'municipal_admin', 'secretary', 'driver', 'monitor'].includes(ctx.role || '')) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão' });
   }
   return next({ ctx });
@@ -31,7 +38,6 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 // AUTH ROUTER
 // ============================================
 export const authRouter = t.router({
-  // Registro de nova prefeitura
   registerMunicipality: publicProcedure
     .input(z.object({
       municipalityName: z.string().min(3),
@@ -44,13 +50,10 @@ export const authRouter = t.router({
       adminPhone: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      // Verificar se email já existe
       const existingUser = await db.select().from(users).where(eq(users.email, input.adminEmail)).limit(1);
       if (existingUser.length > 0) {
         throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
       }
-
-      // Criar prefeitura
       const [municipality] = await db.insert(municipalities).values({
         name: input.municipalityName,
         state: input.state,
@@ -59,7 +62,6 @@ export const authRouter = t.router({
         email: input.adminEmail,
       }).$returningId();
 
-      // Criar usuário admin
       const passwordHash = await hash(input.adminPassword, 12);
       const [user] = await db.insert(users).values({
         municipalityId: municipality.id,
@@ -70,15 +72,53 @@ export const authRouter = t.router({
         role: 'municipal_admin',
       }).$returningId();
 
-      return { 
-        success: true, 
-        municipalityId: municipality.id,
-        userId: user.id,
-        message: 'Prefeitura cadastrada com sucesso!' 
-      };
+      return { success: true, municipalityId: municipality.id, userId: user.id, message: 'Prefeitura cadastrada com sucesso!' };
     }),
 
-  // Login
+  registerGuardian: publicProcedure
+    .input(z.object({
+      name: z.string().min(3),
+      email: z.string().email(),
+      password: z.string().min(6),
+      phone: z.string().optional(),
+      cpf: z.string().optional(),
+      studentEnrollment: z.string().min(1),
+      relationship: z.enum(['father', 'mother', 'grandparent', 'uncle', 'other']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      if (existingUser.length > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
+      }
+
+      const [student] = await db.select().from(students)
+        .where(eq(students.enrollment, input.studentEnrollment)).limit(1);
+      if (!student) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Matrícula do aluno não encontrada. Verifique com a escola.' });
+      }
+
+      const passwordHash = await hash(input.password, 12);
+      const [user] = await db.insert(users).values({
+        municipalityId: student.municipalityId,
+        email: input.email,
+        passwordHash,
+        name: input.name,
+        phone: input.phone,
+        cpf: input.cpf,
+        role: 'parent',
+      }).$returningId();
+
+      await db.insert(guardians).values({
+        userId: user.id,
+        studentId: student.id,
+        relationship: input.relationship || 'other',
+        isPrimary: true,
+        canPickup: true,
+      });
+
+      return { success: true, userId: user.id, studentName: student.name, message: 'Cadastro realizado! Você já pode acompanhar o transporte.' };
+    }),
+
   login: publicProcedure
     .input(z.object({
       email: z.string().email(),
@@ -86,51 +126,29 @@ export const authRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      
       if (!user || !user.passwordHash) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
       }
-
       const validPassword = await compare(input.password, user.passwordHash);
       if (!validPassword) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
       }
-
-      // Atualizar último login
       await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
-
-      // Gerar token JWT
       const token = sign(
         { userId: user.id, municipalityId: user.municipalityId, role: user.role },
         process.env.JWT_SECRET || 'transescolar-secret-2024',
         { expiresIn: '7d' }
       );
-
       return {
         token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          municipalityId: user.municipalityId,
-        }
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId }
       };
     }),
 
-  // Verificar token
   me: protectedProcedure.query(async ({ ctx }) => {
     const [user] = await db.select().from(users).where(eq(users.id, ctx.userId!)).limit(1);
-    if (!user) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
-    }
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      municipalityId: user.municipalityId,
-    };
+    if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+    return { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId };
   }),
 });
 
@@ -140,7 +158,7 @@ export const authRouter = t.router({
 export const municipalitiesRouter = t.router({
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input }) => {
       const [municipality] = await db.select().from(municipalities).where(eq(municipalities.id, input.id)).limit(1);
       return municipality;
     }),
@@ -161,44 +179,30 @@ export const municipalitiesRouter = t.router({
       return { success: true };
     }),
 
-  // Dashboard stats
   getDashboardStats: adminProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
       const [schoolCount] = await db.select({ count: sql<number>`count(*)` })
         .from(schools).where(eq(schools.municipalityId, input.municipalityId));
-      
       const [studentCount] = await db.select({ count: sql<number>`count(*)` })
         .from(students).where(eq(students.municipalityId, input.municipalityId));
-      
       const [routeCount] = await db.select({ count: sql<number>`count(*)` })
         .from(routes).where(eq(routes.municipalityId, input.municipalityId));
-      
       const [vehicleCount] = await db.select({ count: sql<number>`count(*)` })
         .from(vehicles).where(eq(vehicles.municipalityId, input.municipalityId));
-      
       const [driverCount] = await db.select({ count: sql<number>`count(*)` })
         .from(drivers).where(eq(drivers.municipalityId, input.municipalityId));
 
-      // Viagens de hoje
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const [todayTrips] = await db.select({ count: sql<number>`count(*)` })
         .from(trips)
         .innerJoin(routes, eq(trips.routeId, routes.id))
-        .where(and(
-          eq(routes.municipalityId, input.municipalityId),
-          gte(trips.tripDate, today)
-        ));
-
-      // Viagens ativas agora
+        .where(and(eq(routes.municipalityId, input.municipalityId), gte(trips.tripDate, today)));
       const [activeTrips] = await db.select({ count: sql<number>`count(*)` })
         .from(trips)
         .innerJoin(routes, eq(trips.routeId, routes.id))
-        .where(and(
-          eq(routes.municipalityId, input.municipalityId),
-          eq(trips.status, 'started')
-        ));
+        .where(and(eq(routes.municipalityId, input.municipalityId), eq(trips.status, 'started')));
 
       return {
         schools: schoolCount?.count || 0,
@@ -288,11 +292,8 @@ export const routesRouter = t.router({
     .query(async ({ input }) => {
       const [route] = await db.select().from(routes).where(eq(routes.id, input.id)).limit(1);
       if (!route) throw new TRPCError({ code: 'NOT_FOUND' });
-      
       const routeStops = await db.select().from(stops)
-        .where(eq(stops.routeId, input.id))
-        .orderBy(stops.orderIndex);
-      
+        .where(eq(stops.routeId, input.id)).orderBy(stops.orderIndex);
       return { ...route, stops: routeStops };
     }),
 
@@ -349,21 +350,16 @@ export const stopsRouter = t.router({
       const routeStops = await db.select().from(stops)
         .where(and(eq(stops.routeId, input.routeId), eq(stops.isActive, true)))
         .orderBy(stops.orderIndex);
-      
-      // Buscar alunos de cada parada
+
       const stopsWithStudents = await Promise.all(routeStops.map(async (stop) => {
         const stopStudentList = await db.select({
-          id: students.id,
-          name: students.name,
-          photoUrl: students.photoUrl,
+          id: students.id, name: students.name, photoUrl: students.photoUrl,
         })
-          .from(stopStudents)
-          .innerJoin(students, eq(stopStudents.studentId, students.id))
-          .where(eq(stopStudents.stopId, stop.id));
-        
+        .from(stopStudents)
+        .innerJoin(students, eq(stopStudents.studentId, students.id))
+        .where(eq(stopStudents.stopId, stop.id));
         return { ...stop, students: stopStudentList };
       }));
-      
       return stopsWithStudents;
     }),
 
@@ -407,15 +403,10 @@ export const stopsRouter = t.router({
     }),
 
   reorder: adminProcedure
-    .input(z.object({
-      routeId: z.number(),
-      stopIds: z.array(z.number()),
-    }))
+    .input(z.object({ routeId: z.number(), stopIds: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       for (let i = 0; i < input.stopIds.length; i++) {
-        await db.update(stops)
-          .set({ orderIndex: i + 1 })
-          .where(eq(stops.id, input.stopIds[i]));
+        await db.update(stops).set({ orderIndex: i + 1 }).where(eq(stops.id, input.stopIds[i]));
       }
       return { success: true };
     }),
@@ -426,19 +417,14 @@ export const stopsRouter = t.router({
 // ============================================
 export const studentsRouter = t.router({
   list: protectedProcedure
-    .input(z.object({ 
-      municipalityId: z.number(),
-      schoolId: z.number().optional(),
-    }))
+    .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
     .query(async ({ input }) => {
       const conditions = [
         eq(students.municipalityId, input.municipalityId),
         eq(students.isActive, true),
         ...(input.schoolId ? [eq(students.schoolId, input.schoolId)] : []),
       ];
-      return db.select().from(students)
-        .where(and(...conditions))
-        .orderBy(students.name);
+      return db.select().from(students).where(and(...conditions)).orderBy(students.name);
     }),
 
   create: adminProcedure
@@ -481,61 +467,64 @@ export const studentsRouter = t.router({
 });
 
 // ============================================
-// TRIPS ROUTER (VIAGENS)
+// TRIPS ROUTER
 // ============================================
 export const tripsRouter = t.router({
-  // Listar viagens ativas (para dashboard do secretário)
   listActive: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
       const activeTrips = await db.select({
-        trip: trips,
-        route: routes,
-        driver: {
-          id: drivers.id,
-          userId: drivers.userId,
-          currentLatitude: drivers.currentLatitude,
-          currentLongitude: drivers.currentLongitude,
-        },
+        trip: trips, route: routes,
+        driver: { id: drivers.id, userId: drivers.userId, currentLatitude: drivers.currentLatitude, currentLongitude: drivers.currentLongitude },
         vehicle: vehicles,
       })
-        .from(trips)
-        .innerJoin(routes, eq(trips.routeId, routes.id))
-        .innerJoin(drivers, eq(trips.driverId, drivers.id))
-        .innerJoin(vehicles, eq(trips.vehicleId, vehicles.id))
-        .where(and(
-          eq(routes.municipalityId, input.municipalityId),
-          eq(trips.status, 'started')
-        ))
-        .orderBy(desc(trips.startedAt));
+      .from(trips)
+      .innerJoin(routes, eq(trips.routeId, routes.id))
+      .innerJoin(drivers, eq(trips.driverId, drivers.id))
+      .innerJoin(vehicles, eq(trips.vehicleId, vehicles.id))
+      .where(and(eq(routes.municipalityId, input.municipalityId), eq(trips.status, 'started')))
+      .orderBy(desc(trips.startedAt));
 
-      // Buscar nome do motorista
       const tripsWithDriverName = await Promise.all(activeTrips.map(async (t) => {
-        const [user] = await db.select({ name: users.name })
-          .from(users).where(eq(users.id, t.driver.userId)).limit(1);
+        const [user] = await db.select({ name: users.name }).from(users).where(eq(users.id, t.driver.userId)).limit(1);
         return { ...t, driverName: user?.name };
       }));
-
       return tripsWithDriverName;
     }),
 
-  // Iniciar viagem (motorista)
+  getById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const [trip] = await db.select({
+        trip: trips, route: routes,
+        driver: { id: drivers.id, userId: drivers.userId, currentLatitude: drivers.currentLatitude, currentLongitude: drivers.currentLongitude },
+        vehicle: vehicles,
+      })
+      .from(trips)
+      .innerJoin(routes, eq(trips.routeId, routes.id))
+      .innerJoin(drivers, eq(trips.driverId, drivers.id))
+      .innerJoin(vehicles, eq(trips.vehicleId, vehicles.id))
+      .where(eq(trips.id, input.id))
+      .limit(1);
+      if (!trip) throw new TRPCError({ code: 'NOT_FOUND', message: 'Viagem não encontrada' });
+
+      const [driverUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, trip.driver.userId)).limit(1);
+      const tripStops = await db.select().from(stops).where(eq(stops.routeId, trip.route.id)).orderBy(stops.orderIndex);
+      const stopLogs = await db.select().from(tripStopLogs).where(eq(tripStopLogs.tripId, input.id));
+
+      return { ...trip, driverName: driverUser?.name, stops: tripStops, stopLogs };
+    }),
+
   start: protectedProcedure
-    .input(z.object({
-      routeId: z.number(),
-      driverId: z.number(),
-      vehicleId: z.number(),
-    }))
+    .input(z.object({ routeId: z.number(), driverId: z.number(), vehicleId: z.number() }))
     .mutation(async ({ input }) => {
       const [route] = await db.select().from(routes).where(eq(routes.id, input.routeId)).limit(1);
       if (!route) throw new TRPCError({ code: 'NOT_FOUND', message: 'Rota não encontrada' });
 
-      // Contar alunos esperados
       const stopList = await db.select().from(stops).where(eq(stops.routeId, input.routeId));
       let totalStudents = 0;
       for (const stop of stopList) {
-        const [count] = await db.select({ count: sql<number>`count(*)` })
-          .from(stopStudents).where(eq(stopStudents.stopId, stop.id));
+        const [count] = await db.select({ count: sql<number>`count(*)` }).from(stopStudents).where(eq(stopStudents.stopId, stop.id));
         totalStudents += count?.count || 0;
       }
 
@@ -550,48 +539,49 @@ export const tripsRouter = t.router({
         totalStudentsExpected: totalStudents,
       }).$returningId();
 
+      // Notificar responsáveis que a viagem iniciou
+      const routeStops = await db.select().from(stops).where(eq(stops.routeId, input.routeId));
+      for (const stop of routeStops) {
+        const ssStudents = await db.select({ studentId: stopStudents.studentId }).from(stopStudents).where(eq(stopStudents.stopId, stop.id));
+        for (const ss of ssStudents) {
+          const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, ss.studentId));
+          for (const g of guardianList) {
+            await db.insert(notifications).values({
+              userId: g.userId,
+              title: 'Viagem iniciada!',
+              body: 'O ônibus escolar iniciou a rota ' + route.name + '. Acompanhe em tempo real.',
+              type: 'trip_started',
+              tripId: trip.id,
+            });
+          }
+        }
+      }
+
       return { success: true, tripId: trip.id };
     }),
 
-  // Marcar chegada em parada
   arriveAtStop: protectedProcedure
-    .input(z.object({
-      tripId: z.number(),
-      stopId: z.number(),
-      latitude: z.number(),
-      longitude: z.number(),
-    }))
+    .input(z.object({ tripId: z.number(), stopId: z.number(), latitude: z.number(), longitude: z.number() }))
     .mutation(async ({ input }) => {
-      // Registrar chegada
       await db.insert(tripStopLogs).values({
-        tripId: input.tripId,
-        stopId: input.stopId,
-        arrivedAt: new Date(),
-        latitude: input.latitude.toString(),
-        longitude: input.longitude.toString(),
+        tripId: input.tripId, stopId: input.stopId, arrivedAt: new Date(),
+        latitude: input.latitude.toString(), longitude: input.longitude.toString(),
       });
 
-      // Atualizar índice da parada atual
       const [trip] = await db.select().from(trips).where(eq(trips.id, input.tripId)).limit(1);
       if (trip) {
-        await db.update(trips)
-          .set({ currentStopIndex: (trip.currentStopIndex ?? 0) + 1 })
-          .where(eq(trips.id, input.tripId));
+        await db.update(trips).set({ currentStopIndex: (trip.currentStopIndex ?? 0) + 1 }).where(eq(trips.id, input.tripId));
       }
 
-      // Enviar notificações para responsáveis
-      const stopStudentList = await db.select({ studentId: stopStudents.studentId })
-        .from(stopStudents).where(eq(stopStudents.stopId, input.stopId));
-      
+      const [stopInfo] = await db.select().from(stops).where(eq(stops.id, input.stopId)).limit(1);
+      const stopStudentList = await db.select({ studentId: stopStudents.studentId }).from(stopStudents).where(eq(stopStudents.stopId, input.stopId));
       for (const ss of stopStudentList) {
-        const guardianList = await db.select({ userId: guardians.userId })
-          .from(guardians).where(eq(guardians.studentId, ss.studentId));
-        
+        const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, ss.studentId));
         for (const g of guardianList) {
           await db.insert(notifications).values({
             userId: g.userId,
-            title: 'Ônibus chegou!',
-            body: 'O ônibus escolar chegou à parada.',
+            title: 'Ônibus chegou na parada!',
+            body: 'O ônibus chegou em: ' + (stopInfo?.name || 'parada'),
             type: 'arrived',
             tripId: input.tripId,
             stopId: input.stopId,
@@ -599,73 +589,62 @@ export const tripsRouter = t.router({
           });
         }
       }
-
       return { success: true };
     }),
 
-  // Finalizar viagem
   complete: protectedProcedure
     .input(z.object({ tripId: z.number() }))
     .mutation(async ({ input }) => {
-      await db.update(trips)
-        .set({ status: 'completed', completedAt: new Date() })
-        .where(eq(trips.id, input.tripId));
+      await db.update(trips).set({ status: 'completed', completedAt: new Date() }).where(eq(trips.id, input.tripId));
+
+      const [trip] = await db.select().from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (trip) {
+        const routeStops = await db.select().from(stops).where(eq(stops.routeId, trip.routeId));
+        for (const stop of routeStops) {
+          const ssStudents = await db.select({ studentId: stopStudents.studentId }).from(stopStudents).where(eq(stopStudents.stopId, stop.id));
+          for (const ss of ssStudents) {
+            const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, ss.studentId));
+            for (const g of guardianList) {
+              await db.insert(notifications).values({
+                userId: g.userId,
+                title: 'Viagem concluída',
+                body: 'A viagem foi concluída com sucesso.',
+                type: 'trip_completed',
+                tripId: input.tripId,
+                studentId: ss.studentId,
+              });
+            }
+          }
+        }
+      }
       return { success: true };
     }),
 
-  // Atualizar localização GPS
   updateLocation: protectedProcedure
-    .input(z.object({
-      tripId: z.number(),
-      driverId: z.number(),
-      latitude: z.number(),
-      longitude: z.number(),
-      speed: z.number().optional(),
-      heading: z.number().optional(),
-    }))
+    .input(z.object({ tripId: z.number(), driverId: z.number(), latitude: z.number(), longitude: z.number(), speed: z.number().optional(), heading: z.number().optional() }))
     .mutation(async ({ input }) => {
-      // Salvar histórico
       await db.insert(locationHistory).values({
-        tripId: input.tripId,
-        driverId: input.driverId,
-        latitude: input.latitude.toString(),
-        longitude: input.longitude.toString(),
-        speed: input.speed?.toString(),
-        heading: input.heading,
+        tripId: input.tripId, driverId: input.driverId,
+        latitude: input.latitude.toString(), longitude: input.longitude.toString(),
+        speed: input.speed?.toString(), heading: input.heading,
       });
-
-      // Atualizar posição atual do motorista
-      await db.update(drivers)
-        .set({
-          currentLatitude: input.latitude.toString(),
-          currentLongitude: input.longitude.toString(),
-          lastLocationUpdate: new Date(),
-        })
-        .where(eq(drivers.id, input.driverId));
-
+      await db.update(drivers).set({
+        currentLatitude: input.latitude.toString(),
+        currentLongitude: input.longitude.toString(),
+        lastLocationUpdate: new Date(),
+      }).where(eq(drivers.id, input.driverId));
       return { success: true };
     }),
 
-  // Histórico de viagens
   history: protectedProcedure
-    .input(z.object({
-      municipalityId: z.number(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-      limit: z.number().default(50),
-    }))
+    .input(z.object({ municipalityId: z.number(), startDate: z.string().optional(), endDate: z.string().optional(), limit: z.number().default(50) }))
     .query(async ({ input }) => {
-      let query = db.select({
-        trip: trips,
-        route: { id: routes.id, name: routes.name },
-      })
+      return db.select({ trip: trips, route: { id: routes.id, name: routes.name } })
         .from(trips)
         .innerJoin(routes, eq(trips.routeId, routes.id))
         .where(eq(routes.municipalityId, input.municipalityId))
         .orderBy(desc(trips.tripDate))
         .limit(input.limit);
-
-      return query;
     }),
 });
 
@@ -676,20 +655,13 @@ export const vehiclesRouter = t.router({
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      return db.select().from(vehicles)
-        .where(eq(vehicles.municipalityId, input.municipalityId))
-        .orderBy(vehicles.nickname);
+      return db.select().from(vehicles).where(eq(vehicles.municipalityId, input.municipalityId)).orderBy(vehicles.nickname);
     }),
 
   create: adminProcedure
     .input(z.object({
-      municipalityId: z.number(),
-      plate: z.string(),
-      nickname: z.string().optional(),
-      brand: z.string().optional(),
-      model: z.string().optional(),
-      year: z.number().optional(),
-      capacity: z.number().optional(),
+      municipalityId: z.number(), plate: z.string(), nickname: z.string().optional(),
+      brand: z.string().optional(), model: z.string().optional(), year: z.number().optional(), capacity: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const [vehicle] = await db.insert(vehicles).values(input).$returningId();
@@ -708,41 +680,28 @@ export const driversRouter = t.router({
         driver: drivers,
         user: { id: users.id, name: users.name, email: users.email, phone: users.phone },
       })
-        .from(drivers)
-        .innerJoin(users, eq(drivers.userId, users.id))
-        .where(eq(drivers.municipalityId, input.municipalityId));
+      .from(drivers)
+      .innerJoin(users, eq(drivers.userId, users.id))
+      .where(eq(drivers.municipalityId, input.municipalityId));
     }),
 
   create: adminProcedure
     .input(z.object({
-      municipalityId: z.number(),
-      name: z.string(),
-      email: z.string().email(),
-      phone: z.string().optional(),
-      password: z.string().min(6),
-      cnhNumber: z.string().optional(),
-      cnhCategory: z.string().optional(),
+      municipalityId: z.number(), name: z.string(), email: z.string().email(),
+      phone: z.string().optional(), password: z.string().min(6),
+      cnhNumber: z.string().optional(), cnhCategory: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      // Criar usuário
       const passwordHash = await hash(input.password, 12);
       const [user] = await db.insert(users).values({
-        municipalityId: input.municipalityId,
-        email: input.email,
-        passwordHash,
-        name: input.name,
-        phone: input.phone,
-        role: 'driver',
+        municipalityId: input.municipalityId, email: input.email, passwordHash,
+        name: input.name, phone: input.phone, role: 'driver',
       }).$returningId();
 
-      // Criar motorista
       const [driver] = await db.insert(drivers).values({
-        userId: user.id,
-        municipalityId: input.municipalityId,
-        cnhNumber: input.cnhNumber,
-        cnhCategory: input.cnhCategory,
+        userId: user.id, municipalityId: input.municipalityId,
+        cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
       }).$returningId();
-
       return { success: true, driverId: driver.id, userId: user.id };
     }),
 });
@@ -760,24 +719,25 @@ export const notificationsRouter = t.router({
         .limit(input.limit);
     }),
 
+  unreadCount: protectedProcedure.query(async ({ ctx }) => {
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, ctx.userId!), eq(notifications.isRead, false)));
+    return { count: result?.count || 0 };
+  }),
+
   markAsRead: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await db.update(notifications)
-        .set({ isRead: true, readAt: new Date() })
-        .where(eq(notifications.id, input.id));
+      await db.update(notifications).set({ isRead: true, readAt: new Date() }).where(eq(notifications.id, input.id));
       return { success: true };
     }),
 
-  markAllAsRead: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      await db.update(notifications)
-        .set({ isRead: true, readAt: new Date() })
-        .where(eq(notifications.userId, ctx.userId!));
-      return { success: true };
-    }),
+  markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.update(notifications).set({ isRead: true, readAt: new Date() }).where(eq(notifications.userId, ctx.userId!));
+    return { success: true };
+  }),
 });
-
 
 // ============================================
 // USERS ROUTER
@@ -786,62 +746,391 @@ export const usersRouter = t.router({
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      return await db.select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        municipalityId: users.municipalityId,
-        createdAt: users.createdAt,
-      }).from(users)
-        .where(eq(users.municipalityId, input.municipalityId));
+      return await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, municipalityId: users.municipalityId, createdAt: users.createdAt })
+        .from(users).where(eq(users.municipalityId, input.municipalityId));
     }),
+
   create: adminProcedure
     .input(z.object({
-      municipalityId: z.number(),
-      name: z.string(),
-      email: z.string().email(),
+      municipalityId: z.number(), name: z.string(), email: z.string().email(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).default('secretary'),
       password: z.string().min(6),
     }))
     .mutation(async ({ input }) => {
-      // Verificar se email já existe
       const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      if (existingUser.length > 0) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
-      }
+      if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
       const passwordHash = await hash(input.password, 12);
-      const [newUser] = await db.insert(users).values({
-        municipalityId: input.municipalityId,
-        name: input.name,
-        email: input.email,
-        role: input.role,
-        passwordHash,
-      }).$returningId();
+      const [newUser] = await db.insert(users).values({ municipalityId: input.municipalityId, name: input.name, email: input.email, role: input.role, passwordHash }).$returningId();
       return { success: true, id: newUser.id };
     }),
+
   update: adminProcedure
     .input(z.object({
-      id: z.number(),
-      name: z.string().optional(),
-      email: z.string().email().optional(),
+      id: z.number(), name: z.string().optional(), email: z.string().email().optional(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).optional(),
       password: z.string().min(6).optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, password, ...rest } = input;
       const updateData: any = { ...rest };
-      if (password) {
-        updateData.passwordHash = await hash(password, 12);
-      }
+      if (password) updateData.passwordHash = await hash(password, 12);
       await db.update(users).set(updateData).where(eq(users.id, id));
       return { success: true };
     }),
+
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await db.delete(users).where(eq(users.id, input.id));
       return { success: true };
+    }),
+});
+
+// ============================================
+// GUARDIANS ROUTER (APP RESPONSÁVEIS)
+// ============================================
+export const guardiansRouter = t.router({
+  // Listar filhos/dependentes do responsável
+  myStudents: protectedProcedure.query(async ({ ctx }) => {
+    const guardianLinks = await db.select({
+      guardianId: guardians.id,
+      studentId: guardians.studentId,
+      relationship: guardians.relationship,
+      isPrimary: guardians.isPrimary,
+    }).from(guardians).where(eq(guardians.userId, ctx.userId!));
+
+    if (guardianLinks.length === 0) return [];
+
+    const studentIds = guardianLinks.map(g => g.studentId);
+    const studentList = await db.select().from(students).where(inArray(students.id, studentIds));
+
+    const result = await Promise.all(studentList.map(async (student) => {
+      const [school] = await db.select({ name: schools.name }).from(schools).where(eq(schools.id, student.schoolId)).limit(1);
+      const link = guardianLinks.find(g => g.studentId === student.id);
+
+      // Verificar se o aluno tem viagem ativa
+      const studentStops = await db.select({ stopId: stopStudents.stopId, routeId: stops.routeId })
+        .from(stopStudents)
+        .innerJoin(stops, eq(stopStudents.stopId, stops.id))
+        .where(eq(stopStudents.studentId, student.id));
+
+      let activeTrip = null;
+      if (studentStops.length > 0) {
+        const routeIds = [...new Set(studentStops.map(s => s.routeId))];
+        for (const routeId of routeIds) {
+          const [trip] = await db.select({ id: trips.id, status: trips.status, startedAt: trips.startedAt, currentStopIndex: trips.currentStopIndex })
+            .from(trips).where(and(eq(trips.routeId, routeId), eq(trips.status, 'started'))).limit(1);
+          if (trip) {
+            activeTrip = { tripId: trip.id, routeId, startedAt: trip.startedAt, currentStopIndex: trip.currentStopIndex };
+            break;
+          }
+        }
+      }
+
+      return {
+        ...student,
+        schoolName: school?.name || '',
+        relationship: link?.relationship || 'other',
+        isPrimary: link?.isPrimary || false,
+        activeTrip,
+      };
+    }));
+    return result;
+  }),
+
+  // Obter viagem ativa do aluno com detalhes completos
+  getStudentActiveTrip: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      // Verificar que é responsável deste aluno
+      const [guardianLink] = await db.select().from(guardians)
+        .where(and(eq(guardians.userId, ctx.userId!), eq(guardians.studentId, input.studentId))).limit(1);
+      if (!guardianLink) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      // Encontrar a rota do aluno
+      const studentStops = await db.select({ stopId: stopStudents.stopId, routeId: stops.routeId })
+        .from(stopStudents)
+        .innerJoin(stops, eq(stopStudents.stopId, stops.id))
+        .where(eq(stopStudents.studentId, input.studentId));
+
+      if (studentStops.length === 0) return null;
+
+      const routeIds = [...new Set(studentStops.map(s => s.routeId))];
+      for (const routeId of routeIds) {
+        const [trip] = await db.select().from(trips)
+          .where(and(eq(trips.routeId, routeId), eq(trips.status, 'started'))).limit(1);
+        if (!trip) continue;
+
+        const [route] = await db.select().from(routes).where(eq(routes.id, routeId)).limit(1);
+        const [driver] = await db.select().from(drivers).where(eq(drivers.id, trip.driverId)).limit(1);
+        const [driverUser] = driver ? await db.select({ name: users.name, phone: users.phone }).from(users).where(eq(users.id, driver.userId)).limit(1) : [null];
+        const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, trip.vehicleId)).limit(1);
+        const tripStops = await db.select().from(stops).where(eq(stops.routeId, routeId)).orderBy(stops.orderIndex);
+        const stopLogs = await db.select().from(tripStopLogs).where(eq(tripStopLogs.tripId, trip.id));
+        const studentStop = studentStops.find(s => s.routeId === routeId);
+
+        return {
+          trip,
+          route,
+          driverName: driverUser?.name || 'Motorista',
+          driverPhone: driverUser?.phone || null,
+          vehicle: vehicle ? { plate: vehicle.plate, nickname: vehicle.nickname } : null,
+          driverLocation: driver ? { lat: parseFloat(driver.currentLatitude as any || '0'), lng: parseFloat(driver.currentLongitude as any || '0'), updatedAt: driver.lastLocationUpdate } : null,
+          stops: tripStops.map(s => ({
+            ...s,
+            arrived: stopLogs.some(l => l.stopId === s.id),
+            arrivedAt: stopLogs.find(l => l.stopId === s.id)?.arrivedAt || null,
+            isStudentStop: s.id === studentStop?.stopId,
+          })),
+        };
+      }
+      return null;
+    }),
+
+  // Vincular outro filho
+  addStudent: protectedProcedure
+    .input(z.object({
+      studentEnrollment: z.string().min(1),
+      relationship: z.enum(['father', 'mother', 'grandparent', 'uncle', 'other']).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const [student] = await db.select().from(students).where(eq(students.enrollment, input.studentEnrollment)).limit(1);
+      if (!student) throw new TRPCError({ code: 'NOT_FOUND', message: 'Matrícula não encontrada' });
+
+      const existing = await db.select().from(guardians)
+        .where(and(eq(guardians.userId, ctx.userId!), eq(guardians.studentId, student.id))).limit(1);
+      if (existing.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Aluno já vinculado' });
+
+      await db.insert(guardians).values({
+        userId: ctx.userId!,
+        studentId: student.id,
+        relationship: input.relationship || 'other',
+        isPrimary: false,
+        canPickup: true,
+      });
+      return { success: true, studentName: student.name };
+    }),
+
+  // Histórico de viagens do aluno
+  studentTripHistory: protectedProcedure
+    .input(z.object({ studentId: z.number(), limit: z.number().default(20) }))
+    .query(async ({ ctx, input }) => {
+      const [guardianLink] = await db.select().from(guardians)
+        .where(and(eq(guardians.userId, ctx.userId!), eq(guardians.studentId, input.studentId))).limit(1);
+      if (!guardianLink) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+
+      const studentStops = await db.select({ routeId: stops.routeId })
+        .from(stopStudents)
+        .innerJoin(stops, eq(stopStudents.stopId, stops.id))
+        .where(eq(stopStudents.studentId, input.studentId));
+
+      const routeIds = [...new Set(studentStops.map(s => s.routeId))];
+      if (routeIds.length === 0) return [];
+
+      const tripHistory = await db.select({ trip: trips, route: { id: routes.id, name: routes.name } })
+        .from(trips)
+        .innerJoin(routes, eq(trips.routeId, routes.id))
+        .where(inArray(trips.routeId, routeIds))
+        .orderBy(desc(trips.tripDate))
+        .limit(input.limit);
+
+      return tripHistory;
+    }),
+});
+
+// ============================================
+// MONITORS ROUTER (APP MONITORES)
+// ============================================
+export const monitorsRouter = t.router({
+  // Obter viagem ativa do monitor/motorista
+  myActiveTrip: protectedProcedure.query(async ({ ctx }) => {
+    // Buscar se é motorista
+    const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
+    if (!driver) return null;
+
+    const [activeTrip] = await db.select().from(trips)
+      .where(and(eq(trips.driverId, driver.id), eq(trips.status, 'started'))).limit(1);
+    if (!activeTrip) return null;
+
+    const [route] = await db.select().from(routes).where(eq(routes.id, activeTrip.routeId)).limit(1);
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, activeTrip.vehicleId)).limit(1);
+    const tripStops = await db.select().from(stops).where(eq(stops.routeId, activeTrip.routeId)).orderBy(stops.orderIndex);
+
+    const stopsWithStudents = await Promise.all(tripStops.map(async (stop) => {
+      const stopStudentList = await db.select({
+        id: students.id, name: students.name, photoUrl: students.photoUrl,
+        hasSpecialNeeds: students.hasSpecialNeeds, grade: students.grade,
+      })
+      .from(stopStudents)
+      .innerJoin(students, eq(stopStudents.studentId, students.id))
+      .where(eq(stopStudents.stopId, stop.id));
+
+      // Verificar quais alunos já embarcaram nesta viagem
+      const boardedLogs = await db.select({ studentId: tripStudentLogs.studentId, eventType: tripStudentLogs.eventType })
+        .from(tripStudentLogs)
+        .where(and(eq(tripStudentLogs.tripId, activeTrip.id), eq(tripStudentLogs.stopId, stop.id)));
+
+      const studentsWithStatus = stopStudentList.map(s => ({
+        ...s,
+        status: boardedLogs.find(l => l.studentId === s.id)?.eventType || 'pending',
+      }));
+
+      const stopLog = await db.select().from(tripStopLogs)
+        .where(and(eq(tripStopLogs.tripId, activeTrip.id), eq(tripStopLogs.stopId, stop.id))).limit(1);
+
+      return { ...stop, students: studentsWithStatus, arrived: stopLog.length > 0, arrivedAt: stopLog[0]?.arrivedAt || null };
+    }));
+
+    const stopLogs = await db.select().from(tripStopLogs).where(eq(tripStopLogs.tripId, activeTrip.id));
+
+    return {
+      trip: activeTrip,
+      route,
+      vehicle,
+      driverId: driver.id,
+      stops: stopsWithStudents,
+      completedStops: stopLogs.length,
+      totalStops: tripStops.length,
+    };
+  }),
+
+  // Obter viagens disponíveis para iniciar
+  availableTrips: protectedProcedure.query(async ({ ctx }) => {
+    const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
+    if (!driver) return { driver: null, routes: [] };
+
+    const assignedRoutes = await db.select().from(routes)
+      .where(and(eq(routes.defaultDriverId, driver.id), eq(routes.isActive, true)));
+
+    const [vehicle] = driver.vehicleId
+      ? await db.select().from(vehicles).where(eq(vehicles.id, driver.vehicleId)).limit(1)
+      : [null];
+
+    return { driver: { id: driver.id, vehicleId: driver.vehicleId }, vehicle, routes: assignedRoutes };
+  }),
+
+  // Registrar embarque de aluno
+  boardStudent: staffProcedure
+    .input(z.object({
+      tripId: z.number(),
+      studentId: z.number(),
+      stopId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verificar se já foi registrado
+      const existing = await db.select().from(tripStudentLogs)
+        .where(and(
+          eq(tripStudentLogs.tripId, input.tripId),
+          eq(tripStudentLogs.studentId, input.studentId),
+          eq(tripStudentLogs.stopId, input.stopId),
+          eq(tripStudentLogs.eventType, 'boarded')
+        )).limit(1);
+      if (existing.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Aluno já embarcado' });
+
+      await db.insert(tripStudentLogs).values({
+        tripId: input.tripId,
+        studentId: input.studentId,
+        stopId: input.stopId,
+        eventType: 'boarded',
+        eventAt: new Date(),
+        registeredByUserId: ctx.userId,
+      });
+
+      // Incrementar contador
+      const [trip] = await db.select().from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (trip) {
+        await db.update(trips).set({ totalStudentsBoarded: (trip.totalStudentsBoarded ?? 0) + 1 }).where(eq(trips.id, input.tripId));
+      }
+
+      // Notificar responsáveis
+      const [student] = await db.select({ name: students.name }).from(students).where(eq(students.id, input.studentId)).limit(1);
+      const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, input.studentId));
+      for (const g of guardianList) {
+        await db.insert(notifications).values({
+          userId: g.userId,
+          title: 'Aluno embarcou!',
+          body: (student?.name || 'Seu filho(a)') + ' embarcou no ônibus escolar.',
+          type: 'student_boarded',
+          tripId: input.tripId,
+          stopId: input.stopId,
+          studentId: input.studentId,
+        });
+      }
+
+      return { success: true, studentName: student?.name };
+    }),
+
+  // Registrar desembarque de aluno
+  dropStudent: staffProcedure
+    .input(z.object({
+      tripId: z.number(),
+      studentId: z.number(),
+      stopId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db.insert(tripStudentLogs).values({
+        tripId: input.tripId,
+        studentId: input.studentId,
+        stopId: input.stopId,
+        eventType: 'dropped',
+        eventAt: new Date(),
+        registeredByUserId: ctx.userId,
+      });
+
+      const [student] = await db.select({ name: students.name }).from(students).where(eq(students.id, input.studentId)).limit(1);
+      const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, input.studentId));
+      for (const g of guardianList) {
+        await db.insert(notifications).values({
+          userId: g.userId,
+          title: 'Aluno desembarcou!',
+          body: (student?.name || 'Seu filho(a)') + ' desembarcou do ônibus com segurança.',
+          type: 'student_dropped',
+          tripId: input.tripId,
+          stopId: input.stopId,
+          studentId: input.studentId,
+        });
+      }
+      return { success: true, studentName: student?.name };
+    }),
+
+  // Marcar aluno como ausente
+  markAbsent: staffProcedure
+    .input(z.object({
+      tripId: z.number(),
+      studentId: z.number(),
+      stopId: z.number(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db.insert(tripStudentLogs).values({
+        tripId: input.tripId,
+        studentId: input.studentId,
+        stopId: input.stopId,
+        eventType: 'absent',
+        eventAt: new Date(),
+        registeredByUserId: ctx.userId,
+        notes: input.notes,
+      });
+      return { success: true };
+    }),
+
+  // Obter resumo da viagem para o monitor
+  tripSummary: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input }) => {
+      const logs = await db.select().from(tripStudentLogs).where(eq(tripStudentLogs.tripId, input.tripId));
+      const boarded = logs.filter(l => l.eventType === 'boarded').length;
+      const dropped = logs.filter(l => l.eventType === 'dropped').length;
+      const absent = logs.filter(l => l.eventType === 'absent').length;
+      const [trip] = await db.select().from(trips).where(eq(trips.id, input.tripId)).limit(1);
+
+      return {
+        totalExpected: trip?.totalStudentsExpected || 0,
+        boarded,
+        dropped,
+        absent,
+        pending: (trip?.totalStudentsExpected || 0) - boarded - absent,
+      };
     }),
 });
 
@@ -858,8 +1147,10 @@ export const appRouter = t.router({
   trips: tripsRouter,
   vehicles: vehiclesRouter,
   drivers: driversRouter,
-    notifications: notificationsRouter,
+  notifications: notificationsRouter,
   users: usersRouter,
+  guardians: guardiansRouter,
+  monitors: monitorsRouter,
 });
 
 export type AppRouter = typeof appRouter;

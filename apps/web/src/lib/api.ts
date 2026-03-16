@@ -13,18 +13,23 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
+
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   let url: string;
   let options: RequestInit;
 
   if (type === 'query') {
-    const wrappedInput = JSON.stringify({ json: input });
-    url = `${API_URL}/api/trpc/${procedure}?input=${encodeURIComponent(wrappedInput)}`;
+    const encodedInput = encodeURIComponent(JSON.stringify(input));
+    url = `${API_URL}/api/trpc/${procedure}?input=${encodedInput}`;
     options = { method: 'GET', headers };
   } else {
     url = `${API_URL}/api/trpc/${procedure}`;
-    options = { method: 'POST', headers, body: JSON.stringify({ json: input }) };
+    options = {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    };
   }
 
   let res: Response;
@@ -42,17 +47,37 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
     throw new Error(`Resposta inválida do servidor: ${text.substring(0, 200)}`);
   }
 
+  // Handle error responses
   if (data?.error) {
-    const msg = data.error?.data?.message || data.error?.message ||
-      (data.error?.data?.zodError?.fieldErrors ? 'Dados inválidos: verifique os campos' : JSON.stringify(data.error));
+    const errData = data.error;
+    const msg = errData?.data?.message || errData?.message || 
+      (errData?.data?.zodError?.fieldErrors ? 'Dados inválidos: verifique os campos' : JSON.stringify(errData));
     throw new Error(msg);
   }
 
+  // Handle batch response format (array)
+  if (Array.isArray(data)) {
+    const item = data[0];
+    if (item?.error) {
+      const errData = item.error;
+      const msg = errData?.data?.message || errData?.message || JSON.stringify(errData);
+      throw new Error(msg);
+    }
+    if (item?.result?.data !== undefined) {
+      const resultData = item.result.data;
+      if (resultData?.json !== undefined) return resultData.json;
+      return resultData;
+    }
+    return item?.result || item;
+  }
+
+  // Handle single response format
   if (data?.result?.data !== undefined) {
     const resultData = data.result.data;
     if (resultData?.json !== undefined) return resultData.json;
     return resultData;
   }
+
   if (data?.result !== undefined) return data.result;
   return data;
 }

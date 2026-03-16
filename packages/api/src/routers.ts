@@ -855,7 +855,8 @@ export const appRouter = t.router({
   trips: tripsRouter,
   vehicles: vehiclesRouter,
   drivers: driversRouter,
-  notifications: notificationsRouter,
+    notifications: notificationsRouter,
+  users: usersRouter,
 });
 
   users: usersRouter,

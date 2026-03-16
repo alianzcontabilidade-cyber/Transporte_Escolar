@@ -19,18 +19,12 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
   let options: RequestInit;
 
   if (type === 'query') {
-    // tRPC v10/v11 espera input no formato { json: input }
     const wrappedInput = JSON.stringify({ json: input });
     url = `${API_URL}/api/trpc/${procedure}?input=${encodeURIComponent(wrappedInput)}`;
     options = { method: 'GET', headers };
   } else {
     url = `${API_URL}/api/trpc/${procedure}`;
-    options = {
-      method: 'POST',
-      headers,
-      // tRPC v10/v11 espera body no formato { json: input }
-      body: JSON.stringify({ json: input }),
-    };
+    options = { method: 'POST', headers, body: JSON.stringify({ json: input }) };
   }
 
   let res: Response;
@@ -48,21 +42,14 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
     throw new Error(`Resposta inválida do servidor: ${text.substring(0, 200)}`);
   }
 
-  // Tratar erros tRPC
   if (data?.error) {
-    const msg =
-      data.error?.data?.message ||
-      data.error?.message ||
-      data.error?.data?.zodError?.fieldErrors
-        ? 'Dados inválidos: verifique os campos'
-        : JSON.stringify(data.error);
+    const msg = data.error?.data?.message || data.error?.message ||
+      (data.error?.data?.zodError?.fieldErrors ? 'Dados inválidos: verifique os campos' : JSON.stringify(data.error));
     throw new Error(msg);
   }
 
-  // Desempacotar resposta tRPC — formato: { result: { data: { json: ... } } }
   if (data?.result?.data !== undefined) {
     const resultData = data.result.data;
-    // tRPC v10/v11 retorna { json: <valor_real> }
     if (resultData?.json !== undefined) return resultData.json;
     return resultData;
   }
@@ -74,6 +61,7 @@ export const api = {
   auth: {
     login: (input: any) => call('auth.login', input, 'mutation'),
     registerMunicipality: (input: any) => call('auth.registerMunicipality', input, 'mutation'),
+    registerGuardian: (input: any) => call('auth.registerGuardian', input, 'mutation'),
     me: () => call('auth.me', {}, 'query'),
   },
   municipalities: {
@@ -115,6 +103,7 @@ export const api = {
   },
   trips: {
     listActive: (input: any) => call('trips.listActive', input, 'query'),
+    getById: (input: any) => call('trips.getById', input, 'query'),
     start: (input: any) => call('trips.start', input, 'mutation'),
     arriveAtStop: (input: any) => call('trips.arriveAtStop', input, 'mutation'),
     complete: (input: any) => call('trips.complete', input, 'mutation'),
@@ -129,7 +118,22 @@ export const api = {
   },
   notifications: {
     list: (input: any) => call('notifications.list', input, 'query'),
+    unreadCount: () => call('notifications.unreadCount', {}, 'query'),
     markAsRead: (input: any) => call('notifications.markAsRead', input, 'mutation'),
     markAllAsRead: () => call('notifications.markAllAsRead', {}, 'mutation'),
+  },
+  guardians: {
+    myStudents: () => call('guardians.myStudents', {}, 'query'),
+    getStudentActiveTrip: (input: any) => call('guardians.getStudentActiveTrip', input, 'query'),
+    addStudent: (input: any) => call('guardians.addStudent', input, 'mutation'),
+    studentTripHistory: (input: any) => call('guardians.studentTripHistory', input, 'query'),
+  },
+  monitors: {
+    myActiveTrip: () => call('monitors.myActiveTrip', {}, 'query'),
+    availableTrips: () => call('monitors.availableTrips', {}, 'query'),
+    boardStudent: (input: any) => call('monitors.boardStudent', input, 'mutation'),
+    dropStudent: (input: any) => call('monitors.dropStudent', input, 'mutation'),
+    markAbsent: (input: any) => call('monitors.markAbsent', input, 'mutation'),
+    tripSummary: (input: any) => call('monitors.tripSummary', input, 'query'),
   },
 };

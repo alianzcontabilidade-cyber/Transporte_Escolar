@@ -12,7 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
+  login: (credentials: { identifier: string; password: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (credentials: { email: string; password: string }) => {
+  const login = async (credentials: { identifier: string; password: string }) => {
     const result = await api.auth.login(credentials);
     const newToken = result.token;
     const newUser = result.user;

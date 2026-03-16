@@ -6,7 +6,7 @@ import {
   guardians, routes, stops, stopStudents, trips, tripStopLogs,
   tripStudentLogs, notifications, locationHistory
 } from './db/schema';
-import { eq, and, desc, gte, lte, sql, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 
@@ -90,13 +90,11 @@ export const authRouter = t.router({
       if (existingUser.length > 0) {
         throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
       }
-
       const [student] = await db.select().from(students)
         .where(eq(students.enrollment, input.studentEnrollment)).limit(1);
       if (!student) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Matrícula do aluno não encontrada. Verifique com a escola.' });
       }
-
       const passwordHash = await hash(input.password, 12);
       const [user] = await db.insert(users).values({
         municipalityId: student.municipalityId,
@@ -119,30 +117,170 @@ export const authRouter = t.router({
       return { success: true, userId: user.id, studentName: student.name, message: 'Cadastro realizado! Você já pode acompanhar o transporte.' };
     }),
 
+  // Login flexível: email, CPF ou nome
   login: publicProcedure
     .input(z.object({
-      email: z.string().email(),
+      identifier: z.string().min(1),
       password: z.string(),
     }))
     .mutation(async ({ input }) => {
-      const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      if (!user || !user.passwordHash) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
+      const id = input.identifier.trim();
+      let userList: any[] = [];
+
+      // Detectar formato do identificador
+      const isEmail = id.includes('@');
+      const isCpf = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(id);
+
+      if (isEmail) {
+        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+      } else if (isCpf) {
+        // Buscar tanto com formatação quanto sem
+        const cpfClean = id.replace(/[^\d]/g, '');
+        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        userList = await db.select().from(users)
+          .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, id)))
+          .limit(1);
+      } else {
+        // Buscar por email (caso não tenha @, pode ser username-style)
+        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+        // Se não achou por email, tenta por nome exato
+        if (userList.length === 0) {
+          userList = await db.select().from(users).where(eq(users.name, id)).limit(1);
+        }
       }
+
+      const user = userList[0];
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas. Verifique seu email, CPF ou senha.' });
+      }
+
       const validPassword = await compare(input.password, user.passwordHash);
       if (!validPassword) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas. Verifique seu email, CPF ou senha.' });
       }
+
       await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
+
       const token = sign(
         { userId: user.id, municipalityId: user.municipalityId, role: user.role },
         process.env.JWT_SECRET || 'transescolar-secret-2024',
         { expiresIn: '7d' }
       );
+
       return {
         token,
         user: { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId }
       };
+    }),
+
+  // Solicitar recuperação de senha
+  requestPasswordReset: publicProcedure
+    .input(z.object({
+      identifier: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const id = input.identifier.trim();
+      let userList: any[] = [];
+
+      const isEmail = id.includes('@');
+      const isCpf = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(id);
+
+      if (isEmail) {
+        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+      } else if (isCpf) {
+        const cpfClean = id.replace(/[^\d]/g, '');
+        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        userList = await db.select().from(users)
+          .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, id)))
+          .limit(1);
+      } else {
+        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+      }
+
+      const user = userList[0];
+      if (!user) {
+        // Não revelar se o usuário existe ou não (segurança)
+        return { success: true, message: 'Se o usuário existir, um código de recuperação será gerado.' };
+      }
+
+      // Gerar código de 6 dígitos
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Gerar token JWT de curta duração (15 min) contendo userId e code
+      const resetToken = sign(
+        { userId: user.id, code, purpose: 'password_reset' },
+        process.env.JWT_SECRET || 'transescolar-secret-2024',
+        { expiresIn: '15m' }
+      );
+
+      // Salvar notificação com o código (o admin pode ver)
+      await db.insert(notifications).values({
+        userId: user.id,
+        title: 'Código de recuperação de senha',
+        body: 'Seu código de recuperação é: ' + code + '. Válido por 15 minutos.',
+        type: 'system',
+      });
+
+      // Em produção, aqui enviaria email/SMS com o código
+      // Por enquanto, retorna o token para uso direto
+      return {
+        success: true,
+        resetToken,
+        code, // Em produção, remover este campo e enviar por email/SMS
+        message: 'Código de recuperação gerado. Verifique suas notificações ou email.',
+        userHint: user.email ? user.email.replace(/(.)(.*)(@.*)/, '$1***$3') : undefined,
+      };
+    }),
+
+  // Redefinir senha com código
+  resetPassword: publicProcedure
+    .input(z.object({
+      resetToken: z.string(),
+      code: z.string().length(6),
+      newPassword: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      let decoded: any;
+      try {
+        decoded = verify(input.resetToken, process.env.JWT_SECRET || 'transescolar-secret-2024');
+      } catch {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Token expirado ou inválido. Solicite um novo código.' });
+      }
+
+      if (decoded.purpose !== 'password_reset') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Token inválido.' });
+      }
+
+      if (decoded.code !== input.code) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Código incorreto.' });
+      }
+
+      const passwordHash = await hash(input.newPassword, 12);
+      await db.update(users).set({ passwordHash }).where(eq(users.id, decoded.userId));
+
+      return { success: true, message: 'Senha redefinida com sucesso! Faça login com a nova senha.' };
+    }),
+
+  // Alterar senha (logado)
+  changePassword: protectedProcedure
+    .input(z.object({
+      currentPassword: z.string(),
+      newPassword: z.string().min(6),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.userId!)).limit(1);
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+      }
+
+      const validPassword = await compare(input.currentPassword, user.passwordHash);
+      if (!validPassword) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha atual incorreta' });
+      }
+
+      const passwordHash = await hash(input.newPassword, 12);
+      await db.update(users).set({ passwordHash }).where(eq(users.id, ctx.userId!));
+
+      return { success: true, message: 'Senha alterada com sucesso!' };
     }),
 
   me: protectedProcedure.query(async ({ ctx }) => {

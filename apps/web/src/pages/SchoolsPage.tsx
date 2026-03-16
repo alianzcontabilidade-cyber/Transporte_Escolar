@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users } from 'lucide-react';
 
-const emptyForm = { name:'', address:'', city:'', state:'', phone:'', email:'', directorName:'', studentCount:'', observations:'' };
+const emptyForm = { name:'', code:'', type:'fundamental', address:'', phone:'', email:'', directorName:'' };
 
 export default function SchoolsPage() {
   const { user } = useAuth();
@@ -22,16 +22,16 @@ export default function SchoolsPage() {
 
   const setField = function(k: string) { return function(e: any) { setForm(function(f: any) { return {...f,[k]:e.target.value}; }); }; };
   const all = (schools as any)||[];
-  const filtered = all.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.city||'').toLowerCase().includes(q)||(s.address||'').toLowerCase().includes(q); });
+  const filtered = all.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.address||'').toLowerCase().includes(q)||(s.directorName||'').toLowerCase().includes(q); });
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setFormErr(''); setShowModal(true); };
   const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setFormErr(''); setShowModal(true); };
 
   const save = function() {
     if (!form.name) { setFormErr('Nome é obrigatório.'); return; }
-    const payload = { municipalityId, name:form.name, address:form.address||undefined, city:form.city||undefined, state:form.state||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined, studentCount:form.studentCount?parseInt(form.studentCount):undefined, observations:form.observations||undefined };
+    const payload = { municipalityId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:form.address||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined };
     if (editId!==null) {
-      update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
+      update({id:editId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:form.address||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     } else {
       create(payload,{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     }
@@ -44,7 +44,7 @@ export default function SchoolsPage() {
         <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Nova Escola</button>
       </div>
 
-      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, cidade ou endereço..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
+      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, endereço ou diretor..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(function(s: any){ return (
@@ -58,11 +58,11 @@ export default function SchoolsPage() {
             </div>
             <p className="font-bold text-gray-900">{s.name}</p>
             <div className="mt-2 space-y-1">
-              {(s.address||s.city)&&<p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10}/>{[s.address,s.city,s.state].filter(Boolean).join(', ')}</p>}
+              {s.address&&<p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10}/>{s.address}</p>}
               {s.phone&&<p className="text-xs text-gray-500 flex items-center gap-1"><Phone size={10}/>{s.phone}</p>}
               {s.email&&<p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10}/>{s.email}</p>}
               {s.directorName&&<p className="text-xs text-gray-500">Diretor(a): {s.directorName}</p>}
-              {s.studentCount&&<p className="text-xs text-gray-500 flex items-center gap-1"><Users size={10}/>{s.studentCount} alunos</p>}
+              {s.type&&<p className="text-xs text-gray-500 flex items-center gap-1"><Users size={10}/>{s.type}</p>}
             </div>
           </div>
         );})}
@@ -89,14 +89,12 @@ export default function SchoolsPage() {
               {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2"><label className="label">Nome da escola *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Ex: Escola Municipal Centro"/></div>
+                <div><label className="label">Código (INEP)</label><input className="input" value={form.code} onChange={setField('code')} placeholder="Ex: 12345678"/></div>
+                <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={setField('type')}><option value="infantil">Infantil</option><option value="fundamental">Fundamental</option><option value="medio">Médio</option><option value="tecnico">Técnico</option><option value="especial">Especial</option></select></div>
                 <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
-                <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
-                <div><label className="label">Estado</label><input className="input" value={form.state} onChange={setField('state')} placeholder="Ex: TO"/></div>
                 <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={setField('phone')} placeholder="(00) 0000-0000"/></div>
                 <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
-                <div><label className="label">Diretor(a)</label><input className="input" value={form.directorName} onChange={setField('directorName')}/></div>
-                <div><label className="label">Nº de alunos</label><input className="input" type="number" value={form.studentCount} onChange={setField('studentCount')}/></div>
-                <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
+                <div className="col-span-2"><label className="label">Diretor(a)</label><input className="input" value={form.directorName} onChange={setField('directorName')}/></div>
               </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Escola'}</button></div>

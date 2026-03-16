@@ -1,67 +1,140 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Bus, CheckCircle } from 'lucide-react';
-
-const STATES = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+import { useAuth } from '../lib/auth';
+import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [mode, setMode] = useState<'choose' | 'municipality' | 'guardian'>('choose');
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ municipalityName: '', state: 'SP', city: '', cnpj: '', adminName: '', adminEmail: '', adminPassword: '', adminPhone: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const set = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
+  // Municipal form
+  const [mForm, setMForm] = useState({ municipalityName: '', state: '', city: '', cnpj: '', adminName: '', adminEmail: '', adminPassword: '', adminPhone: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true);
-    try { await api.auth.registerMunicipality(form); setSuccess(true); }
-    catch (err: any) { setError(err.message || 'Erro ao cadastrar'); }
+  // Guardian form
+  const [gForm, setGForm] = useState({ name: '', email: '', password: '', phone: '', cpf: '', studentEnrollment: '', relationship: 'father' });
+
+  async function handleMunicipalityRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      await api.auth.registerMunicipality(mForm);
+      await login({ email: mForm.adminEmail, password: mForm.adminPassword });
+      navigate('/');
+    } catch (err: any) { setError(err.message || 'Erro ao cadastrar'); }
     finally { setLoading(false); }
-  };
+  }
 
-  if (success) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-amber-100 p-4">
-      <div className="card text-center max-w-md w-full shadow-lg">
-        <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Prefeitura cadastrada!</h2>
-        <p className="text-gray-500 mb-6">Faça login para começar.</p>
-        <button className="btn-primary w-full" onClick={() => navigate('/login')}>Ir para o login</button>
+  async function handleGuardianRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      const result = await api.auth.registerGuardian(gForm);
+      setSuccess(result.message || 'Cadastro realizado!');
+      setTimeout(async () => {
+        await login({ email: gForm.email, password: gForm.password });
+        navigate('/');
+      }, 1500);
+    } catch (err: any) { setError(err.message || 'Erro ao cadastrar'); }
+    finally { setLoading(false); }
+  }
+
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none';
+
+  if (mode === 'choose') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-primary-500 flex items-center justify-center mx-auto mb-4"><Bus size={28} className="text-white" /></div>
+            <h1 className="text-2xl font-bold text-gray-900">TransEscolar</h1>
+            <p className="text-gray-500 mt-1">Escolha o tipo de cadastro</p>
+          </div>
+          <div className="space-y-4">
+            <button onClick={() => setMode('guardian')}
+              className="w-full p-5 bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 hover:shadow-lg transition-all text-left flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0"><Heart size={22} className="text-pink-500" /></div>
+              <div>
+                <h3 className="font-bold text-gray-900">Sou Pai/Responsável</h3>
+                <p className="text-sm text-gray-500 mt-1">Quero acompanhar o transporte escolar do meu filho(a)</p>
+              </div>
+            </button>
+            <button onClick={() => setMode('municipality')}
+              className="w-full p-5 bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 hover:shadow-lg transition-all text-left flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0"><Building2 size={22} className="text-blue-500" /></div>
+              <div>
+                <h3 className="font-bold text-gray-900">Sou Prefeitura/Secretaria</h3>
+                <p className="text-sm text-gray-500 mt-1">Quero gerenciar o transporte escolar do município</p>
+              </div>
+            </button>
+          </div>
+          <p className="text-center mt-6 text-sm text-gray-500">
+            Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link>
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-amber-100 p-4">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-500 rounded-2xl shadow-lg mb-4"><Bus size={32} className="text-white" /></div>
-          <h1 className="text-3xl font-bold text-gray-900">TransEscolar</h1>
-          <p className="text-gray-500 mt-1">Cadastro de Prefeitura</p>
-        </div>
-        <div className="card shadow-lg">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Dados da Prefeitura</h3>
-            <div><label className="label">Nome da Prefeitura *</label><input className="input" value={form.municipalityName} onChange={set('municipalityName')} required /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Estado *</label><select className="input" value={form.state} onChange={set('state')}>{STATES.map(s => <option key={s}>{s}</option>)}</select></div>
-              <div><label className="label">Cidade *</label><input className="input" value={form.city} onChange={set('city')} required /></div>
-            </div>
-            <div><label className="label">CNPJ</label><input className="input" placeholder="00.000.000/0000-00" value={form.cnpj} onChange={set('cnpj')} /></div>
-            <hr />
-            <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Administrador</h3>
-            <div><label className="label">Nome completo *</label><input className="input" value={form.adminName} onChange={set('adminName')} required /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">E-mail *</label><input className="input" type="email" value={form.adminEmail} onChange={set('adminEmail')} required /></div>
-              <div><label className="label">Telefone</label><input className="input" value={form.adminPhone} onChange={set('adminPhone')} /></div>
-            </div>
-            <div><label className="label">Senha *</label><input className="input" type="password" minLength={8} value={form.adminPassword} onChange={set('adminPassword')} required /></div>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
-            <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">{loading ? 'Cadastrando...' : 'Cadastrar Prefeitura'}</button>
+  if (mode === 'guardian') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+          <button onClick={() => setMode('choose')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"><ArrowLeft size={16} /> Voltar</button>
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mx-auto mb-3"><Heart size={22} className="text-pink-500" /></div>
+            <h2 className="text-xl font-bold text-gray-900">Cadastro de Responsável</h2>
+            <p className="text-gray-500 text-sm mt-1">Vincule-se ao aluno usando a matrícula escolar</p>
+          </div>
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
+          {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-4">{success}</div>}
+          <form onSubmit={handleGuardianRegister} className="space-y-3">
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Nome completo</label><input type="text" required value={gForm.name} onChange={e => setGForm(p => ({...p, name: e.target.value}))} className={inputClass} placeholder="João da Silva" /></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Email</label><input type="email" required value={gForm.email} onChange={e => setGForm(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="joao@email.com" /></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Telefone</label><input type="tel" value={gForm.phone} onChange={e => setGForm(p => ({...p, phone: e.target.value}))} className={inputClass} placeholder="(63) 99999-0000" /></div>
+            <div className="relative"><label className="text-sm font-medium text-gray-700 block mb-1">Senha</label><input type={showPassword ? 'text' : 'password'} required minLength={6} value={gForm.password} onChange={e => setGForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="Mínimo 6 caracteres" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
+            <hr className="my-2" />
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Matrícula do Aluno *</label><input type="text" required value={gForm.studentEnrollment} onChange={e => setGForm(p => ({...p, studentEnrollment: e.target.value}))} className={inputClass} placeholder="Ex: 2024001" /><p className="text-xs text-gray-400 mt-1">Informe a matrícula escolar do seu filho(a)</p></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Parentesco</label><select value={gForm.relationship} onChange={e => setGForm(p => ({...p, relationship: e.target.value}))} className={inputClass}><option value="father">Pai</option><option value="mother">Mãe</option><option value="grandparent">Avô/Avó</option><option value="uncle">Tio/Tia</option><option value="other">Outro</option></select></div>
+            <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">{loading ? 'Cadastrando...' : 'Criar minha conta'}</button>
           </form>
-          <p className="text-center text-sm text-gray-500 mt-4">Já tem conta? <Link to="/login" className="text-primary-600 font-medium hover:underline">Entrar</Link></p>
+          <p className="text-center mt-4 text-sm text-gray-500">Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
         </div>
+      </div>
+    );
+  }
+
+  // Municipality registration
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+        <button onClick={() => setMode('choose')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"><ArrowLeft size={16} /> Voltar</button>
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3"><Building2 size={22} className="text-blue-500" /></div>
+          <h2 className="text-xl font-bold text-gray-900">Cadastro de Prefeitura</h2>
+          <p className="text-gray-500 text-sm mt-1">Registre seu município para gerenciar o transporte escolar</p>
+        </div>
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
+        <form onSubmit={handleMunicipalityRegister} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">Nome da Prefeitura</label><input type="text" required value={mForm.municipalityName} onChange={e => setMForm(p => ({...p, municipalityName: e.target.value}))} className={inputClass} /></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Cidade</label><input type="text" required value={mForm.city} onChange={e => setMForm(p => ({...p, city: e.target.value}))} className={inputClass} /></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">UF</label><input type="text" required maxLength={2} value={mForm.state} onChange={e => setMForm(p => ({...p, state: e.target.value.toUpperCase()}))} className={inputClass} placeholder="TO" /></div>
+            <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">CNPJ (opcional)</label><input type="text" value={mForm.cnpj} onChange={e => setMForm(p => ({...p, cnpj: e.target.value}))} className={inputClass} /></div>
+          </div>
+          <hr className="my-2" />
+          <p className="text-sm font-semibold text-gray-700">Dados do Administrador</p>
+          <div><label className="text-sm font-medium text-gray-700 block mb-1">Nome</label><input type="text" required value={mForm.adminName} onChange={e => setMForm(p => ({...p, adminName: e.target.value}))} className={inputClass} /></div>
+          <div><label className="text-sm font-medium text-gray-700 block mb-1">Email</label><input type="email" required value={mForm.adminEmail} onChange={e => setMForm(p => ({...p, adminEmail: e.target.value}))} className={inputClass} /></div>
+          <div className="relative"><label className="text-sm font-medium text-gray-700 block mb-1">Senha</label><input type={showPassword ? 'text' : 'password'} required minLength={8} value={mForm.adminPassword} onChange={e => setMForm(p => ({...p, adminPassword: e.target.value}))} className={inputClass} /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
+          <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">{loading ? 'Cadastrando...' : 'Cadastrar Prefeitura'}</button>
+        </form>
+        <p className="text-center mt-4 text-sm text-gray-500">Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
       </div>
     </div>
   );

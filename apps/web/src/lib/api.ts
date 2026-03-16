@@ -87,6 +87,9 @@ export const api = {
     login: (input: any) => call('auth.login', input, 'mutation'),
     registerMunicipality: (input: any) => call('auth.registerMunicipality', input, 'mutation'),
     registerGuardian: (input: any) => call('auth.registerGuardian', input, 'mutation'),
+    requestPasswordReset: (input: any) => call('auth.requestPasswordReset', input, 'mutation'),
+    resetPassword: (input: any) => call('auth.resetPassword', input, 'mutation'),
+    changePassword: (input: any) => call('auth.changePassword', input, 'mutation'),
     me: () => call('auth.me', {}, 'query'),
   },
   municipalities: {

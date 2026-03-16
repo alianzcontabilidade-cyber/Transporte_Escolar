@@ -5,53 +5,10 @@ import { Server } from 'socket.io';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import path from 'path';
 import * as dotenv from 'dotenv';
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
-import * as schema from './db/schema';
 import { appRouter } from './routers';
 import { createContext } from './middleware/context';
 
 dotenv.config();
-
-// ============================================
-// DATABASE CONNECTION
-// ============================================
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL não está definida!');
-  process.exit(1);
-}
-
-const poolConnection = mysql.createPool({
-  uri: process.env.DATABASE_URL!,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  connectTimeout: 30000,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 10000,
-});
-
-export const db = drizzle(poolConnection, { schema, mode: 'default' });
-
-// Testar conexão
-async function testConnection(retries = 5, delay = 3000): Promise<void> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const conn = await poolConnection.getConnection();
-      console.log('✅ Banco de dados conectado com sucesso!');
-      conn.release();
-      return;
-    } catch (err: any) {
-      console.error(`⚠️ Tentativa ${i + 1}/${retries} falhou: ${err.message}`);
-      if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 1.5;
-      }
-    }
-  }
-  console.error('❌ Não foi possível conectar ao banco de dados.');
-  process.exit(1);
-}
 
 // ============================================
 // EXPRESS + TRPC + SOCKET.IO SERVER
@@ -123,10 +80,8 @@ app.get('*', (_req, res) => {
 // ============================================
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
-testConnection().then(() => {
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 TransEscolar API rodando na porta ${PORT}`);
-    console.log(`📡 Socket.IO ativo`);
-    console.log(`🌐 Frontend servido de: ${frontendPath}`);
-  });
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 TransEscolar API rodando na porta ${PORT}`);
+  console.log(`📡 Socket.IO ativo`);
+  console.log(`🌐 Frontend servido de: ${frontendPath}`);
 });

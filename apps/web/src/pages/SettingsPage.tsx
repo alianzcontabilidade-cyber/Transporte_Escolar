@@ -24,6 +24,23 @@ const RC: any = {
   guardian: 'bg-green-100 text-green-700',
 };
 
+
+const fmtCPF = (v: string) => {
+  const d = v.replace(/\D/g, '').substring(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, '$1.$2');
+  if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4');
+};
+
+const fmtPhone = (v: string) => {
+  const d = v.replace(/\D/g, '').substring(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2) return '(' + d;
+  if (d.length <= 6) return '(' + d.substring(0,2) + ') ' + d.substring(2);
+  if (d.length <= 10) return '(' + d.substring(0,2) + ') ' + d.substring(2,6) + '-' + d.substring(6);
+  return '(' + d.substring(0,2) + ') ' + d.substring(2,7) + '-' + d.substring(7);
+};
 export default function SettingsPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
@@ -220,3 +237,4 @@ export default function SettingsPage() {
     </div>
   );
     }
+                                    <input className="input" value={uf.phone} onChange={e => setUf(f => ({...f, phone: fmtPhone(e.target.value)}))} placeholder="(00) 00000-0000" maxLength={16} />

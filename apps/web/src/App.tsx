@@ -3,6 +3,7 @@ import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import RecoverPasswordPage from './pages/RecoverPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import RoutesPage from './pages/RoutesPage';
 import StudentsPage from './pages/StudentsPage';
@@ -48,6 +49,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+        <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
 
       <Route path="/" element={<Guard><Layout /></Guard>}>
         <Route index element={<HomeRedirect />} />

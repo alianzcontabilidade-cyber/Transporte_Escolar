@@ -19,14 +19,17 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
   let options: RequestInit;
 
   if (type === 'query') {
-    url = `${API_URL}/api/trpc/${procedure}?input=${encodeURIComponent(JSON.stringify(input))}`;
+    // tRPC v10/v11 espera input no formato { json: input }
+    const wrappedInput = JSON.stringify({ json: input });
+    url = `${API_URL}/api/trpc/${procedure}?input=${encodeURIComponent(wrappedInput)}`;
     options = { method: 'GET', headers };
   } else {
     url = `${API_URL}/api/trpc/${procedure}`;
     options = {
       method: 'POST',
       headers,
-      body: JSON.stringify(input),
+      // tRPC v10/v11 espera body no formato { json: input }
+      body: JSON.stringify({ json: input }),
     };
   }
 
@@ -42,15 +45,27 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`Resposta inválida: ${text.substring(0, 200)}`);
+    throw new Error(`Resposta inválida do servidor: ${text.substring(0, 200)}`);
   }
 
+  // Tratar erros tRPC
   if (data?.error) {
-    const msg = data.error?.data?.message || data.error?.message || JSON.stringify(data.error);
+    const msg =
+      data.error?.data?.message ||
+      data.error?.message ||
+      data.error?.data?.zodError?.fieldErrors
+        ? 'Dados inválidos: verifique os campos'
+        : JSON.stringify(data.error);
     throw new Error(msg);
   }
 
-  if (data?.result?.data !== undefined) return data.result.data;
+  // Desempacotar resposta tRPC — formato: { result: { data: { json: ... } } }
+  if (data?.result?.data !== undefined) {
+    const resultData = data.result.data;
+    // tRPC v10/v11 retorna { json: <valor_real> }
+    if (resultData?.json !== undefined) return resultData.json;
+    return resultData;
+  }
   if (data?.result !== undefined) return data.result;
   return data;
 }
@@ -62,21 +77,33 @@ export const api = {
     me: () => call('auth.me', {}, 'query'),
   },
   municipalities: {
+    getById: (input: any) => call('municipalities.getById', input, 'query'),
+    update: (input: any) => call('municipalities.update', input, 'mutation'),
     getDashboardStats: (input: any) => call('municipalities.getDashboardStats', input, 'query'),
   },
   schools: {
     list: (input: any) => call('schools.list', input, 'query'),
     create: (input: any) => call('schools.create', input, 'mutation'),
+    update: (input: any) => call('schools.update', input, 'mutation'),
     delete: (input: any) => call('schools.delete', input, 'mutation'),
   },
   routes: {
     list: (input: any) => call('routes.list', input, 'query'),
+    getById: (input: any) => call('routes.getById', input, 'query'),
     create: (input: any) => call('routes.create', input, 'mutation'),
+    update: (input: any) => call('routes.update', input, 'mutation'),
     delete: (input: any) => call('routes.delete', input, 'mutation'),
+  },
+  stops: {
+    listByRoute: (input: any) => call('stops.listByRoute', input, 'query'),
+    create: (input: any) => call('stops.create', input, 'mutation'),
+    update: (input: any) => call('stops.update', input, 'mutation'),
+    reorder: (input: any) => call('stops.reorder', input, 'mutation'),
   },
   students: {
     list: (input: any) => call('students.list', input, 'query'),
     create: (input: any) => call('students.create', input, 'mutation'),
+    assignToStop: (input: any) => call('students.assignToStop', input, 'mutation'),
   },
   drivers: {
     list: (input: any) => call('drivers.list', input, 'query'),
@@ -88,6 +115,10 @@ export const api = {
   },
   trips: {
     listActive: (input: any) => call('trips.listActive', input, 'query'),
+    start: (input: any) => call('trips.start', input, 'mutation'),
+    arriveAtStop: (input: any) => call('trips.arriveAtStop', input, 'mutation'),
+    complete: (input: any) => call('trips.complete', input, 'mutation'),
+    updateLocation: (input: any) => call('trips.updateLocation', input, 'mutation'),
     history: (input: any) => call('trips.history', input, 'query'),
   },
   users: {
@@ -95,5 +126,10 @@ export const api = {
     create: (input: any) => call('users.create', input, 'mutation'),
     update: (input: any) => call('users.update', input, 'mutation'),
     delete: (input: any) => call('users.delete', input, 'mutation'),
+  },
+  notifications: {
+    list: (input: any) => call('notifications.list', input, 'query'),
+    markAsRead: (input: any) => call('notifications.markAsRead', input, 'mutation'),
+    markAllAsRead: () => call('notifications.markAllAsRead', {}, 'mutation'),
   },
 };

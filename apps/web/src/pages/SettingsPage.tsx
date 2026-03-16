@@ -188,7 +188,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="label flex items-center gap-1"><FileText size={12} /> CPF</label>
-                  <input className="input" value={uf.cpf} onChange={sf('cpf', setUf)} placeholder="000.000.000-00" />
+                                    <input className="input" value={uf.cpf} onChange={e => setUf(f => ({...f, cpf: fmtCPF(e.target.value)}))} placeholder="000.000.000-00" maxLength={14} />
                 </div>
                 <div>
                   <label className="label flex items-center gap-1"><Calendar size={12} /> Data de Nascimento</label>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="label flex items-center gap-1"><Phone size={12} /> Telefone</label>
-                  <input className="input" value={uf.phone} onChange={sf('phone', setUf)} placeholder="(00) 00000-0000" />
+                                    <input className="input" value={uf.phone} onChange={e => setUf(f => ({...f, phone: fmtPhone(e.target.value)}))} placeholder="(00) 00000-0000" maxLength={16} />
                 </div>
                 <div>
                   <label className="label flex items-center gap-1"><Mail size={12} /> E-mail *</label>

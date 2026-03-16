@@ -102,7 +102,7 @@ export const authRouter = t.router({
       // Gerar token JWT
       const token = sign(
         { userId: user.id, municipalityId: user.municipalityId, role: user.role },
-        process.env.JWT_SECRET || 'secret',
+        process.env.JWT_SECRET || 'transescolar-secret-2024',
         { expiresIn: '7d' }
       );
 
@@ -796,45 +796,48 @@ export const usersRouter = t.router({
       }).from(users)
         .where(eq(users.municipalityId, input.municipalityId));
     }),
-  create: protectedProcedure
+  create: adminProcedure
     .input(z.object({
       municipalityId: z.number(),
       name: z.string(),
       email: z.string().email(),
-      role: z.string().default('operator'),
+      role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).default('secretary'),
       password: z.string().min(6),
     }))
     .mutation(async ({ input }) => {
-      const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash(input.password, 10);
+      // Verificar se email já existe
+      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      if (existingUser.length > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
+      }
+      const passwordHash = await hash(input.password, 12);
       const [newUser] = await db.insert(users).values({
         municipalityId: input.municipalityId,
         name: input.name,
         email: input.email,
         role: input.role,
-        password: hashedPassword,
-      });
-      return { success: true, id: newUser.insertId };
+        passwordHash,
+      }).$returningId();
+      return { success: true, id: newUser.id };
     }),
-  update: protectedProcedure
+  update: adminProcedure
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
       email: z.string().email().optional(),
-      role: z.string().optional(),
+      role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).optional(),
       password: z.string().min(6).optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, password, ...rest } = input;
       const updateData: any = { ...rest };
       if (password) {
-        const bcrypt = await import('bcryptjs');
-        updateData.password = await bcrypt.hash(password, 10);
+        updateData.passwordHash = await hash(password, 12);
       }
       await db.update(users).set(updateData).where(eq(users.id, id));
       return { success: true };
     }),
-  delete: protectedProcedure
+  delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await db.delete(users).where(eq(users.id, input.id));

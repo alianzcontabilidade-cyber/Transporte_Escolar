@@ -859,4 +859,4 @@ export const appRouter = t.router({
   users: usersRouter,
 });
 
-  
+export type AppRouter = typeof appRouter;

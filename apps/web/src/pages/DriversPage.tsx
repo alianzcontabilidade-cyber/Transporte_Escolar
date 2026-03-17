@@ -38,7 +38,7 @@ function validateCPF(cpf: string): boolean {
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);
-    return (<div className="flex flex-col items-center gap-2"><div className="relative w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => ref.current?.click()}>{value?<img src={value} className="w-full h-full object-cover"/>:<Camera size={24} className="text-gray-400"/>}</div>div><span className="text-xs text-gray-500">Foto do motorista</span>span><input ref={ref} type="file" accept="image/*" className="hidden" onChange={function(e){const f=e.target.files?.[0];if(f){const rd=new FileReader();rd.onload=function(ev){onChange(ev.target?.result);};rd.readAsDataURL(f);}}}/></div>div>);
+    return (<div className="flex flex-col items-center gap-2"><div className="relative w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => ref.current?.click()}>{value?<img src={value} className="w-full h-full object-cover"/>:<Camera size={24} className="text-gray-400"/>}</div><span className="text-xs text-gray-500">Foto do motorista</span><input ref={ref} type="file" accept="image/*" className="hidden" onChange={function(e){const f=e.target.files?.[0];if(f){const rd=new FileReader();rd.onload=function(ev){onChange(ev.target?.result);};rd.readAsDataURL(f);}}}/></div>);
 }
 
 const CNH_CATS=['B','C','D','E'];
@@ -105,59 +105,59 @@ export default function DriversPage() {
     const ca=function(exp:string){
           if(!exp)return null;
           const d=Math.ceil((new Date(exp).getTime()-Date.now())/86400000);
-          if(d<0)return <span className="text-xs text-red-500 flex items-center gap-1"><AlertTriangle size={10}/>CNH vencida</span>span>;
-          if(d<60)return <span className="text-xs text-yellow-500 flex items-center gap-1"><AlertTriangle size={10}/>Vence em {d}d</span>span>;
+          if(d<0)return <span className="text-xs text-red-500 flex items-center gap-1"><AlertTriangle size={10}/>CNH vencida</span>;
+          if(d<60)return <span className="text-xs text-yellow-500 flex items-center gap-1"><AlertTriangle size={10}/>Vence em {d}d</span>;
           return null;
     };
   
     return (
           <div className="p-6">
-                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1>h1><p className="text-gray-500">{all.length} motorista(s)</p>p></div>div><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button>button></div>div>
-                <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>div>
+                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div>
+                <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
                 <div className="grid gap-3">
                   {filtered.map(function(d:any){return(
                       <div key={d.id} className="card flex items-center gap-4 hover:border-primary-200 transition-colors">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-100 flex items-center justify-center flex-shrink-0">{d.photo?<img src={d.photo} className="w-full h-full object-cover"/>:<span className="font-bold text-orange-700 text-lg">{d.name?.[0]}</span>span>}</div>div>
+                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-100 flex items-center justify-center flex-shrink-0">{d.photo?<img src={d.photo} className="w-full h-full object-cover"/>:<span className="font-bold text-orange-700 text-lg">{d.name?.[0]}</span>}</div>
                                   <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-800">{d.name}</p>p>{d.cnhCategory&&<span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">CNH {d.cnhCategory}</span>span>}</div>div>
-                                                <div className="flex gap-3 flex-wrap text-xs text-gray-500">{d.phone&&<span className="flex items-center gap-1"><Phone size={10}/>{d.phone}</span>span>}{d.email&&<span className="flex items-center gap-1"><Mail size={10}/>{d.email}</span>span>}{d.cnhNumber&&<span className="flex items-center gap-1"><FileText size={10}/>{d.cnhNumber}</span>span>}{ca(d.cnhExpiry)}</div>div>
-                                                <div className="flex gap-2 mt-1">{d.routeId&&<span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10}/>{rn(d.routeId)}</span>span>}{d.vehicleId&&<span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Bus size={10}/>{vp(d.vehicleId)}</span>span>}</div>div>
-                                  </div>div>
-                                  <div className="flex items-center gap-1"><button onClick={function(){openEdit(d);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15}/></button>button><button onClick={function(){setDel(d);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button>button></div>div>
-                      </div>div>
+                                                <div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-800">{d.name}</p>{d.cnhCategory&&<span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">CNH {d.cnhCategory}</span>}</div>
+                                                <div className="flex gap-3 flex-wrap text-xs text-gray-500">{d.phone&&<span className="flex items-center gap-1"><Phone size={10}/>{d.phone}</span>}{d.email&&<span className="flex items-center gap-1"><Mail size={10}/>{d.email}</span>}{d.cnhNumber&&<span className="flex items-center gap-1"><FileText size={10}/>{d.cnhNumber}</span>}{ca(d.cnhExpiry)}</div>
+                                                <div className="flex gap-2 mt-1">{d.routeId&&<span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10}/>{rn(d.routeId)}</span>}{d.vehicleId&&<span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Bus size={10}/>{vp(d.vehicleId)}</span>}</div>
+                                  </div>
+                                  <div className="flex items-center gap-1"><button onClick={function(){openEdit(d);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15}/></button><button onClick={function(){setDel(d);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button></div>
+                      </div>
                     );})}
-                  {!filtered.length&&!search&&<div className="card text-center py-16"><Truck size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum motorista</p>p><button className="btn-primary" onClick={openNew}>Adicionar motorista</button>button></div>div>}
-                </div>div>
+                  {!filtered.length&&!search&&<div className="card text-center py-16"><Truck size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum motorista</p><button className="btn-primary" onClick={openNew}>Adicionar motorista</button></div>}
+                </div>
           
-            {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3>h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p>p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button>button><button onClick={function(){remove({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button>button></div>div></div>div></div>div>)}
+            {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
           
             {show&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                    <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Motorista':'Novo Motorista'}</h3>h3><button onClick={function(){setShow(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button>button></div>div>
-                    <div className="flex gap-1 px-5 pt-4">{(['dados','cnh','vinculo'] as const).map(function(t){return(<button key={t} onClick={function(){setTab(t);}} className={'px-4 py-1.5 rounded-lg text-sm font-medium transition-all '+(tab===t?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t==='dados'?'Dados Pessoais':t==='cnh'?'CNH':'Vínculo'}</button>button>);})}</div>div>
+                    <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Motorista':'Novo Motorista'}</h3><button onClick={function(){setShow(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+                    <div className="flex gap-1 px-5 pt-4">{(['dados','cnh','vinculo'] as const).map(function(t){return(<button key={t} onClick={function(){setTab(t);}} className={'px-4 py-1.5 rounded-lg text-sm font-medium transition-all '+(tab===t?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t==='dados'?'Dados Pessoais':t==='cnh'?'CNH':'Vínculo'}</button>);})}</div>
                     <div className="overflow-y-auto flex-1 p-5 space-y-3">
-                      {err&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{err}</div>div>}
+                      {err&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{err}</div>}
                       {tab==='dados'&&(<>
-                                  <div className="flex justify-center mb-2"><PhotoUpload value={form.photo} onChange={function(v:string){setForm(function(f:any){return{...f,photo:v};});}}/></div>div>
+                                  <div className="flex justify-center mb-2"><PhotoUpload value={form.photo} onChange={function(v:string){setForm(function(f:any){return{...f,photo:v};});}}/></div>
                                   <div className="grid grid-cols-2 gap-3">
-                                                <div className="col-span-2"><label className="label">Nome *</label>label><input className="input" value={form.name} onChange={sf('name')}/></div>div>
+                                                <div className="col-span-2"><label className="label">Nome *</label><input className="input" value={form.name} onChange={sf('name')}/></div>
                                                 <div>
-                                                                <label className="label">CPF</label>label>
+                                                                <label className="label">CPF</label>
                                                                 <input className="input" value={form.cpf} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14}/>
-                                                  {cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>p>}
-                                                </div>div>
-                                                <div><label className="label">Nascimento</label>label><input className="input" type="date" value={form.birthDate} onChange={sf('birthDate')}/></div>div>
-                                                <div><label className="label">Telefone *</label>label><input className="input" value={form.phone} onChange={handlePhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div>div>
-                                                <div><label className="label">E-mail</label>label><input className="input" type="email" value={form.email} onChange={sf('email')}/></div>div>
-                                                <div className="col-span-2"><label className="label">Endereço</label>label><input className="input" value={form.address} onChange={sf('address')}/></div>div>
-                                                <div><label className="label">Cidade</label>label><input className="input" value={form.city} onChange={sf('city')}/></div>div>
-                                                <div><label className="label">Observações</label>label><input className="input" value={form.observations} onChange={sf('observations')}/></div>div>
-                                  </div>div>
+                                                  {cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}
+                                                </div>
+                                                <div><label className="label">Nascimento</label><input className="input" type="date" value={form.birthDate} onChange={sf('birthDate')}/></div>
+                                                <div><label className="label">Telefone *</label><input className="input" value={form.phone} onChange={handlePhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div>
+                                                <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={sf('email')}/></div>
+                                                <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={sf('address')}/></div>
+                                                <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={sf('city')}/></div>
+                                                <div><label className="label">Observações</label><input className="input" value={form.observations} onChange={sf('observations')}/></div>
+                                  </div>
                       </>>)}
-                      {tab==='cnh'&&(<div className="grid grid-cols-2 gap-3"><div><label className="label">Número CNH</label>label><input className="input" value={form.cnhNumber} onChange={sf('cnhNumber')}/></div>div><div><label className="label">Categoria</label>label><select className="input" value={form.cnhCategory} onChange={sf('cnhCategory')}>{CNH_CATS.map(function(c){return <option key={c}>{c}</option>option>;})}</select>select></div>div><div><label className="label">Validade CNH</label>label><input className="input" type="date" value={form.cnhExpiry} onChange={sf('cnhExpiry')}/></div>div><div><label className="label">Experiência (anos)</label>label><input className="input" type="number" min="0" value={form.experience} onChange={sf('experience')}/></div>div></div>div>)}
-                      {tab==='vinculo'&&(<div className="space-y-4"><div className="p-4 bg-primary-50 rounded-xl"><p className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2"><Navigation size={14}/> Rota vinculada</p>p><select className="input" value={form.routeId} onChange={sf('routeId')}><option value="">— Nenhuma rota —</option>option>{allR.map(function(rt:any){return <option key={rt.route.id} value={rt.route.id}>{rt.route.name}{rt.route.code?' ('+rt.route.code+')':''}</option>option>;})}</select>select></div>div><div className="p-4 bg-blue-50 rounded-xl"><p className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2"><Bus size={14}/> Veículo vinculado</p>p><select className="input" value={form.vehicleId} onChange={sf('vehicleId')}><option value="">— Nenhum veículo —</option>option>{allV.map(function(v:any){return <option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>option>;})}</select>select></div>div><p className="text-xs text-gray-400">Vincular motorista à rota e veículo habilita rastreamento em tempo real.</p>p></div>div>)}
-                    </div>div>
-                    <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShow(false);}} className="btn-secondary flex-1">Cancelar</button>button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Motorista'}</button>button></div>div>
-            </div>div></div>div>)}
-          </div>div>
+                      {tab==='cnh'&&(<div className="grid grid-cols-2 gap-3"><div><label className="label">Número CNH</label><input className="input" value={form.cnhNumber} onChange={sf('cnhNumber')}/></div><div><label className="label">Categoria</label><select className="input" value={form.cnhCategory} onChange={sf('cnhCategory')}>{CNH_CATS.map(function(c){return <option key={c}>{c}</option>;})}</select></div><div><label className="label">Validade CNH</label><input className="input" type="date" value={form.cnhExpiry} onChange={sf('cnhExpiry')}/></div><div><label className="label">Experiência (anos)</label><input className="input" type="number" min="0" value={form.experience} onChange={sf('experience')}/></div></div>)}
+                      {tab==='vinculo'&&(<div className="space-y-4"><div className="p-4 bg-primary-50 rounded-xl"><p className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2"><Navigation size={14}/> Rota vinculada</p><select className="input" value={form.routeId} onChange={sf('routeId')}><option value="">— Nenhuma rota —</option>{allR.map(function(rt:any){return <option key={rt.route.id} value={rt.route.id}>{rt.route.name}{rt.route.code?' ('+rt.route.code+')':''}</option>;})}</select></div><div className="p-4 bg-blue-50 rounded-xl"><p className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2"><Bus size={14}/> Veículo vinculado</p><select className="input" value={form.vehicleId} onChange={sf('vehicleId')}><option value="">— Nenhum veículo —</option>{allV.map(function(v:any){return <option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>;})}</select></div><p className="text-xs text-gray-400">Vincular motorista à rota e veículo habilita rastreamento em tempo real.</p></div>)}
+                    </div>
+                    <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShow(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Motorista'}</button></div>
+            </div></div>)}
+          </div>
         );
 }</></div>

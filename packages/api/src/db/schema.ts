@@ -493,6 +493,78 @@ export const auditLogs = mysqlTable("audit_logs", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+
+// ============================================
+// TABELA: MONITORES (PESSOAL)
+// ============================================
+export const monitorStaff = mysqlTable("monitor_staff", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  userId: int("userId").references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  cpf: varchar("cpf", { length: 14 }),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  birthDate: timestamp("birthDate"),
+  address: text("address"),
+  city: varchar("city", { length: 255 }),
+  shift: mysqlEnum("shift", ["morning", "afternoon", "evening", "full"]).default("morning"),
+  routeName: varchar("routeName", { length: 255 }),
+  observations: text("observations"),
+  photoUrl: text("photoUrl"),
+  status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: CONTRATOS
+// ============================================
+export const contracts = mysqlTable("contracts", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  number: varchar("number", { length: 50 }).notNull(),
+  type: varchar("type", { length: 100 }).default("Transporte Escolar"),
+  supplier: varchar("supplier", { length: 255 }).notNull(),
+  cnpj: varchar("cnpj", { length: 18 }),
+  object: text("object"),
+  value: decimal("value", { precision: 12, scale: 2 }),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  responsibleName: varchar("responsibleName", { length: 255 }),
+  responsiblePhone: varchar("responsiblePhone", { length: 20 }),
+  notes: text("notes"),
+  status: mysqlEnum("contractStatus", ["active", "expired", "pending", "cancelled"]).default("active"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: REGISTROS DE MANUTENÇÃO
+// ============================================
+export const maintenanceRecords = mysqlTable("maintenance_records", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  vehicleId: int("vehicleId").notNull().references(() => vehicles.id),
+  componentName: varchar("componentName", { length: 255 }).notNull(),
+  type: mysqlEnum("maintenanceType", ["preventive", "corrective", "predictive"]).default("preventive"),
+  description: text("description"),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  kmAtMaintenance: int("kmAtMaintenance"),
+  intervalKm: int("intervalKm"),
+  performedAt: timestamp("performedAt"),
+  nextDueAt: timestamp("nextDueAt"),
+  nextDueKm: int("nextDueKm"),
+  supplier: varchar("supplier", { length: 255 }),
+  notes: text("notes"),
+  status: mysqlEnum("maintenanceStatus", ["scheduled", "in_progress", "completed", "cancelled"]).default("scheduled"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // ============================================
 // RELATIONS
 // ============================================
@@ -644,5 +716,14 @@ export type TripStudentLog = typeof tripStudentLogs.$inferSelect;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+export type MonitorStaff = typeof monitorStaff.$inferSelect;
+export type InsertMonitorStaff = typeof monitorStaff.$inferInsert;
+
+export type Contract = typeof contracts.$inferSelect;
+export type InsertContract = typeof contracts.$inferInsert;
+
+export type MaintenanceRecord = typeof maintenanceRecords.$inferSelect;
+export type InsertMaintenanceRecord = typeof maintenanceRecords.$inferInsert;
 
 export type LocationHistory = typeof locationHistory.$inferSelect;

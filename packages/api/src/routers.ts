@@ -887,24 +887,41 @@ export const usersRouter = t.router({
       return await db.select({
         id: users.id, name: users.name, email: users.email, role: users.role,
         municipalityId: users.municipalityId, cpf: users.cpf, phone: users.phone,
-        avatarUrl: users.avatarUrl, createdAt: users.createdAt
+        avatarUrl: users.avatarUrl, isActive: users.isActive, createdAt: users.createdAt
       })
         .from(users).where(eq(users.municipalityId, input.municipalityId));
     }),
 
   create: adminProcedure
     .input(z.object({
-      municipalityId: z.number(), name: z.string(), email: z.string().email(),
+      municipalityId: z.number(),
+      name: z.string(),
+      email: z.string().email(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).default('secretary'),
       password: z.string().min(6),
       cpf: z.string().optional(),
       phone: z.string().optional(),
+      username: z.string().optional(),
+      birthDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { password, ...rest } = input;
+      const { password, username, birthDate, ...rest } = input;
       const passwordHash = await hash(password, 10);
-      const [result] = await db.insert(users).values({ ...rest, passwordHash });
-      return { id: result.insertId, success: true };
+      try {
+        const [result] = await db.insert(users).values({ ...rest, passwordHash });
+        return { id: result.insertId, success: true };
+      } catch (err: any) {
+        if (err?.code === 'ER_DUP_ENTRY' || err?.message?.includes('Duplicate entry')) {
+          if (err.message.includes('users_email_unique')) {
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este e-mail ja esta cadastrado no sistema.' });
+          }
+          if (err.message.includes('users_cpf_unique')) {
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este CPF ja esta cadastrado no sistema.' });
+          }
+          throw new TRPCError({ code: 'CONFLICT', message: 'Registro duplicado. Verifique e-mail e CPF.' });
+        }
+        throw err;
+      }
     }),
 
   update: adminProcedure
@@ -917,17 +934,31 @@ export const usersRouter = t.router({
       cpf: z.string().optional(),
       phone: z.string().optional(),
       municipalityId: z.number().optional(),
+      username: z.string().optional(),
+      birthDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, password, ...data } = input;
+      const { id, password, username, birthDate, ...data } = input;
       const updateData: any = { ...data };
       if (password) {
         updateData.passwordHash = await hash(password, 10);
       }
-      // Remove undefined fields
       Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
       if (Object.keys(updateData).length > 0) {
-        await db.update(users).set(updateData).where(eq(users.id, id));
+        try {
+          await db.update(users).set(updateData).where(eq(users.id, id));
+        } catch (err: any) {
+          if (err?.code === 'ER_DUP_ENTRY' || err?.message?.includes('Duplicate entry')) {
+            if (err.message.includes('users_email_unique')) {
+              throw new TRPCError({ code: 'CONFLICT', message: 'Este e-mail ja esta em uso por outro usuario.' });
+            }
+            if (err.message.includes('users_cpf_unique')) {
+              throw new TRPCError({ code: 'CONFLICT', message: 'Este CPF ja esta em uso por outro usuario.' });
+            }
+            throw new TRPCError({ code: 'CONFLICT', message: 'Registro duplicado. Verifique e-mail e CPF.' });
+          }
+          throw err;
+        }
       }
       return { success: true };
     }),

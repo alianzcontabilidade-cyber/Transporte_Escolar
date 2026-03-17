@@ -602,6 +602,31 @@ export const studentsRouter = t.router({
       await db.insert(stopStudents).values(input);
       return { success: true };
     }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      grade: z.string().optional(),
+      classRoom: z.string().optional(),
+      shift: z.enum(['morning', 'afternoon', 'evening']).optional(),
+      address: z.string().optional(),
+      hasSpecialNeeds: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(students).set({ isActive: false }).where(eq(students.id, input.id));
+      return { success: true };
+    }),
 });
 
 // ============================================
@@ -805,6 +830,32 @@ export const vehiclesRouter = t.router({
       const [vehicle] = await db.insert(vehicles).values(input).$returningId();
       return { success: true, id: vehicle.id };
     }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      plate: z.string().optional(),
+      nickname: z.string().optional(),
+      brand: z.string().optional(),
+      model: z.string().optional(),
+      year: z.number().optional(),
+      capacity: z.number().optional(),
+      status: z.enum(['active', 'maintenance', 'inactive']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(vehicles).set(ud).where(eq(vehicles.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(vehicles).where(eq(vehicles.id, input.id));
+      return { success: true };
+    }),
 });
 
 // ============================================
@@ -841,6 +892,33 @@ export const driversRouter = t.router({
         cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
       }).$returningId();
       return { success: true, driverId: driver.id, userId: user.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      cnhNumber: z.string().optional(),
+      cnhCategory: z.string().optional(),
+      vehicleId: z.number().optional(),
+      isAvailable: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(drivers).set(ud).where(eq(drivers.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const [driver] = await db.select().from(drivers).where(eq(drivers.id, input.id)).limit(1);
+      if (driver) {
+        await db.delete(drivers).where(eq(drivers.id, input.id));
+        await db.delete(users).where(eq(users.id, driver.userId));
+      }
+      return { success: true };
     }),
 });
 
@@ -1317,6 +1395,248 @@ export const monitorsRouter = t.router({
 });
 
 // ============================================
+// MONITOR STAFF ROUTER (CRUD PESSOAL MONITORES)
+// ============================================
+export const monitorStaffRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(monitorStaff)
+        .where(and(eq(monitorStaff.municipalityId, input.municipalityId), eq(monitorStaff.isActive, true)))
+        .orderBy(monitorStaff.name);
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string().min(2),
+      cpf: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().optional(),
+      birthDate: z.string().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      shift: z.enum(['morning', 'afternoon', 'evening', 'full']).optional(),
+      routeName: z.string().optional(),
+      observations: z.string().optional(),
+      photoUrl: z.string().optional(),
+      password: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { password, birthDate, ...rest } = input;
+      let userId: number | undefined;
+      if (input.email && password && password.length >= 6) {
+        const passwordHash = await hash(password, 12);
+        const [user] = await db.insert(users).values({
+          municipalityId: input.municipalityId,
+          email: input.email,
+          passwordHash,
+          name: input.name,
+          phone: input.phone,
+          cpf: input.cpf,
+          role: 'monitor',
+        }).$returningId();
+        userId = user.id;
+      }
+      const [monitor] = await db.insert(monitorStaff).values({
+        ...rest,
+        userId,
+        birthDate: birthDate ? new Date(birthDate) : undefined,
+      }).$returningId();
+      return { success: true, id: monitor.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      cpf: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      shift: z.enum(['morning', 'afternoon', 'evening', 'full']).optional(),
+      routeName: z.string().optional(),
+      observations: z.string().optional(),
+      photoUrl: z.string().optional(),
+      status: z.enum(['active', 'inactive']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const updateData: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) updateData[k] = v; });
+      if (Object.keys(updateData).length > 0) {
+        await db.update(monitorStaff).set(updateData).where(eq(monitorStaff.id, id));
+      }
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(monitorStaff).where(eq(monitorStaff.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// CONTRACTS ROUTER
+// ============================================
+export const contractsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(contracts)
+        .where(and(eq(contracts.municipalityId, input.municipalityId), eq(contracts.isActive, true)))
+        .orderBy(desc(contracts.createdAt));
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      number: z.string().min(1),
+      type: z.string().optional(),
+      supplier: z.string().min(1),
+      cnpj: z.string().optional(),
+      object: z.string().optional(),
+      value: z.number().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      responsibleName: z.string().optional(),
+      responsiblePhone: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { startDate, endDate, value, ...rest } = input;
+      const [contract] = await db.insert(contracts).values({
+        ...rest,
+        value: value?.toString(),
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      }).$returningId();
+      return { success: true, id: contract.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      number: z.string().optional(),
+      type: z.string().optional(),
+      supplier: z.string().optional(),
+      cnpj: z.string().optional(),
+      object: z.string().optional(),
+      value: z.number().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      responsibleName: z.string().optional(),
+      responsiblePhone: z.string().optional(),
+      notes: z.string().optional(),
+      status: z.enum(['active', 'expired', 'pending', 'cancelled']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, startDate, endDate, value, ...rest } = input;
+      const updateData: any = { ...rest };
+      if (value !== undefined) updateData.value = value.toString();
+      if (startDate !== undefined) updateData.startDate = new Date(startDate);
+      if (endDate !== undefined) updateData.endDate = new Date(endDate);
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+      if (Object.keys(updateData).length > 0) {
+        await db.update(contracts).set(updateData).where(eq(contracts.id, id));
+      }
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(contracts).where(eq(contracts.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// MAINTENANCE RECORDS ROUTER
+// ============================================
+export const maintenanceRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), vehicleId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [
+        eq(maintenanceRecords.municipalityId, input.municipalityId),
+        eq(maintenanceRecords.isActive, true),
+        ...(input.vehicleId ? [eq(maintenanceRecords.vehicleId, input.vehicleId)] : []),
+      ];
+      return db.select().from(maintenanceRecords)
+        .where(and(...conditions))
+        .orderBy(desc(maintenanceRecords.createdAt));
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      vehicleId: z.number(),
+      componentName: z.string().min(1),
+      type: z.enum(['preventive', 'corrective', 'predictive']).optional(),
+      description: z.string().optional(),
+      cost: z.number().optional(),
+      kmAtMaintenance: z.number().optional(),
+      intervalKm: z.number().optional(),
+      performedAt: z.string().optional(),
+      nextDueAt: z.string().optional(),
+      nextDueKm: z.number().optional(),
+      supplier: z.string().optional(),
+      notes: z.string().optional(),
+      status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { performedAt, nextDueAt, cost, ...rest } = input;
+      const [record] = await db.insert(maintenanceRecords).values({
+        ...rest,
+        cost: cost?.toString(),
+        performedAt: performedAt ? new Date(performedAt) : undefined,
+        nextDueAt: nextDueAt ? new Date(nextDueAt) : undefined,
+      }).$returningId();
+      return { success: true, id: record.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      componentName: z.string().optional(),
+      type: z.enum(['preventive', 'corrective', 'predictive']).optional(),
+      description: z.string().optional(),
+      cost: z.number().optional(),
+      kmAtMaintenance: z.number().optional(),
+      intervalKm: z.number().optional(),
+      performedAt: z.string().optional(),
+      nextDueAt: z.string().optional(),
+      nextDueKm: z.number().optional(),
+      supplier: z.string().optional(),
+      notes: z.string().optional(),
+      status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, performedAt, nextDueAt, cost, ...rest } = input;
+      const updateData: any = { ...rest };
+      if (cost !== undefined) updateData.cost = cost.toString();
+      if (performedAt !== undefined) updateData.performedAt = new Date(performedAt);
+      if (nextDueAt !== undefined) updateData.nextDueAt = new Date(nextDueAt);
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+      if (Object.keys(updateData).length > 0) {
+        await db.update(maintenanceRecords).set(updateData).where(eq(maintenanceRecords.id, id));
+      }
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(maintenanceRecords).where(eq(maintenanceRecords.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -1333,6 +1653,9 @@ export const appRouter = t.router({
   users: usersRouter,
   guardians: guardiansRouter,
   monitors: monitorsRouter,
+  monitorStaff: monitorStaffRouter,
+  contracts: contractsRouter,
+  maintenance: maintenanceRouter,
 
     // TEMPORARY RESET ENDPOINT - DELETE AFTER USE
     resetData: t.router({

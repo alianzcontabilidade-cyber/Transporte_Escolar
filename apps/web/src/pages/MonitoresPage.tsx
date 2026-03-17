@@ -3,6 +3,34 @@ import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, T
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
+
+function maskPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+function maskCPF(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+}
+function validateCPF(cpf: string): boolean {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
+  let r = (sum * 10) % 11; if (r === 10) r = 0;
+  if (parseInt(d[9]) !== r) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
+  r = (sum * 10) % 11; if (r === 10) r = 0;
+  if (parseInt(d[10]) !== r) return false;
+  return true;
+}
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -30,6 +58,7 @@ export default function MonitoresPage() {
   const [formErr, setFormErr] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [cpfError, setCpfError] = useState('');
   const municipalityId = user?.municipalityId;
 
   const loadMonitores = async () => {
@@ -39,14 +68,20 @@ export default function MonitoresPage() {
   useEffect(() => { loadMonitores(); }, [municipalityId]);
 
   const setField = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
+  const handlePhoneChange = (e: any) => { setForm((f: any) => ({ ...f, phone: maskPhone(e.target.value) })); };
+  const handleCpfChange = (e: any) => { const masked = maskCPF(e.target.value); setForm((f: any) => ({ ...f, cpf: masked })); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 11) { setCpfError(validateCPF(digits) ? '' : 'CPF inválido'); } else { setCpfError(''); } };
   const shiftLabel = (v: string) => SHIFTS.find(s => s.v === v)?.l || v;
   const filtered = monitores.filter(m => { const q = search.toLowerCase(); return m.name.toLowerCase().includes(q) || (m.phone||'').includes(q) || (m.routeName||'').toLowerCase().includes(q); });
 
-  const openNew = () => { setForm(emptyForm); setEditId(null); setFormErr(''); setShowModal(true); };
-  const openEdit = (m: any) => { setForm({ ...m, password:'', confirmPassword:'', photo: m.photoUrl || '' }); setEditId(m.id); setFormErr(''); setShowModal(true); };
+  const openNew = () => { setForm(emptyForm); setEditId(null); setFormErr(''); setCpfError(''); setShowModal(true); };
+  const openEdit = (m: any) => { setForm({ ...m, password:'', confirmPassword:'', photo: m.photoUrl || '' }); setEditId(m.id); setFormErr(''); setCpfError(''); setShowModal(true); };
 
   const save = async () => {
     if (!form.name || !form.phone) { setFormErr('Nome e telefone são obrigatórios.'); return; }
+    if (cpfError) { setFormErr('Corrija o CPF antes de salvar.'); return; }
+    const cpfDigits = (form.cpf || '').replace(/\D/g, '');
+    if (cpfDigits.length > 0 && cpfDigits.length !== 11) { setFormErr('CPF incompleto.'); return; }
+    if (cpfDigits.length === 11 && !validateCPF(cpfDigits)) { setFormErr('CPF inválido.'); return; }
     if (form.password && form.password !== form.confirmPassword) { setFormErr('Senhas não coincidem.'); return; }
     setSaving(true);
     try {
@@ -133,8 +168,8 @@ export default function MonitoresPage() {
                 <p className="text-xs font-semibold text-teal-700 mb-3 uppercase tracking-wide">Dados Pessoais</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2"><label className="label">Nome completo *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Nome do monitor"/></div>
-                  <div><label className="label">CPF</label><input className="input" value={form.cpf} onChange={setField('cpf')} placeholder="000.000.000-00"/></div>
-                  <div><label className="label">Telefone *</label><input className="input" value={form.phone} onChange={setField('phone')} placeholder="(00) 00000-0000"/></div>
+                  <div><label className="label">CPF</label><input className="input" value={form.cpf} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14}/>{cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}</div>
+                  <div><label className="label">Telefone *</label><input className="input" value={form.phone} onChange={handlePhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div>
                   <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
                   <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select></div>
                   <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>

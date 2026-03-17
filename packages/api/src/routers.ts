@@ -1333,6 +1333,33 @@ export const appRouter = t.router({
   users: usersRouter,
   guardians: guardiansRouter,
   monitors: monitorsRouter,
+
+    // TEMPORARY RESET ENDPOINT - DELETE AFTER USE
+    resetData: t.router({
+          execute: adminProcedure
+            .input(z.object({ confirmReset: z.literal('RESET_ALL_DATA') }))
+            .mutation(async ({ input, ctx }) => {
+                      if (ctx.role !== 'super_admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas super_admin' });
+                      await db.execute(sql`SET FOREIGN_KEY_CHECKS = 0`);
+                      await db.delete(tripStudentLogs);
+                      await db.delete(tripStopLogs);
+                      await db.delete(trips);
+                      await db.delete(locationHistory);
+                      await db.delete(notifications);
+                      await db.delete(stopStudents);
+                      await db.delete(stops);
+                      await db.delete(routes);
+                      await db.delete(students);
+                      await db.delete(guardians);
+                      await db.delete(drivers);
+                      await db.delete(vehicles);
+                      await db.delete(schools);
+                      await db.delete(users).where(sql`id != 1`);
+                      await db.delete(municipalities);
+                      await db.execute(sql`SET FOREIGN_KEY_CHECKS = 1`);
+                      return { success: true, message: 'Todos os dados foram resetados. Apenas o admin id=1 foi mantido.' };
+            }),
+    }),
 });
 
 export type AppRouter = typeof appRouter;

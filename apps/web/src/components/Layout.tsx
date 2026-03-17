@@ -3,11 +3,12 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
+import { usePWAInstall, notifyUser } from '../lib/pwa';
 import {
   LayoutDashboard, Map, Route, Users, Bus, School, ClipboardList,
   BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
   Bell, Shield, Brain, Wrench, UserCheck, ChevronDown, Navigation,
-  Locate, MapPinned
+  Locate, MapPinned, Download, Volume2
 } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -22,10 +23,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { connected } = useSocket();
+  const { socket, connected } = useSocket();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [installBanner, setInstallBanner] = useState(true);
+  const { canInstall, isInstalled, install } = usePWAInstall();
 
   useEffect(() => {
     api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
@@ -34,6 +37,29 @@ export default function Layout() {
     }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Entrar na sala do município para receber eventos em tempo real
+  useEffect(() => {
+    if (socket && user?.municipalityId) {
+      socket.emit('join:municipality', user.municipalityId);
+    }
+  }, [socket, user?.municipalityId]);
+
+  // Tocar som/vibrar ao receber eventos importantes
+  useEffect(() => {
+    if (!socket) return;
+    const onStudentBoarded = () => { notifyUser(); setUnreadNotifs(n => n + 1); };
+    const onStudentDropped = () => { notifyUser(); setUnreadNotifs(n => n + 1); };
+    const onStopArrived = () => { notifyUser(); };
+    socket.on('student:boarded', onStudentBoarded);
+    socket.on('student:dropped', onStudentDropped);
+    socket.on('stop:arrived', onStopArrived);
+    return () => {
+      socket.off('student:boarded', onStudentBoarded);
+      socket.off('student:dropped', onStudentDropped);
+      socket.off('stop:arrived', onStopArrived);
+    };
+  }, [socket]);
 
   const role = user?.role || 'parent';
   const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(role);
@@ -202,6 +228,20 @@ export default function Layout() {
             </div>
           </div>
         </header>
+
+        {/* PWA Install Banner */}
+        {canInstall && !isInstalled && installBanner && (
+          <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Download size={16} />
+              <span className="font-medium">Instale o TransEscolar no seu celular para acesso rápido!</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { install(); }} className="bg-white text-primary-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100">Instalar</button>
+              <button onClick={() => setInstallBanner(false)} className="text-white/70 hover:text-white"><X size={16} /></button>
+            </div>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">

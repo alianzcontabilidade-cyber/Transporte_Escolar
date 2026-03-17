@@ -7,6 +7,7 @@ import path from 'path';
 import * as dotenv from 'dotenv';
 import { appRouter } from './routers';
 import { createContext } from './middleware/context';
+import { setSocketIO } from './socketInstance';
 
 dotenv.config();
 
@@ -21,6 +22,9 @@ const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
   transports: ['websocket', 'polling'],
 });
+
+// Compartilhar instância do Socket.IO com os routers
+setSocketIO(io);
 
 // CORS
 app.use(cors({ origin: '*', credentials: true }));
@@ -45,9 +49,10 @@ io.on('connection', (socket) => {
     socket.join(`municipality:${municipalityId}`);
   });
 
+  // Manter compatibilidade com emissões diretas do cliente
   socket.on('bus:location', (data: any) => {
     if (data.municipalityId) {
-      io.to(`municipality:${data.municipalityId}`).emit('bus:location', data);
+      socket.to(`municipality:${data.municipalityId}`).emit('bus:location', data);
     }
   });
 

@@ -29,13 +29,19 @@
       "name": "Monitoramento",
       "short_name": "Monitor",
       "description": "Acompanhar viagens em tempo real",
-      "url": "/monitoramento"
+      "url": "/monitor"
     },
     {
-      "name": "Rotas",
-      "short_name": "Rotas",
-      "description": "Gerenciar rotas escolares",
-      "url": "/rotas"
+      "name": "Mapa ao Vivo",
+      "short_name": "Mapa",
+      "description": "Ver ônibus no mapa em tempo real",
+      "url": "/mapa-tempo-real"
+    },
+    {
+      "name": "Portal do Responsável",
+      "short_name": "Responsável",
+      "description": "Acompanhar transporte do aluno",
+      "url": "/portal-responsavel"
     }
   ]
 }

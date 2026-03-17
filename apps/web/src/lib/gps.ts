@@ -25,6 +25,31 @@ export function useGPSTracking({ tripId, driverId, intervalMs = 10000, enabled =
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPositionRef = useRef<GPSPosition | null>(null);
 
+  // Fila offline: armazena posições quando sem conexão e envia quando volta
+  const offlineQueueRef = useRef<GPSPosition[]>([]);
+
+  const flushOfflineQueue = useCallback(async () => {
+    if (!tripId || !driverId || offlineQueueRef.current.length === 0) return;
+    const queue = [...offlineQueueRef.current];
+    offlineQueueRef.current = [];
+    for (const pos of queue) {
+      try {
+        await api.trips.updateLocation({
+          tripId,
+          driverId,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          speed: pos.speed || 0,
+          heading: pos.heading || 0,
+        });
+      } catch {
+        // Se falhar novamente, devolver à fila
+        offlineQueueRef.current.push(pos);
+        break;
+      }
+    }
+  }, [tripId, driverId]);
+
   const sendLocation = useCallback(async (pos: GPSPosition) => {
     if (!tripId || !driverId) return;
     try {
@@ -36,10 +61,16 @@ export function useGPSTracking({ tripId, driverId, intervalMs = 10000, enabled =
         speed: pos.speed || 0,
         heading: pos.heading || 0,
       });
+      // Enviar posições acumuladas offline
+      if (offlineQueueRef.current.length > 0) flushOfflineQueue();
     } catch (err) {
-      console.error('Erro ao enviar localizacao:', err);
+      // Sem conexão: armazenar na fila offline (máximo 100 posições)
+      if (offlineQueueRef.current.length < 100) {
+        offlineQueueRef.current.push(pos);
+      }
+      console.error('Erro ao enviar localizacao (armazenado offline):', err);
     }
-  }, [tripId, driverId]);
+  }, [tripId, driverId, flushOfflineQueue]);
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {

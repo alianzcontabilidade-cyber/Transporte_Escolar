@@ -1,8 +1,9 @@
-const CACHE_NAME = 'transescolar-v1';
+const CACHE_NAME = 'transescolar-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/bus.svg',
 ];
 
 // Install - cache static assets
@@ -66,32 +67,90 @@ self.addEventListener('fetch', (event) => {
 
 // Push notifications
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'TransEscolar', body: event.data ? event.data.text() : 'Nova notificacao' };
+  }
+
   const title = data.title || 'TransEscolar';
+
+  // Ícones por tipo de notificação
+  const typeEmoji = {
+    trip_started: 'Viagem iniciada',
+    student_boarded: 'Aluno embarcou',
+    student_dropped: 'Aluno desembarcou',
+    arrived: 'Onibus chegou',
+    trip_completed: 'Viagem concluida',
+    delay: 'Atraso detectado',
+    alert: 'Alerta',
+  };
+
   const options = {
     body: data.body || 'Nova notificacao',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-72.png',
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'transescolar',
-    data: data.url || '/',
+    icon: '/bus.svg',
+    badge: '/bus.svg',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: data.tag || data.type || 'transescolar',
+    renotify: true,
+    requireInteraction: data.type === 'delay' || data.type === 'alert',
+    data: {
+      url: data.url || '/',
+      type: data.type,
+      tripId: data.tripId,
+      studentId: data.studentId,
+    },
+    actions: data.type === 'trip_started' ? [
+      { action: 'track', title: 'Rastrear' },
+      { action: 'dismiss', title: 'Dispensar' },
+    ] : [],
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  let targetUrl = '/';
+  const data = event.notification.data || {};
+
+  if (event.action === 'track' || data.type === 'trip_started' || data.type === 'arrived' || data.type === 'student_boarded') {
+    targetUrl = '/portal-responsavel';
+  } else if (data.url) {
+    targetUrl = data.url;
+  }
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Tentar focar em uma janela existente
       for (const client of clientList) {
-        if (client.url === event.notification.data && 'focus' in client) {
-          return client.focus();
+        if ('focus' in client) {
+          client.focus();
+          client.navigate(targetUrl);
+          return;
         }
       }
+      // Abrir nova janela
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data);
+        return clients.openWindow(targetUrl);
       }
     })
   );
+});
+
+// Background sync (para enviar posições GPS acumuladas offline)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-locations') {
+    event.waitUntil(
+      // O app principal vai lidar com o flush da fila quando voltar online
+      clients.matchAll().then((clientList) => {
+        clientList.forEach((client) => {
+          client.postMessage({ type: 'SYNC_LOCATIONS' });
+        });
+      })
+    );
+  }
 });

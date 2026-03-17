@@ -2,7 +2,19 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
-import { Bus, MapPin, Clock, User, Wifi, WifiOff, Navigation, CheckCircle, XCircle, AlertCircle, Activity, ChevronRight, Play, Square, UserCheck, UserX, Users, BarChart3, RefreshCw } from 'lucide-react';
+import { useWakeLock } from '../lib/pwa';
+import { Bus, MapPin, Clock, User, Wifi, WifiOff, Navigation, CheckCircle, XCircle, AlertCircle, Activity, ChevronRight, Play, Square, UserCheck, UserX, Users, BarChart3, RefreshCw, Smartphone } from 'lucide-react';
+
+// Calcular distância em metros entre duas coordenadas (fórmula de Haversine)
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // raio da Terra em metros
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function LiveMap({ trips, locations }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -243,10 +255,19 @@ export default function MonitorPage() {
 
   const municipalityId = user?.municipalityId || 0;
   const isDriverOrMonitor = user?.role === 'driver' || user?.role === 'monitor';
+  const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Ativar Wake Lock quando motorista tem viagem ativa (manter tela ligada)
+  useEffect(() => {
+    if (isDriverOrMonitor && myTrip) {
+      requestWakeLock();
+    }
+    return () => { if (isDriverOrMonitor) releaseWakeLock(); };
+  }, [myTrip?.trip?.id]);
 
   async function loadData() {
     setLoading(true);
@@ -275,20 +296,48 @@ export default function MonitorPage() {
     socket.on('bus:location', (data: any) => setBusLocations(prev => { const n = new Map(prev); n.set(data.tripId, { ...data, updatedAt: new Date() }); return n; }));
     socket.on('stop:arrived', (data: any) => { setEvents(prev => [{ ...data, type: 'stop', time: new Date() }, ...prev.slice(0, 19)]); loadData(); });
     socket.on('student:boarded', (data: any) => setEvents(prev => [{ ...data, type: 'board', time: new Date() }, ...prev.slice(0, 19)]));
-    return () => { socket.off('bus:location'); socket.off('stop:arrived'); socket.off('student:boarded'); };
+    socket.on('student:dropped', (data: any) => setEvents(prev => [{ ...data, type: 'drop', time: new Date() }, ...prev.slice(0, 19)]));
+    socket.on('trip:started', () => loadData());
+    socket.on('trip:completed', () => loadData());
+    return () => { socket.off('bus:location'); socket.off('stop:arrived'); socket.off('student:boarded'); socket.off('student:dropped'); socket.off('trip:started'); socket.off('trip:completed'); };
   }, [socket]);
 
-  // GPS contínuo para motoristas
+  // GPS contínuo para motoristas + detecção automática de chegada na parada (geocerca)
+  const lastAutoArrivalRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (!isDriverOrMonitor || !myTrip) return;
+    lastAutoArrivalRef.current = new Set();
+
     const watchId = navigator.geolocation?.watchPosition(
       (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        // Enviar posição ao servidor
         api.trips.updateLocation({
           tripId: myTrip.trip.id, driverId: myTrip.driverId,
-          latitude: pos.coords.latitude, longitude: pos.coords.longitude,
+          latitude: lat, longitude: lng,
           speed: pos.coords.speed ? pos.coords.speed * 3.6 : undefined,
           heading: pos.coords.heading || undefined,
         }).catch(console.error);
+
+        // Geocerca: verificar se está próximo de alguma parada não visitada
+        if (myTrip.stops) {
+          for (const stop of myTrip.stops) {
+            if (stop.arrived || lastAutoArrivalRef.current.has(stop.id)) continue;
+            const stopLat = parseFloat(stop.latitude);
+            const stopLng = parseFloat(stop.longitude);
+            if (isNaN(stopLat) || isNaN(stopLng)) continue;
+            const radius = stop.arrivalRadiusMeters || 50;
+            const distance = haversineDistance(lat, lng, stopLat, stopLng);
+            if (distance <= radius) {
+              lastAutoArrivalRef.current.add(stop.id);
+              api.trips.arriveAtStop({
+                tripId: myTrip.trip.id, stopId: stop.id,
+                latitude: lat, longitude: lng,
+              }).then(() => loadData()).catch(console.error);
+            }
+          }
+        }
       },
       console.error,
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
@@ -342,7 +391,8 @@ export default function MonitorPage() {
                 <p className="font-bold">{myTrip.route?.name}</p>
                 <p className="text-white/80 text-sm">{myTrip.vehicle?.plate} · {myTrip.completedStops}/{myTrip.totalStops} paradas</p>
               </div>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-3">
+                {wakeLockActive && <span className="text-xs bg-white/20 px-2 py-1 rounded-full flex items-center gap-1"><Smartphone size={10} /> Tela ativa</span>}
                 <div className="w-12 h-12 rounded-full border-4 border-white/30 flex items-center justify-center">
                   <span className="text-lg font-bold">{Math.round((myTrip.completedStops / Math.max(myTrip.totalStops, 1)) * 100)}%</span>
                 </div>
@@ -428,11 +478,11 @@ export default function MonitorPage() {
                   <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
                     {events.map((ev, i) => (
                       <div key={i} className="flex items-start gap-3 px-4 py-3">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${ev.type === 'board' ? 'bg-green-100' : 'bg-blue-100'}`}>
-                          {ev.type === 'board' ? <CheckCircle size={14} className="text-green-600" /> : <MapPin size={14} className="text-blue-600" />}
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${ev.type === 'board' ? 'bg-green-100' : ev.type === 'drop' ? 'bg-orange-100' : 'bg-blue-100'}`}>
+                          {ev.type === 'board' ? <CheckCircle size={14} className="text-green-600" /> : ev.type === 'drop' ? <UserX size={14} className="text-orange-600" /> : <MapPin size={14} className="text-blue-600" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-700">{ev.type === 'board' ? 'Aluno embarcou' : 'Chegou na parada'}</p>
+                          <p className="text-xs font-medium text-gray-700">{ev.type === 'board' ? 'Aluno embarcou' : ev.type === 'drop' ? 'Aluno desembarcou' : 'Chegou na parada'}</p>
                           <p className="text-xs text-gray-500 truncate">{ev.studentName || ev.stopName || '—'}</p>
                           <p className="text-xs text-gray-400">{new Date(ev.time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
                         </div>

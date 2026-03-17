@@ -10,6 +10,64 @@ import {
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
+import { emitToMunicipality } from './socketInstance';
+
+// ============================================
+// VALIDAÇÃO DE CPF E CNPJ
+// ============================================
+function validateCPF(cpf: string): boolean {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
+  let r = (sum * 10) % 11; if (r === 10) r = 0;
+  if (parseInt(d[9]) !== r) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
+  r = (sum * 10) % 11; if (r === 10) r = 0;
+  if (parseInt(d[10]) !== r) return false;
+  return true;
+}
+
+function validateCNPJ(cnpj: string): boolean {
+  const d = cnpj.replace(/\D/g, '');
+  if (d.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(d)) return false;
+  let sum = 0;
+  let w = [5,4,3,2,9,8,7,6,5,4,3,2];
+  for (let i = 0; i < 12; i++) sum += parseInt(d[i]) * w[i];
+  let r = sum % 11;
+  if (parseInt(d[12]) !== (r < 2 ? 0 : 11 - r)) return false;
+  sum = 0;
+  w = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+  for (let i = 0; i < 13; i++) sum += parseInt(d[i]) * w[i];
+  r = sum % 11;
+  if (parseInt(d[13]) !== (r < 2 ? 0 : 11 - r)) return false;
+  return true;
+}
+
+function validateOptionalCPF(cpf?: string): void {
+  if (!cpf) return;
+  const digits = cpf.replace(/\D/g, '');
+  if (digits.length > 0 && digits.length !== 11) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'CPF incompleto.' });
+  }
+  if (digits.length === 11 && !validateCPF(digits)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'CPF inválido.' });
+  }
+}
+
+function validateOptionalCNPJ(cnpj?: string): void {
+  if (!cnpj) return;
+  const digits = cnpj.replace(/\D/g, '');
+  if (digits.length > 0 && digits.length !== 14) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'CNPJ incompleto.' });
+  }
+  if (digits.length === 14 && !validateCNPJ(digits)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'CNPJ inválido.' });
+  }
+}
 
 const t = initTRPC.context<{ userId?: number; municipalityId?: number; role?: string }>().create();
 
@@ -51,6 +109,7 @@ export const authRouter = t.router({
       adminPhone: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCNPJ(input.cnpj);
       const existingUser = await db.select().from(users).where(eq(users.email, input.adminEmail)).limit(1);
       if (existingUser.length > 0) {
         throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
@@ -87,6 +146,7 @@ export const authRouter = t.router({
       relationship: z.enum(['father', 'mother', 'grandparent', 'uncle', 'other']).optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
       const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
       if (existingUser.length > 0) {
         throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
@@ -721,6 +781,15 @@ export const tripsRouter = t.router({
         }
       }
 
+      // Emitir evento de viagem iniciada via Socket.IO
+      emitToMunicipality(route.municipalityId, 'trip:started', {
+        tripId: trip.id,
+        routeId: input.routeId,
+        routeName: route.name,
+        municipalityId: route.municipalityId,
+        time: new Date().toISOString(),
+      });
+
       return { success: true, tripId: trip.id };
     }),
 
@@ -753,6 +822,20 @@ export const tripsRouter = t.router({
           });
         }
       }
+
+      // Emitir evento de chegada na parada via Socket.IO
+      if (trip) {
+        const [route] = await db.select({ municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, trip.routeId)).limit(1);
+        if (route) {
+          emitToMunicipality(route.municipalityId, 'stop:arrived', {
+            tripId: input.tripId,
+            stopId: input.stopId,
+            stopName: stopInfo?.name || 'parada',
+            municipalityId: route.municipalityId,
+            time: new Date().toISOString(),
+          });
+        }
+      }
       return { success: true };
     }),
 
@@ -780,6 +863,16 @@ export const tripsRouter = t.router({
             }
           }
         }
+
+        // Emitir evento de viagem concluída via Socket.IO
+        const [routeComplete] = await db.select({ municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, trip.routeId)).limit(1);
+        if (routeComplete) {
+          emitToMunicipality(routeComplete.municipalityId, 'trip:completed', {
+            tripId: input.tripId,
+            municipalityId: routeComplete.municipalityId,
+            time: new Date().toISOString(),
+          });
+        }
       }
       return { success: true };
     }),
@@ -797,6 +890,27 @@ export const tripsRouter = t.router({
         currentLongitude: input.longitude.toString(),
         lastLocationUpdate: new Date(),
       }).where(eq(drivers.id, input.driverId));
+
+      // Emitir posição via Socket.IO para todos os clientes do município
+      const [trip] = await db.select({ routeId: trips.routeId }).from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (trip) {
+        const [route] = await db.select({ municipalityId: routes.municipalityId, name: routes.name }).from(routes).where(eq(routes.id, trip.routeId)).limit(1);
+        if (route) {
+          emitToMunicipality(route.municipalityId, 'bus:location', {
+            tripId: input.tripId,
+            driverId: input.driverId,
+            latitude: input.latitude,
+            longitude: input.longitude,
+            lat: input.latitude,
+            lng: input.longitude,
+            speed: input.speed || 0,
+            heading: input.heading || 0,
+            routeName: route.name,
+            municipalityId: route.municipalityId,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
       return { success: true };
     }),
 
@@ -984,6 +1098,7 @@ export const usersRouter = t.router({
       birthDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
       const { password, username, birthDate, ...rest } = input;
       const passwordHash = await hash(password, 10);
       try {
@@ -1017,6 +1132,7 @@ export const usersRouter = t.router({
       birthDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
       const { id, password, username, birthDate, ...data } = input;
       const updateData: any = { ...data };
       if (password) {
@@ -1318,6 +1434,22 @@ export const monitorsRouter = t.router({
         });
       }
 
+      // Emitir evento de embarque via Socket.IO
+      const [tripInfo] = await db.select({ routeId: trips.routeId }).from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (tripInfo) {
+        const [routeInfo] = await db.select({ municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, tripInfo.routeId)).limit(1);
+        if (routeInfo) {
+          emitToMunicipality(routeInfo.municipalityId, 'student:boarded', {
+            tripId: input.tripId,
+            stopId: input.stopId,
+            studentId: input.studentId,
+            studentName: student?.name,
+            municipalityId: routeInfo.municipalityId,
+            time: new Date().toISOString(),
+          });
+        }
+      }
+
       return { success: true, studentName: student?.name };
     }),
 
@@ -1350,6 +1482,22 @@ export const monitorsRouter = t.router({
           stopId: input.stopId,
           studentId: input.studentId,
         });
+      }
+
+      // Emitir evento de desembarque via Socket.IO
+      const [tripDrop] = await db.select({ routeId: trips.routeId }).from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (tripDrop) {
+        const [routeDrop] = await db.select({ municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, tripDrop.routeId)).limit(1);
+        if (routeDrop) {
+          emitToMunicipality(routeDrop.municipalityId, 'student:dropped', {
+            tripId: input.tripId,
+            stopId: input.stopId,
+            studentId: input.studentId,
+            studentName: student?.name,
+            municipalityId: routeDrop.municipalityId,
+            time: new Date().toISOString(),
+          });
+        }
       }
       return { success: true, studentName: student?.name };
     }),
@@ -1424,6 +1572,7 @@ export const monitorStaffRouter = t.router({
       password: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
       const { password, birthDate, ...rest } = input;
       let userId: number | undefined;
       if (input.email && password && password.length >= 6) {
@@ -1508,6 +1657,7 @@ export const contractsRouter = t.router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCNPJ(input.cnpj);
       const { startDate, endDate, value, ...rest } = input;
       const [contract] = await db.insert(contracts).values({
         ...rest,
@@ -1535,6 +1685,7 @@ export const contractsRouter = t.router({
       status: z.enum(['active', 'expired', 'pending', 'cancelled']).optional(),
     }))
     .mutation(async ({ input }) => {
+      validateOptionalCNPJ(input.cnpj);
       const { id, startDate, endDate, value, ...rest } = input;
       const updateData: any = { ...rest };
       if (value !== undefined) updateData.value = value.toString();

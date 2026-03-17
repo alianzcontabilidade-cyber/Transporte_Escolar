@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
-import { Bus, Clock, CheckCircle, Bell, Phone, AlertTriangle, Navigation, MapPin, User, Plus, History, RefreshCw, ChevronRight, Shield, X } from 'lucide-react';
+import { Bus, Clock, CheckCircle, Bell, Phone, AlertTriangle, Navigation, MapPin, User, Plus, History, RefreshCw, ChevronRight, Shield, X, Download } from 'lucide-react';
+import { notifyUser, usePWAInstall } from '../lib/pwa';
 
 function LiveMap({ driverLocation, stops }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -85,6 +86,7 @@ export default function GuardianPage() {
   const [addEnrollment, setAddEnrollment] = useState('');
   const [addRelationship, setAddRelationship] = useState('other');
   const [addMsg, setAddMsg] = useState('');
+  const { canInstall, isInstalled, install } = usePWAInstall();
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -135,18 +137,42 @@ export default function GuardianPage() {
     } catch (e) { console.error(e); }
   }
 
+  // Entrar na sala do município para receber eventos Socket.IO
+  useEffect(() => {
+    if (!socket || !user?.municipalityId) return;
+    socket.emit('join:municipality', user.municipalityId);
+  }, [socket, user?.municipalityId]);
+
   // Socket.IO para localização em tempo real
   useEffect(() => {
-    if (!socket || !activeTrip) return;
-    socket.on('bus:location', (data: any) => {
-      if (data.tripId === activeTrip.trip?.id) {
-        setBusLocation({ lat: data.latitude, lng: data.longitude, updatedAt: new Date() });
+    if (!socket) return;
+
+    const onBusLocation = (data: any) => {
+      if (activeTrip && data.tripId === activeTrip.trip?.id) {
+        setBusLocation({ lat: data.latitude || data.lat, lng: data.longitude || data.lng, updatedAt: new Date() });
       }
-    });
-    socket.on('stop:arrived', () => { if (selectedStudent) loadActiveTrip(selectedStudent.id); });
-    socket.on('student:boarded', () => loadNotifications());
-    return () => { socket.off('bus:location'); socket.off('stop:arrived'); socket.off('student:boarded'); };
-  }, [socket, activeTrip?.trip?.id]);
+    };
+    const onStopArrived = () => { if (selectedStudent) loadActiveTrip(selectedStudent.id); };
+    const onStudentBoarded = () => { notifyUser(); loadNotifications(); };
+    const onStudentDropped = () => { notifyUser(); loadNotifications(); };
+    const onTripCompleted = () => {
+      if (selectedStudent) loadActiveTrip(selectedStudent.id);
+      loadNotifications();
+    };
+
+    socket.on('bus:location', onBusLocation);
+    socket.on('stop:arrived', onStopArrived);
+    socket.on('student:boarded', onStudentBoarded);
+    socket.on('student:dropped', onStudentDropped);
+    socket.on('trip:completed', onTripCompleted);
+    return () => {
+      socket.off('bus:location', onBusLocation);
+      socket.off('stop:arrived', onStopArrived);
+      socket.off('student:boarded', onStudentBoarded);
+      socket.off('student:dropped', onStudentDropped);
+      socket.off('trip:completed', onTripCompleted);
+    };
+  }, [socket, activeTrip?.trip?.id, selectedStudent?.id]);
 
   // Auto-refresh a cada 30s
   useEffect(() => {
@@ -232,6 +258,17 @@ export default function GuardianPage() {
         </div>
       )}
 
+      {/* PWA Install para pais */}
+      {canInstall && !isInstalled && (
+        <div className="card mb-4 p-3 bg-blue-50 border-blue-200 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <Download size={16} />
+            <span>Instale o app para receber alertas em tempo real!</span>
+          </div>
+          <button onClick={install} className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-600">Instalar</button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl overflow-x-auto">
         {([
@@ -283,7 +320,13 @@ export default function GuardianPage() {
                         </p>
                       </div>
                       {s.arrivedAt && <span className="text-xs text-green-600">{new Date(s.arrivedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
-                      {!s.arrived && s.estimatedArrivalMinutes != null && <span className="text-xs text-gray-400">~{s.estimatedArrivalMinutes}min</span>}
+                      {!s.arrived && s.estimatedArrivalMinutes != null && (
+                        <span className="text-xs text-orange-500 font-medium flex items-center gap-1">
+                          <Clock size={10} />
+                          ~{s.estimatedArrivalMinutes}min
+                          {s.isStudentStop && busLocation?.lat && ' restantes'}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>

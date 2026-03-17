@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported, requestGPSPermission } from '../lib/gps';
+import { useWakeLock } from '../lib/pwa';
 
 export default function TrackingPage() {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ export default function TrackingPage() {
   const [loading, setLoading] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState<string>('checking');
   const [sendCount, setSendCount] = useState(0);
+  const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
 
   const { position, error: gpsError, isTracking, startTracking, stopTracking } = useGPSTracking({
     tripId: activeTrip?.id,
@@ -46,6 +48,13 @@ export default function TrackingPage() {
     }
   }
 
+  // Ativar Wake Lock quando rastreamento está ativo
+  useEffect(() => {
+    if (isTracking) requestWakeLock();
+    else releaseWakeLock();
+    return () => releaseWakeLock();
+  }, [isTracking]);
+
   // Count successful sends
   useEffect(() => {
     if (position && isTracking) {
@@ -78,7 +87,7 @@ export default function TrackingPage() {
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <h2 className="text-lg font-semibold mb-4">Status do GPS</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* GPS Support */}
           <div className={`p-4 rounded-lg ${isGPSSupported() ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             <div className="flex items-center gap-2">
@@ -110,6 +119,17 @@ export default function TrackingPage() {
               <div>
                 <p className="font-medium text-sm">Rastreamento</p>
                 <p className="text-xs text-gray-500">{isTracking ? 'Ativo - enviando posicao' : 'Inativo'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Wake Lock Status */}
+          <div className={`p-4 rounded-lg ${wakeLockActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{wakeLockActive ? '\uD83D\uDCF1' : '\uD83D\uDD0C'}</span>
+              <div>
+                <p className="font-medium text-sm">Tela Ativa</p>
+                <p className="text-xs text-gray-500">{wakeLockActive ? 'Tela nao desligara automaticamente' : 'Tela pode desligar'}</p>
               </div>
             </div>
           </div>

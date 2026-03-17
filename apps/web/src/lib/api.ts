@@ -190,4 +190,10 @@ export const api = {
     delete: (input: any) => call('maintenance.delete', input, 'mutation'),
   },
 
+      location: {
+    getActiveVehicles: (input: any) => call('location.getActiveVehicles', input, 'query'),
+    getVehiclePosition: (input: any) => call('location.getVehiclePosition', input, 'query'),
+    getHistory: (input: any) => call('location.getHistory', input, 'query'),
+  },
+
 };

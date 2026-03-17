@@ -4,7 +4,8 @@ import { db } from './db/index';
 import {
   municipalities, schools, users, vehicles, drivers, students,
   guardians, routes, stops, stopStudents, trips, tripStopLogs,
-  tripStudentLogs, notifications, locationHistory
+  tripStudentLogs, hnotifications, locationHistory,
+    monitorStaff, contracts, maintenanceRecords
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';

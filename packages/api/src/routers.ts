@@ -1638,6 +1638,98 @@ export const maintenanceRouter = t.router({
 });
 
 // ============================================
+// ROUTER: LOCATION (GPS TRACKING)
+// ============================================
+const locationRouter = t.router({
+  getActiveVehicles: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      // Get all active trips with their latest locations
+      const activeTrips = await db.select({
+        tripId: trips.id,
+        routeId: trips.routeId,
+        vehicleId: trips.vehicleId,
+        driverId: trips.driverId,
+        status: trips.status,
+      }).from(trips)
+        .where(eq(trips.status, 'started'));
+
+      if (activeTrips.length === 0) return [];
+
+      const result = [];
+      for (const trip of activeTrips) {
+        // Get latest location for this trip
+        const [latestLoc] = await db.select()
+          .from(locationHistory)
+          .where(eq(locationHistory.tripId, trip.tripId))
+          .orderBy(desc(locationHistory.recordedAt))
+          .limit(1);
+
+        // Get vehicle info
+        const [vehicle] = await db.select()
+          .from(vehicles)
+          .where(eq(vehicles.id, trip.vehicleId));
+
+        // Get driver info
+        const [driver] = await db.select({
+          id: drivers.id,
+          userId: drivers.userId,
+        }).from(drivers)
+          .where(eq(drivers.id, trip.driverId));
+
+        let driverName = 'N/A';
+        if (driver) {
+          const [driverUser] = await db.select({ name: users.name })
+            .from(users).where(eq(users.id, driver.userId));
+          if (driverUser) driverName = driverUser.name;
+        }
+
+        // Get route info
+        const [route] = await db.select({ name: routes.name })
+          .from(routes).where(eq(routes.id, trip.routeId));
+
+        result.push({
+          tripId: trip.tripId,
+          vehicleId: trip.vehicleId,
+          driverId: trip.driverId,
+          plate: vehicle?.plate || 'N/A',
+          model: vehicle?.model || '',
+          driverName,
+          routeName: route?.name || 'N/A',
+          latitude: latestLoc?.latitude || null,
+          longitude: latestLoc?.longitude || null,
+          speed: latestLoc?.speed ? parseFloat(latestLoc.speed) : null,
+          heading: latestLoc?.heading || null,
+          updatedAt: latestLoc?.recordedAt || null,
+        });
+      }
+      return result;
+    }),
+
+  getVehiclePosition: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input }) => {
+      const [loc] = await db.select()
+        .from(locationHistory)
+        .where(eq(locationHistory.tripId, input.tripId))
+        .orderBy(desc(locationHistory.recordedAt))
+        .limit(1);
+      return loc || null;
+    }),
+
+  getHistory: protectedProcedure
+    .input(z.object({ tripId: z.number(), limit: z.number().optional() }))
+    .query(async ({ input }) => {
+      const locs = await db.select()
+        .from(locationHistory)
+        .where(eq(locationHistory.tripId, input.tripId))
+        .orderBy(desc(locationHistory.recordedAt))
+        .limit(input.limit || 100);
+      return locs;
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -1657,6 +1749,7 @@ export const appRouter = t.router({
   monitorStaff: monitorStaffRouter,
   contracts: contractsRouter,
   maintenance: maintenanceRouter,
+    location: locationRouter,
 
     // TEMPORARY RESET ENDPOINT - DELETE AFTER USE
     resetData: t.router({

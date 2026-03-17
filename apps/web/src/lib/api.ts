@@ -119,15 +119,21 @@ export const api = {
   students: {
     list: (input: any) => call('students.list', input, 'query'),
     create: (input: any) => call('students.create', input, 'mutation'),
+    update: (input: any) => call('students.update', input, 'mutation'),
+    delete: (input: any) => call('students.delete', input, 'mutation'),
     assignToStop: (input: any) => call('students.assignToStop', input, 'mutation'),
   },
   drivers: {
     list: (input: any) => call('drivers.list', input, 'query'),
     create: (input: any) => call('drivers.create', input, 'mutation'),
+    update: (input: any) => call('drivers.update', input, 'mutation'),
+    delete: (input: any) => call('drivers.delete', input, 'mutation'),
   },
   vehicles: {
     list: (input: any) => call('vehicles.list', input, 'query'),
     create: (input: any) => call('vehicles.create', input, 'mutation'),
+    update: (input: any) => call('vehicles.update', input, 'mutation'),
+    delete: (input: any) => call('vehicles.delete', input, 'mutation'),
   },
   trips: {
     listActive: (input: any) => call('trips.listActive', input, 'query'),
@@ -164,4 +170,24 @@ export const api = {
     markAbsent: (input: any) => call('monitors.markAbsent', input, 'mutation'),
     tripSummary: (input: any) => call('monitors.tripSummary', input, 'query'),
   },
+
+  monitorStaff: {
+    list: (input: any) => call('monitorStaff.list', input, 'query'),
+    create: (input: any) => call('monitorStaff.create', input, 'mutation'),
+    update: (input: any) => call('monitorStaff.update', input, 'mutation'),
+    delete: (input: any) => call('monitorStaff.delete', input, 'mutation'),
+  },
+  contracts: {
+    list: (input: any) => call('contracts.list', input, 'query'),
+    create: (input: any) => call('contracts.create', input, 'mutation'),
+    update: (input: any) => call('contracts.update', input, 'mutation'),
+    delete: (input: any) => call('contracts.delete', input, 'mutation'),
+  },
+  maintenance: {
+    list: (input: any) => call('maintenance.list', input, 'query'),
+    create: (input: any) => call('maintenance.create', input, 'mutation'),
+    update: (input: any) => call('maintenance.update', input, 'mutation'),
+    delete: (input: any) => call('maintenance.delete', input, 'mutation'),
+  },
+
 };

@@ -4,41 +4,41 @@ import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
 import {
-    LayoutDashboard, Map, Route, Users, Bus, School, ClipboardList,
-    BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
-    Bell, Shield, Brain, Wrench, UserCheck, ChevronDown, Navigation,
-    Locate, MapPinned
+  LayoutDashboard, Map, Route, Users, Bus, School, ClipboardList,
+  BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
+  Bell, Shield, Brain, Wrench, UserCheck, ChevronDown, Navigation,
+  Locate, MapPinned
 } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
-    super_admin: 'Super Admin',
-    municipal_admin: 'Administrador',
-    secretary: 'Secretário',
-    school_admin: 'Diretor Escolar',
-    driver: 'Motorista',
-    monitor: 'Monitor',
-    parent: 'Responsável',
+  super_admin: 'Super Admin',
+  municipal_admin: 'Administrador',
+  secretary: 'Secretário',
+  school_admin: 'Diretor Escolar',
+  driver: 'Motorista',
+  monitor: 'Monitor',
+  parent: 'Responsável',
 };
 
 export default function Layout() {
-    const { user, logout } = useAuth();
-    const { connected } = useSocket();
-    const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const { user, logout } = useAuth();
+  const { connected } = useSocket();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
 
   useEffect(() => {
-        api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
-        const interval = setInterval(() => {
-                api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
-        }, 30000);
-        return () => clearInterval(interval);
+    api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
+    const interval = setInterval(() => {
+      api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const role = user?.role || 'parent';
-    const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(role);
-    const isDriver = role === 'driver' || role === 'monitor';
-    const isParent = role === 'parent';
+  const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(role);
+  const isDriver = role === 'driver' || role === 'monitor';
+  const isParent = role === 'parent';
 
   // Menus por perfil
   const adminMenu = [
@@ -52,23 +52,23 @@ export default function Layout() {
       { to: '/veiculos', icon: Bus, text: 'Veículos' },
       { to: '/escolas', icon: School, text: 'Escolas' },
       { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
-          ]},
+    ]},
     { label: 'GESTÃO', items: [
       { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
       { to: '/contratos', icon: FileText, text: 'Contratos' },
       { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' },
-          ]},
+    ]},
     { label: 'GPS & RASTREAMENTO', items: [
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
       { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
-          ]},
+    ]},
     { label: 'AVANÇADO', items: [
-            ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
+      ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
       { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção Preditiva' },
       { to: '/configuracoes', icon: Settings, text: 'Configurações' },
-          ]},
-      ];
+    ]},
+  ];
 
   const driverMenu = [
     { label: 'MOTORISTA', items: [
@@ -76,138 +76,138 @@ export default function Layout() {
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
       { to: '/rotas', icon: Route, text: 'Rotas' },
       { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
-          ]},
-      ];
+    ]},
+  ];
 
   const parentMenu = [
     { label: 'MEU PAINEL', items: [
       { to: '/portal-responsavel', icon: Heart, text: 'Acompanhar Transporte' },
       { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
-          ]},
-      ];
+    ]},
+  ];
 
   const menuSections = isParent ? parentMenu : isDriver ? driverMenu : adminMenu;
 
   const NavLink = ({ to, icon: Icon, text }: { to: string; icon: any; text: string }) => {
-        const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
-        return (
-                <Link to={to} onClick={() => setSidebarOpen(false)}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                                      isActive ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }`}>
-                          <Icon size={18} className={isActive ? 'text-primary-500' : 'text-gray-400'} />
-                  {text}
-                </Link>Link>
-              );
+    const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+    return (
+      <Link to={to} onClick={() => setSidebarOpen(false)}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+          isActive ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}>
+        <Icon size={18} className={isActive ? 'text-primary-500' : 'text-gray-400'} />
+        {text}
+      </Link>
+    );
   };
 
   return (
-        <div className="flex h-screen bg-gray-50">
-          {/* Sidebar Desktop */}
-              <aside className={`hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 ${isParent ? 'lg:w-56' : ''}`}>
-                      <div className="p-5 border-b border-gray-100">
-                                <div className="flex items-center gap-2">
-                                            <div className="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
-                                                          <Bus size={18} className="text-white" />
-                                            </div>div>
-                                            <span className="font-bold text-gray-900">TransEscolar</span>
-                                </div>div>
-                      </div>div>
-                      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-                        {menuSections.map((section) => (
-                      <div key={section.label}>
-                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>p>
-                                    <div className="space-y-0.5">
-                                      {section.items.map((item) => <NavLink key={item.to} {...item} />)}
-                                    </div>div>
-                      </div>div>
-                    ))}
-                      </nav>nav>
-                      <div className="p-3 border-t border-gray-100">
-                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-3 ${connected ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-                                  {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
-                                  {connected ? 'Conectado' : 'Desconectado'}
-                                </div>div>
-                                <div className="flex items-center gap-3 p-2">
-                                            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
-                                              {user?.name?.charAt(0) || '?'}
-                                            </div>div>
-                                            <div className="flex-1 min-w-0">
-                                                          <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>p>
-                                                          <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>p>
-                                            </div>div>
-                                            <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Sair">
-                                                          <LogOut size={16} />
-                                            </button>button>
-                                </div>div>
-                      </div>div>
-              </aside>aside>
-        
-          {/* Mobile sidebar overlay */}
-          {sidebarOpen && (
-                  <div className="lg:hidden fixed inset-0 z-50">
-                            <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-                            <aside className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl z-50 flex flex-col">
-                                        <div className="p-4 flex items-center justify-between border-b">
-                                                      <div className="flex items-center gap-2">
-                                                                      <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={16} className="text-white" /></div>div>
-                                                                      <span className="font-bold text-gray-900">TransEscolar</span>span>
-                                                      </div>div>
-                                                      <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>button>
-                                        </div>div>
-                                        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-                                          {menuSections.map((section) => (
-                                    <div key={section.label}>
-                                                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>p>
-                                                      <div className="space-y-0.5">
-                                                        {section.items.map((item) => <NavLink key={item.to} {...item} />)}
-                                                      </div>div>
-                                    </div>div>
-                                  ))}
-                                        </nav>nav>
-                                        <div className="p-3 border-t">
-                                                      <div className="flex items-center gap-3 p-2">
-                                                                      <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
-                                                                        {user?.name?.charAt(0)}
-                                                                      </div>div>
-                                                                      <div className="flex-1 min-w-0">
-                                                                                        <p className="text-sm font-medium truncate">{user?.name}</p>p>
-                                                                                        <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>p>
-                                                                      </div>div>
-                                                                      <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500"><LogOut size={16} /></button>button>
-                                                      </div>div>
-                                        </div>div>
-                            </aside>aside>
-                  </div>div>
-              )}
-        
-          {/* Main content */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Mobile header */}
-                      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-                                <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-gray-100"><Menu size={20} /></button>button>
-                                <div className="flex items-center gap-2">
-                                            <div className="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={14} className="text-white" /></div>div>
-                                            <span className="font-bold text-sm text-gray-900">TransEscolar</span>span>
-                                </div>div>
-                                <div className="flex items-center gap-2">
-                                  {unreadNotifs > 0 && (
-                        <span className="relative">
-                                        <Bell size={18} className="text-gray-600" />
-                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{unreadNotifs}</span>span>
-                        </span>span>
-                                            )}
-                                            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700">
-                                              {user?.name?.charAt(0)}
-                                            </div>div>
-                                </div>div>
-                      </header>header>
-              
-                {/* Page content */}
-                      <main className="flex-1 overflow-y-auto">
-                                <Outlet />
-                      </main>main>
-              </div>div>
-        </div>div>
-      );
-}</div>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar Desktop */}
+      <aside className={`hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 ${isParent ? 'lg:w-56' : ''}`}>
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
+              <Bus size={18} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900">TransEscolar</span>
+          </div>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+          {menuSections.map((section) => (
+            <div key={section.label}>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => <NavLink key={item.to} {...item} />)}
+              </div>
+            </div>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-gray-100">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-3 ${connected ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+            {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
+            {connected ? 'Conectado' : 'Desconectado'}
+          </div>
+          <div className="flex items-center gap-3 p-2">
+            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
+              {user?.name?.charAt(0) || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>
+            </div>
+            <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Sair">
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl z-50 flex flex-col">
+            <div className="p-4 flex items-center justify-between border-b">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={16} className="text-white" /></div>
+                <span className="font-bold text-gray-900">TransEscolar</span>
+              </div>
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>
+            </div>
+            <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+              {menuSections.map((section) => (
+                <div key={section.label}>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => <NavLink key={item.to} {...item} />)}
+                  </div>
+                </div>
+              ))}
+            </nav>
+            <div className="p-3 border-t">
+              <div className="flex items-center gap-3 p-2">
+                <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
+                  {user?.name?.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{user?.name}</p>
+                  <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>
+                </div>
+                <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500"><LogOut size={16} /></button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile header */}
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-gray-100"><Menu size={20} /></button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={14} className="text-white" /></div>
+            <span className="font-bold text-sm text-gray-900">TransEscolar</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {unreadNotifs > 0 && (
+              <span className="relative">
+                <Bell size={18} className="text-gray-600" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{unreadNotifs}</span>
+              </span>
+            )}
+            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700">
+              {user?.name?.charAt(0)}
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

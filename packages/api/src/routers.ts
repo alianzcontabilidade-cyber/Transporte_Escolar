@@ -884,7 +884,11 @@ export const usersRouter = t.router({
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      return await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, municipalityId: users.municipalityId, createdAt: users.createdAt })
+      return await db.select({
+        id: users.id, name: users.name, email: users.email, role: users.role,
+        municipalityId: users.municipalityId, cpf: users.cpf, phone: users.phone,
+        avatarUrl: users.avatarUrl, createdAt: users.createdAt
+      })
         .from(users).where(eq(users.municipalityId, input.municipalityId));
     }),
 
@@ -893,26 +897,38 @@ export const usersRouter = t.router({
       municipalityId: z.number(), name: z.string(), email: z.string().email(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).default('secretary'),
       password: z.string().min(6),
+      cpf: z.string().optional(),
+      phone: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
-      const passwordHash = await hash(input.password, 12);
-      const [newUser] = await db.insert(users).values({ municipalityId: input.municipalityId, name: input.name, email: input.email, role: input.role, passwordHash }).$returningId();
-      return { success: true, id: newUser.id };
+      const { password, ...rest } = input;
+      const passwordHash = await bcrypt.hash(password, 10);
+      const [result] = await db.insert(users).values({ ...rest, passwordHash });
+      return { id: result.insertId, success: true };
     }),
 
   update: adminProcedure
     .input(z.object({
-      id: z.number(), name: z.string().optional(), email: z.string().email().optional(),
+      id: z.number(),
+      name: z.string().optional(),
+      email: z.string().email().optional(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).optional(),
       password: z.string().min(6).optional(),
+      cpf: z.string().optional(),
+      phone: z.string().optional(),
+      municipalityId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, password, ...rest } = input;
-      const updateData: any = { ...rest };
-      if (password) updateData.passwordHash = await hash(password, 12);
-      await db.update(users).set(updateData).where(eq(users.id, id));
+      const { id, password, ...data } = input;
+      const updateData: any = { ...data };
+      if (password) {
+        updateData.passwordHash = await bcrypt.hash(password, 10);
+      }
+      // Remove undefined fields
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users).set(updateData).where(eq(users.id, id));
+      }
       return { success: true };
     }),
 
@@ -924,9 +940,6 @@ export const usersRouter = t.router({
     }),
 });
 
-// ============================================
-// GUARDIANS ROUTER (APP RESPONSÁVEIS)
-// ============================================
 export const guardiansRouter = t.router({
   // Listar filhos/dependentes do responsável
   myStudents: protectedProcedure.query(async ({ ctx }) => {

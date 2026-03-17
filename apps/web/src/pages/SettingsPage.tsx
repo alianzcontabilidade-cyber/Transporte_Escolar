@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { Settings, Shield, Building, User, Plus, X, Pencil, Trash2, Eye, EyeOff, CheckCircle, Phone, Mail, FileText, Calendar, Hash } from 'lucide-react';
 const TABS=[{id:'users',label:'Usuarios',icon:User},{id:'municipality',label:'Prefeitura',icon:Building},{id:'security',label:'Seguranca',icon:Shield}];
 const ROLES=[{value:'super_admin',label:'Super Admin'},{value:'municipal_admin',label:'Admin Municipal'},{value:'secretary',label:'Secretário'},{value:'school_admin',label:'Admin Escola'},{value:'driver',label:'Motorista'},{value:'monitor',label:'Monitor'},{value:'parent',label:'Responsável'}];
-const RC:Record<string,string>={super_admin:'bg-purple-100 text-purple-700',municipal_admin:'bg-primary-100 text-primary-700',secretary:'bg-blue-100 text-blue-700',school_admin:'bg-indigo-100 text-indigo-700',driver:'bg-orange-100 text-orange-700',monitor:'bg-teal-100 text-teal-700',parent:'bg-green-100 text-green-700'};
+const RC:Record<string,string>={super_admin:'bg-purhple-100 text-purple-700',municipal_admin:'bg-primary-100 text-primary-700',secretary:'bg-blue-100 text-blue-700',school_admin:'bg-indigo-100 text-indigo-700',driver:'bg-orange-100 text-orange-700',monitor:'bg-teal-100 text-teal-700',parent:'bg-green-100 text-green-700'};
 function maskCPF(v:string){const d=v.replace(/[^0-9]/g,'').slice(0,11);if(d.length<=3)return d;if(d.length<=6)return d.slice(0,3)+'.'+d.slice(3);if(d.length<=9)return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);}
 function maskPhone(v:string){const d=v.replace(/[^0-9]/g,'').slice(0,11);if(!d.length)return '';if(d.length<=2)return '('+d;if(d.length<=6)return '('+d.slice(0,2)+') '+d.slice(2);if(d.length<=10)return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);}
 const E0={name:'',cpf:'',birthDate:'',phone:'',email:'',username:'',role:'secretary',password:'',cp:''};
@@ -38,7 +38,7 @@ export default function SettingsPage(){
     const p:any={municipalityId:mid,name:uf.name,email:uf.email,role:uf.role};
     if(uf.cpf)p.cpf=uf.cpf;if(uf.birthDate)p.birthDate=uf.birthDate;if(uf.phone)p.phone=uf.phone;if(uf.username)p.username=uf.username;if(uf.password)p.password=uf.password;
     const ok=()=>{refetch();setModal(false);setUerr('');};
-    const err=(e:any)=>setUerr(e?.message||'Erro ao salvar.');
+    const err=(e:any)=>setUerr((typeof e==='string'?e:e?.message)||'Erro ao salvar.');
     if(eid!==null)uu({id:eid,...p},{onSuccess:ok,onError:err});else cu(p,{onSuccess:ok,onError:err});
   };
   return(

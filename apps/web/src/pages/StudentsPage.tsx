@@ -19,6 +19,13 @@ function PhotoUpload({ value, onChange }: any) {
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
 const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', city:'', observations:'' };
 
+
+function maskPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
 export default function StudentsPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId || 0;
@@ -119,8 +126,8 @@ export default function StudentsPage() {
           </div></>)}
           {tab==='endereco'&&(<div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div><div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div></div>)}
           {tab==='responsaveis'&&(<div className="space-y-4">
-            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 1</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian1Name} onChange={setField('guardian1Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian1Phone} onChange={setField('guardian1Phone')} placeholder="(00) 00000-0000"/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian1Relation} onChange={setField('guardian1Relation')} placeholder="Mãe"/></div></div></div>
-            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 2</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian2Name} onChange={setField('guardian2Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian2Phone} onChange={setField('guardian2Phone')} placeholder="(00) 00000-0000"/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian2Relation} onChange={setField('guardian2Relation')} placeholder="Pai"/></div></div></div>
+            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 1</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian1Name} onChange={setField('guardian1Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian1Phone} onChange={handleGuardian1PhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian1Relation} onChange={setField('guardian1Relation')} placeholder="Mãe"/></div></div></div>
+            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 2</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian2Name} onChange={setField('guardian2Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian2Phone} onChange={handleGuardian2PhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian2Relation} onChange={setField('guardian2Relation')} placeholder="Pai"/></div></div></div>
           </div>)}
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Aluno'}</button></div>

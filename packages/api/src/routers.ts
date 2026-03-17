@@ -902,7 +902,7 @@ export const usersRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       const { password, ...rest } = input;
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await hash(password, 10);
       const [result] = await db.insert(users).values({ ...rest, passwordHash });
       return { id: result.insertId, success: true };
     }),
@@ -922,7 +922,7 @@ export const usersRouter = t.router({
       const { id, password, ...data } = input;
       const updateData: any = { ...data };
       if (password) {
-        updateData.passwordHash = await bcrypt.hash(password, 10);
+        updateData.passwordHash = await hash(password, 10);
       }
       // Remove undefined fields
       Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);

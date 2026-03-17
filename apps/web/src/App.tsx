@@ -20,6 +20,8 @@ import GuardianPage from './pages/GuardianPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import AIRoutesPage from './pages/AIRoutesPage';
 import PredictivePage from './pages/PredictivePage';
+import TrackingPage from './pages/TrackingPage';
+import TrackMapPage from './pages/TrackMapPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -31,7 +33,8 @@ function Guard({ children, roles }: { children: React.ReactNode; roles?: string[
 const ADMIN = ['super_admin', 'municipal_admin'];
 const ADMIN_SEC = ['super_admin', 'municipal_admin', 'secretary'];
 const ALL_STAFF = ['super_admin', 'municipal_admin', 'secretary', 'driver', 'monitor'];
-const PARENT = ['parent'];
+const DRIVER_MONITOR = ['super_admin', 'municipal_admin', 'driver', 'monitor'];
+const ALL_USERS = ['super_admin', 'municipal_admin', 'secretary', 'driver', 'monitor', 'parent'];
 
 // Componente de redirecionamento inteligente por perfil
 function HomeRedirect() {
@@ -49,7 +52,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
-        <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
+      <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
 
       <Route path="/" element={<Guard><Layout /></Guard>}>
         <Route index element={<HomeRedirect />} />
@@ -71,11 +74,17 @@ export default function App() {
         <Route path="manutencao-preditiva" element={<Guard roles={ADMIN}><PredictivePage /></Guard>} />
         <Route path="configuracoes" element={<Guard roles={ADMIN}><SettingsPage /></Guard>} />
 
-        {/* Portal do Responsável — acessível para parent e admins */}
+        {/* GPS Tracking - Motoristas e Monitores */}
+        <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />
+
+        {/* Mapa em Tempo Real - Todos os usuarios */}
+        <Route path="mapa-tempo-real" element={<Guard roles={ALL_USERS}><TrackMapPage /></Guard>} />
+
+        {/* Portal do Responsavel */}
         <Route path="portal-responsavel" element={<Guard roles={['super_admin', 'municipal_admin', 'parent']}><GuardianPage /></Guard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-}
+        }

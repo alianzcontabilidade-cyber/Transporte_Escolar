@@ -144,9 +144,9 @@ export default function Layout() {
     return (
       <Link to={to} onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-          isActive ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          isActive ? 'bg-accent-500 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
         }`}>
-        <Icon size={18} className={isActive ? 'text-primary-500' : 'text-gray-400'} />
+        <Icon size={18} className={isActive ? 'text-white' : 'text-white/50'} />
         {text}
       </Link>
     );
@@ -155,39 +155,36 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar Desktop */}
-      <aside className={`hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 ${isParent ? 'lg:w-56' : ''}`}>
-        <div className="p-5 border-b border-gray-100">
+      <aside className={`hidden lg:flex flex-col w-64 bg-primary-500 ${isParent ? 'lg:w-56' : ''}`}>
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
-              <Bus size={18} className="text-white" />
-            </div>
-            <span className="font-bold text-gray-900">NetEscol</span>
+            <img src="/logo.png" alt="NetEscol" className="h-8 w-auto" />
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-4">
           {menuSections.map((section) => (
             <div key={section.label}>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">{section.label}</p>
               <div className="space-y-0.5">
                 {section.items.map((item) => <NavLink key={item.to} {...item} />)}
               </div>
             </div>
           ))}
         </nav>
-        <div className="p-3 border-t border-gray-100">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-3 ${connected ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+        <div className="p-3 border-t border-white/10">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-3 ${connected ? 'text-green-300 bg-green-500/20' : 'text-red-300 bg-red-500/20'}`}>
             {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
             {connected ? 'Conectado' : 'Desconectado'}
           </div>
           <div className="flex items-center gap-3 p-2">
-            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
+            <div className="w-9 h-9 rounded-full bg-accent-500 flex items-center justify-center text-sm font-bold text-white">
               {user?.name?.charAt(0) || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>
+              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+              <p className="text-xs text-accent-400">{ROLE_LABELS[role]}</p>
             </div>
-            <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Sair">
+            <button onClick={logout} className="p-1.5 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/20" title="Sair">
               <LogOut size={16} />
             </button>
           </div>
@@ -198,34 +195,33 @@ export default function Layout() {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 h-full w-72 bg-white shadow-xl z-50 flex flex-col">
-            <div className="p-4 flex items-center justify-between border-b">
+          <aside className="fixed left-0 top-0 h-full w-72 bg-primary-500 shadow-xl z-50 flex flex-col">
+            <div className="p-4 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={16} className="text-white" /></div>
-                <span className="font-bold text-gray-900">NetEscol</span>
+                <img src="/logo.png" alt="NetEscol" className="h-7 w-auto" />
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white"><X size={20} /></button>
             </div>
             <nav className="flex-1 overflow-y-auto p-3 space-y-4">
               {menuSections.map((section) => (
                 <div key={section.label}>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">{section.label}</p>
+                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">{section.label}</p>
                   <div className="space-y-0.5">
                     {section.items.map((item) => <NavLink key={item.to} {...item} />)}
                   </div>
                 </div>
               ))}
             </nav>
-            <div className="p-3 border-t">
+            <div className="p-3 border-t border-white/10">
               <div className="flex items-center gap-3 p-2">
-                <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
+                <div className="w-9 h-9 rounded-full bg-accent-500 flex items-center justify-center text-sm font-bold text-white">
                   {user?.name?.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
-                  <p className="text-xs text-primary-500">{ROLE_LABELS[role]}</p>
+                  <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-xs text-accent-400">{ROLE_LABELS[role]}</p>
                 </div>
-                <button onClick={logout} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500"><LogOut size={16} /></button>
+                <button onClick={logout} className="p-1.5 rounded-lg text-white/50 hover:text-red-400"><LogOut size={16} /></button>
               </div>
             </div>
           </aside>
@@ -235,20 +231,19 @@ export default function Layout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-gray-100"><Menu size={20} /></button>
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-primary-500 border-b border-primary-600">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-white/10 text-white"><Menu size={20} /></button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={14} className="text-white" /></div>
-            <span className="font-bold text-sm text-gray-900">NetEscol</span>
+            <img src="/logo.png" alt="NetEscol" className="h-6 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             {unreadNotifs > 0 && (
               <span className="relative">
-                <Bell size={18} className="text-gray-600" />
+                <Bell size={18} className="text-white" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{unreadNotifs}</span>
               </span>
             )}
-            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700">
+            <div className="w-7 h-7 rounded-full bg-accent-500 flex items-center justify-center text-xs font-bold text-white">
               {user?.name?.charAt(0)}
             </div>
           </div>
@@ -256,13 +251,13 @@ export default function Layout() {
 
         {/* PWA Install Banner */}
         {canInstall && !isInstalled && installBanner && (
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-2.5 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white px-4 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Download size={16} />
               <span className="font-medium">Instale o NetEscol no seu celular para acesso rápido!</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => { install(); }} className="bg-white text-primary-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100">Instalar</button>
+              <button onClick={() => { install(); }} className="bg-white text-accent-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100">Instalar</button>
               <button onClick={() => setInstallBanner(false)} className="text-white/70 hover:text-white"><X size={16} /></button>
             </div>
           </div>

@@ -59,7 +59,12 @@ export default function RoutesPage() {
   const { mutate: create, loading } = useMutation(api.routes.create);
   const { mutate: removeRoute } = useMutation(api.routes.delete);
   const { mutate: startTrip, loading: starting } = useMutation(api.trips.start);
-  const { mutate: endTrip } = useMutation(api.trips.end);
+  const { mutate: endTrip } = useMutation(api.trips.complete);
+
+  const allRoutes = (routes as any)||[];
+  const allTrips = (activeTrips as any)||[];
+  const allDrivers = (drivers as any)||[];
+  const allVehicles = (vehicles as any)||[];
 
   const setField = function(k:string){return function(e:any){setForm(function(f:any){return{...f,[k]:e.target.value};});};};
   const tl = (t:string) => TYPES.find(x=>x.v===t)?.l||t;
@@ -73,11 +78,6 @@ export default function RoutesPage() {
     return 'R' + String(next).padStart(3, '0');
   };
   const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setShow(true); };
-
-  const allRoutes = (routes as any)||[];
-  const allTrips = (activeTrips as any)||[];
-  const allDrivers = (drivers as any)||[];
-  const allVehicles = (vehicles as any)||[];
 
   const getActiveTrip = (routeId:number) => allTrips.find((t:any)=>t.trip?.routeId===routeId&&t.trip?.status==='started');
 

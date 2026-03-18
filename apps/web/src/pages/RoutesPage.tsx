@@ -89,8 +89,9 @@ export default function RoutesPage() {
   };
 
   const handleStartTrip = () => {
-    if(!tripForm.driverId||!tripForm.vehicleId){ alert('Selecione motorista e veículo'); return; }
-    startTrip({ routeId: tripModal.route.id, driverId: parseInt(tripForm.driverId), vehicleId: parseInt(tripForm.vehicleId), municipalityId }, { onSuccess: function(){ refetchTrips(); setTripModal(null); } });
+    if(!tripForm.driverId||!tripForm.vehicleId){ alert('Selecione motorista e veiculo'); return; }
+    const rId = tripModal.route?.id || tripModal.id;
+    startTrip({ routeId: rId, driverId: parseInt(tripForm.driverId), vehicleId: parseInt(tripForm.vehicleId), municipalityId }, { onSuccess: function(){ refetchTrips(); setTripModal(null); } });
   };
 
   const handleEndTrip = (tripId:number) => {
@@ -110,18 +111,22 @@ export default function RoutesPage() {
       {viewMode==='list' ? (
         <div className="grid gap-3">
           {allRoutes.map(function(r:any){
-            const activeTrip = getActiveTrip(r.route.id);
+            const route = r.route || r;
+            const routeId = route.id;
+            if (!routeId) return null;
+            const routeStops = r.stops || [];
+            const activeTrip = getActiveTrip(routeId);
             const isActive = !!activeTrip;
             return (
-              <div key={r.route.id} className={'card transition-all '+(isActive?'border-green-300 bg-green-50/30':'hover:border-primary-200')}>
+              <div key={routeId} className={'card transition-all '+(isActive?'border-green-300 bg-green-50/30':'hover:border-primary-200')}>
                 <div className="flex items-center gap-4">
                   <div className={'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 '+(isActive?'bg-green-100':'bg-primary-100')}>
                     <MapPin size={20} className={isActive?'text-green-600':'text-primary-600'}/>
                   </div>
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>setViewRoute(viewRoute?.route.id===r.route.id?null:r)}>
-                    <div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{r.route.name}</p>{r.route.code&&<span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{r.route.code}</span>}{isActive&&<span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><div className="w-1.5 h-1.5 bg-green-500 rounded-full"/>Em andamento</span>}</div>
-                    <div className="flex gap-3 mt-0.5"><span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10}/>{r.route.scheduledStartTime} – {r.route.scheduledEndTime}</span><span className="text-xs text-gray-500">{sl(r.route.shift)}</span><span className="text-xs text-gray-500">{tl(r.route.type)}</span><span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={10}/>{r.stops?.length||0} paradas</span></div>
-                    {isActive&&activeTrip.driver&&<p className="text-xs text-green-700 mt-0.5 flex items-center gap-1"><User size={10}/>{activeTrip.driver.name} · <Bus size={10}/>{activeTrip.vehicle?.plate}</p>}
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>setViewRoute(viewRoute?.route?.id===routeId||viewRoute?.id===routeId?null:r)}>
+                    <div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{route.name}</p>{route.code&&<span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{route.code}</span>}{isActive&&<span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><div className="w-1.5 h-1.5 bg-green-500 rounded-full"/>Em andamento</span>}</div>
+                    <div className="flex gap-3 mt-0.5"><span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10}/>{route.scheduledStartTime} - {route.scheduledEndTime}</span><span className="text-xs text-gray-500">{sl(route.shift)}</span><span className="text-xs text-gray-500">{tl(route.type)}</span><span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={10}/>{routeStops.length} paradas</span></div>
+                    {isActive&&activeTrip?.driverName&&<p className="text-xs text-green-700 mt-0.5 flex items-center gap-1"><User size={10}/>{activeTrip.driverName} · <Bus size={10}/>{activeTrip.vehicle?.plate}</p>}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {isActive ? (
@@ -129,13 +134,13 @@ export default function RoutesPage() {
                     ) : (
                       <button onClick={()=>openTripModal(r)} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors font-medium"><Play size={13}/> Iniciar</button>
                     )}
-                    <button onClick={e=>{e.stopPropagation();if(confirm('Excluir rota?'))removeRoute({id:r.route.id},{onSuccess:refetch});}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button>
+                    <button onClick={e=>{e.stopPropagation();if(confirm('Excluir rota?'))removeRoute({id:routeId},{onSuccess:refetch});}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button>
                   </div>
                 </div>
-                {viewRoute?.route.id===r.route.id&&(
+                {(viewRoute?.route?.id===routeId||viewRoute?.id===routeId)&&(
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <LeafletMap stops={r.stops||[]} onAddStop={()=>{}} readonly={true}/>
-                    <div className="mt-3"><h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm"><Navigation size={14}/> Paradas ({r.stops?.length||0})</h4>{(r.stops||[]).map((s:any,i:number)=>(<div key={i} className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-lg mb-1"><div className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">{i+1}</div><p className="text-sm">{s.name}</p>{s.lat&&<p className="text-xs text-gray-400 ml-auto">{s.lat}, {s.lng}</p>}</div>))}</div>
+                    <LeafletMap stops={routeStops} onAddStop={()=>{}} readonly={true}/>
+                    <div className="mt-3"><h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm"><Navigation size={14}/> Paradas ({routeStops.length})</h4>{routeStops.map((s:any,i:number)=>(<div key={i} className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-lg mb-1"><div className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">{i+1}</div><p className="text-sm">{s.name}</p>{s.latitude&&<p className="text-xs text-gray-400 ml-auto">{s.latitude}, {s.longitude}</p>}</div>))}</div>
                   </div>
                 )}
               </div>
@@ -144,20 +149,20 @@ export default function RoutesPage() {
           {!allRoutes.length&&<div className="card text-center py-16"><MapPin size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhuma rota cadastrada</p><button className="btn-primary" onClick={openNew}>Criar primeira rota</button></div>}
         </div>
       ) : (
-        <div className="card p-4"><p className="text-sm text-gray-500 mb-3 flex items-center gap-2"><Info size={14}/> Busque um endereço ou selecione uma rota</p><div className="flex gap-2 mb-4 flex-wrap">{allRoutes.map((r:any)=>(<button key={r.route.id} onClick={()=>setViewRoute(r)} className={'px-3 py-1.5 rounded-lg text-sm transition-all '+(viewRoute?.route.id===r.route.id?'bg-primary-500 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{r.route.name}</button>))}</div><LeafletMap stops={viewRoute?.stops||[]} onAddStop={()=>{}} readonly={true}/></div>
+        <div className="card p-4"><p className="text-sm text-gray-500 mb-3 flex items-center gap-2"><Info size={14}/> Busque um endereco ou selecione uma rota</p><div className="flex gap-2 mb-4 flex-wrap">{allRoutes.map((r:any)=>{const rt=r.route||r;return(<button key={rt.id} onClick={()=>setViewRoute(r)} className={'px-3 py-1.5 rounded-lg text-sm transition-all '+((viewRoute?.route?.id||viewRoute?.id)===rt.id?'bg-primary-500 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{rt.name}</button>);})}</div><LeafletMap stops={viewRoute?.stops||[]} onAddStop={()=>{}} readonly={true}/></div>
       )}
 
       {/* Modal Iniciar Viagem */}
-      {tripModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100"><div><h3 className="text-lg font-semibold flex items-center gap-2"><Play size={18} className="text-green-500"/> Iniciar Viagem</h3><p className="text-sm text-gray-500 mt-0.5">{tripModal.route.name}</p></div><button onClick={()=>setTripModal(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+      {tripModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">{(function(){const tRoute=tripModal.route||tripModal;return(<>
+        <div className="flex items-center justify-between p-5 border-b border-gray-100"><div><h3 className="text-lg font-semibold flex items-center gap-2"><Play size={18} className="text-green-500"/> Iniciar Viagem</h3><p className="text-sm text-gray-500 mt-0.5">{tRoute.name}</p></div><button onClick={()=>setTripModal(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="p-5 space-y-4">
-          <div className="p-3 bg-gray-50 rounded-xl text-sm text-gray-600 flex items-center gap-3"><Clock size={16} className="text-primary-500"/><span>{sl(tripModal.route.shift)} · {tripModal.route.scheduledStartTime} – {tripModal.route.scheduledEndTime} · {tripModal.stops?.length||0} paradas</span></div>
+          <div className="p-3 bg-gray-50 rounded-xl text-sm text-gray-600 flex items-center gap-3"><Clock size={16} className="text-primary-500"/><span>{sl(tRoute.shift)} - {tRoute.scheduledStartTime} - {tRoute.scheduledEndTime} - {tripModal.stops?.length||0} paradas</span></div>
           <div><label className="label flex items-center gap-1"><User size={13}/> Motorista *</label><select className="input" value={tripForm.driverId} onChange={e=>setTripForm(f=>({...f,driverId:e.target.value}))}><option value="">— Selecione o motorista —</option>{allDrivers.map((d:any)=><option key={d.id} value={d.id}>{d.name}{d.cnhCategory?' (CNH '+d.cnhCategory+')':''}</option>)}</select></div>
           <div><label className="label flex items-center gap-1"><Bus size={13}/> Veículo *</label><select className="input" value={tripForm.vehicleId} onChange={e=>setTripForm(f=>({...f,vehicleId:e.target.value}))}><option value="">— Selecione o veículo —</option>{allVehicles.map((v:any)=><option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>)}</select></div>
           <div className="p-3 bg-green-50 rounded-xl text-xs text-green-700 flex items-center gap-2"><CheckCircle size={14}/> A viagem será visível no monitoramento em tempo real após iniciada.</div>
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setTripModal(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={handleStartTrip} disabled={starting} className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-medium py-2.5 rounded-xl transition-colors">{starting?'Iniciando...':<><Play size={15}/> Iniciar Viagem</>}</button></div>
-      </div></div>)}
+      </>);})()}</div></div>)}
 
       {/* Modal Nova Rota */}
       {show&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">

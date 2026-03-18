@@ -91,7 +91,7 @@ export default function TrackingPage() {
           {/* GPS Support */}
           <div className={`p-4 rounded-lg ${isGPSSupported() ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{isGPSSupported() ? '\u2705' : '\u274C'}</span>
+              <span className="text-xl">{isGPSSupported() ? '✅' : '❌'}</span>
               <div>
                 <p className="font-medium text-sm">GPS do Dispositivo</p>
                 <p className="text-xs text-gray-500">{isGPSSupported() ? 'Disponivel' : 'Nao disponivel'}</p>
@@ -102,7 +102,7 @@ export default function TrackingPage() {
           {/* Permission */}
           <div className={`p-4 rounded-lg ${permissionStatus === 'granted' ? 'bg-green-50 border border-green-200' : permissionStatus === 'denied' ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{permissionStatus === 'granted' ? '\u2705' : permissionStatus === 'denied' ? '\u274C' : '\u26A0\uFE0F'}</span>
+              <span className="text-xl">{permissionStatus === 'granted' ? '✅' : permissionStatus === 'denied' ? '❌' : '⚠️'}</span>
               <div>
                 <p className="font-medium text-sm">Permissao GPS</p>
                 <p className="text-xs text-gray-500">
@@ -115,7 +115,7 @@ export default function TrackingPage() {
           {/* Tracking Status */}
           <div className={`p-4 rounded-lg ${isTracking ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <span className={`text-xl ${isTracking ? 'animate-pulse' : ''}`}>{isTracking ? '\uD83D\uDFE2' : '\u26AA'}</span>
+              <span className={`text-xl ${isTracking ? 'animate-pulse' : ''}`}>{isTracking ? '🟢' : '⚪'}</span>
               <div>
                 <p className="font-medium text-sm">Rastreamento</p>
                 <p className="text-xs text-gray-500">{isTracking ? 'Ativo - enviando posicao' : 'Inativo'}</p>
@@ -126,7 +126,7 @@ export default function TrackingPage() {
           {/* Wake Lock Status */}
           <div className={`p-4 rounded-lg ${wakeLockActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{wakeLockActive ? '\uD83D\uDCF1' : '\uD83D\uDD0C'}</span>
+              <span className="text-xl">{wakeLockActive ? '📱' : '🔌'}</span>
               <div>
                 <p className="font-medium text-sm">Tela Ativa</p>
                 <p className="text-xs text-gray-500">{wakeLockActive ? 'Tela nao desligara automaticamente' : 'Tela pode desligar'}</p>

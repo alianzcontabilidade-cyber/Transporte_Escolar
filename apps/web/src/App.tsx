@@ -34,6 +34,8 @@ import FinancialPage from './pages/FinancialPage';
 import MerendaPage from './pages/MerendaPage';
 import LibraryPage from './pages/LibraryPage';
 import AssetsPage from './pages/AssetsPage';
+import EducacensoPage from './pages/EducacensoPage';
+import TransparencyPage from './pages/TransparencyPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -65,6 +67,7 @@ export default function App() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
+      <Route path="/transparencia" element={<TransparencyPage />} />
 
       <Route path="/" element={<Guard><Layout /></Guard>}>
         <Route index element={<HomeRedirect />} />
@@ -104,6 +107,7 @@ export default function App() {
         <Route path="merenda" element={<Guard roles={ADMIN_SEC}><MerendaPage /></Guard>} />
         <Route path="biblioteca" element={<Guard roles={ADMIN_SEC}><LibraryPage /></Guard>} />
         <Route path="patrimonio" element={<Guard roles={ADMIN}><AssetsPage /></Guard>} />
+        <Route path="educacenso" element={<Guard roles={ADMIN}><EducacensoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

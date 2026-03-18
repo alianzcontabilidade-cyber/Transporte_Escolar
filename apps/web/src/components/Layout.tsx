@@ -112,6 +112,7 @@ export default function Layout() {
     ]},
     { label: 'AVANÇADO', items: [
       ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
+      { to: '/educacenso', icon: FileText, text: 'EDUCACENSO' },
       { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção Preditiva' },
       { to: '/configuracoes', icon: Settings, text: 'Configurações' },

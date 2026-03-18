@@ -3142,6 +3142,120 @@ export const inventoryRouter = t.router({
 });
 
 // ============================================
+// EDUCACENSO ROUTER (EXPORTAÇÃO DE DADOS)
+// ============================================
+export const educacensoRouter = t.router({
+  // Resumo dos dados para o Censo Escolar
+  summary: adminProcedure
+    .input(z.object({ municipalityId: z.number(), academicYearId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const mid = input.municipalityId;
+      const [schoolCount] = await db.select({ count: sql<number>`count(*)` }).from(schools).where(and(eq(schools.municipalityId, mid), eq(schools.isActive, true)));
+      const [studentCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(and(eq(students.municipalityId, mid), eq(students.isActive, true)));
+      const [teacherCount] = await db.select({ count: sql<number>`count(*)` }).from(teachers).where(and(eq(teachers.municipalityId, mid), eq(teachers.isActive, true)));
+      const [classCount] = await db.select({ count: sql<number>`count(*)` }).from(classes).where(and(eq(classes.municipalityId, mid), eq(classes.isActive, true)));
+      const [enrollmentCount] = await db.select({ count: sql<number>`count(*)` }).from(enrollments).where(and(eq(enrollments.municipalityId, mid), eq(enrollments.status, 'active')));
+
+      // By school
+      const schoolsList = await db.select().from(schools).where(and(eq(schools.municipalityId, mid), eq(schools.isActive, true)));
+      const schoolsData = await Promise.all(schoolsList.map(async (s) => {
+        const [sc] = await db.select({ count: sql<number>`count(*)` }).from(students).where(and(eq(students.schoolId, s.id), eq(students.isActive, true)));
+        const [cc] = await db.select({ count: sql<number>`count(*)` }).from(classes).where(and(eq(classes.schoolId, s.id), eq(classes.isActive, true)));
+        return { id: s.id, name: s.name, code: s.code, type: s.type, students: sc?.count || 0, classes: cc?.count || 0 };
+      }));
+
+      // By grade level
+      const gradesList = await db.select().from(classGrades).where(and(eq(classGrades.municipalityId, mid), eq(classGrades.isActive, true)));
+
+      return {
+        totals: { schools: schoolCount?.count || 0, students: studentCount?.count || 0, teachers: teacherCount?.count || 0, classes: classCount?.count || 0, enrollments: enrollmentCount?.count || 0 },
+        schools: schoolsData,
+        grades: gradesList,
+      };
+    }),
+
+  // Exportar dados de escolas para formato EDUCACENSO
+  exportSchools: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(schools).where(and(eq(schools.municipalityId, input.municipalityId), eq(schools.isActive, true))).orderBy(schools.name);
+    }),
+
+  // Exportar dados de alunos
+  exportStudents: adminProcedure
+    .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(students.municipalityId, input.municipalityId), eq(students.isActive, true)];
+      if (input.schoolId) conditions.push(eq(students.schoolId, input.schoolId));
+      return db.select({ id: students.id, name: students.name, birthDate: students.birthDate, grade: students.grade, shift: students.shift, enrollment: students.enrollment, schoolId: students.schoolId, schoolName: schools.name, hasSpecialNeeds: students.hasSpecialNeeds })
+        .from(students).leftJoin(schools, eq(students.schoolId, schools.id)).where(and(...conditions)).orderBy(students.name);
+    }),
+
+  // Exportar dados de professores
+  exportTeachers: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select({ id: teachers.id, name: users.name, email: users.email, cpf: users.cpf, degree: teachers.degree, contractType: teachers.contractType, weeklyWorkload: teachers.weeklyWorkload })
+        .from(teachers).innerJoin(users, eq(teachers.userId, users.id))
+        .where(and(eq(teachers.municipalityId, input.municipalityId), eq(teachers.isActive, true)));
+    }),
+
+  // Exportar dados de turmas
+  exportClasses: adminProcedure
+    .input(z.object({ municipalityId: z.number(), academicYearId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(classes.municipalityId, input.municipalityId), eq(classes.isActive, true)];
+      if (input.academicYearId) conditions.push(eq(classes.academicYearId, input.academicYearId));
+      return db.select({ id: classes.id, name: classes.name, fullName: classes.fullName, shift: classes.shift, maxStudents: classes.maxStudents, schoolName: schools.name, gradeName: classGrades.name, gradeLevel: classGrades.level })
+        .from(classes).leftJoin(schools, eq(classes.schoolId, schools.id)).leftJoin(classGrades, eq(classes.classGradeId, classGrades.id))
+        .where(and(...conditions));
+    }),
+});
+
+// ============================================
+// TRANSPARENCY PORTAL (PORTAL DE TRANSPARÊNCIA - PÚBLICO)
+// ============================================
+export const transparencyRouter = t.router({
+  // Dados públicos do município - sem autenticação
+  publicData: publicProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const mid = input.municipalityId;
+      const [mun] = await db.select({ name: municipalities.name, city: municipalities.city, state: municipalities.state }).from(municipalities).where(eq(municipalities.id, mid)).limit(1);
+      if (!mun) return null;
+
+      const [schoolCount] = await db.select({ count: sql<number>`count(*)` }).from(schools).where(and(eq(schools.municipalityId, mid), eq(schools.isActive, true)));
+      const [studentCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(and(eq(students.municipalityId, mid), eq(students.isActive, true)));
+      const [teacherCount] = await db.select({ count: sql<number>`count(*)` }).from(teachers).where(and(eq(teachers.municipalityId, mid), eq(teachers.isActive, true)));
+      const [vehicleCount] = await db.select({ count: sql<number>`count(*)` }).from(vehicles).where(eq(vehicles.municipalityId, mid));
+      const [routeCount] = await db.select({ count: sql<number>`count(*)` }).from(routes).where(and(eq(routes.municipalityId, mid), eq(routes.isActive, true)));
+      const [contractCount] = await db.select({ count: sql<number>`count(*)` }).from(contracts).where(and(eq(contracts.municipalityId, mid), eq(contracts.isActive, true)));
+
+      // Financial summary
+      const txns = await db.select({ type: financialTransactions.type, value: financialTransactions.value })
+        .from(financialTransactions).where(and(eq(financialTransactions.municipalityId, mid), eq(financialTransactions.isActive, true)));
+      const totalReceita = txns.filter(t => t.type === 'receita').reduce((s, t) => s + (parseFloat(t.value as any) || 0), 0);
+      const totalDespesa = txns.filter(t => t.type === 'despesa').reduce((s, t) => s + (parseFloat(t.value as any) || 0), 0);
+
+      // Contracts list (public)
+      const publicContracts = await db.select({ number: contracts.number, type: contracts.type, supplier: contracts.supplier, value: contracts.value, startDate: contracts.startDate, endDate: contracts.endDate })
+        .from(contracts).where(and(eq(contracts.municipalityId, mid), eq(contracts.isActive, true))).orderBy(desc(contracts.createdAt)).limit(20);
+
+      // Schools list (public)
+      const publicSchools = await db.select({ name: schools.name, type: schools.type, address: schools.address, phone: schools.phone })
+        .from(schools).where(and(eq(schools.municipalityId, mid), eq(schools.isActive, true))).orderBy(schools.name);
+
+      return {
+        municipality: mun,
+        stats: { schools: schoolCount?.count || 0, students: studentCount?.count || 0, teachers: teacherCount?.count || 0, vehicles: vehicleCount?.count || 0, routes: routeCount?.count || 0, contracts: contractCount?.count || 0 },
+        financial: { receita: totalReceita, despesa: totalDespesa, saldo: totalReceita - totalDespesa },
+        contracts: publicContracts,
+        schools: publicSchools,
+      };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -3190,6 +3304,9 @@ export const appRouter = t.router({
   libraryLoans: libraryLoansRouter,
   assets: assetsRouter,
   inventory: inventoryRouter,
+  // Integrações (Fase 7)
+  educacenso: educacensoRouter,
+  transparency: transparencyRouter,
 });
 
 export type AppRouter = typeof appRouter;

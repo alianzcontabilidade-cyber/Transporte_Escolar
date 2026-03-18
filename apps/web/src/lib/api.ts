@@ -328,5 +328,15 @@ export const api = {
     addMovement: (input: any) => call('inventory.addMovement', input, 'mutation'),
     delete: (input: any) => call('inventory.delete', input, 'mutation'),
   },
+  educacenso: {
+    summary: (input: any) => call('educacenso.summary', input, 'query'),
+    exportSchools: (input: any) => call('educacenso.exportSchools', input, 'query'),
+    exportStudents: (input: any) => call('educacenso.exportStudents', input, 'query'),
+    exportTeachers: (input: any) => call('educacenso.exportTeachers', input, 'query'),
+    exportClasses: (input: any) => call('educacenso.exportClasses', input, 'query'),
+  },
+  transparency: {
+    publicData: (input: any) => call('transparency.publicData', input, 'query'),
+  },
 
 };

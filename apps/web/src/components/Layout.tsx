@@ -138,12 +138,15 @@ export default function Layout() {
       { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
       { to: '/professores', icon: UserCheck, text: 'Professores' },
       { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
+      { to: '/remanejamento', icon: Users, text: 'Remanejamento' },
     ]},
     { label: 'PEDAGÓGICO', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
       { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
       { to: '/calendario', icon: Calendar, text: 'Calendário Escolar' },
+      { to: '/boletim', icon: FileText, text: 'Boletim Escolar' },
+      { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer Descritivo' },
     ]},
     { label: 'TRANSPORTE', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' },

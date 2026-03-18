@@ -39,6 +39,9 @@ import TransparencyPage from './pages/TransparencyPage';
 import CalendarPage from './pages/CalendarPage';
 import MessagesPage from './pages/MessagesPage';
 import WaitingListPage from './pages/WaitingListPage';
+import ReportCardPage from './pages/ReportCardPage';
+import DescriptiveReportPage from './pages/DescriptiveReportPage';
+import StudentTransferPage from './pages/StudentTransferPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -114,6 +117,9 @@ export default function App() {
         <Route path="calendario" element={<Guard roles={ADMIN_SEC}><CalendarPage /></Guard>} />
         <Route path="comunicacao" element={<Guard roles={ADMIN_SEC}><MessagesPage /></Guard>} />
         <Route path="lista-espera" element={<Guard roles={ADMIN_SEC}><WaitingListPage /></Guard>} />
+        <Route path="boletim" element={<Guard roles={ADMIN_SEC}><ReportCardPage /></Guard>} />
+        <Route path="parecer-descritivo" element={<Guard roles={ADMIN_SEC}><DescriptiveReportPage /></Guard>} />
+        <Route path="remanejamento" element={<Guard roles={ADMIN_SEC}><StudentTransferPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

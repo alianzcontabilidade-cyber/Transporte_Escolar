@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation } from 'lucide-react';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2 } from 'lucide-react';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -17,7 +18,7 @@ function PhotoUpload({ value, onChange }: any) {
 }
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
-const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', city:'', observations:'' };
+const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', state:'', city:'', observations:'' };
 
 
 function maskPhone(v: string): string {
@@ -36,6 +37,7 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
+  const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.students.create);
@@ -124,7 +126,7 @@ export default function StudentsPage() {
             </div>
             <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
           </div></>)}
-          {tab==='endereco'&&(<div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div><div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div></div>)}
+          {tab==='endereco'&&(<div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Endereco</label><input className="input" value={form.address} onChange={setField('address')}/></div><div><label className="label">Estado</label><select className="input" value={form.state} onChange={e => setForm((f: any) => ({...f, state: e.target.value, city: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div><div><label className="label">Cidade {stdMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={setField('city')} disabled={!form.state || stdMunLoading}><option value="">Selecione</option>{stdMunicipios.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div></div>)}
           {tab==='responsaveis'&&(<div className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 1</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian1Name} onChange={setField('guardian1Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian1Phone} onChange={handleGuardian1PhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian1Relation} onChange={setField('guardian1Relation')} placeholder="Mãe"/></div></div></div>
             <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 2</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian2Name} onChange={setField('guardian2Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian2Phone} onChange={handleGuardian2PhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian2Relation} onChange={setField('guardian2Relation')} placeholder="Pai"/></div></div></div>

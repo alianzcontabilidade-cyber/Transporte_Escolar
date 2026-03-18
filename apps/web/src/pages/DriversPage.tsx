@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus } from 'lucide-react';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
+import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2 } from 'lucide-react';
 
 function maskPhone(v: string): string {
     const d = v.replace(/\D/g, '').slice(0, 11);
@@ -42,7 +43,7 @@ function PhotoUpload({ value, onChange }: any) {
 }
 
 const CNH_CATS=['B','C','D','E'];
-const EF={name:'',cpf:'',phone:'',email:'',birthDate:'',address:'',city:'',cnhNumber:'',cnhCategory:'D',cnhExpiry:'',experience:'',routeId:'',vehicleId:'',photo:'',observations:''};
+const EF={name:'',cpf:'',phone:'',email:'',birthDate:'',address:'',state:'',city:'',cnhNumber:'',cnhCategory:'D',cnhExpiry:'',experience:'',routeId:'',vehicleId:'',photo:'',observations:''};
 
 export default function DriversPage() {
     const {user}=useAuth();
@@ -55,6 +56,7 @@ export default function DriversPage() {
     const [del,setDel]=useState<any>(null);
     const [err,setErr]=useState('');
     const [cpfError,setCpfError]=useState('');
+    const { municipios: drvMunicipios, loading: drvMunLoading } = useMunicipios(form.state);
   
     const {data:drivers,refetch}=useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
     const {data:routes}=useQuery(function(){return api.routes.list({municipalityId});}, [municipalityId]);
@@ -149,7 +151,8 @@ export default function DriversPage() {
                                                 <div><label className="label">Telefone *</label><input className="input" value={form.phone} onChange={handlePhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div>
                                                 <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={sf('email')}/></div>
                                                 <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={sf('address')}/></div>
-                                                <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={sf('city')}/></div>
+                                                <div><label className="label">Estado</label><select className="input" value={form.state} onChange={function(e:any){setForm(function(f:any){return{...f,state:e.target.value,city:''};});}}><option value="">Selecione</option>{ESTADOS_BR.map(function(es){return <option key={es.uf} value={es.uf}>{es.uf}</option>;})}</select></div>
+                                                <div><label className="label">Cidade {drvMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={sf('city')} disabled={!form.state||drvMunLoading}><option value="">Selecione</option>{drvMunicipios.map(function(m:any){return <option key={m.id} value={m.nome}>{m.nome}</option>;})}</select></div>
                                                 <div><label className="label">Observações</label><input className="input" value={form.observations} onChange={sf('observations')}/></div>
                                   </div>
                       </>)}

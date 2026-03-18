@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
+import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 function maskCPF(v: string): string {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -73,6 +74,7 @@ export default function RegisterPage() {
 
   // Municipal form
   const [mForm, setMForm] = useState({ municipalityName: '', state: '', city: '', cnpj: '', adminName: '', adminEmail: '', adminPassword: '', adminPhone: '' });
+  const { municipios: munList, loading: munLoading } = useMunicipios(mForm.state);
 
   // Guardian form
   const [gForm, setGForm] = useState({ name: '', email: '', password: '', phone: '', cpf: '', studentEnrollment: '', relationship: 'father' });
@@ -188,8 +190,8 @@ export default function RegisterPage() {
         <form onSubmit={handleMunicipalityRegister} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">Nome da Prefeitura</label><input type="text" required value={mForm.municipalityName} onChange={e => setMForm(p => ({...p, municipalityName: e.target.value}))} className={inputClass} /></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Cidade</label><input type="text" required value={mForm.city} onChange={e => setMForm(p => ({...p, city: e.target.value}))} className={inputClass} /></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">UF</label><input type="text" required maxLength={2} value={mForm.state} onChange={e => setMForm(p => ({...p, state: e.target.value.toUpperCase()}))} className={inputClass} placeholder="TO" /></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Estado (UF)</label><select required value={mForm.state} onChange={e => setMForm(p => ({...p, state: e.target.value, city: ''}))} className={inputClass}><option value="">Selecione o estado</option>{ESTADOS_BR.map(e => <option key={e.uf} value={e.uf}>{e.uf} - {e.nome}</option>)}</select></div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">Cidade {munLoading && <Loader2 size={12} className="inline animate-spin ml-1" />}</label><select required value={mForm.city} onChange={e => setMForm(p => ({...p, city: e.target.value}))} className={inputClass} disabled={!mForm.state || munLoading}><option value="">Selecione a cidade</option>{munList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">CNPJ (opcional)</label><input type="text" value={mForm.cnpj} onChange={e => { const masked = maskCNPJ(e.target.value); setMForm(p => ({...p, cnpj: masked})); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 14) { setCnpjError(validateCNPJ(digits) ? '' : 'CNPJ inválido'); } else { setCnpjError(''); } }} className={inputClass} placeholder="00.000.000/0000-00" maxLength={18} />{cnpjError && <p className="text-xs text-red-500 mt-1">{cnpjError}</p>}</div>
           </div>
           <hr className="my-2" />

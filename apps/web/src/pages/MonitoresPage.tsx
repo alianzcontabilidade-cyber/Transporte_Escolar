@@ -3,6 +3,7 @@ import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, T
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 
 
 function maskPhone(v: string): string {
@@ -44,7 +45,7 @@ function PhotoUpload({ value, onChange }: any) {
   );
 }
 
-const emptyForm = { name:'', cpf:'', birthDate:'', phone:'', email:'', address:'', city:'', routeName:'', shift:'morning', observations:'', password:'', confirmPassword:'', photo:'' };
+const emptyForm = { name:'', cpf:'', birthDate:'', phone:'', email:'', address:'', state:'', city:'', routeName:'', shift:'morning', observations:'', password:'', confirmPassword:'', photo:'' };
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full', l:'Integral' }];
 
 export default function MonitoresPage() {
@@ -61,6 +62,7 @@ export default function MonitoresPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [cpfError, setCpfError] = useState('');
   const municipalityId = user?.municipalityId;
+  const { municipios: monMunicipios, loading: monMunLoading } = useMunicipios(form.state);
   const { data: routesData } = useQuery(() => api.routes.list({ municipalityId: municipalityId || 0 }), [municipalityId]);
   const allRoutes: any[] = (routesData as any) || [];
 
@@ -175,7 +177,8 @@ export default function MonitoresPage() {
                   <div><label className="label">Telefone *</label><input className="input" value={form.phone} onChange={handlePhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div>
                   <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
                   <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select></div>
-                  <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
+                  <div><label className="label">Estado</label><select className="input" value={form.state} onChange={e => setForm((f: any) => ({...f, state: e.target.value, city: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+                  <div><label className="label">Cidade {monMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={setField('city')} disabled={!form.state || monMunLoading}><option value="">Selecione</option>{monMunicipios.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
                   <div><label className="label flex items-center gap-1"><Navigation size={12}/> Rota</label><select className="input" value={form.routeName} onChange={setField('routeName')}><option value="">-- Selecione a rota --</option>{allRoutes.map((r: any) => <option key={r.route?.id || r.id} value={r.route?.name || r.name}>{r.route?.name || r.name}{r.route?.code ? ' (' + r.route.code + ')' : ''}</option>)}</select></div>
                   <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
                   <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>

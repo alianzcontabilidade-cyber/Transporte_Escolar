@@ -102,6 +102,8 @@ export default function Layout() {
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
       { to: '/rotas', icon: Route, text: 'Rotas' },
       { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
+      { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
+      { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' },
     ]},
   ];
 

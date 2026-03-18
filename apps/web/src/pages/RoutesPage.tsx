@@ -60,11 +60,18 @@ export default function RoutesPage() {
   const { mutate: removeRoute } = useMutation(api.routes.delete);
   const { mutate: startTrip, loading: starting } = useMutation(api.trips.start);
   const { mutate: endTrip } = useMutation(api.trips.complete);
+  const [search,setSearch]=useState('');
+  const [page,setPage]=useState(1);
+  const PER_PAGE=20;
 
   const allRoutes = (routes as any)||[];
   const allTrips = (activeTrips as any)||[];
   const allDrivers = (drivers as any)||[];
   const allVehicles = (vehicles as any)||[];
+
+  const filtered=allRoutes.filter(function(r:any){const route=r.route||r;const q=search.toLowerCase();return route.name?.toLowerCase().includes(q)||(route.code||'').toLowerCase().includes(q);});
+  const totalPages=Math.ceil(filtered.length/PER_PAGE);
+  const paginated=filtered.slice((page-1)*PER_PAGE,page*PER_PAGE);
 
   const setField = function(k:string){return function(e:any){setForm(function(f:any){return{...f,[k]:e.target.value};});};};
   const tl = (t:string) => TYPES.find(x=>x.v===t)?.l||t;
@@ -109,9 +116,11 @@ export default function RoutesPage() {
         </div>
       </div>
 
-      {viewMode==='list' ? (
+      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar rota por nome ou código..." value={search} onChange={function(e:any){setSearch(e.target.value);setPage(1);}}/></div>
+
+      {viewMode==='list' ? (<>
         <div className="grid gap-3">
-          {allRoutes.map(function(r:any){
+          {paginated.map(function(r:any){
             const route = r.route || r;
             const routeId = route.id;
             if (!routeId) return null;
@@ -147,9 +156,10 @@ export default function RoutesPage() {
               </div>
             );
           })}
-          {!allRoutes.length&&<div className="card text-center py-16"><MapPin size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhuma rota cadastrada</p><button className="btn-primary" onClick={openNew}>Criar primeira rota</button></div>}
+          {!filtered.length&&<div className="card text-center py-16"><MapPin size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhuma rota cadastrada</p><button className="btn-primary" onClick={openNew}>Criar primeira rota</button></div>}
         </div>
-      ) : (
+        {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
+      </>) : (
         <div className="card p-4"><p className="text-sm text-gray-500 mb-3 flex items-center gap-2"><Info size={14}/> Busque um endereco ou selecione uma rota</p><div className="flex gap-2 mb-4 flex-wrap">{allRoutes.map((r:any)=>{const rt=r.route||r;return(<button key={rt.id} onClick={()=>setViewRoute(r)} className={'px-3 py-1.5 rounded-lg text-sm transition-all '+((viewRoute?.route?.id||viewRoute?.id)===rt.id?'bg-primary-500 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{rt.name}</button>);})}</div><LeafletMap stops={viewRoute?.stops||[]} onAddStop={()=>{}} readonly={true}/></div>
       )}
 

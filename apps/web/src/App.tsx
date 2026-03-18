@@ -81,7 +81,7 @@ export default function App() {
         <Route path="mapa-tempo-real" element={<Guard roles={ALL_USERS}><TrackMapPage /></Guard>} />
 
         {/* Portal do Responsavel */}
-        <Route path="portal-responsavel" element={<Guard roles={['super_admin', 'municipal_admin', 'parent']}><GuardianPage /></Guard>} />
+        <Route path="portal-responsavel" element={<Guard roles={ALL_USERS}><GuardianPage /></Guard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

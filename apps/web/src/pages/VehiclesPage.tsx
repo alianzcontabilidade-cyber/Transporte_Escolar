@@ -27,6 +27,8 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [page,setPage]=useState(1);
+  const PER_PAGE=20;
   const { data: vehicles, refetch } = useQuery(function() { return api.vehicles.list({ municipalityId }); }, [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.vehicles.create);
   const { mutate: update, loading: updating } = useMutation(api.vehicles.update);
@@ -40,6 +42,8 @@ export default function VehiclesPage() {
     const matchFilter = filter==='all'||v.status===filter;
     return matchSearch&&matchFilter;
   });
+  const totalPages=Math.ceil(filtered.length/PER_PAGE);
+  const paginated=filtered.slice((page-1)*PER_PAGE,page*PER_PAGE);
   const counts = { all:all.length, active:all.filter(function(v:any){return v.status==='active';}).length, maintenance:all.filter(function(v:any){return v.status==='maintenance';}).length, inactive:all.filter(function(v:any){return v.status==='inactive';}).length };
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setShowModal(true); };
@@ -80,16 +84,16 @@ export default function VehiclesPage() {
 
       <div className="grid grid-cols-4 gap-3 mb-4">
         {[['all','Total','bg-gray-50'],['active','Ativos','bg-green-50'],['maintenance','Manutenção','bg-yellow-50'],['inactive','Inativos','bg-red-50']].map(function([s,l,cls]:any){return(
-          <button key={s} onClick={function(){setFilter(s);}} className={`card ${cls} border p-3 text-center transition-all ${filter===s?'ring-2 ring-primary-400':''}`}>
+          <button key={s} onClick={function(){setFilter(s);setPage(1);}} className={`card ${cls} border p-3 text-center transition-all ${filter===s?'ring-2 ring-primary-400':''}`}>
             <p className="text-xl font-bold text-gray-800">{counts[s as keyof typeof counts]}</p><p className="text-xs text-gray-500">{l}</p>
           </button>
         );}) }
       </div>
 
-      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por placa, apelido, marca ou modelo..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
+      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por placa, apelido, marca ou modelo..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map(function(v: any){ return (
+        {paginated.map(function(v: any){ return (
           <div key={v.id} className="card hover:border-primary-200 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <div className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center"><Bus size={20} className="text-primary-600"/></div>
@@ -112,6 +116,7 @@ export default function VehiclesPage() {
         );})}
         {!filtered.length&&<div className="col-span-3 card text-center py-16"><Bus size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum veículo encontrado</p>{!search&&filter==='all'&&<button className="btn-primary" onClick={openNew}>Cadastrar primeiro veículo</button>}</div>}
       </div>
+      {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
 
       {confirmDelete&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

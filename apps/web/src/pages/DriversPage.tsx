@@ -25,6 +25,8 @@ export default function DriversPage() {
     const [del,setDel]=useState<any>(null);
     const [err,setErr]=useState('');
     const [cpfError,setCpfError]=useState('');
+    const [page,setPage]=useState(1);
+    const PER_PAGE=20;
     const { municipios: drvMunicipios, loading: drvMunLoading } = useMunicipios(form.state);
   
     const {data:drivers,refetch}=useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
@@ -60,6 +62,8 @@ export default function DriversPage() {
       return d;
     });
     const filtered=all.filter(function(d:any){const q=search.toLowerCase();return d.name?.toLowerCase().includes(q)||d.phone?.includes(q)||(d.cnhNumber||'').includes(q);});
+    const totalPages=Math.ceil(filtered.length/PER_PAGE);
+    const paginated=filtered.slice((page-1)*PER_PAGE,page*PER_PAGE);
     const rn=function(id:string){return allR.find(function(r:any){return String(r.route?.id || r.id)===String(id);})?.route?.name||'';};
     const vp=function(id:string){const v=allV.find(function(v:any){return String(v.id)===String(id);});return v?v.plate+(v.nickname?' ('+v.nickname+')':''):'';};
 
@@ -89,9 +93,9 @@ export default function DriversPage() {
     return (
           <div className="p-6">
                 <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div>
-                <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
+                <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
                 <div className="grid gap-3">
-                  {filtered.map(function(d:any){return(
+                  {paginated.map(function(d:any){return(
                       <div key={d.id} className="card flex items-center gap-4 hover:border-primary-200 transition-colors">
                                   <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-100 flex items-center justify-center flex-shrink-0">{d.photo?<img src={d.photo} className="w-full h-full object-cover"/>:<span className="font-bold text-orange-700 text-lg">{d.name?.[0]}</span>}</div>
                                   <div className="flex-1 min-w-0">
@@ -104,6 +108,7 @@ export default function DriversPage() {
                     );})}
                   {!filtered.length&&!search&&<div className="card text-center py-16"><Truck size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum motorista</p><button className="btn-primary" onClick={openNew}>Adicionar motorista</button></div>}
                 </div>
+                {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
           
             {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
           

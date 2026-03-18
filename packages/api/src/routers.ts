@@ -692,39 +692,36 @@ export const studentsRouter = t.router({
       school: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { latitude, longitude, birthDate, className, photo, school, routeId,
-              guardian1Name, guardian1Phone, guardian1Relation,
-              guardian2Name, guardian2Phone, guardian2Relation,
-              city, state, observations, ...rest } = input;
-      // Usar schoolId do input ou do campo school (select)
-      const finalSchoolId = rest.schoolId || (school ? parseInt(school) : undefined);
+      const finalSchoolId = input.schoolId || (input.school ? parseInt(input.school) : undefined);
       if (!finalSchoolId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
 
-      const fullAddress = [input.address, city, state].filter(Boolean).join(', ');
-
-      // Map guardian fields to emergency contacts if emergency contacts are empty
-      const finalEmergencyContact1Name = rest.emergencyContact1Name || guardian1Name;
-      const finalEmergencyContact1Phone = rest.emergencyContact1Phone || guardian1Phone;
-      const finalEmergencyContact1Relation = rest.emergencyContact1Relation || guardian1Relation;
-      const finalEmergencyContact2Name = rest.emergencyContact2Name || guardian2Name;
-      const finalEmergencyContact2Phone = rest.emergencyContact2Phone || guardian2Phone;
-      const finalEmergencyContact2Relation = rest.emergencyContact2Relation || guardian2Relation;
+      const fullAddress = [input.address, input.city, input.state].filter(Boolean).join(', ');
 
       const [student] = await db.insert(students).values({
-        ...rest,
+        municipalityId: input.municipalityId,
         schoolId: finalSchoolId,
-        classRoom: rest.classRoom || className,
-        photoUrl: rest.photoUrl || photo,
-        address: fullAddress || input.address,
-        birthDate: birthDate ? new Date(birthDate) : undefined,
-        emergencyContact1Name: finalEmergencyContact1Name,
-        emergencyContact1Phone: finalEmergencyContact1Phone,
-        emergencyContact1Relation: finalEmergencyContact1Relation,
-        emergencyContact2Name: finalEmergencyContact2Name,
-        emergencyContact2Phone: finalEmergencyContact2Phone,
-        emergencyContact2Relation: finalEmergencyContact2Relation,
-        ...(latitude !== undefined && { latitude: latitude.toFixed(8) }),
-        ...(longitude !== undefined && { longitude: longitude.toFixed(8) }),
+        name: input.name,
+        enrollment: input.enrollment || undefined,
+        grade: input.grade || undefined,
+        classRoom: input.classRoom || input.className || undefined,
+        shift: input.shift || undefined,
+        birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+        photoUrl: input.photoUrl || input.photo || undefined,
+        address: fullAddress || input.address || undefined,
+        hasSpecialNeeds: input.hasSpecialNeeds || false,
+        specialNeedsNotes: input.specialNeedsNotes || undefined,
+        bloodType: input.bloodType || undefined,
+        allergies: input.allergies || undefined,
+        medications: input.medications || undefined,
+        healthNotes: input.healthNotes || undefined,
+        emergencyContact1Name: input.emergencyContact1Name || input.guardian1Name || undefined,
+        emergencyContact1Phone: input.emergencyContact1Phone || input.guardian1Phone || undefined,
+        emergencyContact1Relation: input.emergencyContact1Relation || input.guardian1Relation || undefined,
+        emergencyContact2Name: input.emergencyContact2Name || input.guardian2Name || undefined,
+        emergencyContact2Phone: input.emergencyContact2Phone || input.guardian2Phone || undefined,
+        emergencyContact2Relation: input.emergencyContact2Relation || input.guardian2Relation || undefined,
+        ...(input.latitude !== undefined && { latitude: input.latitude.toFixed(8) }),
+        ...(input.longitude !== undefined && { longitude: input.longitude.toFixed(8) }),
       }).$returningId();
       return { success: true, id: student.id };
     }),
@@ -780,28 +777,42 @@ export const studentsRouter = t.router({
       routeId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, className, photo, school, birthDate, city, state, routeId,
-              guardian1Name, guardian1Phone, guardian1Relation,
-              guardian2Name, guardian2Phone, guardian2Relation,
-              observations, ...data } = input;
-      const ud: any = { ...data };
-      if (className) ud.classRoom = className;
-      if (photo) ud.photoUrl = photo;
-      if (school) ud.schoolId = parseInt(school);
-      if (birthDate) ud.birthDate = new Date(birthDate);
-      if (city || state) {
-        const parts = [data.address, city, state].filter(Boolean);
-        if (parts.length > 0) ud.address = parts.join(', ');
+      const ud: any = {};
+      if (input.name !== undefined) ud.name = input.name;
+      if (input.enrollment !== undefined) ud.enrollment = input.enrollment;
+      if (input.grade !== undefined) ud.grade = input.grade;
+      if (input.classRoom || input.className) ud.classRoom = input.classRoom || input.className;
+      if (input.shift !== undefined) ud.shift = input.shift;
+      if (input.birthDate) ud.birthDate = new Date(input.birthDate);
+      if (input.photoUrl || input.photo) ud.photoUrl = input.photoUrl || input.photo;
+      if (input.school) ud.schoolId = parseInt(input.school);
+      if (input.schoolId) ud.schoolId = input.schoolId;
+      if (input.hasSpecialNeeds !== undefined) ud.hasSpecialNeeds = input.hasSpecialNeeds;
+      if (input.specialNeedsNotes !== undefined) ud.specialNeedsNotes = input.specialNeedsNotes;
+      if (input.bloodType !== undefined) ud.bloodType = input.bloodType;
+      if (input.allergies !== undefined) ud.allergies = input.allergies;
+      if (input.medications !== undefined) ud.medications = input.medications;
+      if (input.healthNotes !== undefined) ud.healthNotes = input.healthNotes;
+      // Address
+      if (input.address || input.city || input.state) {
+        ud.address = [input.address, input.city, input.state].filter(Boolean).join(', ');
       }
-      // Map guardian fields to emergency contacts
-      if (guardian1Name) ud.emergencyContact1Name = guardian1Name;
-      if (guardian1Phone) ud.emergencyContact1Phone = guardian1Phone;
-      if (guardian1Relation) ud.emergencyContact1Relation = guardian1Relation;
-      if (guardian2Name) ud.emergencyContact2Name = guardian2Name;
-      if (guardian2Phone) ud.emergencyContact2Phone = guardian2Phone;
-      if (guardian2Relation) ud.emergencyContact2Relation = guardian2Relation;
+      // Emergency contacts / guardians
+      const ec1Name = input.emergencyContact1Name || input.guardian1Name;
+      const ec1Phone = input.emergencyContact1Phone || input.guardian1Phone;
+      const ec1Rel = input.emergencyContact1Relation || input.guardian1Relation;
+      const ec2Name = input.emergencyContact2Name || input.guardian2Name;
+      const ec2Phone = input.emergencyContact2Phone || input.guardian2Phone;
+      const ec2Rel = input.emergencyContact2Relation || input.guardian2Relation;
+      if (ec1Name !== undefined) ud.emergencyContact1Name = ec1Name;
+      if (ec1Phone !== undefined) ud.emergencyContact1Phone = ec1Phone;
+      if (ec1Rel !== undefined) ud.emergencyContact1Relation = ec1Rel;
+      if (ec2Name !== undefined) ud.emergencyContact2Name = ec2Name;
+      if (ec2Phone !== undefined) ud.emergencyContact2Phone = ec2Phone;
+      if (ec2Rel !== undefined) ud.emergencyContact2Relation = ec2Rel;
+      // Remove undefined values
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
-      if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, id));
+      if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, input.id));
       return { success: true };
     }),
 

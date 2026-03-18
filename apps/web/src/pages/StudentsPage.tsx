@@ -305,57 +305,79 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       {/* Modal Visualizar Aluno */}
       {viewStudent&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Aluno</h3>
-              <button onClick={function(){setViewStudent(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button>
+              <div className="flex items-center gap-2">
+                <button onClick={function(){
+                  const el = document.getElementById('student-detail-print');
+                  if (el) { const w = window.open('', '_blank'); if (w) { w.document.write('<html><head><title>'+viewStudent.name+' - NetEscol</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#333}h1{color:#1B3A5C;border-bottom:2px solid #2DB5B0;padding-bottom:8px}h2{color:#2DB5B0;margin-top:20px;font-size:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{padding:8px 12px;background:#f9fafb;border-radius:8px}.field-label{font-size:12px;color:#6b7280;margin-bottom:2px}.field-value{font-size:14px;font-weight:500}.section{margin-top:16px;padding:12px;border-radius:12px}@media print{body{padding:0}}</style></head><body>'+el.innerHTML+'<p style="margin-top:24px;font-size:11px;color:#999">Gerado por NetEscol em '+new Date().toLocaleString('pt-BR')+'</p></body></html>'); w.document.close(); w.print(); } }
+                }} className="btn-secondary flex items-center gap-2 text-sm"><FileUp size={14}/> Imprimir</button>
+                <button onClick={function(){
+                  const s = viewStudent;
+                  const csv = 'Campo;Valor\n' + [
+                    ['Nome', s.name], ['Matricula', s.enrollment||''], ['Serie', s.grade||''], ['Turma', s.classRoom||s.className||''], ['Turno', shiftLabel(s.shift)],
+                    ['Escola', allSchools.find(function(sc:any){return sc.id===s.schoolId;})?.name || s.school || ''],
+                    ['Nascimento', s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : ''],
+                    ['Endereco', s.address||''],
+                    ['Tipo Sanguineo', s.bloodType||''], ['Necessidades Especiais', s.hasSpecialNeeds?'Sim':'Nao'],
+                    ['Alergias', s.allergies||''], ['Medicamentos', s.medications||''], ['Obs. Saude', s.healthNotes||''],
+                    ['Contato Emerg. 1 - Nome', s.emergencyContact1Name||''], ['Contato Emerg. 1 - Telefone', s.emergencyContact1Phone||''], ['Contato Emerg. 1 - Parentesco', s.emergencyContact1Relation||''],
+                    ['Contato Emerg. 2 - Nome', s.emergencyContact2Name||''], ['Contato Emerg. 2 - Telefone', s.emergencyContact2Phone||''], ['Contato Emerg. 2 - Parentesco', s.emergencyContact2Relation||''],
+                  ].map(function(r){ return '"'+r[0]+'";"'+r[1]+'"'; }).join('\n');
+                  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+                  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=s.name.replace(/\s/g,'_')+'_netescol.csv'; a.click();
+                }} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14}/> Exportar</button>
+                <button onClick={function(){setViewStudent(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button>
+              </div>
             </div>
-            <div className="overflow-y-auto flex-1 p-5 space-y-4">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-700">{viewStudent.name?.[0]}</div>
+            <div className="overflow-y-auto flex-1 p-5" id="student-detail-print">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-700">{viewStudent.photoUrl ? <img src={viewStudent.photoUrl} className="w-full h-full rounded-full object-cover"/> : viewStudent.name?.[0]}</div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{viewStudent.name}</h2>
-                  <p className="text-sm text-gray-500">{viewStudent.enrollment ? 'Mat. ' + viewStudent.enrollment : ''} {viewStudent.grade ? ' - ' + viewStudent.grade : ''}</p>
+                  <h1 className="text-xl font-bold text-gray-900">{viewStudent.name}</h1>
+                  <p className="text-gray-500">{viewStudent.enrollment ? 'Mat. ' + viewStudent.enrollment : ''} {viewStudent.grade ? ' - ' + viewStudent.grade : ''}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Dados Escolares</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Escola</p><p className="text-sm font-medium">{allSchools.find(function(sc:any){return sc.id===viewStudent.schoolId;})?.name || viewStudent.school || '--'}</p></div>
-                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turno</p><p className="text-sm font-medium">{shiftLabel(viewStudent.shift)}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Serie/Ano</p><p className="text-sm font-medium">{viewStudent.grade || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turma</p><p className="text-sm font-medium">{viewStudent.classRoom || viewStudent.className || '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turno</p><p className="text-sm font-medium">{shiftLabel(viewStudent.shift)}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Matricula</p><p className="text-sm font-medium">{viewStudent.enrollment || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Nascimento</p><p className="text-sm font-medium">{viewStudent.birthDate ? new Date(viewStudent.birthDate).toLocaleDateString('pt-BR') : '--'}</p></div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Endereco</p><p className="text-sm font-medium">{viewStudent.address || '--'}</p></div>
               </div>
-              {(viewStudent.bloodType || viewStudent.allergies || viewStudent.medications || viewStudent.healthNotes || viewStudent.hasSpecialNeeds) && (
-                <div className="p-4 bg-red-50 rounded-xl">
-                  <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1"><Heart size={12}/> SAUDE</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {viewStudent.bloodType && <div><span className="text-gray-400">Tipo Sanguineo:</span> <strong>{viewStudent.bloodType}</strong></div>}
-                    {viewStudent.hasSpecialNeeds && <div><span className="text-gray-400">Necessidades Especiais:</span> <strong>Sim</strong></div>}
-                    {viewStudent.allergies && <div className="col-span-2"><span className="text-gray-400">Alergias:</span> <strong>{viewStudent.allergies}</strong></div>}
-                    {viewStudent.medications && <div className="col-span-2"><span className="text-gray-400">Medicamentos:</span> <strong>{viewStudent.medications}</strong></div>}
-                    {viewStudent.healthNotes && <div className="col-span-2"><span className="text-gray-400">Obs. saude:</span> <strong>{viewStudent.healthNotes}</strong></div>}
-                    {viewStudent.specialNeedsNotes && <div className="col-span-2"><span className="text-gray-400">Detalhes:</span> <strong>{viewStudent.specialNeedsNotes}</strong></div>}
-                  </div>
-                </div>
-              )}
-              {(viewStudent.emergencyContact1Name || viewStudent.emergencyContact2Name) && (
+
+              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Endereco</h2>
+              <div className="p-3 bg-gray-50 rounded-lg mb-5"><p className="text-sm font-medium">{viewStudent.address || '--'}</p></div>
+
+              <h2 className="text-sm font-bold text-red-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Heart size={14}/> Saude</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-red-50 rounded-xl">
+                <div><p className="text-xs text-gray-400">Tipo Sanguineo</p><p className="text-sm font-medium">{viewStudent.bloodType || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Necessidades Especiais</p><p className="text-sm font-medium">{viewStudent.hasSpecialNeeds ? 'Sim' : 'Nao'}</p></div>
+                <div><p className="text-xs text-gray-400">Alergias</p><p className="text-sm font-medium">{viewStudent.allergies || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Medicamentos</p><p className="text-sm font-medium">{viewStudent.medications || '--'}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400">Observacoes de saude</p><p className="text-sm font-medium">{viewStudent.healthNotes || '--'}</p></div>
+                {viewStudent.hasSpecialNeeds && viewStudent.specialNeedsNotes && <div className="col-span-3"><p className="text-xs text-gray-400">Detalhes nec. especiais</p><p className="text-sm font-medium">{viewStudent.specialNeedsNotes}</p></div>}
+              </div>
+
+              <h2 className="text-sm font-bold text-orange-500 uppercase tracking-wide mb-3 flex items-center gap-1"><AlertTriangle size={14}/> Contatos de Emergencia</h2>
+              <div className="grid grid-cols-2 gap-4 mb-5">
                 <div className="p-4 bg-orange-50 rounded-xl">
-                  <p className="text-xs font-semibold text-orange-700 mb-2 flex items-center gap-1"><AlertTriangle size={12}/> CONTATOS DE EMERGENCIA</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {viewStudent.emergencyContact1Name && <div><p className="text-gray-400">Contato 1</p><p className="font-medium">{viewStudent.emergencyContact1Name}</p><p className="text-gray-500">{viewStudent.emergencyContact1Phone} - {viewStudent.emergencyContact1Relation}</p></div>}
-                    {viewStudent.emergencyContact2Name && <div><p className="text-gray-400">Contato 2</p><p className="font-medium">{viewStudent.emergencyContact2Name}</p><p className="text-gray-500">{viewStudent.emergencyContact2Phone} - {viewStudent.emergencyContact2Relation}</p></div>}
-                  </div>
+                  <p className="text-xs font-semibold text-orange-600 mb-2">Contato 1</p>
+                  <p className="text-sm font-medium">{viewStudent.emergencyContact1Name || '--'}</p>
+                  <p className="text-xs text-gray-500">{viewStudent.emergencyContact1Phone || '--'}</p>
+                  <p className="text-xs text-gray-500">{viewStudent.emergencyContact1Relation || '--'}</p>
                 </div>
-              )}
-              {(viewStudent.guardian1Name || viewStudent.guardian2Name) && (
-                <div className="p-4 bg-blue-50 rounded-xl">
-                  <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1"><Users size={12}/> RESPONSAVEIS</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {viewStudent.guardian1Name && <div><p className="font-medium">{viewStudent.guardian1Name}</p><p className="text-gray-500">{viewStudent.guardian1Phone} - {viewStudent.guardian1Relation}</p></div>}
-                    {viewStudent.guardian2Name && <div><p className="font-medium">{viewStudent.guardian2Name}</p><p className="text-gray-500">{viewStudent.guardian2Phone} - {viewStudent.guardian2Relation}</p></div>}
-                  </div>
+                <div className="p-4 bg-orange-50 rounded-xl">
+                  <p className="text-xs font-semibold text-orange-600 mb-2">Contato 2</p>
+                  <p className="text-sm font-medium">{viewStudent.emergencyContact2Name || '--'}</p>
+                  <p className="text-xs text-gray-500">{viewStudent.emergencyContact2Phone || '--'}</p>
+                  <p className="text-xs text-gray-500">{viewStudent.emergencyContact2Relation || '--'}</p>
                 </div>
-              )}
+              </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={function(){setViewStudent(null);}} className="btn-secondary flex-1">Fechar</button>

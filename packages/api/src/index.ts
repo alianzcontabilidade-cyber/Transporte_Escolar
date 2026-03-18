@@ -145,3 +145,4 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 Socket.IO ativo`);
   console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });
+// deploy trigger Wed Mar 18 00:18:56     2026

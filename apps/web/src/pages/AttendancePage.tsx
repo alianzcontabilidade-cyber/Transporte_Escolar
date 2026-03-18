@@ -107,7 +107,7 @@ export default function AttendancePage() {
           {scanResult.error ? (
             <div className="flex items-center gap-3"><XCircle size={20}/><div><p className="font-semibold">Aluno não encontrado</p><p className="text-sm opacity-90">Código: {scanResult.code}</p></div></div>
           ) : (
-            <div className="flex items-center gap-3"><CheckCircle size={20}/><div><p className="font-semibold">{scanResult.type === 'boarding' ? '✅ Embarcou' : '🔴 Desembarcou'}</p><p className="text-sm opacity-90">{scanResult.studentName}</p></div></div>
+            <div className="flex items-center gap-3"><CheckCircle size={20}/><div><p className="font-semibold">{scanResult.type === 'boarding' ? 'Embarcou' : 'Desembarcou'}</p><p className="text-sm opacity-90">{scanResult.studentName}</p></div></div>
           )}
         </div>
       )}

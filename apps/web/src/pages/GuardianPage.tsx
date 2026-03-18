@@ -48,7 +48,7 @@ function LiveMap({ driverLocation, stops }: any) {
     const L = (window as any).L;
     if (!mapInstanceRef.current || !L || !driverLocation?.lat) return;
     const icon = L.divIcon({
-      html: '<div style="background:#f97316;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse 2s infinite;">🚌</div>',
+      html: '<div style="background:#f97316;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse 2s infinite;">BUS</div>',
       className: '', iconSize: [40, 40], iconAnchor: [20, 20]
     });
     if (busMarkerRef.current) {
@@ -187,10 +187,10 @@ export default function GuardianPage() {
     if (!addEnrollment.trim()) return;
     try {
       const result = await api.guardians.addStudent({ studentEnrollment: addEnrollment, relationship: addRelationship as any });
-      setAddMsg('✅ ' + result.studentName + ' vinculado(a) com sucesso!');
+      setAddMsg('OK: ' + result.studentName + ' vinculado(a) com sucesso!');
       setAddEnrollment('');
       loadStudents();
-    } catch (e: any) { setAddMsg('❌ ' + (e.message || 'Erro ao vincular')); }
+    } catch (e: any) { setAddMsg('ERRO: ' + (e.message || 'Erro ao vincular')); }
   }
 
   async function handleMarkAllRead() {
@@ -425,7 +425,7 @@ export default function GuardianPage() {
               </select>
             </div>
             <button onClick={handleAddStudent} className="w-full bg-primary-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition">Vincular Aluno</button>
-            {addMsg && <p className={`text-sm text-center ${addMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{addMsg}</p>}
+            {addMsg && <p className={`text-sm text-center ${addMsg.startsWith('OK:') ? 'text-green-600' : 'text-red-600'}`}>{addMsg}</p>}
           </div>
         </div>
       )}

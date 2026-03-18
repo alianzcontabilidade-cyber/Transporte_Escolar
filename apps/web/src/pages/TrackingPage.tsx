@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported, requestGPSPermission } from '../lib/gps';
 import { useWakeLock } from '../lib/pwa';
+import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square } from 'lucide-react';
 
 export default function TrackingPage() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export default function TrackingPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-          <span className="text-2xl">📍</span>
+          <Navigation size={24} className="text-blue-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rastreamento GPS</h1>
@@ -91,7 +92,7 @@ export default function TrackingPage() {
           {/* GPS Support */}
           <div className={`p-4 rounded-lg ${isGPSSupported() ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{isGPSSupported() ? '✅' : '❌'}</span>
+              {isGPSSupported() ? <CheckCircle size={20} className="text-green-500" /> : <XCircle size={20} className="text-red-500" />}
               <div>
                 <p className="font-medium text-sm">GPS do Dispositivo</p>
                 <p className="text-xs text-gray-500">{isGPSSupported() ? 'Disponivel' : 'Nao disponivel'}</p>
@@ -102,7 +103,7 @@ export default function TrackingPage() {
           {/* Permission */}
           <div className={`p-4 rounded-lg ${permissionStatus === 'granted' ? 'bg-green-50 border border-green-200' : permissionStatus === 'denied' ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{permissionStatus === 'granted' ? '✅' : permissionStatus === 'denied' ? '❌' : '⚠️'}</span>
+              {permissionStatus === 'granted' ? <CheckCircle size={20} className="text-green-500" /> : permissionStatus === 'denied' ? <XCircle size={20} className="text-red-500" /> : <AlertTriangle size={20} className="text-yellow-500" />}
               <div>
                 <p className="font-medium text-sm">Permissao GPS</p>
                 <p className="text-xs text-gray-500">
@@ -115,7 +116,7 @@ export default function TrackingPage() {
           {/* Tracking Status */}
           <div className={`p-4 rounded-lg ${isTracking ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <span className={`text-xl ${isTracking ? 'animate-pulse' : ''}`}>{isTracking ? '🟢' : '⚪'}</span>
+              <div className={isTracking ? 'animate-pulse' : ''}>{isTracking ? <Navigation size={20} className="text-green-500" /> : <Navigation size={20} className="text-gray-400" />}</div>
               <div>
                 <p className="font-medium text-sm">Rastreamento</p>
                 <p className="text-xs text-gray-500">{isTracking ? 'Ativo - enviando posicao' : 'Inativo'}</p>
@@ -126,7 +127,7 @@ export default function TrackingPage() {
           {/* Wake Lock Status */}
           <div className={`p-4 rounded-lg ${wakeLockActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{wakeLockActive ? '📱' : '🔌'}</span>
+              {wakeLockActive ? <Smartphone size={20} className="text-green-500" /> : <Plug size={20} className="text-gray-400" />}
               <div>
                 <p className="font-medium text-sm">Tela Ativa</p>
                 <p className="text-xs text-gray-500">{wakeLockActive ? 'Tela nao desligara automaticamente' : 'Tela pode desligar'}</p>

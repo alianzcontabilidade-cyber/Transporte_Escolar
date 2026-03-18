@@ -43,14 +43,14 @@ function LiveMap({ trips, locations }: any) {
     if (!mapInstanceRef.current || !L) return;
     locations.forEach((loc: any, tripId: number) => {
       const icon = L.divIcon({
-        html: '<div style="background:#f97316;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:18px;">🚌</div>',
+        html: '<div style="background:#f97316;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:12px;font-weight:bold;">BUS</div>',
         className: '', iconSize: [36, 36], iconAnchor: [18, 18]
       });
       const trip = trips?.find((t: any) => t.trip.id === tripId);
       if (markersRef.current.has(tripId)) { markersRef.current.get(tripId).setLatLng([loc.lat, loc.lng]); }
       else {
         const m = L.marker([loc.lat, loc.lng], { icon }).addTo(mapInstanceRef.current)
-          .bindPopup(`<b>🚌 ${trip?.route?.name || 'Ônibus'}</b><br>${new Date(loc.updatedAt).toLocaleTimeString('pt-BR')}`);
+          .bindPopup(`<b>${trip?.route?.name || 'Onibus'}</b><br>${new Date(loc.updatedAt).toLocaleTimeString('pt-BR')}`);
         markersRef.current.set(tripId, m);
         mapInstanceRef.current.setView([loc.lat, loc.lng], 14);
       }
@@ -201,7 +201,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{student.name}</p>
-                  <p className="text-xs text-gray-500">{student.grade || ''} {student.hasSpecialNeeds && '⚠️ Necessidades especiais'}</p>
+                  <p className="text-xs text-gray-500">{student.grade || ''} {student.hasSpecialNeeds && 'Necessidades especiais'}</p>
                 </div>
                 {student.status === 'pending' && (
                   <div className="flex gap-1.5">

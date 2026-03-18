@@ -78,10 +78,10 @@ export default function SuperAdminPage() {
             <div className="mt-4 p-3 bg-blue-50 rounded-xl">
               <p className="text-xs font-semibold text-blue-700 mb-1">Total consolidado</p>
               <div className="grid grid-cols-2 gap-2 text-xs text-blue-600">
-                <span>👨‍🎓 {total.students.toLocaleString()} alunos</span>
-                <span>🚌 {total.vehicles} veículos</span>
-                <span>🗺️ {total.routes} rotas</span>
-                <span>👨‍✈️ {MOCK_MUNICIPALITIES.reduce((s,m)=>s+m.drivers,0)} motoristas</span>
+                <span>{total.students.toLocaleString()} alunos</span>
+                <span>{total.vehicles} veiculos</span>
+                <span>{total.routes} rotas</span>
+                <span>{MOCK_MUNICIPALITIES.reduce((s,m)=>s+m.drivers,0)} motoristas</span>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useVehicleLocations } from '../lib/gps';
+import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi } from 'lucide-react';
 
 export default function TrackMapPage() {
   const { user } = useAuth();
@@ -58,10 +59,10 @@ export default function TrackMapPage() {
       if (isNaN(lat) || isNaN(lng)) return;
 
       const busIcon = L.divIcon({
-        html: `<div style="font-size:28px;text-shadow:0 2px 4px rgba(0,0,0,0.3);">🚌</div>`,
-        className: 'bus-marker',
-        iconSize: [35, 35],
-        iconAnchor: [17, 17],
+        html: '<div style="background:#f97316;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-weight:bold;font-size:14px;">BUS</div>',
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
       });
 
       if (markersRef.current.has(vehicle.vehicleId)) {
@@ -74,7 +75,7 @@ export default function TrackMapPage() {
           .addTo(map)
           .bindPopup(`
             <div style="min-width:200px">
-              <b>🚌 ${vehicle.plate || 'Veiculo #' + vehicle.vehicleId}</b><br>
+              <b>${vehicle.plate || 'Veiculo #' + vehicle.vehicleId}</b><br>
               <small>Motorista: ${vehicle.driverName || 'N/A'}</small><br>
               <small>Rota: ${vehicle.routeName || 'N/A'}</small><br>
               <small>Velocidade: ${vehicle.speed ? (vehicle.speed * 3.6).toFixed(1) + ' km/h' : 'N/A'}</small><br>
@@ -102,18 +103,18 @@ export default function TrackMapPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-            <span className="text-2xl">🗺️</span>
+            <MapPin size={24} className="text-green-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Mapa em Tempo Real</h1>
-            <p className="text-gray-500">Acompanhe a localizacao dos onibus escolares</p>
+            <p className="text-gray-500">Acompanhe a localiza&ccedil;&atilde;o dos &ocirc;nibus escolares</p>
           </div>
         </div>
         <button
           onClick={refresh}
           className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
         >
-          <span>↻</span> Atualizar
+          <RefreshCw size={16} /> Atualizar
         </button>
       </div>
 
@@ -122,7 +123,7 @@ export default function TrackMapPage() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-lg">🚌</span>
+              <Bus size={20} className="text-green-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-green-600">{vehicles.length}</p>
@@ -133,7 +134,7 @@ export default function TrackMapPage() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📱</span>
+              <Wifi size={20} className="text-blue-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-blue-600">GPS</p>
@@ -144,7 +145,7 @@ export default function TrackMapPage() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span className="text-lg">⏱️</span>
+              <Clock size={20} className="text-orange-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-orange-600">10s</p>
@@ -164,9 +165,9 @@ export default function TrackMapPage() {
         )}
         {!loading && vehicles.length === 0 && (
           <div className="p-8 text-center">
-            <span className="text-4xl">🚌</span>
+            <Bus size={48} className="text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 mt-2">Nenhum veiculo em rota no momento.</p>
-            <p className="text-gray-400 text-sm">Quando os motoristas iniciarem viagens, os onibus aparecerão no mapa.</p>
+            <p className="text-gray-400 text-sm">Quando os motoristas iniciarem viagens, os onibus aparecerao no mapa.</p>
           </div>
         )}
       </div>
@@ -192,7 +193,7 @@ export default function TrackMapPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🚌</span>
+                    <Bus size={24} className="text-orange-500" />
                     <div>
                       <p className="font-semibold">{v.plate || 'Veiculo #' + v.vehicleId}</p>
                       <p className="text-sm text-gray-500">Motorista: {v.driverName || 'N/A'} | Rota: {v.routeName || 'N/A'}</p>

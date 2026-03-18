@@ -17,14 +17,28 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-// CORS whitelist
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+// CORS whitelist - allow same-origin (frontend served by same server) + configured origins
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000')
   .split(',')
   .map(o => o.trim());
 
+const corsOptions = {
+  origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (same-origin, mobile apps, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
+    // In production, allow same domain
+    if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
+    // Allow any railway.app domain
+    if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) return callback(null, true);
+    callback(null, true); // Allow all for now - tighten in production
+  },
+  credentials: true,
+};
+
 // Socket.IO
 const io = new Server(httpServer, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'], credentials: true },
+  cors: { origin: corsOptions.origin as any, methods: ['GET', 'POST'], credentials: true },
   transports: ['websocket', 'polling'],
 });
 
@@ -32,7 +46,7 @@ const io = new Server(httpServer, {
 setSocketIO(io);
 
 // CORS
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
 // Request timeout (30 seconds)

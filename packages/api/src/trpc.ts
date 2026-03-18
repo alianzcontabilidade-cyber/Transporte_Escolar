@@ -58,7 +58,7 @@ export function validateOptionalCNPJ(cnpj?: string): void {
 }
 
 // JWT Secret
-export const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'transescolar-dev-secret-2024');
+export const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'netescol-dev-secret-2024');
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET must be set in production');
   process.exit(1);

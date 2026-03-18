@@ -71,7 +71,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-primary-500 flex items-center justify-center mx-auto mb-4"><Bus size={28} className="text-white" /></div>
-            <h1 className="text-2xl font-bold text-gray-900">TransEscolar</h1>
+            <h1 className="text-2xl font-bold text-gray-900">NetEscol</h1>
             <p className="text-gray-500 mt-1">Escolha o tipo de cadastro</p>
           </div>
           <div className="space-y-4">

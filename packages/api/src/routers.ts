@@ -1154,7 +1154,7 @@ export const driversRouter = t.router({
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
       // Gerar email temporario se nao informado
-      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.transescolar.local');
+      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.netescol.local');
       // Gerar senha padrao se nao informada
       const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
       const passwordHash = await hash(pwd, 12);
@@ -2480,7 +2480,7 @@ export const teachersRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
-      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@professor.transescolar.local');
+      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@professor.netescol.local');
       const pwd = input.password || 'Prof@' + Math.floor(1000 + Math.random() * 9000);
       const passwordHash = await hash(pwd, 12);
 

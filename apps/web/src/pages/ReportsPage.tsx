@@ -88,7 +88,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><FileText size={18} className="text-gray-500"/><h3 className="font-semibold">Histórico de Viagens</h3><span className="text-sm text-gray-400">({tripRows.length} registros)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(tripRows,'viagens_transescolar.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
+              <button onClick={() => exportCSV(tripRows,'viagens_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
               <button onClick={() => exportPDF('Relatório de Viagens',tripRows,['Rota','Data','Início','Fim','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><Users size={18} className="text-gray-500"/><h3 className="font-semibold">Lista de Alunos</h3><span className="text-sm text-gray-400">({studentRows.length} alunos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(studentRows,'alunos_transescolar.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
+              <button onClick={() => exportCSV(studentRows,'alunos_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
               <button onClick={() => exportPDF('Lista de Alunos',studentRows,['Nome','Matrícula','Série','Turma','Turno'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-500"/><h3 className="font-semibold">Relatório de Frota</h3><span className="text-sm text-gray-400">({vehicleRows.length} veículos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(vehicleRows,'frota_transescolar.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
+              <button onClick={() => exportCSV(vehicleRows,'frota_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
               <button onClick={() => exportPDF('Relatório de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
             </div>
           </div>

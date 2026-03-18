@@ -79,7 +79,7 @@ export default function StudentsPage() {
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'alunos_transescolar.csv';
+    a.download = 'alunos_netescol.csv';
     a.click();
   };
 
@@ -91,7 +91,7 @@ export default function StudentsPage() {
   const generateWhatsAppLink = function(student: any, phone?: string) {
     const enrollment = student.enrollment || '';
     const studentName = student.name || 'seu filho(a)';
-    const msg = `Ola! Voce foi convidado(a) para acompanhar o transporte escolar de *${studentName}* pelo aplicativo *TransEscolar*.
+    const msg = `Ola! Voce foi convidado(a) para acompanhar o transporte escolar de *${studentName}* pelo aplicativo *NetEscol*.
 
 Para instalar:
 1. Acesse: ${appUrl}/cadastro

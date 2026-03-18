@@ -108,7 +108,7 @@ app.get('*', (_req, res) => {
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 TransEscolar API v2.2.0 rodando na porta ${PORT}`);
+  console.log(`🚀 NetEscol API v2.2.0 rodando na porta ${PORT}`);
   console.log(`📡 Socket.IO ativo`);
   console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });

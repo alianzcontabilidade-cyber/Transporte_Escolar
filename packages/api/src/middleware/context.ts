@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { verify } from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'transescolar-dev-secret-2024');
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'netescol-dev-secret-2024');
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET must be set in production');
   process.exit(1);

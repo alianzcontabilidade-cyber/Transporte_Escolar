@@ -104,7 +104,7 @@ export default function TransparencyPage() {
         )}
 
         <div className="text-center mt-8 py-4 text-xs text-gray-400">
-          <p>TransEscolar - Sistema de Gestao Escolar Municipal</p>
+          <p>NetEscol - Sistema de Gestao Escolar Municipal</p>
           <p>Dados atualizados automaticamente | Acesso publico conforme Lei de Transparencia</p>
         </div>
       </div>

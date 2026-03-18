@@ -161,7 +161,7 @@ export default function Layout() {
             <div className="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
               <Bus size={18} className="text-white" />
             </div>
-            <span className="font-bold text-gray-900">TransEscolar</span>
+            <span className="font-bold text-gray-900">NetEscol</span>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-4">
@@ -202,7 +202,7 @@ export default function Layout() {
             <div className="p-4 flex items-center justify-between border-b">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={16} className="text-white" /></div>
-                <span className="font-bold text-gray-900">TransEscolar</span>
+                <span className="font-bold text-gray-900">NetEscol</span>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>
             </div>
@@ -239,7 +239,7 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-gray-100"><Menu size={20} /></button>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center"><Bus size={14} className="text-white" /></div>
-            <span className="font-bold text-sm text-gray-900">TransEscolar</span>
+            <span className="font-bold text-sm text-gray-900">NetEscol</span>
           </div>
           <div className="flex items-center gap-2">
             {unreadNotifs > 0 && (
@@ -259,7 +259,7 @@ export default function Layout() {
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Download size={16} />
-              <span className="font-medium">Instale o TransEscolar no seu celular para acesso rápido!</span>
+              <span className="font-medium">Instale o NetEscol no seu celular para acesso rápido!</span>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => { install(); }} className="bg-white text-primary-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100">Instalar</button>

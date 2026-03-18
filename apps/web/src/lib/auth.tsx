@@ -29,6 +29,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setToken(t);
         setUser(JSON.parse(u));
+        // Verificar com o servidor se o token ainda é válido e atualizar dados do usuário
+        api.auth.me().then((serverUser: any) => {
+          if (serverUser) {
+            const updatedUser = { id: serverUser.id, name: serverUser.name, email: serverUser.email, role: serverUser.role, municipalityId: serverUser.municipalityId };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
+        }).catch(() => {
+          // Token expirado ou inválido - fazer logout
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        });
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

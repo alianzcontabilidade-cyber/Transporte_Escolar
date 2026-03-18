@@ -1656,11 +1656,18 @@ export const contractsRouter = t.router({
       responsiblePhone: z.string().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       validateOptionalCNPJ(input.cnpj);
-      const { startDate, endDate, value, ...rest } = input;
+      // Usar municipalityId do contexto JWT se disponivel, senao usar o enviado
+      const munId = ctx.municipalityId || input.municipalityId;
+      const [mun] = await db.select({ id: municipalities.id }).from(municipalities).where(eq(municipalities.id, munId)).limit(1);
+      if (!mun) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Municipio nao encontrado. Faca logout e login novamente.' });
+      }
+      const { startDate, endDate, value, municipalityId: _, ...rest } = input;
       const [contract] = await db.insert(contracts).values({
         ...rest,
+        municipalityId: munId,
         value: value?.toString(),
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,

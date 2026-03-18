@@ -139,6 +139,8 @@ export default function Layout() {
       { to: '/professores', icon: UserCheck, text: 'Professores' },
       { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
       { to: '/remanejamento', icon: Users, text: 'Remanejamento' },
+      { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
+      { to: '/promocao', icon: Users, text: 'Promo\u00e7\u00e3o Alunos' },
     ]},
     { label: 'PEDAGÓGICO', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
@@ -147,6 +149,7 @@ export default function Layout() {
       { to: '/calendario', icon: Calendar, text: 'Calendário Escolar' },
       { to: '/boletim', icon: FileText, text: 'Boletim Escolar' },
       { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer Descritivo' },
+      { to: '/ata-resultados', icon: FileText, text: 'ATA de Resultados' },
     ]},
     { label: 'TRANSPORTE', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' },

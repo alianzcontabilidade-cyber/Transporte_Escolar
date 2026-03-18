@@ -359,5 +359,10 @@ export const api = {
     updateStatus: (input: any) => call('waitingList.updateStatus', input, 'mutation'),
     delete: (input: any) => call('waitingList.delete', input, 'mutation'),
   },
+  studentDocuments: {
+    list: (input: any) => call('studentDocuments.list', input, 'query'),
+    create: (input: any) => call('studentDocuments.create', input, 'mutation'),
+    delete: (input: any) => call('studentDocuments.delete', input, 'mutation'),
+  },
 
 };

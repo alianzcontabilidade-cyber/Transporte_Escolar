@@ -3339,6 +3339,21 @@ export const waitingListRouter = t.router({
   delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.delete(waitingList).where(eq(waitingList.id, input.id)); return { success: true }; }),
 });
 
+// Documentos do Aluno
+export const studentDocumentsRouter = t.router({
+  list: protectedProcedure.input(z.object({ studentId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(studentDocuments).where(eq(studentDocuments.studentId, input.studentId)).orderBy(desc(studentDocuments.createdAt));
+    }),
+  create: adminProcedure.input(z.object({ studentId: z.number(), name: z.string(), type: z.enum(['certidao_nascimento','rg','cpf','comprovante_residencia','historico_escolar','laudo_medico','foto','outro']).optional(), fileUrl: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const [r] = await db.insert(studentDocuments).values({ ...input, uploadedByUserId: ctx.userId }).$returningId();
+      return { success: true, id: r.id };
+    }),
+  delete: adminProcedure.input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { await db.delete(studentDocuments).where(eq(studentDocuments.id, input.id)); return { success: true }; }),
+});
+
 // ============================================
 // MAIN ROUTER
 // ============================================
@@ -3396,6 +3411,7 @@ export const appRouter = t.router({
   schoolCalendar: schoolCalendarRouter,
   messages: messagesRouter,
   waitingList: waitingListRouter,
+  studentDocuments: studentDocumentsRouter,
 });
 
 export type AppRouter = typeof appRouter;

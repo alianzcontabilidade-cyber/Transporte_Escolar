@@ -42,6 +42,9 @@ import WaitingListPage from './pages/WaitingListPage';
 import ReportCardPage from './pages/ReportCardPage';
 import DescriptiveReportPage from './pages/DescriptiveReportPage';
 import StudentTransferPage from './pages/StudentTransferPage';
+import StudentCardPage from './pages/StudentCardPage';
+import ATAResultsPage from './pages/ATAResultsPage';
+import PromotionPage from './pages/PromotionPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -120,6 +123,9 @@ export default function App() {
         <Route path="boletim" element={<Guard roles={ADMIN_SEC}><ReportCardPage /></Guard>} />
         <Route path="parecer-descritivo" element={<Guard roles={ADMIN_SEC}><DescriptiveReportPage /></Guard>} />
         <Route path="remanejamento" element={<Guard roles={ADMIN_SEC}><StudentTransferPage /></Guard>} />
+        <Route path="carteirinha" element={<Guard roles={ADMIN_SEC}><StudentCardPage /></Guard>} />
+        <Route path="ata-resultados" element={<Guard roles={ADMIN_SEC}><ATAResultsPage /></Guard>} />
+        <Route path="promocao" element={<Guard roles={ADMIN_SEC}><PromotionPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

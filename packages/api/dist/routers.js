@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.appRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
 const server_1 = require("@trpc/server");
 const trpc_1 = require("./trpc");
 const zod_1 = require("zod");
@@ -3219,6 +3219,20 @@ exports.waitingListRouter = trpc_1.t.router({
         .mutation(async ({ input }) => { const { id, ...data } = input; await index_1.db.update(schema_1.waitingList).set(data).where((0, drizzle_orm_1.eq)(schema_1.waitingList.id, id)); return { success: true }; }),
     delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.delete(schema_1.waitingList).where((0, drizzle_orm_1.eq)(schema_1.waitingList.id, input.id)); return { success: true }; }),
 });
+// Documentos do Aluno
+exports.studentDocumentsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure.input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.studentDocuments).where((0, drizzle_orm_1.eq)(schema_1.studentDocuments.studentId, input.studentId)).orderBy((0, drizzle_orm_1.desc)(schema_1.studentDocuments.createdAt));
+    }),
+    create: trpc_1.adminProcedure.input(zod_1.z.object({ studentId: zod_1.z.number(), name: zod_1.z.string(), type: zod_1.z.enum(['certidao_nascimento', 'rg', 'cpf', 'comprovante_residencia', 'historico_escolar', 'laudo_medico', 'foto', 'outro']).optional(), fileUrl: zod_1.z.string().optional() }))
+        .mutation(async ({ ctx, input }) => {
+        const [r] = await index_1.db.insert(schema_1.studentDocuments).values({ ...input, uploadedByUserId: ctx.userId }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => { await index_1.db.delete(schema_1.studentDocuments).where((0, drizzle_orm_1.eq)(schema_1.studentDocuments.id, input.id)); return { success: true }; }),
+});
 // ============================================
 // MAIN ROUTER
 // ============================================
@@ -3275,4 +3289,5 @@ exports.appRouter = trpc_1.t.router({
     schoolCalendar: exports.schoolCalendarRouter,
     messages: exports.messagesRouter,
     waitingList: exports.waitingListRouter,
+    studentDocuments: exports.studentDocumentsRouter,
 });

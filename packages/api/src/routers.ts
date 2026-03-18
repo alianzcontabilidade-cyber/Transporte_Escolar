@@ -1,12 +1,13 @@
 import { TRPCError } from '@trpc/server';
-import { t, publicProcedure, protectedProcedure, adminProcedure, staffProcedure, validateOptionalCPF, validateOptionalCNPJ, JWT_SECRET } from './trpc';
+import { t, publicProcedure, protectedProcedure, adminProcedure, staffProcedure, academicProcedure, validateOptionalCPF, validateOptionalCNPJ, JWT_SECRET } from './trpc';
 import { z } from 'zod';
 import { db } from './db/index';
 import {
   municipalities, schools, users, vehicles, drivers, students,
   guardians, routes, stops, stopStudents, trips, tripStopLogs,
   tripStudentLogs, notifications, locationHistory,
-    monitorStaff, contracts, maintenanceRecords
+  monitorStaff, contracts, maintenanceRecords,
+  academicYears, classGrades, classes, subjects, classSubjects, enrollments, teachers
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -2091,6 +2092,528 @@ const locationRouter = t.router({
 });
 
 // ============================================
+// ACADEMIC ROUTER (MÓDULO ACADÊMICO)
+// ============================================
+
+// Anos Letivos
+export const academicYearsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(academicYears)
+        .where(and(eq(academicYears.municipalityId, input.municipalityId), eq(academicYears.isActive, true)))
+        .orderBy(desc(academicYears.year));
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      year: z.number(),
+      name: z.string().min(3),
+      startDate: z.string(),
+      endDate: z.string(),
+      status: z.enum(['planning', 'active', 'finished']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { startDate, endDate, ...rest } = input;
+      const [result] = await db.insert(academicYears).values({
+        ...rest,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+      }).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      year: z.number().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      status: z.enum(['planning', 'active', 'finished']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, startDate, endDate, ...data } = input;
+      const ud: any = { ...data };
+      if (startDate) ud.startDate = new Date(startDate);
+      if (endDate) ud.endDate = new Date(endDate);
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
+      if (Object.keys(ud).length > 0) await db.update(academicYears).set(ud).where(eq(academicYears.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(academicYears).set({ isActive: false }).where(eq(academicYears.id, input.id));
+      return { success: true };
+    }),
+});
+
+// Séries / Etapas
+export const classGradesRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(classGrades)
+        .where(and(eq(classGrades.municipalityId, input.municipalityId), eq(classGrades.isActive, true)))
+        .orderBy(classGrades.orderIndex);
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string().min(2),
+      level: z.enum(['creche', 'pre_escola', 'fundamental_1', 'fundamental_2', 'medio', 'eja', 'tecnico']),
+      orderIndex: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      if (!input.orderIndex) {
+        const [last] = await db.select({ max: sql<number>`COALESCE(MAX(orderIndex), 0)` }).from(classGrades).where(eq(classGrades.municipalityId, input.municipalityId));
+        input.orderIndex = (last?.max || 0) + 1;
+      }
+      const [result] = await db.insert(classGrades).values(input).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      level: z.enum(['creche', 'pre_escola', 'fundamental_1', 'fundamental_2', 'medio', 'eja', 'tecnico']).optional(),
+      orderIndex: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(classGrades).set(ud).where(eq(classGrades.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(classGrades).set({ isActive: false }).where(eq(classGrades.id, input.id));
+      return { success: true };
+    }),
+});
+
+// Disciplinas
+export const subjectsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(subjects)
+        .where(and(eq(subjects.municipalityId, input.municipalityId), eq(subjects.isActive, true)))
+        .orderBy(subjects.name);
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string().min(2),
+      code: z.string().optional(),
+      category: z.enum(['base_nacional', 'parte_diversificada', 'eletiva']).optional(),
+      workloadHours: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [result] = await db.insert(subjects).values(input).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      code: z.string().optional(),
+      category: z.enum(['base_nacional', 'parte_diversificada', 'eletiva']).optional(),
+      workloadHours: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(subjects).set(ud).where(eq(subjects.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(subjects).set({ isActive: false }).where(eq(subjects.id, input.id));
+      return { success: true };
+    }),
+});
+
+// Turmas
+export const classesRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), academicYearId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [
+        eq(classes.municipalityId, input.municipalityId),
+        eq(classes.isActive, true),
+        ...(input.schoolId ? [eq(classes.schoolId, input.schoolId)] : []),
+        ...(input.academicYearId ? [eq(classes.academicYearId, input.academicYearId)] : []),
+      ];
+      const result = await db.select({
+        id: classes.id,
+        municipalityId: classes.municipalityId,
+        schoolId: classes.schoolId,
+        academicYearId: classes.academicYearId,
+        classGradeId: classes.classGradeId,
+        name: classes.name,
+        fullName: classes.fullName,
+        shift: classes.shift,
+        maxStudents: classes.maxStudents,
+        roomNumber: classes.roomNumber,
+        teacherUserId: classes.teacherUserId,
+        schoolName: schools.name,
+        gradeName: classGrades.name,
+        gradeLevel: classGrades.level,
+      })
+      .from(classes)
+      .leftJoin(schools, eq(classes.schoolId, schools.id))
+      .leftJoin(classGrades, eq(classes.classGradeId, classGrades.id))
+      .where(and(...conditions))
+      .orderBy(classes.name);
+
+      // Count enrollments per class
+      const enriched = await Promise.all(result.map(async (c) => {
+        const [count] = await db.select({ count: sql<number>`count(*)` }).from(enrollments)
+          .where(and(eq(enrollments.classId, c.id), eq(enrollments.status, 'active')));
+        return { ...c, enrolledStudents: count?.count || 0 };
+      }));
+      return enriched;
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      schoolId: z.number(),
+      academicYearId: z.number(),
+      classGradeId: z.number(),
+      name: z.string().min(1),
+      fullName: z.string().optional(),
+      shift: z.enum(['morning', 'afternoon', 'evening', 'full_time']).optional(),
+      maxStudents: z.number().optional(),
+      roomNumber: z.string().optional(),
+      teacherUserId: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      // Generate fullName if not provided
+      if (!input.fullName) {
+        const [grade] = await db.select({ name: classGrades.name }).from(classGrades).where(eq(classGrades.id, input.classGradeId)).limit(1);
+        input.fullName = `${grade?.name || ''} ${input.name}`.trim();
+      }
+      const [result] = await db.insert(classes).values(input).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      fullName: z.string().optional(),
+      shift: z.enum(['morning', 'afternoon', 'evening', 'full_time']).optional(),
+      maxStudents: z.number().optional(),
+      roomNumber: z.string().optional(),
+      teacherUserId: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(classes).set(ud).where(eq(classes.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(classes).set({ isActive: false }).where(eq(classes.id, input.id));
+      return { success: true };
+    }),
+});
+
+// Matrículas
+export const enrollmentsRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ municipalityId: z.number(), classId: z.number().optional(), studentId: z.number().optional(), academicYearId: z.number().optional(), status: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [
+        eq(enrollments.municipalityId, input.municipalityId),
+        eq(enrollments.isActive, true),
+        ...(input.classId ? [eq(enrollments.classId, input.classId)] : []),
+        ...(input.studentId ? [eq(enrollments.studentId, input.studentId)] : []),
+        ...(input.academicYearId ? [eq(enrollments.academicYearId, input.academicYearId)] : []),
+        ...(input.status ? [eq(enrollments.status, input.status as any)] : []),
+      ];
+      return db.select({
+        id: enrollments.id,
+        studentId: enrollments.studentId,
+        classId: enrollments.classId,
+        academicYearId: enrollments.academicYearId,
+        enrollmentNumber: enrollments.enrollmentNumber,
+        enrollmentDate: enrollments.enrollmentDate,
+        status: enrollments.status,
+        statusNotes: enrollments.statusNotes,
+        studentName: students.name,
+        studentEnrollment: students.enrollment,
+        studentGrade: students.grade,
+      })
+      .from(enrollments)
+      .leftJoin(students, eq(enrollments.studentId, students.id))
+      .where(and(...conditions))
+      .orderBy(students.name);
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      studentId: z.number(),
+      classId: z.number(),
+      academicYearId: z.number(),
+      enrollmentNumber: z.string().optional(),
+      enrollmentDate: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      // Check if student already enrolled in this academic year
+      const existing = await db.select().from(enrollments)
+        .where(and(eq(enrollments.studentId, input.studentId), eq(enrollments.academicYearId, input.academicYearId), eq(enrollments.status, 'active')))
+        .limit(1);
+      if (existing.length > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Aluno já matriculado neste ano letivo.' });
+      }
+      const { enrollmentDate, ...rest } = input;
+      const [result] = await db.insert(enrollments).values({
+        ...rest,
+        enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
+      }).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  bulkCreate: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      classId: z.number(),
+      academicYearId: z.number(),
+      studentIds: z.array(z.number()),
+    }))
+    .mutation(async ({ input }) => {
+      let created = 0;
+      let skipped = 0;
+      for (const studentId of input.studentIds) {
+        const existing = await db.select().from(enrollments)
+          .where(and(eq(enrollments.studentId, studentId), eq(enrollments.academicYearId, input.academicYearId), eq(enrollments.status, 'active')))
+          .limit(1);
+        if (existing.length > 0) { skipped++; continue; }
+        await db.insert(enrollments).values({
+          municipalityId: input.municipalityId,
+          studentId,
+          classId: input.classId,
+          academicYearId: input.academicYearId,
+        });
+        created++;
+      }
+      return { success: true, created, skipped };
+    }),
+
+  updateStatus: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.enum(['active', 'transferred', 'cancelled', 'graduated', 'retained', 'evaded']),
+      statusNotes: z.string().optional(),
+      transferredToSchoolId: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(enrollments).set({
+        ...data,
+        statusChangedAt: new Date(),
+      }).where(eq(enrollments.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(enrollments).set({ isActive: false }).where(eq(enrollments.id, input.id));
+      return { success: true };
+    }),
+});
+
+// Professores
+export const teachersRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select({
+        teacher: teachers,
+        user: { id: users.id, name: users.name, email: users.email, phone: users.phone, cpf: users.cpf },
+      })
+      .from(teachers)
+      .innerJoin(users, eq(teachers.userId, users.id))
+      .where(and(eq(teachers.municipalityId, input.municipalityId), eq(teachers.isActive, true)));
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string().min(3),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+      cpf: z.string().optional(),
+      password: z.string().optional(),
+      registrationNumber: z.string().optional(),
+      degree: z.string().optional(),
+      specialization: z.string().optional(),
+      hireDate: z.string().optional(),
+      contractType: z.enum(['effective', 'temporary', 'substitute']).optional(),
+      weeklyWorkload: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
+      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@professor.transescolar.local');
+      const pwd = input.password || 'Prof@' + Math.floor(1000 + Math.random() * 9000);
+      const passwordHash = await hash(pwd, 12);
+
+      try {
+        const [user] = await db.insert(users).values({
+          municipalityId: input.municipalityId, email, passwordHash,
+          name: input.name, phone: input.phone, cpf: input.cpf, role: 'teacher' as any,
+        }).$returningId();
+
+        const [teacher] = await db.insert(teachers).values({
+          userId: user.id,
+          municipalityId: input.municipalityId,
+          registrationNumber: input.registrationNumber,
+          degree: input.degree,
+          specialization: input.specialization,
+          hireDate: input.hireDate ? new Date(input.hireDate) : undefined,
+          contractType: input.contractType,
+          weeklyWorkload: input.weeklyWorkload,
+        }).$returningId();
+
+        return { success: true, teacherId: teacher.id, userId: user.id, generatedPassword: input.password ? undefined : pwd };
+      } catch (err: any) {
+        if (err?.code === 'ER_DUP_ENTRY' || err?.message?.includes('Duplicate entry')) {
+          if (err.message.includes('email')) throw new TRPCError({ code: 'CONFLICT', message: 'Este e-mail já está cadastrado.' });
+          if (err.message.includes('cpf')) throw new TRPCError({ code: 'CONFLICT', message: 'Este CPF já está cadastrado.' });
+          throw new TRPCError({ code: 'CONFLICT', message: 'Registro duplicado.' });
+        }
+        throw err;
+      }
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      cpf: z.string().optional(),
+      email: z.string().optional(),
+      registrationNumber: z.string().optional(),
+      degree: z.string().optional(),
+      specialization: z.string().optional(),
+      hireDate: z.string().optional(),
+      contractType: z.enum(['effective', 'temporary', 'substitute']).optional(),
+      weeklyWorkload: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      validateOptionalCPF(input.cpf);
+      const { id, name, phone, cpf, email, hireDate, ...teacherData } = input;
+      const td: any = { ...teacherData };
+      if (hireDate) td.hireDate = new Date(hireDate);
+      Object.keys(td).forEach(k => td[k] === undefined && delete td[k]);
+      if (Object.keys(td).length > 0) await db.update(teachers).set(td).where(eq(teachers.id, id));
+      // Update user data
+      const [teacher] = await db.select({ userId: teachers.userId }).from(teachers).where(eq(teachers.id, id)).limit(1);
+      if (teacher) {
+        const userData: any = {};
+        if (name) userData.name = name;
+        if (phone) userData.phone = phone;
+        if (cpf) userData.cpf = cpf;
+        if (email) userData.email = email;
+        if (Object.keys(userData).length > 0) await db.update(users).set(userData).where(eq(users.id, teacher.userId));
+      }
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const [teacher] = await db.select().from(teachers).where(eq(teachers.id, input.id)).limit(1);
+      if (teacher) {
+        await db.update(teachers).set({ isActive: false }).where(eq(teachers.id, input.id));
+      }
+      return { success: true };
+    }),
+});
+
+// Disciplinas por Turma
+export const classSubjectsRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ classId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select({
+        id: classSubjects.id,
+        classId: classSubjects.classId,
+        subjectId: classSubjects.subjectId,
+        teacherUserId: classSubjects.teacherUserId,
+        weeklyHours: classSubjects.weeklyHours,
+        subjectName: subjects.name,
+        subjectCode: subjects.code,
+        teacherName: users.name,
+      })
+      .from(classSubjects)
+      .leftJoin(subjects, eq(classSubjects.subjectId, subjects.id))
+      .leftJoin(users, eq(classSubjects.teacherUserId, users.id))
+      .where(eq(classSubjects.classId, input.classId));
+    }),
+
+  assign: adminProcedure
+    .input(z.object({
+      classId: z.number(),
+      subjectId: z.number(),
+      teacherUserId: z.number().optional(),
+      weeklyHours: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const existing = await db.select().from(classSubjects)
+        .where(and(eq(classSubjects.classId, input.classId), eq(classSubjects.subjectId, input.subjectId))).limit(1);
+      if (existing.length > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Disciplina já vinculada a esta turma.' });
+      }
+      const [result] = await db.insert(classSubjects).values(input).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      teacherUserId: z.number().optional(),
+      weeklyHours: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (Object.keys(ud).length > 0) await db.update(classSubjects).set(ud).where(eq(classSubjects.id, id));
+      return { success: true };
+    }),
+
+  remove: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(classSubjects).where(eq(classSubjects.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -2112,6 +2635,14 @@ export const appRouter = t.router({
   maintenance: maintenanceRouter,
     location: locationRouter,
 
+  // Módulo Acadêmico
+  academicYears: academicYearsRouter,
+  classGrades: classGradesRouter,
+  subjects: subjectsRouter,
+  classes: classesRouter,
+  enrollments: enrollmentsRouter,
+  teachers: teachersRouter,
+  classSubjects: classSubjectsRouter,
 });
 
 export type AppRouter = typeof appRouter;

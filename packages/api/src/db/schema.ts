@@ -104,6 +104,8 @@ export const users = mysqlTable("users", {
     "driver",           // Motorista
     "monitor",          // Monitor do ônibus
     "parent",           // Responsável/Pai
+    "teacher",          // Professor
+    "coordinator",      // Coordenador pedagógico
   ]).default("parent").notNull(),
   
   // Status

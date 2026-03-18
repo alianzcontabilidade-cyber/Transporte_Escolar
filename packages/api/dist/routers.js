@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.appRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
 const server_1 = require("@trpc/server");
 const trpc_1 = require("./trpc");
 const zod_1 = require("zod");
@@ -3142,6 +3142,84 @@ exports.transparencyRouter = trpc_1.t.router({
     }),
 });
 // ============================================
+// ADDITIONAL FEATURE ROUTERS
+// ============================================
+// Parecer Descritivo
+exports.descriptiveReportsRouter = trpc_1.t.router({
+    list: trpc_1.academicProcedure.input(zod_1.z.object({ classId: zod_1.z.number(), bimester: zod_1.z.string().optional() }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.descriptiveReports.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.isActive, true)];
+        if (input.bimester)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.descriptiveReports.bimester, input.bimester));
+        return index_1.db.select({ id: schema_1.descriptiveReports.id, studentId: schema_1.descriptiveReports.studentId, bimester: schema_1.descriptiveReports.bimester, content: schema_1.descriptiveReports.content, status: schema_1.descriptiveReports.status, studentName: schema_1.students.name })
+            .from(schema_1.descriptiveReports).leftJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.studentId, schema_1.students.id)).where((0, drizzle_orm_1.and)(...conditions));
+    }),
+    save: trpc_1.academicProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), studentId: zod_1.z.number(), classId: zod_1.z.number(), bimester: zod_1.z.enum(['1', '2', '3', '4']), content: zod_1.z.string(), status: zod_1.z.enum(['draft', 'published']).optional() }))
+        .mutation(async ({ ctx, input }) => {
+        const existing = await index_1.db.select().from(schema_1.descriptiveReports).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.descriptiveReports.studentId, input.studentId), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.bimester, input.bimester))).limit(1);
+        if (existing.length > 0) {
+            await index_1.db.update(schema_1.descriptiveReports).set({ content: input.content, status: input.status || 'draft', teacherUserId: ctx.userId }).where((0, drizzle_orm_1.eq)(schema_1.descriptiveReports.id, existing[0].id));
+            return { success: true, id: existing[0].id };
+        }
+        const [r] = await index_1.db.insert(schema_1.descriptiveReports).values({ ...input, teacherUserId: ctx.userId }).$returningId();
+        return { success: true, id: r.id };
+    }),
+});
+// Calendário Escolar
+exports.schoolCalendarRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional(), month: zod_1.z.number().optional(), year: zod_1.z.number().optional() }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.schoolCalendar.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.schoolCalendar.isActive, true)];
+        if (input.schoolId)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.schoolId, input.schoolId));
+        return index_1.db.select().from(schema_1.schoolCalendar).where((0, drizzle_orm_1.and)(...conditions)).orderBy(schema_1.schoolCalendar.startDate);
+    }),
+    create: trpc_1.adminProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional(), academicYearId: zod_1.z.number().optional(), title: zod_1.z.string(), description: zod_1.z.string().optional(), startDate: zod_1.z.string(), endDate: zod_1.z.string().optional(), eventType: zod_1.z.enum(['aula', 'feriado', 'recesso', 'reuniao', 'conselho', 'prova', 'evento', 'outro']).optional(), color: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => { const { startDate, endDate, ...rest } = input; const [r] = await index_1.db.insert(schema_1.schoolCalendar).values({ ...rest, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : undefined }).$returningId(); return { success: true, id: r.id }; }),
+    update: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number(), title: zod_1.z.string().optional(), description: zod_1.z.string().optional(), startDate: zod_1.z.string().optional(), endDate: zod_1.z.string().optional(), eventType: zod_1.z.enum(['aula', 'feriado', 'recesso', 'reuniao', 'conselho', 'prova', 'evento', 'outro']).optional(), color: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => { const { id, startDate, endDate, ...data } = input; const ud = { ...data }; if (startDate)
+        ud.startDate = new Date(startDate); if (endDate)
+        ud.endDate = new Date(endDate); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0)
+        await index_1.db.update(schema_1.schoolCalendar).set(ud).where((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.id, id)); return { success: true }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.schoolCalendar).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.id, input.id)); return { success: true }; }),
+});
+// Recados / Comunicação
+exports.messagesRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional(), limit: zod_1.z.number().default(50) }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.messages.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.messages.isActive, true)];
+        if (input.schoolId)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.messages.schoolId, input.schoolId));
+        return index_1.db.select({ id: schema_1.messages.id, title: schema_1.messages.title, content: schema_1.messages.content, targetType: schema_1.messages.targetType, priority: schema_1.messages.priority, createdAt: schema_1.messages.createdAt, senderName: schema_1.users.name })
+            .from(schema_1.messages).leftJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.messages.senderUserId, schema_1.users.id)).where((0, drizzle_orm_1.and)(...conditions)).orderBy((0, drizzle_orm_1.desc)(schema_1.messages.createdAt)).limit(input.limit);
+    }),
+    create: trpc_1.protectedProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional(), targetType: zod_1.z.enum(['all', 'school', 'class', 'student', 'staff']).optional(), targetClassId: zod_1.z.number().optional(), targetStudentId: zod_1.z.number().optional(), title: zod_1.z.string(), content: zod_1.z.string(), priority: zod_1.z.enum(['normal', 'important', 'urgent']).optional() }))
+        .mutation(async ({ ctx, input }) => { const [r] = await index_1.db.insert(schema_1.messages).values({ ...input, senderUserId: ctx.userId }).$returningId(); return { success: true, id: r.id }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.messages).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.messages.id, input.id)); return { success: true }; }),
+});
+// Lista de Espera
+exports.waitingListRouter = trpc_1.t.router({
+    list: trpc_1.adminProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional(), status: zod_1.z.string().optional() }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.waitingList.municipalityId, input.municipalityId)];
+        if (input.schoolId)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.waitingList.schoolId, input.schoolId));
+        if (input.status)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.waitingList.status, input.status));
+        return index_1.db.select().from(schema_1.waitingList).where((0, drizzle_orm_1.and)(...conditions)).orderBy(schema_1.waitingList.position);
+    }),
+    create: trpc_1.adminProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number(), studentName: zod_1.z.string(), birthDate: zod_1.z.string().optional(), guardianName: zod_1.z.string().optional(), guardianPhone: zod_1.z.string().optional(), guardianCpf: zod_1.z.string().optional(), gradeRequested: zod_1.z.string().optional(), shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(), notes: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => {
+        const [last] = await index_1.db.select({ max: (0, drizzle_orm_1.sql) `COALESCE(MAX(position), 0)` }).from(schema_1.waitingList).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.waitingList.schoolId, input.schoolId), (0, drizzle_orm_1.eq)(schema_1.waitingList.status, 'waiting')));
+        const { birthDate, ...rest } = input;
+        const [r] = await index_1.db.insert(schema_1.waitingList).values({ ...rest, birthDate: birthDate ? new Date(birthDate) : undefined, position: (last?.max || 0) + 1 }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    updateStatus: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number(), status: zod_1.z.enum(['waiting', 'called', 'enrolled', 'cancelled']), notes: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => { const { id, ...data } = input; await index_1.db.update(schema_1.waitingList).set(data).where((0, drizzle_orm_1.eq)(schema_1.waitingList.id, id)); return { success: true }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.delete(schema_1.waitingList).where((0, drizzle_orm_1.eq)(schema_1.waitingList.id, input.id)); return { success: true }; }),
+});
+// ============================================
 // MAIN ROUTER
 // ============================================
 exports.appRouter = trpc_1.t.router({
@@ -3192,4 +3270,9 @@ exports.appRouter = trpc_1.t.router({
     // Integrações (Fase 7)
     educacenso: exports.educacensoRouter,
     transparency: exports.transparencyRouter,
+    // Funcionalidades Adicionais
+    descriptiveReports: exports.descriptiveReportsRouter,
+    schoolCalendar: exports.schoolCalendarRouter,
+    messages: exports.messagesRouter,
+    waitingList: exports.waitingListRouter,
 });

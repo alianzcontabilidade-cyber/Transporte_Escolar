@@ -1155,6 +1155,89 @@ export const inventoryMovements = mysqlTable("inventory_movements", {
 });
 
 // ============================================
+// FUNCIONALIDADES ADICIONAIS (baseado no GEP)
+// ============================================
+
+// Parecer Descritivo (texto livre por aluno por bimestre)
+export const descriptiveReports = mysqlTable("descriptive_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  classId: int("classId").notNull().references(() => classes.id),
+  bimester: mysqlEnum("reportBimester", ["1", "2", "3", "4"]).notNull(),
+  content: text("content"),
+  teacherUserId: int("teacherUserId").references(() => users.id),
+  status: mysqlEnum("reportStatus", ["draft", "published"]).default("draft").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Calendário Escolar (eventos, feriados, etc.)
+export const schoolCalendar = mysqlTable("school_calendar", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  academicYearId: int("academicYearId").references(() => academicYears.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate"),
+  eventType: mysqlEnum("calendarEventType", ["aula", "feriado", "recesso", "reuniao", "conselho", "prova", "evento", "outro"]).default("evento").notNull(),
+  color: varchar("color", { length: 7 }).default("#2DB5B0"),
+  allDay: boolean("allDay").default(true),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Documentos do Aluno (anexos)
+export const studentDocuments = mysqlTable("student_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("studentId").notNull().references(() => students.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("documentType", ["certidao_nascimento", "rg", "cpf", "comprovante_residencia", "historico_escolar", "laudo_medico", "foto", "outro"]).default("outro").notNull(),
+  fileUrl: text("fileUrl"),
+  fileSize: int("fileSize"),
+  uploadedByUserId: int("uploadedByUserId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Recados / Comunicação
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  senderUserId: int("senderUserId").notNull().references(() => users.id),
+  targetType: mysqlEnum("messageTargetType", ["all", "school", "class", "student", "staff"]).default("all").notNull(),
+  targetClassId: int("targetClassId").references(() => classes.id),
+  targetStudentId: int("targetStudentId").references(() => students.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  priority: mysqlEnum("messagePriority", ["normal", "important", "urgent"]).default("normal").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Lista de Espera
+export const waitingList = mysqlTable("waiting_list", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").notNull().references(() => schools.id),
+  studentName: varchar("studentName", { length: 255 }).notNull(),
+  birthDate: timestamp("birthDate"),
+  guardianName: varchar("guardianName", { length: 255 }),
+  guardianPhone: varchar("guardianPhone", { length: 20 }),
+  guardianCpf: varchar("guardianCpf", { length: 14 }),
+  gradeRequested: varchar("gradeRequested", { length: 100 }),
+  shift: mysqlEnum("waitingShift", ["morning", "afternoon", "evening"]).default("morning"),
+  position: int("position"),
+  status: mysqlEnum("waitingStatus", ["waiting", "called", "enrolled", "cancelled"]).default("waiting").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
 // TYPES EXPORTADOS
 // ============================================
 
@@ -1228,3 +1311,8 @@ export type LibraryLoan = typeof libraryLoans.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
 export type InventoryItem = typeof inventoryItems.$inferSelect;
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type DescriptiveReport = typeof descriptiveReports.$inferSelect;
+export type SchoolCalendarEvent = typeof schoolCalendar.$inferSelect;
+export type StudentDocument = typeof studentDocuments.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+export type WaitingListEntry = typeof waitingList.$inferSelect;

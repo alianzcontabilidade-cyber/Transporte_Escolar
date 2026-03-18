@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.staffEvaluations = exports.staffAllocations = exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalities = void 0;
-exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = void 0;
+exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -996,4 +996,81 @@ exports.inventoryMovements = (0, mysql_core_1.mysqlTable)("inventory_movements",
     notes: (0, mysql_core_1.text)("notes"),
     registeredByUserId: (0, mysql_core_1.int)("registeredByUserId").references(() => exports.users.id),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// FUNCIONALIDADES ADICIONAIS (baseado no GEP)
+// ============================================
+// Parecer Descritivo (texto livre por aluno por bimestre)
+exports.descriptiveReports = (0, mysql_core_1.mysqlTable)("descriptive_reports", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    bimester: (0, mysql_core_1.mysqlEnum)("reportBimester", ["1", "2", "3", "4"]).notNull(),
+    content: (0, mysql_core_1.text)("content"),
+    teacherUserId: (0, mysql_core_1.int)("teacherUserId").references(() => exports.users.id),
+    status: (0, mysql_core_1.mysqlEnum)("reportStatus", ["draft", "published"]).default("draft").notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Calendário Escolar (eventos, feriados, etc.)
+exports.schoolCalendar = (0, mysql_core_1.mysqlTable)("school_calendar", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    academicYearId: (0, mysql_core_1.int)("academicYearId").references(() => exports.academicYears.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    startDate: (0, mysql_core_1.timestamp)("startDate").notNull(),
+    endDate: (0, mysql_core_1.timestamp)("endDate"),
+    eventType: (0, mysql_core_1.mysqlEnum)("calendarEventType", ["aula", "feriado", "recesso", "reuniao", "conselho", "prova", "evento", "outro"]).default("evento").notNull(),
+    color: (0, mysql_core_1.varchar)("color", { length: 7 }).default("#2DB5B0"),
+    allDay: (0, mysql_core_1.boolean)("allDay").default(true),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// Documentos do Aluno (anexos)
+exports.studentDocuments = (0, mysql_core_1.mysqlTable)("student_documents", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    type: (0, mysql_core_1.mysqlEnum)("documentType", ["certidao_nascimento", "rg", "cpf", "comprovante_residencia", "historico_escolar", "laudo_medico", "foto", "outro"]).default("outro").notNull(),
+    fileUrl: (0, mysql_core_1.text)("fileUrl"),
+    fileSize: (0, mysql_core_1.int)("fileSize"),
+    uploadedByUserId: (0, mysql_core_1.int)("uploadedByUserId").references(() => exports.users.id),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// Recados / Comunicação
+exports.messages = (0, mysql_core_1.mysqlTable)("messages", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    senderUserId: (0, mysql_core_1.int)("senderUserId").notNull().references(() => exports.users.id),
+    targetType: (0, mysql_core_1.mysqlEnum)("messageTargetType", ["all", "school", "class", "student", "staff"]).default("all").notNull(),
+    targetClassId: (0, mysql_core_1.int)("targetClassId").references(() => exports.classes.id),
+    targetStudentId: (0, mysql_core_1.int)("targetStudentId").references(() => exports.students.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    content: (0, mysql_core_1.text)("content").notNull(),
+    priority: (0, mysql_core_1.mysqlEnum)("messagePriority", ["normal", "important", "urgent"]).default("normal").notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// Lista de Espera
+exports.waitingList = (0, mysql_core_1.mysqlTable)("waiting_list", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").notNull().references(() => exports.schools.id),
+    studentName: (0, mysql_core_1.varchar)("studentName", { length: 255 }).notNull(),
+    birthDate: (0, mysql_core_1.timestamp)("birthDate"),
+    guardianName: (0, mysql_core_1.varchar)("guardianName", { length: 255 }),
+    guardianPhone: (0, mysql_core_1.varchar)("guardianPhone", { length: 20 }),
+    guardianCpf: (0, mysql_core_1.varchar)("guardianCpf", { length: 14 }),
+    gradeRequested: (0, mysql_core_1.varchar)("gradeRequested", { length: 100 }),
+    shift: (0, mysql_core_1.mysqlEnum)("waitingShift", ["morning", "afternoon", "evening"]).default("morning"),
+    position: (0, mysql_core_1.int)("position"),
+    status: (0, mysql_core_1.mysqlEnum)("waitingStatus", ["waiting", "called", "enrolled", "cancelled"]).default("waiting").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

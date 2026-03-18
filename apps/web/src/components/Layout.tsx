@@ -36,6 +36,17 @@ const MODULE_ICONS: Record<string, any> = {
   'MEU PAINEL': Heart,
 };
 
+const MODULE_COLORS: Record<string, string> = {
+  'PAINEL': '#2DB5B0',
+  'SECRETARIA': '#6366f1',
+  'PEDAGÓGICO': '#8b5cf6',
+  'TRANSPORTE': '#f97316',
+  'ADMINISTRATIVO': '#0ea5e9',
+  'CONFIGURAÇÕES': '#64748b',
+  'MOTORISTA': '#f97316',
+  'MEU PAINEL': '#2DB5B0',
+};
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { socket, connected } = useSocket();
@@ -197,21 +208,24 @@ export default function Layout() {
       location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
     );
     const ModIcon = MODULE_ICONS[section.label] || FileText;
+    const moduleColor = MODULE_COLORS[section.label] || '#64748b';
 
     return (
       <div>
         <button
           onClick={() => toggleModule(section.label)}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-            hasActive ? 'text-accent-400' : 'text-white/50 hover:text-white/70'
+            hasActive ? 'text-white' : 'text-white/50 hover:text-white/70'
           }`}
         >
-          <ModIcon size={15} className={hasActive ? 'text-accent-400' : 'text-white/40'} />
+          <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: hasActive ? moduleColor : 'rgba(255,255,255,0.15)' }}>
+            <ModIcon size={11} className="text-white" />
+          </div>
           <span className="flex-1 text-left">{section.label}</span>
-          <ChevronRight size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-90' : ''} ${hasActive ? 'text-accent-400' : 'text-white/30'}`} />
+          <ChevronRight size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} style={{ color: hasActive ? moduleColor : 'rgba(255,255,255,0.3)' }} />
         </button>
         {isOpen && (
-          <div className="ml-2 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
+          <div className="ml-2 mt-0.5 space-y-0.5 pl-2" style={{ borderLeft: `2px solid ${moduleColor}30` }}>
             {section.items.map((item) => <NavLink key={item.to} {...item} />)}
           </div>
         )}

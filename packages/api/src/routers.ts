@@ -11,7 +11,8 @@ import {
   dailyAttendance, assessments, studentGrades, lessonPlans,
   positions, departments, staffAllocations, staffEvaluations,
   financialAccounts, financialTransactions,
-  mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements
+  mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
+  descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -3267,6 +3268,78 @@ export const transparencyRouter = t.router({
 });
 
 // ============================================
+// ADDITIONAL FEATURE ROUTERS
+// ============================================
+
+// Parecer Descritivo
+export const descriptiveReportsRouter = t.router({
+  list: academicProcedure.input(z.object({ classId: z.number(), bimester: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(descriptiveReports.classId, input.classId), eq(descriptiveReports.isActive, true)];
+      if (input.bimester) conditions.push(eq(descriptiveReports.bimester, input.bimester as any));
+      return db.select({ id: descriptiveReports.id, studentId: descriptiveReports.studentId, bimester: descriptiveReports.bimester, content: descriptiveReports.content, status: descriptiveReports.status, studentName: students.name })
+        .from(descriptiveReports).leftJoin(students, eq(descriptiveReports.studentId, students.id)).where(and(...conditions));
+    }),
+  save: academicProcedure.input(z.object({ municipalityId: z.number(), studentId: z.number(), classId: z.number(), bimester: z.enum(['1','2','3','4']), content: z.string(), status: z.enum(['draft','published']).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await db.select().from(descriptiveReports).where(and(eq(descriptiveReports.studentId, input.studentId), eq(descriptiveReports.classId, input.classId), eq(descriptiveReports.bimester, input.bimester))).limit(1);
+      if (existing.length > 0) { await db.update(descriptiveReports).set({ content: input.content, status: input.status || 'draft', teacherUserId: ctx.userId }).where(eq(descriptiveReports.id, existing[0].id)); return { success: true, id: existing[0].id }; }
+      const [r] = await db.insert(descriptiveReports).values({ ...input, teacherUserId: ctx.userId }).$returningId();
+      return { success: true, id: r.id };
+    }),
+});
+
+// Calendário Escolar
+export const schoolCalendarRouter = t.router({
+  list: protectedProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), month: z.number().optional(), year: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(schoolCalendar.municipalityId, input.municipalityId), eq(schoolCalendar.isActive, true)];
+      if (input.schoolId) conditions.push(eq(schoolCalendar.schoolId, input.schoolId));
+      return db.select().from(schoolCalendar).where(and(...conditions)).orderBy(schoolCalendar.startDate);
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), academicYearId: z.number().optional(), title: z.string(), description: z.string().optional(), startDate: z.string(), endDate: z.string().optional(), eventType: z.enum(['aula','feriado','recesso','reuniao','conselho','prova','evento','outro']).optional(), color: z.string().optional() }))
+    .mutation(async ({ input }) => { const { startDate, endDate, ...rest } = input; const [r] = await db.insert(schoolCalendar).values({ ...rest, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : undefined }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), title: z.string().optional(), description: z.string().optional(), startDate: z.string().optional(), endDate: z.string().optional(), eventType: z.enum(['aula','feriado','recesso','reuniao','conselho','prova','evento','outro']).optional(), color: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, startDate, endDate, ...data } = input; const ud: any = { ...data }; if (startDate) ud.startDate = new Date(startDate); if (endDate) ud.endDate = new Date(endDate); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0) await db.update(schoolCalendar).set(ud).where(eq(schoolCalendar.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(schoolCalendar).set({ isActive: false }).where(eq(schoolCalendar.id, input.id)); return { success: true }; }),
+});
+
+// Recados / Comunicação
+export const messagesRouter = t.router({
+  list: protectedProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), limit: z.number().default(50) }))
+    .query(async ({ input }) => {
+      const conditions = [eq(messages.municipalityId, input.municipalityId), eq(messages.isActive, true)];
+      if (input.schoolId) conditions.push(eq(messages.schoolId, input.schoolId));
+      return db.select({ id: messages.id, title: messages.title, content: messages.content, targetType: messages.targetType, priority: messages.priority, createdAt: messages.createdAt, senderName: users.name })
+        .from(messages).leftJoin(users, eq(messages.senderUserId, users.id)).where(and(...conditions)).orderBy(desc(messages.createdAt)).limit(input.limit);
+    }),
+  create: protectedProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), targetType: z.enum(['all','school','class','student','staff']).optional(), targetClassId: z.number().optional(), targetStudentId: z.number().optional(), title: z.string(), content: z.string(), priority: z.enum(['normal','important','urgent']).optional() }))
+    .mutation(async ({ ctx, input }) => { const [r] = await db.insert(messages).values({ ...input, senderUserId: ctx.userId! }).$returningId(); return { success: true, id: r.id }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(messages).set({ isActive: false }).where(eq(messages.id, input.id)); return { success: true }; }),
+});
+
+// Lista de Espera
+export const waitingListRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), status: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(waitingList.municipalityId, input.municipalityId)];
+      if (input.schoolId) conditions.push(eq(waitingList.schoolId, input.schoolId));
+      if (input.status) conditions.push(eq(waitingList.status, input.status as any));
+      return db.select().from(waitingList).where(and(...conditions)).orderBy(waitingList.position);
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number(), studentName: z.string(), birthDate: z.string().optional(), guardianName: z.string().optional(), guardianPhone: z.string().optional(), guardianCpf: z.string().optional(), gradeRequested: z.string().optional(), shift: z.enum(['morning','afternoon','evening']).optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const [last] = await db.select({ max: sql<number>`COALESCE(MAX(position), 0)` }).from(waitingList).where(and(eq(waitingList.schoolId, input.schoolId), eq(waitingList.status, 'waiting')));
+      const { birthDate, ...rest } = input;
+      const [r] = await db.insert(waitingList).values({ ...rest, birthDate: birthDate ? new Date(birthDate) : undefined, position: (last?.max || 0) + 1 }).$returningId();
+      return { success: true, id: r.id };
+    }),
+  updateStatus: adminProcedure.input(z.object({ id: z.number(), status: z.enum(['waiting','called','enrolled','cancelled']), notes: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, ...data } = input; await db.update(waitingList).set(data).where(eq(waitingList.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.delete(waitingList).where(eq(waitingList.id, input.id)); return { success: true }; }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -3318,6 +3391,11 @@ export const appRouter = t.router({
   // Integrações (Fase 7)
   educacenso: educacensoRouter,
   transparency: transparencyRouter,
+  // Funcionalidades Adicionais
+  descriptiveReports: descriptiveReportsRouter,
+  schoolCalendar: schoolCalendarRouter,
+  messages: messagesRouter,
+  waitingList: waitingListRouter,
 });
 
 export type AppRouter = typeof appRouter;

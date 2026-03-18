@@ -64,7 +64,7 @@ export default function DriversPage() {
     const vp=function(id:string){const v=allV.find(function(v:any){return String(v.id)===String(id);});return v?v.plate+(v.nickname?' ('+v.nickname+')':''):'';};
 
     const openNew=function(){setForm(EF);setEditId(null);setTab('dados');setErr('');setCpfError('');setShow(true);};
-    const openEdit=function(d:any){setForm({...EF,...d});setEditId(d.id);setTab('dados');setErr('');setCpfError('');setShow(true);};
+    const openEdit=function(d:any){setForm({...EF,...d, cnhExpiry: d.cnhExpiry || d.cnhExpiresAt ? (typeof (d.cnhExpiry || d.cnhExpiresAt) === 'string' ? (d.cnhExpiry || d.cnhExpiresAt).split('T')[0] : new Date(d.cnhExpiry || d.cnhExpiresAt).toISOString().split('T')[0]) : '', birthDate: d.birthDate ? (typeof d.birthDate === 'string' ? d.birthDate.split('T')[0] : new Date(d.birthDate).toISOString().split('T')[0]) : '', vehicleId: d.vehicleId ? String(d.vehicleId) : '', routeId: d.routeId || ''});setEditId(d.id);setTab('dados');setErr('');setCpfError('');setShow(true);};
   
     const save=function(){
           if(!form.name||!form.phone){setErr('Nome e telefone obrigatórios.');return;}

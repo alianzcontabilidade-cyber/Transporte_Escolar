@@ -85,7 +85,8 @@ export default function ContractsPage() {
     const openEdit = (c: any) => {
           const val = parseFloat(c.value) || 0;
           const formattedValue = val > 0 ? val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-          setForm({...c, value: formattedValue, startDate: c.startDate ? c.startDate.split('T')[0] : '', endDate: c.endDate ? c.endDate.split('T')[0] : '', responsiblePhone: c.responsiblePhone || '', cnpj: c.cnpj || ''});
+          const fmtDate = (d: any) => { if (!d) return ''; try { return typeof d === 'string' ? d.split('T')[0] : new Date(d).toISOString().split('T')[0]; } catch { return ''; } };
+          setForm({...emptyForm, ...c, value: formattedValue, startDate: fmtDate(c.startDate), endDate: fmtDate(c.endDate), responsiblePhone: c.responsiblePhone || '', cnpj: c.cnpj || ''});
           setEditId(c.id); setDetail(null); setCnpjError(''); setShowModal(true);
     };
   

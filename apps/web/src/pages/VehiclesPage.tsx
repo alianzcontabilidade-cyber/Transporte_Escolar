@@ -43,11 +43,27 @@ export default function VehiclesPage() {
   const counts = { all:all.length, active:all.filter(function(v:any){return v.status==='active';}).length, maintenance:all.filter(function(v:any){return v.status==='maintenance';}).length, inactive:all.filter(function(v:any){return v.status==='inactive';}).length };
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setShowModal(true); };
-  const openEdit = function(v: any) { setForm({...emptyForm,...v}); setEditId(v.id); setTab('dados'); setShowModal(true); };
+  const openEdit = function(v: any) {
+    const formatDate = function(d: any) { if (!d) return ''; try { return typeof d === 'string' ? d.split('T')[0] : new Date(d).toISOString().split('T')[0]; } catch { return ''; } };
+    setForm({
+      ...emptyForm,...v,
+      fuel: v.fuelType || v.fuel || 'Diesel',
+      chassis: v.chassi || v.chassis || '',
+      crlvExpiry: formatDate(v.crlvExpiry),
+      ipvaExpiry: formatDate(v.ipvaExpiry),
+      inspectionExpiry: formatDate(v.inspectionExpiry),
+      insuranceExpiry: formatDate(v.insuranceExpiry),
+      fireExtinguisherExpiry: formatDate(v.fireExtinguisherExpiry),
+      year: v.year ? String(v.year) : '',
+      capacity: v.capacity ? String(v.capacity) : '40',
+      currentKm: v.currentKm ? String(v.currentKm) : '',
+    });
+    setEditId(v.id); setTab('dados'); setShowModal(true);
+  };
 
   const save = function() {
     if (!form.plate) return;
-    const payload: any = { municipalityId, plate:form.plate, nickname:form.nickname||undefined, brand:form.brand||undefined, model:form.model||undefined, year:form.year?parseInt(form.year):undefined, capacity:form.capacity?parseInt(form.capacity):undefined, color:form.color||undefined, fuel:form.fuel||undefined, chassis:form.chassis||undefined, renavam:form.renavam||undefined, crlvExpiry:form.crlvExpiry||undefined, ipvaExpiry:form.ipvaExpiry||undefined, inspectionExpiry:form.inspectionExpiry||undefined, insuranceCompany:form.insuranceCompany||undefined, insurancePolicy:form.insurancePolicy||undefined, insuranceExpiry:form.insuranceExpiry||undefined, fireExtinguisherExpiry:form.fireExtinguisherExpiry||undefined, currentKm:form.currentKm?parseInt(form.currentKm):undefined, lastRevision:form.lastRevision||undefined, nextRevision:form.nextRevision||undefined, observations:form.observations||undefined };
+    const payload: any = { municipalityId, plate:form.plate, nickname:form.nickname||undefined, brand:form.brand||undefined, model:form.model||undefined, year:form.year?parseInt(form.year):undefined, capacity:form.capacity?parseInt(form.capacity):undefined, color:form.color||undefined, fuel:form.fuel||undefined, chassis:form.chassis||undefined, renavam:form.renavam||undefined, crlvExpiry:form.crlvExpiry||undefined, ipvaExpiry:form.ipvaExpiry||undefined, inspectionExpiry:form.inspectionExpiry||undefined, insuranceCompany:form.insuranceCompany||undefined, insurancePolicy:form.insurancePolicy||undefined, insuranceExpiry:form.insuranceExpiry||undefined, fireExtinguisherExpiry:form.fireExtinguisherExpiry||undefined, currentKm:form.currentKm?parseInt(form.currentKm):undefined };
     if (editId!==null) {
       update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);}});
     } else {

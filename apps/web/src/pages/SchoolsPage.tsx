@@ -28,7 +28,7 @@ export default function SchoolsPage() {
   const filtered = all.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.address||'').toLowerCase().includes(q)||(s.directorName||'').toLowerCase().includes(q); });
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setFormErr(''); setShowModal(true); };
-  const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setFormErr(''); setShowModal(true); };
+  const openEdit = function(s: any) { setForm({...emptyForm,...s, phone: s.phone || '', latitude: s.latitude ? String(s.latitude) : '', longitude: s.longitude ? String(s.longitude) : ''}); setEditId(s.id); setFormErr(''); setShowModal(true); };
 
   const save = function() {
     if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }

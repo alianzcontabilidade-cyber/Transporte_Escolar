@@ -697,7 +697,42 @@ export const studentsRouter = t.router({
         eq(students.isActive, true),
         ...(input.schoolId ? [eq(students.schoolId, input.schoolId)] : []),
       ];
-      return db.select().from(students).where(and(...conditions)).orderBy(students.name);
+      const result = await db.select({
+        id: students.id,
+        municipalityId: students.municipalityId,
+        schoolId: students.schoolId,
+        name: students.name,
+        birthDate: students.birthDate,
+        grade: students.grade,
+        classRoom: students.classRoom,
+        enrollment: students.enrollment,
+        shift: students.shift,
+        photoUrl: students.photoUrl,
+        hasSpecialNeeds: students.hasSpecialNeeds,
+        specialNeedsNotes: students.specialNeedsNotes,
+        bloodType: students.bloodType,
+        allergies: students.allergies,
+        medications: students.medications,
+        healthNotes: students.healthNotes,
+        emergencyContact1Name: students.emergencyContact1Name,
+        emergencyContact1Phone: students.emergencyContact1Phone,
+        emergencyContact1Relation: students.emergencyContact1Relation,
+        emergencyContact2Name: students.emergencyContact2Name,
+        emergencyContact2Phone: students.emergencyContact2Phone,
+        emergencyContact2Relation: students.emergencyContact2Relation,
+        address: students.address,
+        latitude: students.latitude,
+        longitude: students.longitude,
+        isActive: students.isActive,
+        createdAt: students.createdAt,
+        updatedAt: students.updatedAt,
+        school: schools.name,
+      })
+      .from(students)
+      .leftJoin(schools, eq(students.schoolId, schools.id))
+      .where(and(...conditions))
+      .orderBy(students.name);
+      return result;
     }),
 
   create: adminProcedure
@@ -751,6 +786,14 @@ export const studentsRouter = t.router({
 
       const fullAddress = [input.address, city, state].filter(Boolean).join(', ');
 
+      // Map guardian fields to emergency contacts if emergency contacts are empty
+      const finalEmergencyContact1Name = rest.emergencyContact1Name || guardian1Name;
+      const finalEmergencyContact1Phone = rest.emergencyContact1Phone || guardian1Phone;
+      const finalEmergencyContact1Relation = rest.emergencyContact1Relation || guardian1Relation;
+      const finalEmergencyContact2Name = rest.emergencyContact2Name || guardian2Name;
+      const finalEmergencyContact2Phone = rest.emergencyContact2Phone || guardian2Phone;
+      const finalEmergencyContact2Relation = rest.emergencyContact2Relation || guardian2Relation;
+
       const [student] = await db.insert(students).values({
         ...rest,
         schoolId: finalSchoolId,
@@ -758,8 +801,14 @@ export const studentsRouter = t.router({
         photoUrl: rest.photoUrl || photo,
         address: fullAddress || input.address,
         birthDate: birthDate ? new Date(birthDate) : undefined,
-        ...(latitude !== undefined && { latitude: latitude.toString() }),
-        ...(longitude !== undefined && { longitude: longitude.toString() }),
+        emergencyContact1Name: finalEmergencyContact1Name,
+        emergencyContact1Phone: finalEmergencyContact1Phone,
+        emergencyContact1Relation: finalEmergencyContact1Relation,
+        emergencyContact2Name: finalEmergencyContact2Name,
+        emergencyContact2Phone: finalEmergencyContact2Phone,
+        emergencyContact2Relation: finalEmergencyContact2Relation,
+        ...(latitude !== undefined && { latitude: latitude.toFixed(8) }),
+        ...(longitude !== undefined && { longitude: longitude.toFixed(8) }),
       }).$returningId();
       return { success: true, id: student.id };
     }),
@@ -828,6 +877,13 @@ export const studentsRouter = t.router({
         const parts = [data.address, city, state].filter(Boolean);
         if (parts.length > 0) ud.address = parts.join(', ');
       }
+      // Map guardian fields to emergency contacts
+      if (guardian1Name) ud.emergencyContact1Name = guardian1Name;
+      if (guardian1Phone) ud.emergencyContact1Phone = guardian1Phone;
+      if (guardian1Relation) ud.emergencyContact1Relation = guardian1Relation;
+      if (guardian2Name) ud.emergencyContact2Name = guardian2Name;
+      if (guardian2Phone) ud.emergencyContact2Phone = guardian2Phone;
+      if (guardian2Relation) ud.emergencyContact2Relation = guardian2Relation;
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, id));
       return { success: true };

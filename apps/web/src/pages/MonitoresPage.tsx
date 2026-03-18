@@ -51,7 +51,7 @@ export default function MonitoresPage() {
   const filtered = monitores.filter(m => { const q = search.toLowerCase(); return m.name.toLowerCase().includes(q) || (m.phone||'').includes(q) || (m.routeName||'').toLowerCase().includes(q); });
 
   const openNew = () => { setForm(emptyForm); setEditId(null); setFormErr(''); setCpfError(''); setShowModal(true); };
-  const openEdit = (m: any) => { setForm({ ...m, password:'', confirmPassword:'', photo: m.photoUrl || '' }); setEditId(m.id); setFormErr(''); setCpfError(''); setShowModal(true); };
+  const openEdit = (m: any) => { setForm({ ...emptyForm, ...m, password:'', confirmPassword:'', photo: m.photoUrl || '', birthDate: m.birthDate ? (typeof m.birthDate === 'string' ? m.birthDate.split('T')[0] : new Date(m.birthDate).toISOString().split('T')[0]) : '' }); setEditId(m.id); setFormErr(''); setCpfError(''); setShowModal(true); };
 
   const save = async () => {
     if (!form.name || !form.phone) { setFormErr('Nome e telefone são obrigatórios.'); return; }

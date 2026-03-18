@@ -81,7 +81,23 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
   };
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setFormErr(''); setShowModal(true); };
-  const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true); };
+  const openEdit = function(s: any) {
+    setForm({
+      ...emptyForm,
+      ...s,
+      photo: s.photoUrl || s.photo || '',
+      className: s.classRoom || s.className || '',
+      school: s.schoolId ? String(s.schoolId) : '',
+      guardian1Name: s.emergencyContact1Name || s.guardian1Name || '',
+      guardian1Phone: s.emergencyContact1Phone || s.guardian1Phone || '',
+      guardian1Relation: s.emergencyContact1Relation || s.guardian1Relation || '',
+      guardian2Name: s.emergencyContact2Name || s.guardian2Name || '',
+      guardian2Phone: s.emergencyContact2Phone || s.guardian2Phone || '',
+      guardian2Relation: s.emergencyContact2Relation || s.guardian2Relation || '',
+      birthDate: s.birthDate ? (typeof s.birthDate === 'string' ? s.birthDate.split('T')[0] : new Date(s.birthDate).toISOString().split('T')[0]) : '',
+    });
+    setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true);
+  };
 
   const [viewStudent, setViewStudent] = useState<any>(null);
 

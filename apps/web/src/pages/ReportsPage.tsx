@@ -35,6 +35,7 @@ export default function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const { data: history } = useQuery(() => api.trips.history({ municipalityId, limit:100 }), [municipalityId]);
   const { data: students } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
+  const { data: vehiclesData } = useQuery(() => api.vehicles.list({ municipalityId }), [municipalityId]);
   const trips = (history as any)||[];
   const completed = trips.filter((h: any) => h.trip?.status==='completed');
   const cancelled = trips.filter((h: any) => h.trip?.status==='cancelled');
@@ -47,6 +48,8 @@ export default function ReportsPage() {
   const sl = (s: string) => ({ started:'Em andamento', completed:'Concluída', cancelled:'Cancelada', scheduled:'Agendada' }[s]||s);
   const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'—', data:new Date(h.trip?.tripDate).toLocaleDateString('pt-BR'), inicio:h.trip?.startedAt?new Date(h.trip?.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', fim:h.trip?.endedAt?new Date(h.trip?.endedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', status:sl(h.trip?.status) }));
   const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matricula:s.enrollment||'—', serie:s.grade||'—', turma:s.classRoom||'—', turno:{ morning:'Manhã', afternoon:'Tarde', evening:'Noite' }[s.shift as string]||'—' }));
+  const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' }[s]||s);
+  const vehicleRows = ((vehiclesData as any)||[]).map((v: any) => ({ placa:v.plate||'—', apelido:v.nickname||'—', marca_modelo:[v.brand,v.model,v.year].filter(Boolean).join(' ')||'—', capacidade:v.capacity?`${v.capacity} lugares`:'—', km_atual:v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'—', status:statusLabel(v.status) }));
 
   return (
     <div className="p-6">
@@ -107,9 +110,15 @@ export default function ReportsPage() {
       )}
 
       {tab==='vehicles' && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-gray-800">Relatório de Frota</h3><div className="flex gap-2"><button onClick={() => exportCSV([{veiculo:'Sem dados'}],'frota_transescolar.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg"><Download size={14}/> CSV</button><button onClick={() => exportPDF('Relatório de Frota',[{veiculo:'Sem dados'}],['Veículo','Km','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg"><Download size={14}/> PDF</button></div></div>
-          <div className="text-center py-12 text-gray-400"><MapPin size={48} className="mx-auto mb-3 text-gray-200"/><p>Cadastre veículos para ver o relatório de frota</p></div>
+        <div className="card p-0 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-500"/><h3 className="font-semibold">Relatório de Frota</h3><span className="text-sm text-gray-400">({vehicleRows.length} veículos)</span></div>
+            <div className="flex gap-2">
+              <button onClick={() => exportCSV(vehicleRows,'frota_transescolar.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
+              <button onClick={() => exportPDF('Relatório de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
+            </div>
+          </div>
+          <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{vehicleRows.map((v: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium text-gray-800">{v.placa}</td><td className="px-5 py-3 text-gray-500">{v.apelido}</td><td className="px-5 py-3 text-gray-500">{v.marca_modelo}</td><td className="px-5 py-3 text-gray-500">{v.capacidade}</td><td className="px-5 py-3 text-gray-500">{v.km_atual}</td><td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${v.status==='Ativo'?'bg-green-100 text-green-700':v.status==='Manutenção'?'bg-yellow-100 text-yellow-700':'bg-red-100 text-red-700'}`}>{v.status}</span></td></tr>))}{!vehicleRows.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Nenhum veículo cadastrado</td></tr>}</tbody></table></div>
         </div>
       )}
     </div>

@@ -19,15 +19,9 @@ function PhotoUpload({ value, onChange }: any) {
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
 const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+import { maskPhone } from '../lib/utils';
+
 const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', state:'', city:'', observations:'', bloodType:'', allergies:'', medications:'', healthNotes:'', hasSpecialNeeds:false, specialNeedsNotes:'', emergencyContact1Name:'', emergencyContact1Phone:'', emergencyContact1Relation:'', emergencyContact2Name:'', emergencyContact2Phone:'', emergencyContact2Relation:'' };
-
-
-function maskPhone(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
-  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
 export default function StudentsPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId || 0;

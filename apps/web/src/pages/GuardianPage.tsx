@@ -287,6 +287,28 @@ export default function GuardianPage() {
       {/* Tab: Rastreamento */}
       {tab === 'track' && currentStudent && (
         <div className="space-y-4">
+          {/* Resumo de todos os alunos */}
+          {myStudents.length > 1 && (
+            <div className="card p-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Status dos alunos</p>
+              <div className="grid grid-cols-2 gap-2">
+                {myStudents.map((s: any) => (
+                  <button key={s.id} onClick={() => setSelectedStudent(s)}
+                    className={`flex items-center gap-2 p-2 rounded-lg text-left transition-all ${s.id === currentStudent?.id ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${s.activeTrip ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                      {s.name?.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{s.name?.split(' ')[0]}</p>
+                      <p className={`text-[10px] ${s.activeTrip ? 'text-green-600' : 'text-gray-400'}`}>
+                        {s.activeTrip ? 'Em rota' : 'Sem viagem'}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {activeTrip ? (
             <>
               <div className="card">

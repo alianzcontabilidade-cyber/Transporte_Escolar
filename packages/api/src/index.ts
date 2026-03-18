@@ -17,9 +17,14 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// CORS whitelist
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
+
 // Socket.IO
 const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: { origin: allowedOrigins, methods: ['GET', 'POST'], credentials: true },
   transports: ['websocket', 'polling'],
 });
 
@@ -27,58 +32,20 @@ const io = new Server(httpServer, {
 setSocketIO(io);
 
 // CORS
-app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
+
+// Request timeout (30 seconds)
+app.use((_req, res, next) => {
+  res.setTimeout(30000, () => {
+    res.status(408).json({ error: 'Request timeout' });
+  });
+  next();
+});
 
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', version: '2.1.0', timestamp: new Date().toISOString() });
-});
-
-// Endpoint temporário para diagnosticar e corrigir banco
-app.get('/api/fix-db', async (_req, res) => {
-  try {
-    const { db } = require('./db/index');
-    const { municipalities, users } = require('./db/schema');
-    const { eq, sql } = require('drizzle-orm');
-
-    const muns = await db.select({ id: municipalities.id, name: municipalities.name }).from(municipalities);
-    const allUsers = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, municipalityId: users.municipalityId }).from(users);
-
-    const result: any = { municipalities: muns, users: allUsers, actions: [] };
-
-    if (muns.length === 0) {
-      // Criar município padrão
-      const [newMun] = await db.insert(municipalities).values({ name: 'Prefeitura Municipal', state: 'TO', city: 'Palmas' }).$returningId();
-      result.actions.push('Municipio criado com ID: ' + newMun.id);
-
-      // Corrigir todos os usuarios
-      await db.execute(sql`UPDATE users SET municipalityId = ${newMun.id}`);
-      result.actions.push('Todos os usuarios atualizados para municipalityId: ' + newMun.id);
-    } else {
-      const validIds = muns.map((m: any) => m.id);
-      const invalidUsers = allUsers.filter((u: any) => !validIds.includes(u.municipalityId));
-
-      if (invalidUsers.length > 0) {
-        const targetMunId = muns[0].id;
-        for (const u of invalidUsers) {
-          await db.execute(sql`UPDATE users SET municipalityId = ${targetMunId} WHERE id = ${u.id}`);
-        }
-        result.actions.push('Corrigidos ' + invalidUsers.length + ' usuarios para municipalityId: ' + targetMunId);
-        result.invalidUsers = invalidUsers;
-      } else {
-        result.actions.push('Nenhum problema encontrado - todos os usuarios tem municipalityId valido');
-      }
-    }
-
-    // Estado final
-    const finalUsers = await db.select({ id: users.id, name: users.name, municipalityId: users.municipalityId }).from(users);
-    result.finalState = finalUsers;
-
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // tRPC

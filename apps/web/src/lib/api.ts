@@ -1,7 +1,4 @@
-const API_URL = (() => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  return '';
-})();
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 function getToken() {
   return localStorage.getItem('token');
@@ -34,8 +31,14 @@ async function call(procedure: string, input: any, type: 'query' | 'mutation' = 
 
   let res: Response;
   try {
-    res = await fetch(url, options);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Tempo de espera esgotado. Verifique sua conexão.');
+    }
     throw new Error(`Erro de conexão: ${err.message}`);
   }
 

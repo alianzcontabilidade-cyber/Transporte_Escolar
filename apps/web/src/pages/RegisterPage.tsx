@@ -4,62 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
-
-function maskCPF(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
-  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
-  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
-}
-
-function validateCPF(cpf: string): boolean {
-  const d = cpf.replace(/\D/g, '');
-  if (d.length !== 11) return false;
-  if (/^(\d)\1{10}$/.test(d)) return false;
-  let sum = 0;
-  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
-  let r = (sum * 10) % 11; if (r === 10) r = 0;
-  if (parseInt(d[9]) !== r) return false;
-  sum = 0;
-  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
-  r = (sum * 10) % 11; if (r === 10) r = 0;
-  if (parseInt(d[10]) !== r) return false;
-  return true;
-}
-
-function maskCNPJ(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 14);
-  if (d.length <= 2) return d;
-  if (d.length <= 5) return `${d.slice(0,2)}.${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
-  if (d.length <= 12) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
-  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
-}
-
-function validateCNPJ(cnpj: string): boolean {
-  const d = cnpj.replace(/\D/g, '');
-  if (d.length !== 14) return false;
-  if (/^(\d)\1{13}$/.test(d)) return false;
-  let sum = 0;
-  let w = [5,4,3,2,9,8,7,6,5,4,3,2];
-  for (let i = 0; i < 12; i++) sum += parseInt(d[i]) * w[i];
-  let r = sum % 11;
-  if (parseInt(d[12]) !== (r < 2 ? 0 : 11 - r)) return false;
-  sum = 0;
-  w = [6,5,4,3,2,9,8,7,6,5,4,3,2];
-  for (let i = 0; i < 13; i++) sum += parseInt(d[i]) * w[i];
-  r = sum % 11;
-  if (parseInt(d[13]) !== (r < 2 ? 0 : 11 - r)) return false;
-  return true;
-}
-
-function maskPhone(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
-  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
+import { maskCPF, validateCPF, maskCNPJ, validateCNPJ, maskPhone } from '../lib/utils';
 
 export default function RegisterPage() {
   const [mode, setMode] = useState<'choose' | 'municipality' | 'guardian'>('choose');
@@ -87,7 +32,7 @@ export default function RegisterPage() {
     if (cnpjDigits.length === 14 && !validateCNPJ(cnpjDigits)) { setError('CNPJ inválido.'); setLoading(false); return; }
     try {
       await api.auth.registerMunicipality(mForm);
-      await login({ email: mForm.adminEmail, password: mForm.adminPassword });
+      await login({ identifier: mForm.adminEmail, password: mForm.adminPassword });
       navigate('/');
     } catch (err: any) { setError(err.message || 'Erro ao cadastrar'); }
     finally { setLoading(false); }
@@ -102,10 +47,18 @@ export default function RegisterPage() {
     try {
       const result = await api.auth.registerGuardian(gForm);
       setSuccess(result.message || 'Cadastro realizado!');
-      setTimeout(async () => {
-        await login({ email: gForm.email, password: gForm.password });
-        navigate('/');
-      }, 1500);
+      if (result.isExistingUser) {
+        // User already exists - they need to login with existing credentials
+        setTimeout(() => { navigate('/login'); }, 3000);
+      } else {
+        // New user - auto login
+        setTimeout(async () => {
+          try {
+            await login({ identifier: gForm.email, password: gForm.password });
+            navigate('/');
+          } catch { navigate('/login'); }
+        }, 1500);
+      }
     } catch (err: any) { setError(err.message || 'Erro ao cadastrar'); }
     finally { setLoading(false); }
   }
@@ -162,7 +115,7 @@ export default function RegisterPage() {
           <form onSubmit={handleGuardianRegister} className="space-y-3">
             <div><label className="text-sm font-medium text-gray-700 block mb-1">Nome completo</label><input type="text" required value={gForm.name} onChange={e => setGForm(p => ({...p, name: e.target.value}))} className={inputClass} placeholder="João da Silva" /></div>
             <div><label className="text-sm font-medium text-gray-700 block mb-1">Email</label><input type="email" required value={gForm.email} onChange={e => setGForm(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="joao@email.com" /></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">CPF</label><input type="text" value={gForm.cpf} onChange={e => { const masked = maskCPF(e.target.value); setGForm(p => ({...p, cpf: masked})); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 11) { setCpfError(validateCPF(digits) ? '' : 'CPF inválido'); } else { setCpfError(''); } }} className={inputClass} placeholder="000.000.000-00" maxLength={14} />{cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}</div>
+            <div><label className="text-sm font-medium text-gray-700 block mb-1">CPF</label><input type="text" value={gForm.cpf} onChange={e => { const masked = maskCPF(e.target.value); setGForm(p => ({...p, cpf: masked})); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 11) { setCpfError(validateCPF(digits) ? '' : 'CPF inválido'); } else { setCpfError(''); } }} className={inputClass} placeholder="000.000.000-00" maxLength={14} />{cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}<p className="text-xs text-gray-400 mt-1">Se você já tem cadastro no sistema, informe seu CPF para vincular o aluno ao seu perfil.</p></div>
             <div><label className="text-sm font-medium text-gray-700 block mb-1">Telefone</label><input type="tel" value={gForm.phone} onChange={e => setGForm(p => ({...p, phone: maskPhone(e.target.value)}))} className={inputClass} placeholder="(63) 99999-0000" maxLength={15} /></div>
             <div className="relative"><label className="text-sm font-medium text-gray-700 block mb-1">Senha</label><input type={showPassword ? 'text' : 'password'} required minLength={6} value={gForm.password} onChange={e => setGForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="Mínimo 6 caracteres" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
             <hr className="my-2" />

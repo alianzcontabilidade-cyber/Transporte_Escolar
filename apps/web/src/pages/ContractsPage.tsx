@@ -2,60 +2,12 @@ import { useState, useEffect } from 'react';
 import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../lib/utils';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', expired:'bg-red-100 text-red-700', pending:'bg-yellow-100 text-yellow-700', cancelled:'bg-gray-100 text-gray-600' };
 const STATUS_LABELS: any = { active:'Vigente', expired:'Vencido', pending:'A vencer', cancelled:'Cancelado' };
 const CONTRACT_TYPES = ['Transporte Escolar','Manutenção de Veículos','Combustível','Seguro','Locação','Serviços Gerais'];
 const emptyForm = { number:'', type:'Transporte Escolar', supplier:'', cnpj:'', object:'', value:'', startDate:'', endDate:'', responsibleName:'', responsiblePhone:'', notes:'' };
-
-// ===================== MÁSCARAS E VALIDAÇÕES =====================
-
-function maskPhone(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 11);
-    if (d.length <= 2) return d.length ? `(${d}` : '';
-    if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
-
-function maskCNPJ(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 14);
-    if (d.length <= 2) return d;
-    if (d.length <= 5) return `${d.slice(0,2)}.${d.slice(2)}`;
-    if (d.length <= 8) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
-    if (d.length <= 12) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
-    return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
-}
-
-function validateCNPJ(cnpj: string): boolean {
-    const d = cnpj.replace(/\D/g, '');
-    if (d.length !== 14) return false;
-    if (/^(\d)\1{13}$/.test(d)) return false;
-    let sum = 0;
-    let w = [5,4,3,2,9,8,7,6,5,4,3,2];
-    for (let i = 0; i < 12; i++) sum += parseInt(d[i]) * w[i];
-    let r = sum % 11;
-    if (parseInt(d[12]) !== (r < 2 ? 0 : 11 - r)) return false;
-    sum = 0;
-    w = [6,5,4,3,2,9,8,7,6,5,4,3,2];
-    for (let i = 0; i < 13; i++) sum += parseInt(d[i]) * w[i];
-    r = sum % 11;
-    if (parseInt(d[13]) !== (r < 2 ? 0 : 11 - r)) return false;
-    return true;
-}
-
-function maskMoney(v: string): string {
-    const d = v.replace(/\D/g, '');
-    if (!d) return '';
-    const n = parseInt(d) / 100;
-    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function unMaskMoney(v: string): number {
-    const clean = v.replace(/\./g, '').replace(',', '.');
-    return parseFloat(clean) || 0;
-}
-
-// ===================== COMPONENTES =====================
 
 function DaysAlert({ endDate }: { endDate: string }) {
     if (!endDate) return null;

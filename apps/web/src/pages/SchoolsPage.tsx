@@ -4,13 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2 } from 'lucide-react';
-
-function maskPhone(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
-  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
+import { maskPhone } from '../lib/utils';
 
 const emptyForm = { name:'', code:'', type:'fundamental', address:'', state:'', city:'', phone:'', email:'', directorName:'', morningStart:'07:00', morningEnd:'12:00', afternoonStart:'13:00', afternoonEnd:'17:00', latitude:'', longitude:'' };
 

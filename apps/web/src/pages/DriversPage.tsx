@@ -4,38 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2 } from 'lucide-react';
-
-function maskPhone(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 11);
-    if (d.length <= 2) return d.length ? `(${d}` : '';
-    if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
-
-function maskCPF(v: string): string {
-    const d = v.replace(/\D/g, '').slice(0, 11);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
-    if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
-    return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
-}
-
-function validateCPF(cpf: string): boolean {
-    const d = cpf.replace(/\D/g, '');
-    if (d.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(d)) return false;
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
-    let r = (sum * 10) % 11;
-    if (r === 10) r = 0;
-    if (parseInt(d[9]) !== r) return false;
-    sum = 0;
-    for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
-    r = (sum * 10) % 11;
-    if (r === 10) r = 0;
-    if (parseInt(d[10]) !== r) return false;
-    return true;
-}
+import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);

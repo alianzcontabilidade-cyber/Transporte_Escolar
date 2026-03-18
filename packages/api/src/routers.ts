@@ -13,6 +13,15 @@ import { sign, verify } from 'jsonwebtoken';
 import { emitToMunicipality } from './socketInstance';
 
 // ============================================
+// JWT SECRET
+// ============================================
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'transescolar-dev-secret-2024');
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET must be set in production');
+  process.exit(1);
+}
+
+// ============================================
 // VALIDAÇÃO DE CPF E CNPJ
 // ============================================
 function validateCPF(cpf: string): boolean {
@@ -147,35 +156,85 @@ export const authRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
-      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      if (existingUser.length > 0) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado' });
-      }
+
+      // Find the student first
       const [student] = await db.select().from(students)
         .where(eq(students.enrollment, input.studentEnrollment)).limit(1);
       if (!student) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Matrícula do aluno não encontrada. Verifique com a escola.' });
       }
-      const passwordHash = await hash(input.password, 12);
-      const [user] = await db.insert(users).values({
-        municipalityId: student.municipalityId,
-        email: input.email,
-        passwordHash,
-        name: input.name,
-        phone: input.phone,
-        cpf: input.cpf,
-        role: 'parent',
-      }).$returningId();
 
+      let userId: number = 0;
+      let isExistingUser = false;
+
+      // Check if CPF already exists in users
+      if (input.cpf) {
+        const cpfClean = input.cpf.replace(/\D/g, '');
+        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        const existingByCpf = await db.select().from(users)
+          .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, input.cpf)))
+          .limit(1);
+
+        if (existingByCpf.length > 0) {
+          // User already exists with this CPF - reuse the account
+          userId = existingByCpf[0].id;
+          isExistingUser = true;
+
+          // Update municipalityId if not set (for guardian access)
+          if (!existingByCpf[0].municipalityId) {
+            await db.update(users).set({ municipalityId: student.municipalityId }).where(eq(users.id, userId));
+          }
+        }
+      }
+
+      if (!isExistingUser) {
+        // Check if email already exists
+        const existingByEmail = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+        if (existingByEmail.length > 0) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Email já cadastrado. Se você já tem conta no sistema, informe seu CPF para vincular o aluno ao seu perfil.' });
+        }
+
+        // Create new user
+        const passwordHash = await hash(input.password, 12);
+        const [user] = await db.insert(users).values({
+          municipalityId: student.municipalityId,
+          email: input.email,
+          passwordHash,
+          name: input.name,
+          phone: input.phone,
+          cpf: input.cpf,
+          role: 'parent',
+        }).$returningId();
+        userId = user.id;
+      }
+
+      // Check if guardian relationship already exists
+      const existingGuardian = await db.select().from(guardians)
+        .where(and(eq(guardians.userId, userId), eq(guardians.studentId, student.id)))
+        .limit(1);
+
+      if (existingGuardian.length > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Este aluno já está vinculado ao seu perfil.' });
+      }
+
+      // Create guardian link
       await db.insert(guardians).values({
-        userId: user.id,
+        userId,
         studentId: student.id,
         relationship: input.relationship || 'other',
         isPrimary: true,
         canPickup: true,
       });
 
-      return { success: true, userId: user.id, studentName: student.name, message: 'Cadastro realizado! Você já pode acompanhar o transporte.' };
+      return {
+        success: true,
+        userId,
+        studentName: student.name,
+        isExistingUser,
+        message: isExistingUser
+          ? `Aluno ${student.name} vinculado ao seu perfil existente! Faça login com suas credenciais habituais.`
+          : 'Cadastro realizado! Você já pode acompanhar o transporte.'
+      };
     }),
 
   // Login flexível: email, CPF ou nome
@@ -224,7 +283,7 @@ export const authRouter = t.router({
 
       const token = sign(
         { userId: user.id, municipalityId: user.municipalityId, role: user.role },
-        process.env.JWT_SECRET || 'transescolar-secret-2024',
+        JWT_SECRET,
         { expiresIn: '7d' }
       );
 
@@ -269,7 +328,7 @@ export const authRouter = t.router({
       // Gerar token JWT de curta duração (15 min) contendo userId e code
       const resetToken = sign(
         { userId: user.id, code, purpose: 'password_reset' },
-        process.env.JWT_SECRET || 'transescolar-secret-2024',
+        JWT_SECRET,
         { expiresIn: '15m' }
       );
 
@@ -302,7 +361,7 @@ export const authRouter = t.router({
     .mutation(async ({ input }) => {
       let decoded: any;
       try {
-        decoded = verify(input.resetToken, process.env.JWT_SECRET || 'transescolar-secret-2024');
+        decoded = verify(input.resetToken, JWT_SECRET);
       } catch {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Token expirado ou inválido. Solicite um novo código.' });
       }
@@ -2086,32 +2145,6 @@ export const appRouter = t.router({
   maintenance: maintenanceRouter,
     location: locationRouter,
 
-    // TEMPORARY RESET ENDPOINT - DELETE AFTER USE
-    resetData: t.router({
-          execute: adminProcedure
-            .input(z.object({ confirmReset: z.literal('RESET_ALL_DATA') }))
-            .mutation(async ({ input, ctx }) => {
-                      if (ctx.role !== 'super_admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas super_admin' });
-                      await db.execute(sql`SET FOREIGN_KEY_CHECKS = 0`);
-                      await db.delete(tripStudentLogs);
-                      await db.delete(tripStopLogs);
-                      await db.delete(trips);
-                      await db.delete(locationHistory);
-                      await db.delete(notifications);
-                      await db.delete(stopStudents);
-                      await db.delete(stops);
-                      await db.delete(routes);
-                      await db.delete(students);
-                      await db.delete(guardians);
-                      await db.delete(drivers);
-                      await db.delete(vehicles);
-                      await db.delete(schools);
-                      await db.delete(users).where(sql`id != 1`);
-                      await db.delete(municipalities);
-                      await db.execute(sql`SET FOREIGN_KEY_CHECKS = 1`);
-                      return { success: true, message: 'Todos os dados foram resetados. Apenas o admin id=1 foi mantido.' };
-            }),
-    }),
 });
 
 export type AppRouter = typeof appRouter;

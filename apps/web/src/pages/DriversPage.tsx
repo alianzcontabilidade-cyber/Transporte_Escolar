@@ -82,13 +82,18 @@ export default function DriversPage() {
           }
     };
   
-    const all=(drivers as any)||[];
+    const rawDrivers=(drivers as any)||[];
     const allR=(routes as any)||[];
     const allV=(vehicles as any)||[];
+    // Normalizar dados: a API retorna { driver: {...}, user: {...} }
+    const all=rawDrivers.map(function(d:any){
+      if(d.driver&&d.user) return { id:d.driver.id, name:d.user.name, email:d.user.email, phone:d.user.phone, cpf:d.user.cpf, cnhNumber:d.driver.cnhNumber, cnhCategory:d.driver.cnhCategory, cnhExpiry:d.driver.cnhExpiresAt, vehicleId:d.driver.vehicleId, userId:d.driver.userId, ...d.driver };
+      return d;
+    });
     const filtered=all.filter(function(d:any){const q=search.toLowerCase();return d.name?.toLowerCase().includes(q)||d.phone?.includes(q)||(d.cnhNumber||'').includes(q);});
     const rn=function(id:string){return allR.find(function(r:any){return String(r.route?.id || r.id)===String(id);})?.route?.name||'';};
     const vp=function(id:string){const v=allV.find(function(v:any){return String(v.id)===String(id);});return v?v.plate+(v.nickname?' ('+v.nickname+')':''):'';};
-  
+
     const openNew=function(){setForm(EF);setEditId(null);setTab('dados');setErr('');setCpfError('');setShow(true);};
     const openEdit=function(d:any){setForm({...EF,...d});setEditId(d.id);setTab('dados');setErr('');setCpfError('');setShow(true);};
   

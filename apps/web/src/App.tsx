@@ -30,6 +30,10 @@ import TeachersPage from './pages/TeachersPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import DiaryPage from './pages/DiaryPage';
 import HRPage from './pages/HRPage';
+import FinancialPage from './pages/FinancialPage';
+import MerendaPage from './pages/MerendaPage';
+import LibraryPage from './pages/LibraryPage';
+import AssetsPage from './pages/AssetsPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -94,6 +98,12 @@ export default function App() {
         <Route path="diario-escolar" element={<Guard roles={ADMIN_SEC}><DiaryPage /></Guard>} />
         {/* Recursos Humanos */}
         <Route path="recursos-humanos" element={<Guard roles={ADMIN}><HRPage /></Guard>} />
+        {/* Financeiro */}
+        <Route path="financeiro" element={<Guard roles={ADMIN}><FinancialPage /></Guard>} />
+        {/* Operacional */}
+        <Route path="merenda" element={<Guard roles={ADMIN_SEC}><MerendaPage /></Guard>} />
+        <Route path="biblioteca" element={<Guard roles={ADMIN_SEC}><LibraryPage /></Guard>} />
+        <Route path="patrimonio" element={<Guard roles={ADMIN}><AssetsPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

@@ -287,5 +287,46 @@ export const api = {
     create: (input: any) => call('staffEvaluations.create', input, 'mutation'),
     delete: (input: any) => call('staffEvaluations.delete', input, 'mutation'),
   },
+  financialAccounts: {
+    list: (input: any) => call('financialAccounts.list', input, 'query'),
+    create: (input: any) => call('financialAccounts.create', input, 'mutation'),
+    update: (input: any) => call('financialAccounts.update', input, 'mutation'),
+    delete: (input: any) => call('financialAccounts.delete', input, 'mutation'),
+  },
+  financialTransactions: {
+    list: (input: any) => call('financialTransactions.list', input, 'query'),
+    create: (input: any) => call('financialTransactions.create', input, 'mutation'),
+    delete: (input: any) => call('financialTransactions.delete', input, 'mutation'),
+  },
+  mealMenus: {
+    list: (input: any) => call('mealMenus.list', input, 'query'),
+    create: (input: any) => call('mealMenus.create', input, 'mutation'),
+    update: (input: any) => call('mealMenus.update', input, 'mutation'),
+    delete: (input: any) => call('mealMenus.delete', input, 'mutation'),
+  },
+  libraryBooks: {
+    list: (input: any) => call('libraryBooks.list', input, 'query'),
+    create: (input: any) => call('libraryBooks.create', input, 'mutation'),
+    update: (input: any) => call('libraryBooks.update', input, 'mutation'),
+    delete: (input: any) => call('libraryBooks.delete', input, 'mutation'),
+  },
+  libraryLoans: {
+    list: (input: any) => call('libraryLoans.list', input, 'query'),
+    create: (input: any) => call('libraryLoans.create', input, 'mutation'),
+    returnBook: (input: any) => call('libraryLoans.returnBook', input, 'mutation'),
+  },
+  assets: {
+    list: (input: any) => call('assets.list', input, 'query'),
+    create: (input: any) => call('assets.create', input, 'mutation'),
+    update: (input: any) => call('assets.update', input, 'mutation'),
+    delete: (input: any) => call('assets.delete', input, 'mutation'),
+  },
+  inventory: {
+    list: (input: any) => call('inventory.list', input, 'query'),
+    create: (input: any) => call('inventory.create', input, 'mutation'),
+    update: (input: any) => call('inventory.update', input, 'mutation'),
+    addMovement: (input: any) => call('inventory.addMovement', input, 'mutation'),
+    delete: (input: any) => call('inventory.delete', input, 'mutation'),
+  },
 
 };

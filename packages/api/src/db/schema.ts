@@ -1013,6 +1013,148 @@ export const staffEvaluations = mysqlTable("staff_evaluations", {
 });
 
 // ============================================
+// FASE 5: FINANCEIRO
+// ============================================
+
+export const financialAccounts = mysqlTable("financial_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("accountType", ["pdde", "proprio", "estadual", "federal", "outro"]).default("proprio").notNull(),
+  bankName: varchar("bankName", { length: 100 }),
+  agency: varchar("agency", { length: 20 }),
+  accountNumber: varchar("accountNumber", { length: 30 }),
+  balance: decimal("balance", { precision: 12, scale: 2 }).default("0.00"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const financialTransactions = mysqlTable("financial_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  accountId: int("accountId").notNull().references(() => financialAccounts.id),
+  type: mysqlEnum("transactionType", ["receita", "despesa"]).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  description: text("description"),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  date: timestamp("date").notNull(),
+  documentNumber: varchar("documentNumber", { length: 50 }),
+  supplier: varchar("supplier", { length: 255 }),
+  status: mysqlEnum("transactionStatus", ["pending", "confirmed", "cancelled"]).default("confirmed").notNull(),
+  registeredByUserId: int("registeredByUserId").references(() => users.id),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// FASE 6: OPERACIONAL
+// ============================================
+
+// Merenda Escolar - Cardápios
+export const mealMenus = mysqlTable("meal_menus", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  date: timestamp("date").notNull(),
+  mealType: mysqlEnum("mealType", ["breakfast", "lunch", "snack", "dinner"]).default("lunch").notNull(),
+  description: text("description").notNull(),
+  calories: int("calories"),
+  servings: int("servings"),
+  cost: decimal("cost", { precision: 8, scale: 2 }),
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Biblioteca - Acervo
+export const libraryBooks = mysqlTable("library_books", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  author: varchar("author", { length: 255 }),
+  isbn: varchar("isbn", { length: 20 }),
+  category: varchar("category", { length: 100 }),
+  publisher: varchar("publisher", { length: 255 }),
+  year: int("year"),
+  quantity: int("quantity").default(1),
+  available: int("available").default(1),
+  location: varchar("location", { length: 100 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Biblioteca - Empréstimos
+export const libraryLoans = mysqlTable("library_loans", {
+  id: int("id").autoincrement().primaryKey(),
+  bookId: int("bookId").notNull().references(() => libraryBooks.id),
+  userId: int("userId").notNull().references(() => users.id),
+  studentId: int("studentId").references(() => students.id),
+  loanDate: timestamp("loanDate").defaultNow().notNull(),
+  dueDate: timestamp("dueDate").notNull(),
+  returnDate: timestamp("returnDate"),
+  status: mysqlEnum("loanStatus", ["active", "returned", "overdue", "lost"]).default("active").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Patrimônio
+export const assets = mysqlTable("assets", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 50 }),
+  category: mysqlEnum("assetCategory", ["movel", "imovel", "equipamento", "veiculo", "tecnologia", "outro"]).default("equipamento").notNull(),
+  acquisitionDate: timestamp("acquisitionDate"),
+  acquisitionValue: decimal("acquisitionValue", { precision: 12, scale: 2 }),
+  currentValue: decimal("currentValue", { precision: 12, scale: 2 }),
+  location: varchar("location", { length: 255 }),
+  condition: mysqlEnum("assetCondition", ["otimo", "bom", "regular", "ruim", "inservivel"]).default("bom"),
+  responsibleUserId: int("responsibleUserId").references(() => users.id),
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Estoque
+export const inventoryItems = mysqlTable("inventory_items", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  unit: varchar("unit", { length: 20 }).default("un"),
+  currentStock: int("currentStock").default(0),
+  minStock: int("minStock").default(5),
+  maxStock: int("maxStock"),
+  unitCost: decimal("unitCost", { precision: 10, scale: 2 }),
+  location: varchar("location", { length: 100 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const inventoryMovements = mysqlTable("inventory_movements", {
+  id: int("id").autoincrement().primaryKey(),
+  itemId: int("itemId").notNull().references(() => inventoryItems.id),
+  type: mysqlEnum("movementType", ["entrada", "saida", "ajuste"]).notNull(),
+  quantity: int("quantity").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  documentNumber: varchar("documentNumber", { length: 50 }),
+  supplier: varchar("supplier", { length: 255 }),
+  notes: text("notes"),
+  registeredByUserId: int("registeredByUserId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
 // TYPES EXPORTADOS
 // ============================================
 
@@ -1078,3 +1220,11 @@ export type Position = typeof positions.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type StaffAllocation = typeof staffAllocations.$inferSelect;
 export type StaffEvaluation = typeof staffEvaluations.$inferSelect;
+export type FinancialAccount = typeof financialAccounts.$inferSelect;
+export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+export type MealMenu = typeof mealMenus.$inferSelect;
+export type LibraryBook = typeof libraryBooks.$inferSelect;
+export type LibraryLoan = typeof libraryLoans.$inferSelect;
+export type Asset = typeof assets.$inferSelect;
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;

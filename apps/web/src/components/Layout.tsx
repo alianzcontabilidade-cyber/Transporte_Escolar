@@ -93,6 +93,14 @@ export default function Layout() {
     { label: 'RH', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'Recursos Humanos' },
     ]},
+    { label: 'FINANCEIRO', items: [
+      { to: '/financeiro', icon: BarChart3, text: 'Contas e Movimentações' },
+    ]},
+    { label: 'OPERACIONAL', items: [
+      { to: '/merenda', icon: ClipboardList, text: 'Merenda Escolar' },
+      { to: '/biblioteca', icon: BookOpen, text: 'Biblioteca' },
+      { to: '/patrimonio', icon: FileText, text: 'Patrimônio e Estoque' },
+    ]},
     { label: 'GESTÃO', items: [
       { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
       { to: '/contratos', icon: FileText, text: 'Contratos' },

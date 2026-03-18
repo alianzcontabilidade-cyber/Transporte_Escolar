@@ -9,7 +9,9 @@ import {
   monitorStaff, contracts, maintenanceRecords,
   academicYears, classGrades, classes, subjects, classSubjects, enrollments, teachers,
   dailyAttendance, assessments, studentGrades, lessonPlans,
-  positions, departments, staffAllocations, staffEvaluations
+  positions, departments, staffAllocations, staffEvaluations,
+  financialAccounts, financialTransactions,
+  mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -3024,6 +3026,122 @@ export const staffEvaluationsRouter = t.router({
 });
 
 // ============================================
+// FINANCIAL ROUTER
+// ============================================
+export const financialAccountsRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number() })).query(async ({ input }) => {
+    return db.select().from(financialAccounts).where(and(eq(financialAccounts.municipalityId, input.municipalityId), eq(financialAccounts.isActive, true))).orderBy(financialAccounts.name);
+  }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), name: z.string().min(2), type: z.enum(['pdde', 'proprio', 'estadual', 'federal', 'outro']).optional(), bankName: z.string().optional(), agency: z.string().optional(), accountNumber: z.string().optional(), balance: z.number().optional() }))
+    .mutation(async ({ input }) => { const { balance, ...rest } = input; const [r] = await db.insert(financialAccounts).values({ ...rest, balance: balance?.toString() }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), name: z.string().optional(), type: z.enum(['pdde', 'proprio', 'estadual', 'federal', 'outro']).optional(), bankName: z.string().optional(), agency: z.string().optional(), accountNumber: z.string().optional(), balance: z.number().optional() }))
+    .mutation(async ({ input }) => { const { id, balance, ...data } = input; const ud: any = { ...data }; if (balance !== undefined) ud.balance = balance.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0) await db.update(financialAccounts).set(ud).where(eq(financialAccounts.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(financialAccounts).set({ isActive: false }).where(eq(financialAccounts.id, input.id)); return { success: true }; }),
+});
+
+export const financialTransactionsRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number(), accountId: z.number().optional(), type: z.string().optional(), startDate: z.string().optional(), endDate: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(financialTransactions.municipalityId, input.municipalityId), eq(financialTransactions.isActive, true)];
+      if (input.accountId) conditions.push(eq(financialTransactions.accountId, input.accountId));
+      if (input.type) conditions.push(eq(financialTransactions.type, input.type as any));
+      if (input.startDate) conditions.push(gte(financialTransactions.date, new Date(input.startDate)));
+      if (input.endDate) conditions.push(lte(financialTransactions.date, new Date(input.endDate)));
+      return db.select().from(financialTransactions).where(and(...conditions)).orderBy(desc(financialTransactions.date));
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), accountId: z.number(), type: z.enum(['receita', 'despesa']), category: z.string(), description: z.string().optional(), value: z.number(), date: z.string(), documentNumber: z.string().optional(), supplier: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => { const { date, value, ...rest } = input; const [r] = await db.insert(financialTransactions).values({ ...rest, date: new Date(date), value: value.toString(), registeredByUserId: ctx.userId }).$returningId(); return { success: true, id: r.id }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(financialTransactions).set({ isActive: false }).where(eq(financialTransactions.id, input.id)); return { success: true }; }),
+});
+
+// ============================================
+// OPERATIONAL ROUTERS
+// ============================================
+export const mealMenusRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), startDate: z.string().optional(), endDate: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(mealMenus.municipalityId, input.municipalityId), eq(mealMenus.isActive, true)];
+      if (input.schoolId) conditions.push(eq(mealMenus.schoolId, input.schoolId));
+      if (input.startDate) conditions.push(gte(mealMenus.date, new Date(input.startDate)));
+      if (input.endDate) conditions.push(lte(mealMenus.date, new Date(input.endDate)));
+      return db.select().from(mealMenus).where(and(...conditions)).orderBy(desc(mealMenus.date));
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), date: z.string(), mealType: z.enum(['breakfast', 'lunch', 'snack', 'dinner']).optional(), description: z.string(), calories: z.number().optional(), servings: z.number().optional(), cost: z.number().optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => { const { date, cost, ...rest } = input; const [r] = await db.insert(mealMenus).values({ ...rest, date: new Date(date), cost: cost?.toString() }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), date: z.string().optional(), mealType: z.enum(['breakfast', 'lunch', 'snack', 'dinner']).optional(), description: z.string().optional(), calories: z.number().optional(), servings: z.number().optional(), cost: z.number().optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, date, cost, ...data } = input; const ud: any = { ...data }; if (date) ud.date = new Date(date); if (cost !== undefined) ud.cost = cost.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0) await db.update(mealMenus).set(ud).where(eq(mealMenus.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(mealMenus).set({ isActive: false }).where(eq(mealMenus.id, input.id)); return { success: true }; }),
+});
+
+export const libraryBooksRouter = t.router({
+  list: protectedProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), search: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(libraryBooks.municipalityId, input.municipalityId), eq(libraryBooks.isActive, true)];
+      if (input.schoolId) conditions.push(eq(libraryBooks.schoolId, input.schoolId));
+      if (input.search) conditions.push(or(like(libraryBooks.title, `%${input.search}%`), like(libraryBooks.author, `%${input.search}%`))!);
+      return db.select().from(libraryBooks).where(and(...conditions)).orderBy(libraryBooks.title);
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), title: z.string(), author: z.string().optional(), isbn: z.string().optional(), category: z.string().optional(), publisher: z.string().optional(), year: z.number().optional(), quantity: z.number().optional(), location: z.string().optional() }))
+    .mutation(async ({ input }) => { const [r] = await db.insert(libraryBooks).values({ ...input, available: input.quantity || 1 }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), title: z.string().optional(), author: z.string().optional(), isbn: z.string().optional(), category: z.string().optional(), publisher: z.string().optional(), year: z.number().optional(), quantity: z.number().optional(), location: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(libraryBooks).set(ud).where(eq(libraryBooks.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(libraryBooks).set({ isActive: false }).where(eq(libraryBooks.id, input.id)); return { success: true }; }),
+});
+
+export const libraryLoansRouter = t.router({
+  list: protectedProcedure.input(z.object({ bookId: z.number().optional(), status: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions: any[] = [];
+      if (input.bookId) conditions.push(eq(libraryLoans.bookId, input.bookId));
+      if (input.status) conditions.push(eq(libraryLoans.status, input.status as any));
+      return db.select({ id: libraryLoans.id, bookId: libraryLoans.bookId, userId: libraryLoans.userId, studentId: libraryLoans.studentId, loanDate: libraryLoans.loanDate, dueDate: libraryLoans.dueDate, returnDate: libraryLoans.returnDate, status: libraryLoans.status, bookTitle: libraryBooks.title, userName: users.name })
+        .from(libraryLoans).leftJoin(libraryBooks, eq(libraryLoans.bookId, libraryBooks.id)).leftJoin(users, eq(libraryLoans.userId, users.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(libraryLoans.loanDate));
+    }),
+  create: protectedProcedure.input(z.object({ bookId: z.number(), userId: z.number().optional(), studentId: z.number().optional(), dueDate: z.string() }))
+    .mutation(async ({ ctx, input }) => { const [r] = await db.insert(libraryLoans).values({ bookId: input.bookId, userId: input.userId || ctx.userId!, studentId: input.studentId, dueDate: new Date(input.dueDate) }).$returningId(); await db.update(libraryBooks).set({ available: sql`available - 1` }).where(eq(libraryBooks.id, input.bookId)); return { success: true, id: r.id }; }),
+  returnBook: protectedProcedure.input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { const [loan] = await db.select().from(libraryLoans).where(eq(libraryLoans.id, input.id)).limit(1); if (loan) { await db.update(libraryLoans).set({ status: 'returned', returnDate: new Date() }).where(eq(libraryLoans.id, input.id)); await db.update(libraryBooks).set({ available: sql`available + 1` }).where(eq(libraryBooks.id, loan.bookId)); } return { success: true }; }),
+});
+
+export const assetsRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), category: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(assets.municipalityId, input.municipalityId), eq(assets.isActive, true)];
+      if (input.schoolId) conditions.push(eq(assets.schoolId, input.schoolId));
+      if (input.category) conditions.push(eq(assets.category, input.category as any));
+      return db.select().from(assets).where(and(...conditions)).orderBy(assets.name);
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), name: z.string(), code: z.string().optional(), category: z.enum(['movel', 'imovel', 'equipamento', 'veiculo', 'tecnologia', 'outro']).optional(), acquisitionDate: z.string().optional(), acquisitionValue: z.number().optional(), currentValue: z.number().optional(), location: z.string().optional(), condition: z.enum(['otimo', 'bom', 'regular', 'ruim', 'inservivel']).optional(), responsibleUserId: z.number().optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => { const { acquisitionDate, acquisitionValue, currentValue, ...rest } = input; const [r] = await db.insert(assets).values({ ...rest, acquisitionDate: acquisitionDate ? new Date(acquisitionDate) : undefined, acquisitionValue: acquisitionValue?.toString(), currentValue: currentValue?.toString() }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), name: z.string().optional(), code: z.string().optional(), category: z.enum(['movel', 'imovel', 'equipamento', 'veiculo', 'tecnologia', 'outro']).optional(), location: z.string().optional(), condition: z.enum(['otimo', 'bom', 'regular', 'ruim', 'inservivel']).optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(assets).set(ud).where(eq(assets.id, id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(assets).set({ isActive: false }).where(eq(assets.id, input.id)); return { success: true }; }),
+});
+
+export const inventoryRouter = t.router({
+  list: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(inventoryItems.municipalityId, input.municipalityId), eq(inventoryItems.isActive, true)];
+      if (input.schoolId) conditions.push(eq(inventoryItems.schoolId, input.schoolId));
+      return db.select().from(inventoryItems).where(and(...conditions)).orderBy(inventoryItems.name);
+    }),
+  create: adminProcedure.input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), name: z.string(), category: z.string().optional(), unit: z.string().optional(), currentStock: z.number().optional(), minStock: z.number().optional(), maxStock: z.number().optional(), unitCost: z.number().optional(), location: z.string().optional() }))
+    .mutation(async ({ input }) => { const { unitCost, ...rest } = input; const [r] = await db.insert(inventoryItems).values({ ...rest, unitCost: unitCost?.toString() }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), name: z.string().optional(), category: z.string().optional(), unit: z.string().optional(), currentStock: z.number().optional(), minStock: z.number().optional(), location: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(inventoryItems).set(ud).where(eq(inventoryItems.id, id)); return { success: true }; }),
+  addMovement: adminProcedure.input(z.object({ itemId: z.number(), type: z.enum(['entrada', 'saida', 'ajuste']), quantity: z.number(), documentNumber: z.string().optional(), supplier: z.string().optional(), notes: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.insert(inventoryMovements).values({ ...input, registeredByUserId: ctx.userId });
+      // Update stock
+      const delta = input.type === 'entrada' ? input.quantity : input.type === 'saida' ? -input.quantity : 0;
+      if (delta !== 0) await db.update(inventoryItems).set({ currentStock: sql`currentStock + ${delta}` }).where(eq(inventoryItems.id, input.itemId));
+      return { success: true };
+    }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(inventoryItems).set({ isActive: false }).where(eq(inventoryItems.id, input.id)); return { success: true }; }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -3063,6 +3181,15 @@ export const appRouter = t.router({
   departments: departmentsRouter,
   staffAllocations: staffAllocationsRouter,
   staffEvaluations: staffEvaluationsRouter,
+  // Módulo Financeiro
+  financialAccounts: financialAccountsRouter,
+  financialTransactions: financialTransactionsRouter,
+  // Módulo Operacional
+  mealMenus: mealMenusRouter,
+  libraryBooks: libraryBooksRouter,
+  libraryLoans: libraryLoansRouter,
+  assets: assetsRouter,
+  inventory: inventoryRouter,
 });
 
 export type AppRouter = typeof appRouter;

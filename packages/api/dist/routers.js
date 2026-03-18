@@ -602,23 +602,56 @@ exports.studentsRouter = t.router({
     create: adminProcedure
         .input(zod_1.z.object({
         municipalityId: zod_1.z.number(),
-        schoolId: zod_1.z.number(),
+        schoolId: zod_1.z.number().optional(),
         name: zod_1.z.string().min(2),
         birthDate: zod_1.z.string().optional(),
         grade: zod_1.z.string().optional(),
         classRoom: zod_1.z.string().optional(),
+        className: zod_1.z.string().optional(),
         enrollment: zod_1.z.string().optional(),
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(),
         address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
         latitude: zod_1.z.number().optional(),
         longitude: zod_1.z.number().optional(),
+        photoUrl: zod_1.z.string().optional(),
+        photo: zod_1.z.string().optional(),
         hasSpecialNeeds: zod_1.z.boolean().optional(),
         specialNeedsNotes: zod_1.z.string().optional(),
+        bloodType: zod_1.z.string().optional(),
+        allergies: zod_1.z.string().optional(),
+        medications: zod_1.z.string().optional(),
+        healthNotes: zod_1.z.string().optional(),
+        emergencyContact1Name: zod_1.z.string().optional(),
+        emergencyContact1Phone: zod_1.z.string().optional(),
+        emergencyContact1Relation: zod_1.z.string().optional(),
+        emergencyContact2Name: zod_1.z.string().optional(),
+        emergencyContact2Phone: zod_1.z.string().optional(),
+        emergencyContact2Relation: zod_1.z.string().optional(),
+        guardian1Name: zod_1.z.string().optional(),
+        guardian1Phone: zod_1.z.string().optional(),
+        guardian1Relation: zod_1.z.string().optional(),
+        guardian2Name: zod_1.z.string().optional(),
+        guardian2Phone: zod_1.z.string().optional(),
+        guardian2Relation: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
+        routeId: zod_1.z.number().optional(),
+        school: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { latitude, longitude, birthDate, ...rest } = input;
+        const { latitude, longitude, birthDate, className, photo, school, routeId, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, city, state, observations, ...rest } = input;
+        // Usar schoolId do input ou do campo school (select)
+        const finalSchoolId = rest.schoolId || (school ? parseInt(school) : undefined);
+        if (!finalSchoolId)
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
+        const fullAddress = [input.address, city, state].filter(Boolean).join(', ');
         const [student] = await index_1.db.insert(schema_1.students).values({
             ...rest,
+            schoolId: finalSchoolId,
+            classRoom: rest.classRoom || className,
+            photoUrl: rest.photoUrl || photo,
+            address: fullAddress || input.address,
             birthDate: birthDate ? new Date(birthDate) : undefined,
             ...(latitude !== undefined && { latitude: latitude.toString() }),
             ...(longitude !== undefined && { longitude: longitude.toString() }),
@@ -638,18 +671,59 @@ exports.studentsRouter = t.router({
     update: adminProcedure
         .input(zod_1.z.object({
         id: zod_1.z.number(),
+        municipalityId: zod_1.z.number().optional(),
+        schoolId: zod_1.z.number().optional(),
+        school: zod_1.z.string().optional(),
         name: zod_1.z.string().optional(),
+        enrollment: zod_1.z.string().optional(),
+        birthDate: zod_1.z.string().optional(),
         grade: zod_1.z.string().optional(),
         classRoom: zod_1.z.string().optional(),
+        className: zod_1.z.string().optional(),
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(),
         address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
+        photoUrl: zod_1.z.string().optional(),
+        photo: zod_1.z.string().optional(),
         hasSpecialNeeds: zod_1.z.boolean().optional(),
+        specialNeedsNotes: zod_1.z.string().optional(),
+        bloodType: zod_1.z.string().optional(),
+        allergies: zod_1.z.string().optional(),
+        medications: zod_1.z.string().optional(),
+        healthNotes: zod_1.z.string().optional(),
+        emergencyContact1Name: zod_1.z.string().optional(),
+        emergencyContact1Phone: zod_1.z.string().optional(),
+        emergencyContact1Relation: zod_1.z.string().optional(),
+        emergencyContact2Name: zod_1.z.string().optional(),
+        emergencyContact2Phone: zod_1.z.string().optional(),
+        emergencyContact2Relation: zod_1.z.string().optional(),
+        guardian1Name: zod_1.z.string().optional(),
+        guardian1Phone: zod_1.z.string().optional(),
+        guardian1Relation: zod_1.z.string().optional(),
+        guardian2Name: zod_1.z.string().optional(),
+        guardian2Phone: zod_1.z.string().optional(),
+        guardian2Relation: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
+        routeId: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        const ud = {};
-        Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
-            ud[k] = v; });
+        const { id, className, photo, school, birthDate, city, state, routeId, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, observations, ...data } = input;
+        const ud = { ...data };
+        if (className)
+            ud.classRoom = className;
+        if (photo)
+            ud.photoUrl = photo;
+        if (school)
+            ud.schoolId = parseInt(school);
+        if (birthDate)
+            ud.birthDate = new Date(birthDate);
+        if (city || state) {
+            const parts = [data.address, city, state].filter(Boolean);
+            if (parts.length > 0)
+                ud.address = parts.join(', ');
+        }
+        Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.students).set(ud).where((0, drizzle_orm_1.eq)(schema_1.students.id, id));
         return { success: true };

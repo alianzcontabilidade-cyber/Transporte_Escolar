@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle } from 'lucide-react';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle } from 'lucide-react';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -89,9 +89,47 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setFormErr(''); setShowModal(true); };
   const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true); };
 
+  const [viewStudent, setViewStudent] = useState<any>(null);
+
   const save = function() {
-    if (!form.name) { setFormErr('Nome é obrigatório.'); return; }
-    const payload = { municipalityId, name:form.name, enrollment:form.enrollment||undefined, grade:form.grade||undefined, className:form.className||undefined, shift:form.shift||undefined, birthDate:form.birthDate||undefined, school:form.school||undefined, routeId:form.routeId?parseInt(form.routeId):undefined, photo:form.photo||undefined, guardian1Name:form.guardian1Name||undefined, guardian1Phone:form.guardian1Phone||undefined, guardian1Relation:form.guardian1Relation||undefined, guardian2Name:form.guardian2Name||undefined, guardian2Phone:form.guardian2Phone||undefined, guardian2Relation:form.guardian2Relation||undefined, address:form.address||undefined, city:form.city||undefined, observations:form.observations||undefined };
+    if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }
+    if (!form.school && !editId) { setFormErr('Escola e obrigatoria.'); return; }
+    const payload: any = {
+      municipalityId, name:form.name,
+      schoolId:form.school?parseInt(form.school):undefined,
+      enrollment:form.enrollment||undefined,
+      grade:form.grade||undefined,
+      classRoom:form.className||undefined,
+      shift:form.shift||undefined,
+      birthDate:form.birthDate||undefined,
+      address:form.address||undefined,
+      city:form.city||undefined,
+      state:form.state||undefined,
+      photoUrl:form.photo||undefined,
+      routeId:form.routeId?parseInt(form.routeId):undefined,
+      // Saude
+      hasSpecialNeeds:form.hasSpecialNeeds||false,
+      specialNeedsNotes:form.specialNeedsNotes||undefined,
+      bloodType:form.bloodType||undefined,
+      allergies:form.allergies||undefined,
+      medications:form.medications||undefined,
+      healthNotes:form.healthNotes||undefined,
+      // Contatos emergencia
+      emergencyContact1Name:form.emergencyContact1Name||undefined,
+      emergencyContact1Phone:form.emergencyContact1Phone||undefined,
+      emergencyContact1Relation:form.emergencyContact1Relation||undefined,
+      emergencyContact2Name:form.emergencyContact2Name||undefined,
+      emergencyContact2Phone:form.emergencyContact2Phone||undefined,
+      emergencyContact2Relation:form.emergencyContact2Relation||undefined,
+      // Responsaveis
+      guardian1Name:form.guardian1Name||undefined,
+      guardian1Phone:form.guardian1Phone||undefined,
+      guardian1Relation:form.guardian1Relation||undefined,
+      guardian2Name:form.guardian2Name||undefined,
+      guardian2Phone:form.guardian2Phone||undefined,
+      guardian2Relation:form.guardian2Relation||undefined,
+      observations:form.observations||undefined,
+    };
     if (editId!==null) {
       update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     } else {
@@ -127,6 +165,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={function(){setViewStudent(s);}} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg" title="Ver detalhes"><Eye size={15}/></button>
               <button onClick={function(){setInviteStudent(s);}} className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg" title="Convidar responsavel via WhatsApp"><MessageCircle size={15}/></button>
               <button onClick={function(){openEdit(s);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={15}/></button>
               <button onClick={function(){setConfirmDelete(s);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={15}/></button>
@@ -136,6 +175,69 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         {!filtered.length&&!search&&<div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum aluno</p><button className="btn-primary" onClick={openNew}>Adicionar aluno</button></div>}
         {!filtered.length&&search&&<div className="card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
+
+      {/* Modal Visualizar Aluno */}
+      {viewStudent&&(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Aluno</h3>
+              <button onClick={function(){setViewStudent(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-5 space-y-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-700">{viewStudent.name?.[0]}</div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{viewStudent.name}</h2>
+                  <p className="text-sm text-gray-500">{viewStudent.enrollment ? 'Mat. ' + viewStudent.enrollment : ''} {viewStudent.grade ? ' - ' + viewStudent.grade : ''}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Escola</p><p className="text-sm font-medium">{allSchools.find(function(sc:any){return sc.id===viewStudent.schoolId;})?.name || viewStudent.school || '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turno</p><p className="text-sm font-medium">{shiftLabel(viewStudent.shift)}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turma</p><p className="text-sm font-medium">{viewStudent.classRoom || viewStudent.className || '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Nascimento</p><p className="text-sm font-medium">{viewStudent.birthDate ? new Date(viewStudent.birthDate).toLocaleDateString('pt-BR') : '--'}</p></div>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Endereco</p><p className="text-sm font-medium">{viewStudent.address || '--'}</p></div>
+              </div>
+              {(viewStudent.bloodType || viewStudent.allergies || viewStudent.medications || viewStudent.healthNotes || viewStudent.hasSpecialNeeds) && (
+                <div className="p-4 bg-red-50 rounded-xl">
+                  <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1"><Heart size={12}/> SAUDE</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {viewStudent.bloodType && <div><span className="text-gray-400">Tipo Sanguineo:</span> <strong>{viewStudent.bloodType}</strong></div>}
+                    {viewStudent.hasSpecialNeeds && <div><span className="text-gray-400">Necessidades Especiais:</span> <strong>Sim</strong></div>}
+                    {viewStudent.allergies && <div className="col-span-2"><span className="text-gray-400">Alergias:</span> <strong>{viewStudent.allergies}</strong></div>}
+                    {viewStudent.medications && <div className="col-span-2"><span className="text-gray-400">Medicamentos:</span> <strong>{viewStudent.medications}</strong></div>}
+                    {viewStudent.healthNotes && <div className="col-span-2"><span className="text-gray-400">Obs. saude:</span> <strong>{viewStudent.healthNotes}</strong></div>}
+                    {viewStudent.specialNeedsNotes && <div className="col-span-2"><span className="text-gray-400">Detalhes:</span> <strong>{viewStudent.specialNeedsNotes}</strong></div>}
+                  </div>
+                </div>
+              )}
+              {(viewStudent.emergencyContact1Name || viewStudent.emergencyContact2Name) && (
+                <div className="p-4 bg-orange-50 rounded-xl">
+                  <p className="text-xs font-semibold text-orange-700 mb-2 flex items-center gap-1"><AlertTriangle size={12}/> CONTATOS DE EMERGENCIA</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {viewStudent.emergencyContact1Name && <div><p className="text-gray-400">Contato 1</p><p className="font-medium">{viewStudent.emergencyContact1Name}</p><p className="text-gray-500">{viewStudent.emergencyContact1Phone} - {viewStudent.emergencyContact1Relation}</p></div>}
+                    {viewStudent.emergencyContact2Name && <div><p className="text-gray-400">Contato 2</p><p className="font-medium">{viewStudent.emergencyContact2Name}</p><p className="text-gray-500">{viewStudent.emergencyContact2Phone} - {viewStudent.emergencyContact2Relation}</p></div>}
+                  </div>
+                </div>
+              )}
+              {(viewStudent.guardian1Name || viewStudent.guardian2Name) && (
+                <div className="p-4 bg-blue-50 rounded-xl">
+                  <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1"><Users size={12}/> RESPONSAVEIS</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {viewStudent.guardian1Name && <div><p className="font-medium">{viewStudent.guardian1Name}</p><p className="text-gray-500">{viewStudent.guardian1Phone} - {viewStudent.guardian1Relation}</p></div>}
+                    {viewStudent.guardian2Name && <div><p className="font-medium">{viewStudent.guardian2Name}</p><p className="text-gray-500">{viewStudent.guardian2Phone} - {viewStudent.guardian2Relation}</p></div>}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-100">
+              <button onClick={function(){setViewStudent(null);}} className="btn-secondary flex-1">Fechar</button>
+              <button onClick={function(){setViewStudent(null);openEdit(viewStudent);}} className="btn-primary flex-1">Editar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast de convite enviado */}
       {inviteSent && (

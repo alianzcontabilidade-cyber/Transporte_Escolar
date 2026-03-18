@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalities = void 0;
+exports.staffEvaluations = exports.staffAllocations = exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalities = void 0;
+exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -81,6 +82,8 @@ exports.users = (0, mysql_core_1.mysqlTable)("users", {
         "driver", // Motorista
         "monitor", // Monitor do ônibus
         "parent", // Responsável/Pai
+        "teacher", // Professor
+        "coordinator", // Coordenador pedagógico
     ]).default("parent").notNull(),
     // Status
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
@@ -583,3 +586,414 @@ exports.tripsRelations = (0, drizzle_orm_1.relations)(exports.trips, ({ one, man
     studentLogs: many(exports.tripStudentLogs),
     locationHistory: many(exports.locationHistory),
 }));
+// ============================================
+// TABELA: ANOS LETIVOS
+// ============================================
+exports.academicYears = (0, mysql_core_1.mysqlTable)("academic_years", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    year: (0, mysql_core_1.int)("year").notNull(),
+    name: (0, mysql_core_1.varchar)("name", { length: 50 }).notNull(),
+    startDate: (0, mysql_core_1.timestamp)("startDate").notNull(),
+    endDate: (0, mysql_core_1.timestamp)("endDate").notNull(),
+    status: (0, mysql_core_1.mysqlEnum)("academicYearStatus", ["planning", "active", "finished"]).default("planning").notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: SÉRIES / ETAPAS
+// ============================================
+exports.classGrades = (0, mysql_core_1.mysqlTable)("class_grades", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 100 }).notNull(),
+    level: (0, mysql_core_1.mysqlEnum)("gradeLevel", [
+        "creche", "pre_escola", "fundamental_1", "fundamental_2", "medio", "eja", "tecnico"
+    ]).notNull(),
+    orderIndex: (0, mysql_core_1.int)("orderIndex").notNull().default(0),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: TURMAS
+// ============================================
+exports.classes = (0, mysql_core_1.mysqlTable)("classes", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").notNull().references(() => exports.schools.id),
+    academicYearId: (0, mysql_core_1.int)("academicYearId").notNull().references(() => exports.academicYears.id),
+    classGradeId: (0, mysql_core_1.int)("classGradeId").notNull().references(() => exports.classGrades.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 50 }).notNull(),
+    fullName: (0, mysql_core_1.varchar)("fullName", { length: 100 }),
+    shift: (0, mysql_core_1.mysqlEnum)("classShift", ["morning", "afternoon", "evening", "full_time"]).default("morning").notNull(),
+    maxStudents: (0, mysql_core_1.int)("maxStudents").default(30),
+    roomNumber: (0, mysql_core_1.varchar)("roomNumber", { length: 20 }),
+    teacherUserId: (0, mysql_core_1.int)("teacherUserId").references(() => exports.users.id),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: DISCIPLINAS
+// ============================================
+exports.subjects = (0, mysql_core_1.mysqlTable)("subjects", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 100 }).notNull(),
+    code: (0, mysql_core_1.varchar)("code", { length: 20 }),
+    category: (0, mysql_core_1.mysqlEnum)("subjectCategory", [
+        "base_nacional", "parte_diversificada", "eletiva"
+    ]).default("base_nacional"),
+    workloadHours: (0, mysql_core_1.int)("workloadHours"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: DISCIPLINAS POR TURMA
+// ============================================
+exports.classSubjects = (0, mysql_core_1.mysqlTable)("class_subjects", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    subjectId: (0, mysql_core_1.int)("subjectId").notNull().references(() => exports.subjects.id),
+    teacherUserId: (0, mysql_core_1.int)("teacherUserId").references(() => exports.users.id),
+    weeklyHours: (0, mysql_core_1.int)("weeklyHours").default(2),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: MATRÍCULAS
+// ============================================
+exports.enrollments = (0, mysql_core_1.mysqlTable)("enrollments", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    academicYearId: (0, mysql_core_1.int)("academicYearId").notNull().references(() => exports.academicYears.id),
+    enrollmentNumber: (0, mysql_core_1.varchar)("enrollmentNumber", { length: 50 }),
+    enrollmentDate: (0, mysql_core_1.timestamp)("enrollmentDate").defaultNow().notNull(),
+    status: (0, mysql_core_1.mysqlEnum)("enrollmentStatus", [
+        "active", "transferred", "cancelled", "graduated", "retained", "evaded"
+    ]).default("active").notNull(),
+    statusChangedAt: (0, mysql_core_1.timestamp)("statusChangedAt"),
+    statusNotes: (0, mysql_core_1.text)("statusNotes"),
+    transferredFromSchoolId: (0, mysql_core_1.int)("transferredFromSchoolId").references(() => exports.schools.id),
+    transferredToSchoolId: (0, mysql_core_1.int)("transferredToSchoolId").references(() => exports.schools.id),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: PROFESSORES (extensão de users)
+// ============================================
+exports.teachers = (0, mysql_core_1.mysqlTable)("teachers", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    userId: (0, mysql_core_1.int)("userId").notNull().references(() => exports.users.id).unique(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    registrationNumber: (0, mysql_core_1.varchar)("registrationNumber", { length: 50 }),
+    degree: (0, mysql_core_1.varchar)("degree", { length: 100 }),
+    specialization: (0, mysql_core_1.varchar)("specialization", { length: 255 }),
+    hireDate: (0, mysql_core_1.timestamp)("hireDate"),
+    contractType: (0, mysql_core_1.mysqlEnum)("teacherContractType", ["effective", "temporary", "substitute"]).default("effective"),
+    weeklyWorkload: (0, mysql_core_1.int)("weeklyWorkload").default(40),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// ACADEMIC RELATIONS
+// ============================================
+exports.academicYearsRelations = (0, drizzle_orm_1.relations)(exports.academicYears, ({ many }) => ({
+    classes: many(exports.classes),
+    enrollments: many(exports.enrollments),
+}));
+exports.classGradesRelations = (0, drizzle_orm_1.relations)(exports.classGrades, ({ many }) => ({
+    classes: many(exports.classes),
+}));
+exports.classesRelations = (0, drizzle_orm_1.relations)(exports.classes, ({ one, many }) => ({
+    municipality: one(exports.municipalities, { fields: [exports.classes.municipalityId], references: [exports.municipalities.id] }),
+    school: one(exports.schools, { fields: [exports.classes.schoolId], references: [exports.schools.id] }),
+    academicYear: one(exports.academicYears, { fields: [exports.classes.academicYearId], references: [exports.academicYears.id] }),
+    classGrade: one(exports.classGrades, { fields: [exports.classes.classGradeId], references: [exports.classGrades.id] }),
+    teacher: one(exports.users, { fields: [exports.classes.teacherUserId], references: [exports.users.id] }),
+    enrollments: many(exports.enrollments),
+    classSubjects: many(exports.classSubjects),
+}));
+exports.subjectsRelations = (0, drizzle_orm_1.relations)(exports.subjects, ({ many }) => ({
+    classSubjects: many(exports.classSubjects),
+}));
+exports.classSubjectsRelations = (0, drizzle_orm_1.relations)(exports.classSubjects, ({ one }) => ({
+    class: one(exports.classes, { fields: [exports.classSubjects.classId], references: [exports.classes.id] }),
+    subject: one(exports.subjects, { fields: [exports.classSubjects.subjectId], references: [exports.subjects.id] }),
+    teacher: one(exports.users, { fields: [exports.classSubjects.teacherUserId], references: [exports.users.id] }),
+}));
+exports.enrollmentsRelations = (0, drizzle_orm_1.relations)(exports.enrollments, ({ one }) => ({
+    municipality: one(exports.municipalities, { fields: [exports.enrollments.municipalityId], references: [exports.municipalities.id] }),
+    student: one(exports.students, { fields: [exports.enrollments.studentId], references: [exports.students.id] }),
+    class: one(exports.classes, { fields: [exports.enrollments.classId], references: [exports.classes.id] }),
+    academicYear: one(exports.academicYears, { fields: [exports.enrollments.academicYearId], references: [exports.academicYears.id] }),
+}));
+exports.teachersRelations = (0, drizzle_orm_1.relations)(exports.teachers, ({ one }) => ({
+    user: one(exports.users, { fields: [exports.teachers.userId], references: [exports.users.id] }),
+    municipality: one(exports.municipalities, { fields: [exports.teachers.municipalityId], references: [exports.municipalities.id] }),
+}));
+// ============================================
+// FASE 3: DIÁRIO ESCOLAR DIGITAL
+// ============================================
+// Frequência diária
+exports.dailyAttendance = (0, mysql_core_1.mysqlTable)("daily_attendance", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    subjectId: (0, mysql_core_1.int)("subjectId").references(() => exports.subjects.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    date: (0, mysql_core_1.timestamp)("date").notNull(),
+    status: (0, mysql_core_1.mysqlEnum)("attendanceStatus", ["present", "absent", "justified", "late"]).default("present").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    registeredByUserId: (0, mysql_core_1.int)("registeredByUserId").references(() => exports.users.id),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// Avaliações / Provas
+exports.assessments = (0, mysql_core_1.mysqlTable)("assessments", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    subjectId: (0, mysql_core_1.int)("subjectId").notNull().references(() => exports.subjects.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    type: (0, mysql_core_1.mysqlEnum)("assessmentType", ["prova", "trabalho", "seminario", "participacao", "recuperacao"]).default("prova").notNull(),
+    maxScore: (0, mysql_core_1.decimal)("maxScore", { precision: 5, scale: 2 }).default("10.00").notNull(),
+    weight: (0, mysql_core_1.decimal)("weight", { precision: 3, scale: 2 }).default("1.00"),
+    date: (0, mysql_core_1.timestamp)("date"),
+    bimester: (0, mysql_core_1.mysqlEnum)("bimester", ["1", "2", "3", "4"]).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Notas dos alunos
+exports.studentGrades = (0, mysql_core_1.mysqlTable)("student_grades", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    assessmentId: (0, mysql_core_1.int)("assessmentId").notNull().references(() => exports.assessments.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    score: (0, mysql_core_1.decimal)("score", { precision: 5, scale: 2 }),
+    notes: (0, mysql_core_1.text)("notes"),
+    registeredByUserId: (0, mysql_core_1.int)("registeredByUserId").references(() => exports.users.id),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Planejamento de aulas
+exports.lessonPlans = (0, mysql_core_1.mysqlTable)("lesson_plans", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    subjectId: (0, mysql_core_1.int)("subjectId").notNull().references(() => exports.subjects.id),
+    teacherUserId: (0, mysql_core_1.int)("teacherUserId").notNull().references(() => exports.users.id),
+    date: (0, mysql_core_1.timestamp)("date").notNull(),
+    topic: (0, mysql_core_1.varchar)("topic", { length: 255 }).notNull(),
+    content: (0, mysql_core_1.text)("content"),
+    methodology: (0, mysql_core_1.text)("methodology"),
+    resources: (0, mysql_core_1.text)("resources"),
+    bnccCode: (0, mysql_core_1.varchar)("bnccCode", { length: 20 }),
+    bimester: (0, mysql_core_1.mysqlEnum)("lessonBimester", ["1", "2", "3", "4"]).notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// FASE 4: RECURSOS HUMANOS
+// ============================================
+// Cargos
+exports.positions = (0, mysql_core_1.mysqlTable)("positions", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    category: (0, mysql_core_1.mysqlEnum)("positionCategory", ["docente", "administrativo", "operacional", "gestao"]).default("administrativo").notNull(),
+    baseSalary: (0, mysql_core_1.decimal)("baseSalary", { precision: 10, scale: 2 }),
+    description: (0, mysql_core_1.text)("description"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Departamentos / Setores
+exports.departments = (0, mysql_core_1.mysqlTable)("departments", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    headUserId: (0, mysql_core_1.int)("headUserId").references(() => exports.users.id),
+    description: (0, mysql_core_1.text)("description"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Lotações (Staff Allocations)
+exports.staffAllocations = (0, mysql_core_1.mysqlTable)("staff_allocations", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    userId: (0, mysql_core_1.int)("userId").notNull().references(() => exports.users.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    departmentId: (0, mysql_core_1.int)("departmentId").references(() => exports.departments.id),
+    positionId: (0, mysql_core_1.int)("positionId").references(() => exports.positions.id),
+    startDate: (0, mysql_core_1.timestamp)("startDate").notNull(),
+    endDate: (0, mysql_core_1.timestamp)("endDate"),
+    workload: (0, mysql_core_1.int)("workload").default(40),
+    status: (0, mysql_core_1.mysqlEnum)("allocationStatus", ["active", "transferred", "ended"]).default("active").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Avaliações de desempenho
+exports.staffEvaluations = (0, mysql_core_1.mysqlTable)("staff_evaluations", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    userId: (0, mysql_core_1.int)("userId").notNull().references(() => exports.users.id),
+    evaluatorUserId: (0, mysql_core_1.int)("evaluatorUserId").references(() => exports.users.id),
+    period: (0, mysql_core_1.varchar)("period", { length: 50 }).notNull(),
+    overallScore: (0, mysql_core_1.decimal)("overallScore", { precision: 4, scale: 2 }),
+    punctuality: (0, mysql_core_1.int)("punctuality"),
+    productivity: (0, mysql_core_1.int)("productivity"),
+    teamwork: (0, mysql_core_1.int)("teamwork"),
+    initiative: (0, mysql_core_1.int)("initiative"),
+    communication: (0, mysql_core_1.int)("communication"),
+    strengths: (0, mysql_core_1.text)("strengths"),
+    improvements: (0, mysql_core_1.text)("improvements"),
+    goals: (0, mysql_core_1.text)("goals"),
+    status: (0, mysql_core_1.mysqlEnum)("evaluationStatus", ["draft", "submitted", "reviewed"]).default("draft").notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// FASE 5: FINANCEIRO
+// ============================================
+exports.financialAccounts = (0, mysql_core_1.mysqlTable)("financial_accounts", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    type: (0, mysql_core_1.mysqlEnum)("accountType", ["pdde", "proprio", "estadual", "federal", "outro"]).default("proprio").notNull(),
+    bankName: (0, mysql_core_1.varchar)("bankName", { length: 100 }),
+    agency: (0, mysql_core_1.varchar)("agency", { length: 20 }),
+    accountNumber: (0, mysql_core_1.varchar)("accountNumber", { length: 30 }),
+    balance: (0, mysql_core_1.decimal)("balance", { precision: 12, scale: 2 }).default("0.00"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+exports.financialTransactions = (0, mysql_core_1.mysqlTable)("financial_transactions", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    accountId: (0, mysql_core_1.int)("accountId").notNull().references(() => exports.financialAccounts.id),
+    type: (0, mysql_core_1.mysqlEnum)("transactionType", ["receita", "despesa"]).notNull(),
+    category: (0, mysql_core_1.varchar)("category", { length: 100 }).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    value: (0, mysql_core_1.decimal)("value", { precision: 12, scale: 2 }).notNull(),
+    date: (0, mysql_core_1.timestamp)("date").notNull(),
+    documentNumber: (0, mysql_core_1.varchar)("documentNumber", { length: 50 }),
+    supplier: (0, mysql_core_1.varchar)("supplier", { length: 255 }),
+    status: (0, mysql_core_1.mysqlEnum)("transactionStatus", ["pending", "confirmed", "cancelled"]).default("confirmed").notNull(),
+    registeredByUserId: (0, mysql_core_1.int)("registeredByUserId").references(() => exports.users.id),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// FASE 6: OPERACIONAL
+// ============================================
+// Merenda Escolar - Cardápios
+exports.mealMenus = (0, mysql_core_1.mysqlTable)("meal_menus", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    date: (0, mysql_core_1.timestamp)("date").notNull(),
+    mealType: (0, mysql_core_1.mysqlEnum)("mealType", ["breakfast", "lunch", "snack", "dinner"]).default("lunch").notNull(),
+    description: (0, mysql_core_1.text)("description").notNull(),
+    calories: (0, mysql_core_1.int)("calories"),
+    servings: (0, mysql_core_1.int)("servings"),
+    cost: (0, mysql_core_1.decimal)("cost", { precision: 8, scale: 2 }),
+    notes: (0, mysql_core_1.text)("notes"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Biblioteca - Acervo
+exports.libraryBooks = (0, mysql_core_1.mysqlTable)("library_books", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    author: (0, mysql_core_1.varchar)("author", { length: 255 }),
+    isbn: (0, mysql_core_1.varchar)("isbn", { length: 20 }),
+    category: (0, mysql_core_1.varchar)("category", { length: 100 }),
+    publisher: (0, mysql_core_1.varchar)("publisher", { length: 255 }),
+    year: (0, mysql_core_1.int)("year"),
+    quantity: (0, mysql_core_1.int)("quantity").default(1),
+    available: (0, mysql_core_1.int)("available").default(1),
+    location: (0, mysql_core_1.varchar)("location", { length: 100 }),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Biblioteca - Empréstimos
+exports.libraryLoans = (0, mysql_core_1.mysqlTable)("library_loans", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    bookId: (0, mysql_core_1.int)("bookId").notNull().references(() => exports.libraryBooks.id),
+    userId: (0, mysql_core_1.int)("userId").notNull().references(() => exports.users.id),
+    studentId: (0, mysql_core_1.int)("studentId").references(() => exports.students.id),
+    loanDate: (0, mysql_core_1.timestamp)("loanDate").defaultNow().notNull(),
+    dueDate: (0, mysql_core_1.timestamp)("dueDate").notNull(),
+    returnDate: (0, mysql_core_1.timestamp)("returnDate"),
+    status: (0, mysql_core_1.mysqlEnum)("loanStatus", ["active", "returned", "overdue", "lost"]).default("active").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// Patrimônio
+exports.assets = (0, mysql_core_1.mysqlTable)("assets", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    code: (0, mysql_core_1.varchar)("code", { length: 50 }),
+    category: (0, mysql_core_1.mysqlEnum)("assetCategory", ["movel", "imovel", "equipamento", "veiculo", "tecnologia", "outro"]).default("equipamento").notNull(),
+    acquisitionDate: (0, mysql_core_1.timestamp)("acquisitionDate"),
+    acquisitionValue: (0, mysql_core_1.decimal)("acquisitionValue", { precision: 12, scale: 2 }),
+    currentValue: (0, mysql_core_1.decimal)("currentValue", { precision: 12, scale: 2 }),
+    location: (0, mysql_core_1.varchar)("location", { length: 255 }),
+    condition: (0, mysql_core_1.mysqlEnum)("assetCondition", ["otimo", "bom", "regular", "ruim", "inservivel"]).default("bom"),
+    responsibleUserId: (0, mysql_core_1.int)("responsibleUserId").references(() => exports.users.id),
+    notes: (0, mysql_core_1.text)("notes"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// Estoque
+exports.inventoryItems = (0, mysql_core_1.mysqlTable)("inventory_items", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    category: (0, mysql_core_1.varchar)("category", { length: 100 }),
+    unit: (0, mysql_core_1.varchar)("unit", { length: 20 }).default("un"),
+    currentStock: (0, mysql_core_1.int)("currentStock").default(0),
+    minStock: (0, mysql_core_1.int)("minStock").default(5),
+    maxStock: (0, mysql_core_1.int)("maxStock"),
+    unitCost: (0, mysql_core_1.decimal)("unitCost", { precision: 10, scale: 2 }),
+    location: (0, mysql_core_1.varchar)("location", { length: 100 }),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+exports.inventoryMovements = (0, mysql_core_1.mysqlTable)("inventory_movements", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    itemId: (0, mysql_core_1.int)("itemId").notNull().references(() => exports.inventoryItems.id),
+    type: (0, mysql_core_1.mysqlEnum)("movementType", ["entrada", "saida", "ajuste"]).notNull(),
+    quantity: (0, mysql_core_1.int)("quantity").notNull(),
+    date: (0, mysql_core_1.timestamp)("date").defaultNow().notNull(),
+    documentNumber: (0, mysql_core_1.varchar)("documentNumber", { length: 50 }),
+    supplier: (0, mysql_core_1.varchar)("supplier", { length: 255 }),
+    notes: (0, mysql_core_1.text)("notes"),
+    registeredByUserId: (0, mysql_core_1.int)("registeredByUserId").references(() => exports.users.id),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});

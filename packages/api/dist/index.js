@@ -52,60 +52,47 @@ dotenv.config();
 // ============================================
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
+// CORS whitelist - allow same-origin (frontend served by same server) + configured origins
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+    .split(',')
+    .map(o => o.trim());
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (same-origin, mobile apps, curl)
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))
+            return callback(null, true);
+        // In production, allow same domain
+        if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN))
+            return callback(null, true);
+        // Allow any railway.app domain
+        if (origin.includes('.railway.app') || origin.includes('.up.railway.app'))
+            return callback(null, true);
+        callback(null, true); // Allow all for now - tighten in production
+    },
+    credentials: true,
+};
 // Socket.IO
 const io = new socket_io_1.Server(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST'] },
+    cors: { origin: corsOptions.origin, methods: ['GET', 'POST'], credentials: true },
     transports: ['websocket', 'polling'],
 });
 // Compartilhar instância do Socket.IO com os routers
 (0, socketInstance_1.setSocketIO)(io);
 // CORS
-app.use((0, cors_1.default)({ origin: '*', credentials: true }));
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
+// Request timeout (30 seconds)
+app.use((_req, res, next) => {
+    res.setTimeout(30000, () => {
+        res.status(408).json({ error: 'Request timeout' });
+    });
+    next();
+});
 // Health check
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', version: '2.1.0', timestamp: new Date().toISOString() });
-});
-// Endpoint temporário para diagnosticar e corrigir banco
-app.get('/api/fix-db', async (_req, res) => {
-    try {
-        const { db } = require('./db/index');
-        const { municipalities, users } = require('./db/schema');
-        const { eq, sql } = require('drizzle-orm');
-        const muns = await db.select({ id: municipalities.id, name: municipalities.name }).from(municipalities);
-        const allUsers = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, municipalityId: users.municipalityId }).from(users);
-        const result = { municipalities: muns, users: allUsers, actions: [] };
-        if (muns.length === 0) {
-            // Criar município padrão
-            const [newMun] = await db.insert(municipalities).values({ name: 'Prefeitura Municipal', state: 'TO', city: 'Palmas' }).$returningId();
-            result.actions.push('Municipio criado com ID: ' + newMun.id);
-            // Corrigir todos os usuarios
-            await db.execute(sql `UPDATE users SET municipalityId = ${newMun.id}`);
-            result.actions.push('Todos os usuarios atualizados para municipalityId: ' + newMun.id);
-        }
-        else {
-            const validIds = muns.map((m) => m.id);
-            const invalidUsers = allUsers.filter((u) => !validIds.includes(u.municipalityId));
-            if (invalidUsers.length > 0) {
-                const targetMunId = muns[0].id;
-                for (const u of invalidUsers) {
-                    await db.execute(sql `UPDATE users SET municipalityId = ${targetMunId} WHERE id = ${u.id}`);
-                }
-                result.actions.push('Corrigidos ' + invalidUsers.length + ' usuarios para municipalityId: ' + targetMunId);
-                result.invalidUsers = invalidUsers;
-            }
-            else {
-                result.actions.push('Nenhum problema encontrado - todos os usuarios tem municipalityId valido');
-            }
-        }
-        // Estado final
-        const finalUsers = await db.select({ id: users.id, name: users.name, municipalityId: users.municipalityId }).from(users);
-        result.finalState = finalUsers;
-        res.json(result);
-    }
-    catch (err) {
-        res.status(500).json({ error: err.message });
-    }
 });
 // tRPC
 app.use('/api/trpc', trpcExpress.createExpressMiddleware({
@@ -158,7 +145,7 @@ app.get('*', (_req, res) => {
 // ============================================
 const PORT = parseInt(process.env.PORT || '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 TransEscolar API v2.2.0 rodando na porta ${PORT}`);
+    console.log(`🚀 NetEscol API v2.2.0 rodando na porta ${PORT}`);
     console.log(`📡 Socket.IO ativo`);
     console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });

@@ -74,10 +74,19 @@ io.on('connection', (socket) => {
 });
 
 // Serve frontend estático (produção)
-const frontendPath = path.resolve(__dirname, '../../apps/web/dist');
-app.use(express.static(frontendPath));
+// Em produção (Railway), o frontend fica em /app/public
+// Em desenvolvimento, fica em ../../apps/web/dist
+const frontendPath = path.resolve(__dirname, '../public/index.html')
+  ? path.resolve(__dirname, '../public')
+  : path.resolve(__dirname, '../../apps/web/dist');
+// Fallback: tentar ambos os caminhos
+const fs = require('fs');
+const finalFrontendPath = fs.existsSync(path.resolve(__dirname, '../public/index.html'))
+  ? path.resolve(__dirname, '../public')
+  : path.resolve(__dirname, '../../apps/web/dist');
+app.use(express.static(finalFrontendPath));
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.sendFile(path.join(finalFrontendPath, 'index.html'));
 });
 
 // ============================================
@@ -88,5 +97,5 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 TransEscolar API rodando na porta ${PORT}`);
   console.log(`📡 Socket.IO ativo`);
-  console.log(`🌐 Frontend servido de: ${frontendPath}`);
+  console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });

@@ -228,20 +228,20 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       allergies:form.allergies||undefined,
       medications:form.medications||undefined,
       healthNotes:form.healthNotes||undefined,
-      // Contatos emergencia
-      emergencyContact1Name:form.emergencyContact1Name||undefined,
-      emergencyContact1Phone:form.emergencyContact1Phone||undefined,
-      emergencyContact1Relation:form.emergencyContact1Relation||undefined,
-      emergencyContact2Name:form.emergencyContact2Name||undefined,
-      emergencyContact2Phone:form.emergencyContact2Phone||undefined,
-      emergencyContact2Relation:form.emergencyContact2Relation||undefined,
-      // Responsaveis
-      guardian1Name:form.guardian1Name||undefined,
-      guardian1Phone:form.guardian1Phone||undefined,
-      guardian1Relation:form.guardian1Relation||undefined,
-      guardian2Name:form.guardian2Name||undefined,
-      guardian2Phone:form.guardian2Phone||undefined,
-      guardian2Relation:form.guardian2Relation||undefined,
+      // Contatos emergencia + Responsaveis (unificados)
+      emergencyContact1Name:form.emergencyContact1Name||form.guardian1Name||undefined,
+      emergencyContact1Phone:form.emergencyContact1Phone||form.guardian1Phone||undefined,
+      emergencyContact1Relation:form.emergencyContact1Relation||form.guardian1Relation||undefined,
+      emergencyContact2Name:form.emergencyContact2Name||form.guardian2Name||undefined,
+      emergencyContact2Phone:form.emergencyContact2Phone||form.guardian2Phone||undefined,
+      emergencyContact2Relation:form.emergencyContact2Relation||form.guardian2Relation||undefined,
+      // Tambem enviar como guardian para compatibilidade
+      guardian1Name:form.guardian1Name||form.emergencyContact1Name||undefined,
+      guardian1Phone:form.guardian1Phone||form.emergencyContact1Phone||undefined,
+      guardian1Relation:form.guardian1Relation||form.emergencyContact1Relation||undefined,
+      guardian2Name:form.guardian2Name||form.emergencyContact2Name||undefined,
+      guardian2Phone:form.guardian2Phone||form.emergencyContact2Phone||undefined,
+      guardian2Relation:form.guardian2Relation||form.emergencyContact2Relation||undefined,
       observations:form.observations||undefined,
     };
     if (editId!==null) {

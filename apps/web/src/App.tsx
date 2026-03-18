@@ -22,6 +22,9 @@ import AIRoutesPage from './pages/AIRoutesPage';
 import PredictivePage from './pages/PredictivePage';
 import TrackingPage from './pages/TrackingPage';
 import TrackMapPage from './pages/TrackMapPage';
+import AcademicYearsPage from './pages/AcademicYearsPage';
+import ClassGradesPage from './pages/ClassGradesPage';
+import SubjectsPage from './pages/SubjectsPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -73,6 +76,11 @@ export default function App() {
         <Route path="ia-rotas" element={<Guard roles={ADMIN}><AIRoutesPage /></Guard>} />
         <Route path="manutencao-preditiva" element={<Guard roles={ADMIN}><PredictivePage /></Guard>} />
         <Route path="configuracoes" element={<Guard roles={ADMIN}><SettingsPage /></Guard>} />
+
+        {/* Módulo Acadêmico */}
+        <Route path="anos-letivos" element={<Guard roles={ADMIN_SEC}><AcademicYearsPage /></Guard>} />
+        <Route path="series" element={<Guard roles={ADMIN_SEC}><ClassGradesPage /></Guard>} />
+        <Route path="disciplinas" element={<Guard roles={ADMIN_SEC}><SubjectsPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

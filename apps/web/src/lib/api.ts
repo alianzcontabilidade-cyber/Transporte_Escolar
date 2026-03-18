@@ -199,4 +199,48 @@ export const api = {
     getHistory: (input: any) => call('location.getHistory', input, 'query'),
   },
 
+  academicYears: {
+    list: (input: any) => call('academicYears.list', input, 'query'),
+    create: (input: any) => call('academicYears.create', input, 'mutation'),
+    update: (input: any) => call('academicYears.update', input, 'mutation'),
+    delete: (input: any) => call('academicYears.delete', input, 'mutation'),
+  },
+  classGrades: {
+    list: (input: any) => call('classGrades.list', input, 'query'),
+    create: (input: any) => call('classGrades.create', input, 'mutation'),
+    update: (input: any) => call('classGrades.update', input, 'mutation'),
+    delete: (input: any) => call('classGrades.delete', input, 'mutation'),
+  },
+  subjects: {
+    list: (input: any) => call('subjects.list', input, 'query'),
+    create: (input: any) => call('subjects.create', input, 'mutation'),
+    update: (input: any) => call('subjects.update', input, 'mutation'),
+    delete: (input: any) => call('subjects.delete', input, 'mutation'),
+  },
+  classes: {
+    list: (input: any) => call('classes.list', input, 'query'),
+    create: (input: any) => call('classes.create', input, 'mutation'),
+    update: (input: any) => call('classes.update', input, 'mutation'),
+    delete: (input: any) => call('classes.delete', input, 'mutation'),
+  },
+  enrollments: {
+    list: (input: any) => call('enrollments.list', input, 'query'),
+    create: (input: any) => call('enrollments.create', input, 'mutation'),
+    bulkCreate: (input: any) => call('enrollments.bulkCreate', input, 'mutation'),
+    updateStatus: (input: any) => call('enrollments.updateStatus', input, 'mutation'),
+    delete: (input: any) => call('enrollments.delete', input, 'mutation'),
+  },
+  teachers: {
+    list: (input: any) => call('teachers.list', input, 'query'),
+    create: (input: any) => call('teachers.create', input, 'mutation'),
+    update: (input: any) => call('teachers.update', input, 'mutation'),
+    delete: (input: any) => call('teachers.delete', input, 'mutation'),
+  },
+  classSubjects: {
+    list: (input: any) => call('classSubjects.list', input, 'query'),
+    assign: (input: any) => call('classSubjects.assign', input, 'mutation'),
+    update: (input: any) => call('classSubjects.update', input, 'mutation'),
+    remove: (input: any) => call('classSubjects.remove', input, 'mutation'),
+  },
+
 };

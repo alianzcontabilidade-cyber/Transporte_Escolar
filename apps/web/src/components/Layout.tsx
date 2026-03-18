@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Map, Route, Users, Bus, School, ClipboardList,
   BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
   Bell, Shield, Brain, Wrench, UserCheck, ChevronDown, Navigation,
-  Locate, MapPinned, Download, Volume2
+  Locate, MapPinned, Download, Volume2, Calendar, BookOpen
 } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -78,6 +78,11 @@ export default function Layout() {
       { to: '/veiculos', icon: Bus, text: 'Veículos' },
       { to: '/escolas', icon: School, text: 'Escolas' },
       { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
+    ]},
+    { label: 'ACADÊMICO', items: [
+      { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
+      { to: '/series', icon: BookOpen, text: 'Séries' },
+      { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
     ]},
     { label: 'GESTÃO', items: [
       { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },

@@ -242,5 +242,50 @@ export const api = {
     update: (input: any) => call('classSubjects.update', input, 'mutation'),
     remove: (input: any) => call('classSubjects.remove', input, 'mutation'),
   },
+  diaryAttendance: {
+    register: (input: any) => call('diaryAttendance.register', input, 'mutation'),
+    listByClassDate: (input: any) => call('diaryAttendance.listByClassDate', input, 'query'),
+    studentSummary: (input: any) => call('diaryAttendance.studentSummary', input, 'query'),
+  },
+  assessments: {
+    list: (input: any) => call('assessments.list', input, 'query'),
+    create: (input: any) => call('assessments.create', input, 'mutation'),
+    update: (input: any) => call('assessments.update', input, 'mutation'),
+    delete: (input: any) => call('assessments.delete', input, 'mutation'),
+  },
+  studentGrades: {
+    listByAssessment: (input: any) => call('studentGrades.listByAssessment', input, 'query'),
+    registerBatch: (input: any) => call('studentGrades.registerBatch', input, 'mutation'),
+    reportCard: (input: any) => call('studentGrades.reportCard', input, 'query'),
+  },
+  lessonPlans: {
+    list: (input: any) => call('lessonPlans.list', input, 'query'),
+    create: (input: any) => call('lessonPlans.create', input, 'mutation'),
+    update: (input: any) => call('lessonPlans.update', input, 'mutation'),
+    delete: (input: any) => call('lessonPlans.delete', input, 'mutation'),
+  },
+  positions: {
+    list: (input: any) => call('positions.list', input, 'query'),
+    create: (input: any) => call('positions.create', input, 'mutation'),
+    update: (input: any) => call('positions.update', input, 'mutation'),
+    delete: (input: any) => call('positions.delete', input, 'mutation'),
+  },
+  departments: {
+    list: (input: any) => call('departments.list', input, 'query'),
+    create: (input: any) => call('departments.create', input, 'mutation'),
+    update: (input: any) => call('departments.update', input, 'mutation'),
+    delete: (input: any) => call('departments.delete', input, 'mutation'),
+  },
+  staffAllocations: {
+    list: (input: any) => call('staffAllocations.list', input, 'query'),
+    create: (input: any) => call('staffAllocations.create', input, 'mutation'),
+    update: (input: any) => call('staffAllocations.update', input, 'mutation'),
+    delete: (input: any) => call('staffAllocations.delete', input, 'mutation'),
+  },
+  staffEvaluations: {
+    list: (input: any) => call('staffEvaluations.list', input, 'query'),
+    create: (input: any) => call('staffEvaluations.create', input, 'mutation'),
+    delete: (input: any) => call('staffEvaluations.delete', input, 'mutation'),
+  },
 
 };

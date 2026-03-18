@@ -28,6 +28,8 @@ import SubjectsPage from './pages/SubjectsPage';
 import ClassesPage from './pages/ClassesPage';
 import TeachersPage from './pages/TeachersPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
+import DiaryPage from './pages/DiaryPage';
+import HRPage from './pages/HRPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -87,6 +89,11 @@ export default function App() {
         <Route path="turmas" element={<Guard roles={ADMIN_SEC}><ClassesPage /></Guard>} />
         <Route path="professores" element={<Guard roles={ADMIN_SEC}><TeachersPage /></Guard>} />
         <Route path="matriculas" element={<Guard roles={ADMIN_SEC}><EnrollmentsPage /></Guard>} />
+
+        {/* Diário Escolar */}
+        <Route path="diario-escolar" element={<Guard roles={ADMIN_SEC}><DiaryPage /></Guard>} />
+        {/* Recursos Humanos */}
+        <Route path="recursos-humanos" element={<Guard roles={ADMIN}><HRPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

@@ -7,7 +7,9 @@ import {
   guardians, routes, stops, stopStudents, trips, tripStopLogs,
   tripStudentLogs, notifications, locationHistory,
   monitorStaff, contracts, maintenanceRecords,
-  academicYears, classGrades, classes, subjects, classSubjects, enrollments, teachers
+  academicYears, classGrades, classes, subjects, classSubjects, enrollments, teachers,
+  dailyAttendance, assessments, studentGrades, lessonPlans,
+  positions, departments, staffAllocations, staffEvaluations
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -2614,6 +2616,414 @@ export const classSubjectsRouter = t.router({
 });
 
 // ============================================
+// DIARY ROUTER (DIÁRIO ESCOLAR)
+// ============================================
+
+export const diaryAttendanceRouter = t.router({
+  // Registrar frequência de uma turma inteira
+  register: academicProcedure
+    .input(z.object({
+      classId: z.number(),
+      subjectId: z.number().optional(),
+      date: z.string(),
+      records: z.array(z.object({
+        studentId: z.number(),
+        status: z.enum(['present', 'absent', 'justified', 'late']),
+        notes: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const dateObj = new Date(input.date);
+      // Delete existing records for this class/date/subject to allow re-registration
+      const conditions = [eq(dailyAttendance.classId, input.classId), eq(dailyAttendance.date, dateObj)];
+      if (input.subjectId) conditions.push(eq(dailyAttendance.subjectId, input.subjectId));
+      await db.delete(dailyAttendance).where(and(...conditions));
+
+      for (const record of input.records) {
+        await db.insert(dailyAttendance).values({
+          classId: input.classId,
+          subjectId: input.subjectId,
+          studentId: record.studentId,
+          date: dateObj,
+          status: record.status,
+          notes: record.notes,
+          registeredByUserId: ctx.userId,
+        });
+      }
+      return { success: true, count: input.records.length };
+    }),
+
+  // Listar frequência por turma e data
+  listByClassDate: academicProcedure
+    .input(z.object({ classId: z.number(), date: z.string(), subjectId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(dailyAttendance.classId, input.classId), eq(dailyAttendance.date, new Date(input.date))];
+      if (input.subjectId) conditions.push(eq(dailyAttendance.subjectId, input.subjectId));
+      return db.select({
+        id: dailyAttendance.id,
+        studentId: dailyAttendance.studentId,
+        status: dailyAttendance.status,
+        notes: dailyAttendance.notes,
+        studentName: students.name,
+      })
+      .from(dailyAttendance)
+      .leftJoin(students, eq(dailyAttendance.studentId, students.id))
+      .where(and(...conditions));
+    }),
+
+  // Resumo de frequência por aluno em um período
+  studentSummary: academicProcedure
+    .input(z.object({ classId: z.number(), startDate: z.string(), endDate: z.string() }))
+    .query(async ({ input }) => {
+      const records = await db.select({
+        studentId: dailyAttendance.studentId,
+        status: dailyAttendance.status,
+        studentName: students.name,
+      })
+      .from(dailyAttendance)
+      .leftJoin(students, eq(dailyAttendance.studentId, students.id))
+      .where(and(
+        eq(dailyAttendance.classId, input.classId),
+        gte(dailyAttendance.date, new Date(input.startDate)),
+        lte(dailyAttendance.date, new Date(input.endDate)),
+      ));
+
+      const summary: any = {};
+      records.forEach((r: any) => {
+        if (!summary[r.studentId]) summary[r.studentId] = { studentId: r.studentId, studentName: r.studentName, present: 0, absent: 0, justified: 0, late: 0, total: 0 };
+        summary[r.studentId][r.status]++;
+        summary[r.studentId].total++;
+      });
+      return Object.values(summary);
+    }),
+});
+
+export const assessmentsRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ municipalityId: z.number(), classId: z.number().optional(), subjectId: z.number().optional(), bimester: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(assessments.municipalityId, input.municipalityId), eq(assessments.isActive, true)];
+      if (input.classId) conditions.push(eq(assessments.classId, input.classId));
+      if (input.subjectId) conditions.push(eq(assessments.subjectId, input.subjectId));
+      if (input.bimester) conditions.push(eq(assessments.bimester, input.bimester as any));
+      return db.select({
+        id: assessments.id, classId: assessments.classId, subjectId: assessments.subjectId,
+        name: assessments.name, type: assessments.type, maxScore: assessments.maxScore,
+        weight: assessments.weight, date: assessments.date, bimester: assessments.bimester,
+        description: assessments.description, subjectName: subjects.name,
+      })
+      .from(assessments)
+      .leftJoin(subjects, eq(assessments.subjectId, subjects.id))
+      .where(and(...conditions))
+      .orderBy(desc(assessments.date));
+    }),
+
+  create: academicProcedure
+    .input(z.object({
+      municipalityId: z.number(), classId: z.number(), subjectId: z.number(),
+      name: z.string().min(2), type: z.enum(['prova', 'trabalho', 'seminario', 'participacao', 'recuperacao']).optional(),
+      maxScore: z.number().optional(), weight: z.number().optional(),
+      date: z.string().optional(), bimester: z.enum(['1', '2', '3', '4']),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { date, maxScore, weight, ...rest } = input;
+      const [result] = await db.insert(assessments).values({
+        ...rest, date: date ? new Date(date) : undefined,
+        maxScore: maxScore?.toString() || '10.00', weight: weight?.toString() || '1.00',
+      }).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: academicProcedure
+    .input(z.object({
+      id: z.number(), name: z.string().optional(), type: z.enum(['prova', 'trabalho', 'seminario', 'participacao', 'recuperacao']).optional(),
+      maxScore: z.number().optional(), weight: z.number().optional(), date: z.string().optional(),
+      bimester: z.enum(['1', '2', '3', '4']).optional(), description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, date, maxScore, weight, ...data } = input;
+      const ud: any = { ...data };
+      if (date) ud.date = new Date(date);
+      if (maxScore !== undefined) ud.maxScore = maxScore.toString();
+      if (weight !== undefined) ud.weight = weight.toString();
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
+      if (Object.keys(ud).length > 0) await db.update(assessments).set(ud).where(eq(assessments.id, id));
+      return { success: true };
+    }),
+
+  delete: academicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(assessments).set({ isActive: false }).where(eq(assessments.id, input.id));
+      return { success: true };
+    }),
+});
+
+export const studentGradesRouter = t.router({
+  // Listar notas por avaliação
+  listByAssessment: academicProcedure
+    .input(z.object({ assessmentId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select({
+        id: studentGrades.id, studentId: studentGrades.studentId,
+        score: studentGrades.score, notes: studentGrades.notes,
+        studentName: students.name,
+      })
+      .from(studentGrades)
+      .leftJoin(students, eq(studentGrades.studentId, students.id))
+      .where(eq(studentGrades.assessmentId, input.assessmentId));
+    }),
+
+  // Registrar/atualizar notas em lote
+  registerBatch: academicProcedure
+    .input(z.object({
+      assessmentId: z.number(),
+      grades: z.array(z.object({
+        studentId: z.number(),
+        score: z.number().nullable(),
+        notes: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      for (const grade of input.grades) {
+        const existing = await db.select().from(studentGrades)
+          .where(and(eq(studentGrades.assessmentId, input.assessmentId), eq(studentGrades.studentId, grade.studentId))).limit(1);
+        if (existing.length > 0) {
+          await db.update(studentGrades).set({ score: grade.score?.toString(), notes: grade.notes, registeredByUserId: ctx.userId })
+            .where(eq(studentGrades.id, existing[0].id));
+        } else {
+          await db.insert(studentGrades).values({
+            assessmentId: input.assessmentId, studentId: grade.studentId,
+            score: grade.score?.toString(), notes: grade.notes, registeredByUserId: ctx.userId,
+          });
+        }
+      }
+      return { success: true };
+    }),
+
+  // Boletim: notas de um aluno em uma turma
+  reportCard: academicProcedure
+    .input(z.object({ classId: z.number(), studentId: z.number() }))
+    .query(async ({ input }) => {
+      const classAssessments = await db.select().from(assessments)
+        .where(and(eq(assessments.classId, input.classId), eq(assessments.isActive, true)));
+
+      const grades = await db.select().from(studentGrades)
+        .where(and(
+          inArray(studentGrades.assessmentId, classAssessments.map(a => a.id)),
+          eq(studentGrades.studentId, input.studentId)
+        ));
+
+      // Group by subject and bimester
+      const report: any = {};
+      for (const assessment of classAssessments) {
+        const subjectId = assessment.subjectId;
+        if (!report[subjectId]) {
+          const [subj] = await db.select({ name: subjects.name }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
+          report[subjectId] = { subjectId, subjectName: subj?.name || '', bimesters: { '1': [], '2': [], '3': [], '4': [] } };
+        }
+        const grade = grades.find(g => g.assessmentId === assessment.id);
+        report[subjectId].bimesters[assessment.bimester].push({
+          assessmentName: assessment.name, type: assessment.type,
+          maxScore: parseFloat(assessment.maxScore as any || '10'),
+          weight: parseFloat(assessment.weight as any || '1'),
+          score: grade ? parseFloat(grade.score as any || '0') : null,
+        });
+      }
+      return Object.values(report);
+    }),
+});
+
+export const lessonPlansRouter = t.router({
+  list: academicProcedure
+    .input(z.object({ municipalityId: z.number(), classId: z.number().optional(), subjectId: z.number().optional(), bimester: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(lessonPlans.municipalityId, input.municipalityId), eq(lessonPlans.isActive, true)];
+      if (input.classId) conditions.push(eq(lessonPlans.classId, input.classId));
+      if (input.subjectId) conditions.push(eq(lessonPlans.subjectId, input.subjectId));
+      if (input.bimester) conditions.push(eq(lessonPlans.bimester, input.bimester as any));
+      return db.select({
+        id: lessonPlans.id, classId: lessonPlans.classId, subjectId: lessonPlans.subjectId,
+        date: lessonPlans.date, topic: lessonPlans.topic, content: lessonPlans.content,
+        methodology: lessonPlans.methodology, resources: lessonPlans.resources,
+        bnccCode: lessonPlans.bnccCode, bimester: lessonPlans.bimester,
+        subjectName: subjects.name, teacherName: users.name,
+      })
+      .from(lessonPlans)
+      .leftJoin(subjects, eq(lessonPlans.subjectId, subjects.id))
+      .leftJoin(users, eq(lessonPlans.teacherUserId, users.id))
+      .where(and(...conditions))
+      .orderBy(desc(lessonPlans.date));
+    }),
+
+  create: academicProcedure
+    .input(z.object({
+      municipalityId: z.number(), classId: z.number(), subjectId: z.number(),
+      date: z.string(), topic: z.string().min(2),
+      content: z.string().optional(), methodology: z.string().optional(),
+      resources: z.string().optional(), bnccCode: z.string().optional(),
+      bimester: z.enum(['1', '2', '3', '4']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { date, ...rest } = input;
+      const [result] = await db.insert(lessonPlans).values({
+        ...rest, date: new Date(date), teacherUserId: ctx.userId!,
+      }).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: academicProcedure
+    .input(z.object({
+      id: z.number(), topic: z.string().optional(), content: z.string().optional(),
+      methodology: z.string().optional(), resources: z.string().optional(),
+      bnccCode: z.string().optional(), date: z.string().optional(),
+      bimester: z.enum(['1', '2', '3', '4']).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, date, ...data } = input;
+      const ud: any = { ...data };
+      if (date) ud.date = new Date(date);
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
+      if (Object.keys(ud).length > 0) await db.update(lessonPlans).set(ud).where(eq(lessonPlans.id, id));
+      return { success: true };
+    }),
+
+  delete: academicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(lessonPlans).set({ isActive: false }).where(eq(lessonPlans.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// HR ROUTER (RECURSOS HUMANOS)
+// ============================================
+
+export const positionsRouter = t.router({
+  list: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(positions)
+        .where(and(eq(positions.municipalityId, input.municipalityId), eq(positions.isActive, true)))
+        .orderBy(positions.name);
+    }),
+  create: adminProcedure
+    .input(z.object({ municipalityId: z.number(), name: z.string().min(2), category: z.enum(['docente', 'administrativo', 'operacional', 'gestao']).optional(), baseSalary: z.number().optional(), description: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const { baseSalary, ...rest } = input;
+      const [result] = await db.insert(positions).values({ ...rest, baseSalary: baseSalary?.toString() }).$returningId();
+      return { success: true, id: result.id };
+    }),
+  update: adminProcedure
+    .input(z.object({ id: z.number(), name: z.string().optional(), category: z.enum(['docente', 'administrativo', 'operacional', 'gestao']).optional(), baseSalary: z.number().optional(), description: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const { id, baseSalary, ...data } = input;
+      const ud: any = { ...data };
+      if (baseSalary !== undefined) ud.baseSalary = baseSalary.toString();
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
+      if (Object.keys(ud).length > 0) await db.update(positions).set(ud).where(eq(positions.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { await db.update(positions).set({ isActive: false }).where(eq(positions.id, input.id)); return { success: true }; }),
+});
+
+export const departmentsRouter = t.router({
+  list: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select({ id: departments.id, municipalityId: departments.municipalityId, name: departments.name, headUserId: departments.headUserId, description: departments.description, headName: users.name })
+        .from(departments)
+        .leftJoin(users, eq(departments.headUserId, users.id))
+        .where(and(eq(departments.municipalityId, input.municipalityId), eq(departments.isActive, true)))
+        .orderBy(departments.name);
+    }),
+  create: adminProcedure
+    .input(z.object({ municipalityId: z.number(), name: z.string().min(2), headUserId: z.number().optional(), description: z.string().optional() }))
+    .mutation(async ({ input }) => { const [result] = await db.insert(departments).values(input).$returningId(); return { success: true, id: result.id }; }),
+  update: adminProcedure
+    .input(z.object({ id: z.number(), name: z.string().optional(), headUserId: z.number().optional(), description: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(departments).set(ud).where(eq(departments.id, id)); return { success: true }; }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { await db.update(departments).set({ isActive: false }).where(eq(departments.id, input.id)); return { success: true }; }),
+});
+
+export const staffAllocationsRouter = t.router({
+  list: adminProcedure
+    .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional(), departmentId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(staffAllocations.municipalityId, input.municipalityId), eq(staffAllocations.isActive, true)];
+      if (input.schoolId) conditions.push(eq(staffAllocations.schoolId, input.schoolId));
+      if (input.departmentId) conditions.push(eq(staffAllocations.departmentId, input.departmentId));
+      return db.select({
+        id: staffAllocations.id, userId: staffAllocations.userId, schoolId: staffAllocations.schoolId,
+        departmentId: staffAllocations.departmentId, positionId: staffAllocations.positionId,
+        startDate: staffAllocations.startDate, endDate: staffAllocations.endDate,
+        workload: staffAllocations.workload, status: staffAllocations.status, notes: staffAllocations.notes,
+        userName: users.name, schoolName: schools.name,
+      })
+      .from(staffAllocations)
+      .leftJoin(users, eq(staffAllocations.userId, users.id))
+      .leftJoin(schools, eq(staffAllocations.schoolId, schools.id))
+      .where(and(...conditions))
+      .orderBy(users.name);
+    }),
+  create: adminProcedure
+    .input(z.object({ municipalityId: z.number(), userId: z.number(), schoolId: z.number().optional(), departmentId: z.number().optional(), positionId: z.number().optional(), startDate: z.string(), endDate: z.string().optional(), workload: z.number().optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const { startDate, endDate, ...rest } = input;
+      const [result] = await db.insert(staffAllocations).values({ ...rest, startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : undefined }).$returningId();
+      return { success: true, id: result.id };
+    }),
+  update: adminProcedure
+    .input(z.object({ id: z.number(), schoolId: z.number().optional(), departmentId: z.number().optional(), positionId: z.number().optional(), startDate: z.string().optional(), endDate: z.string().optional(), workload: z.number().optional(), status: z.enum(['active', 'transferred', 'ended']).optional(), notes: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const { id, startDate, endDate, ...data } = input;
+      const ud: any = { ...data };
+      if (startDate) ud.startDate = new Date(startDate);
+      if (endDate) ud.endDate = new Date(endDate);
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
+      if (Object.keys(ud).length > 0) await db.update(staffAllocations).set(ud).where(eq(staffAllocations.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { await db.update(staffAllocations).set({ isActive: false }).where(eq(staffAllocations.id, input.id)); return { success: true }; }),
+});
+
+export const staffEvaluationsRouter = t.router({
+  list: adminProcedure
+    .input(z.object({ municipalityId: z.number(), userId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(staffEvaluations.municipalityId, input.municipalityId), eq(staffEvaluations.isActive, true)];
+      if (input.userId) conditions.push(eq(staffEvaluations.userId, input.userId));
+      const result = await db.select().from(staffEvaluations).where(and(...conditions)).orderBy(desc(staffEvaluations.createdAt));
+      // Get user names
+      const enriched = await Promise.all(result.map(async (e) => {
+        const [u] = await db.select({ name: users.name }).from(users).where(eq(users.id, e.userId)).limit(1);
+        const [ev] = e.evaluatorUserId ? await db.select({ name: users.name }).from(users).where(eq(users.id, e.evaluatorUserId)).limit(1) : [null];
+        return { ...e, userName: u?.name || '', evaluatorName: ev?.name || '' };
+      }));
+      return enriched;
+    }),
+  create: adminProcedure
+    .input(z.object({ municipalityId: z.number(), userId: z.number(), period: z.string(), punctuality: z.number().optional(), productivity: z.number().optional(), teamwork: z.number().optional(), initiative: z.number().optional(), communication: z.number().optional(), strengths: z.string().optional(), improvements: z.string().optional(), goals: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const scores = [input.punctuality, input.productivity, input.teamwork, input.initiative, input.communication].filter(Boolean) as number[];
+      const overallScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toString() : undefined;
+      const [result] = await db.insert(staffEvaluations).values({ ...input, evaluatorUserId: ctx.userId, overallScore, status: 'submitted' }).$returningId();
+      return { success: true, id: result.id };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => { await db.update(staffEvaluations).set({ isActive: false }).where(eq(staffEvaluations.id, input.id)); return { success: true }; }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -2643,6 +3053,16 @@ export const appRouter = t.router({
   enrollments: enrollmentsRouter,
   teachers: teachersRouter,
   classSubjects: classSubjectsRouter,
+  // Módulo Diário Escolar
+  diaryAttendance: diaryAttendanceRouter,
+  assessments: assessmentsRouter,
+  studentGrades: studentGradesRouter,
+  lessonPlans: lessonPlansRouter,
+  // Módulo RH
+  positions: positionsRouter,
+  departments: departmentsRouter,
+  staffAllocations: staffAllocationsRouter,
+  staffEvaluations: staffEvaluationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

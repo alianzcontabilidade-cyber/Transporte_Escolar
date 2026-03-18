@@ -878,6 +878,141 @@ export const teachersRelations = relations(teachers, ({ one }) => ({
 }));
 
 // ============================================
+// FASE 3: DIÁRIO ESCOLAR DIGITAL
+// ============================================
+
+// Frequência diária
+export const dailyAttendance = mysqlTable("daily_attendance", {
+  id: int("id").autoincrement().primaryKey(),
+  classId: int("classId").notNull().references(() => classes.id),
+  subjectId: int("subjectId").references(() => subjects.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  date: timestamp("date").notNull(),
+  status: mysqlEnum("attendanceStatus", ["present", "absent", "justified", "late"]).default("present").notNull(),
+  notes: text("notes"),
+  registeredByUserId: int("registeredByUserId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Avaliações / Provas
+export const assessments = mysqlTable("assessments", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  classId: int("classId").notNull().references(() => classes.id),
+  subjectId: int("subjectId").notNull().references(() => subjects.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("assessmentType", ["prova", "trabalho", "seminario", "participacao", "recuperacao"]).default("prova").notNull(),
+  maxScore: decimal("maxScore", { precision: 5, scale: 2 }).default("10.00").notNull(),
+  weight: decimal("weight", { precision: 3, scale: 2 }).default("1.00"),
+  date: timestamp("date"),
+  bimester: mysqlEnum("bimester", ["1", "2", "3", "4"]).notNull(),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Notas dos alunos
+export const studentGrades = mysqlTable("student_grades", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull().references(() => assessments.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  score: decimal("score", { precision: 5, scale: 2 }),
+  notes: text("notes"),
+  registeredByUserId: int("registeredByUserId").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Planejamento de aulas
+export const lessonPlans = mysqlTable("lesson_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  classId: int("classId").notNull().references(() => classes.id),
+  subjectId: int("subjectId").notNull().references(() => subjects.id),
+  teacherUserId: int("teacherUserId").notNull().references(() => users.id),
+  date: timestamp("date").notNull(),
+  topic: varchar("topic", { length: 255 }).notNull(),
+  content: text("content"),
+  methodology: text("methodology"),
+  resources: text("resources"),
+  bnccCode: varchar("bnccCode", { length: 20 }),
+  bimester: mysqlEnum("lessonBimester", ["1", "2", "3", "4"]).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// FASE 4: RECURSOS HUMANOS
+// ============================================
+
+// Cargos
+export const positions = mysqlTable("positions", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: mysqlEnum("positionCategory", ["docente", "administrativo", "operacional", "gestao"]).default("administrativo").notNull(),
+  baseSalary: decimal("baseSalary", { precision: 10, scale: 2 }),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Departamentos / Setores
+export const departments = mysqlTable("departments", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  headUserId: int("headUserId").references(() => users.id),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Lotações (Staff Allocations)
+export const staffAllocations = mysqlTable("staff_allocations", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  userId: int("userId").notNull().references(() => users.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  departmentId: int("departmentId").references(() => departments.id),
+  positionId: int("positionId").references(() => positions.id),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate"),
+  workload: int("workload").default(40),
+  status: mysqlEnum("allocationStatus", ["active", "transferred", "ended"]).default("active").notNull(),
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Avaliações de desempenho
+export const staffEvaluations = mysqlTable("staff_evaluations", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  userId: int("userId").notNull().references(() => users.id),
+  evaluatorUserId: int("evaluatorUserId").references(() => users.id),
+  period: varchar("period", { length: 50 }).notNull(),
+  overallScore: decimal("overallScore", { precision: 4, scale: 2 }),
+  punctuality: int("punctuality"),
+  productivity: int("productivity"),
+  teamwork: int("teamwork"),
+  initiative: int("initiative"),
+  communication: int("communication"),
+  strengths: text("strengths"),
+  improvements: text("improvements"),
+  goals: text("goals"),
+  status: mysqlEnum("evaluationStatus", ["draft", "submitted", "reviewed"]).default("draft").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
 // TYPES EXPORTADOS
 // ============================================
 
@@ -935,3 +1070,11 @@ export type Subject = typeof subjects.$inferSelect;
 export type ClassSubject = typeof classSubjects.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type Teacher = typeof teachers.$inferSelect;
+export type DailyAttendance = typeof dailyAttendance.$inferSelect;
+export type Assessment = typeof assessments.$inferSelect;
+export type StudentGrade = typeof studentGrades.$inferSelect;
+export type LessonPlan = typeof lessonPlans.$inferSelect;
+export type Position = typeof positions.$inferSelect;
+export type Department = typeof departments.$inferSelect;
+export type StaffAllocation = typeof staffAllocations.$inferSelect;
+export type StaffEvaluation = typeof staffEvaluations.$inferSelect;

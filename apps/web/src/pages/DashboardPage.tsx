@@ -69,19 +69,65 @@ export default function DashboardPage() {
   (vehicles as any)?.forEach(function(v: any) {
     if (v.crlvExpiry) {
       const d = Math.ceil((new Date(v.crlvExpiry).getTime() - Date.now()) / 86400000);
-      if (d < 30) alerts.push({ type: 'warn', msg: `CRLV do veículo ${v.plate} vence em ${d}d`, icon: AlertTriangle, color: 'text-yellow-500' });
+      if (d < 30) alerts.push({ type: 'warn', msg: `CRLV do veículo ${v.plate} ${d < 0 ? 'vencido há ' + Math.abs(d) + 'd' : 'vence em ' + d + 'd'}`, icon: AlertTriangle, color: d < 0 ? 'text-red-500' : 'text-yellow-500' });
     }
     if (v.ipvaExpiry) {
       const d = Math.ceil((new Date(v.ipvaExpiry).getTime() - Date.now()) / 86400000);
-      if (d < 30) alerts.push({ type: 'warn', msg: `IPVA do veículo ${v.plate} vence em ${d}d`, icon: AlertTriangle, color: 'text-yellow-500' });
+      if (d < 30) alerts.push({ type: 'warn', msg: `IPVA do veículo ${v.plate} ${d < 0 ? 'vencido há ' + Math.abs(d) + 'd' : 'vence em ' + d + 'd'}`, icon: AlertTriangle, color: d < 0 ? 'text-red-500' : 'text-yellow-500' });
+    }
+    if (v.inspectionExpiry) {
+      const d = Math.ceil((new Date(v.inspectionExpiry).getTime() - Date.now()) / 86400000);
+      if (d < 30) alerts.push({ type: 'warn', msg: `Vistoria do veículo ${v.plate} ${d < 0 ? 'vencida há ' + Math.abs(d) + 'd' : 'vence em ' + d + 'd'}`, icon: AlertTriangle, color: d < 0 ? 'text-red-500' : 'text-yellow-500' });
+    }
+    if (v.insuranceExpiry) {
+      const d = Math.ceil((new Date(v.insuranceExpiry).getTime() - Date.now()) / 86400000);
+      if (d < 30) alerts.push({ type: 'warn', msg: `Seguro do veículo ${v.plate} ${d < 0 ? 'vencido há ' + Math.abs(d) + 'd' : 'vence em ' + d + 'd'}`, icon: AlertTriangle, color: d < 0 ? 'text-red-500' : 'text-yellow-500' });
+    }
+    if (v.fireExtinguisherExpiry) {
+      const d = Math.ceil((new Date(v.fireExtinguisherExpiry).getTime() - Date.now()) / 86400000);
+      if (d < 30) alerts.push({ type: 'warn', msg: `Extintor do veículo ${v.plate} ${d < 0 ? 'vencido há ' + Math.abs(d) + 'd' : 'vence em ' + d + 'd'}`, icon: AlertTriangle, color: d < 0 ? 'text-red-500' : 'text-yellow-500' });
     }
   });
   (drivers as any)?.forEach(function(d: any) {
-    if (d.cnhExpiry) {
-      const days = Math.ceil((new Date(d.cnhExpiry).getTime() - Date.now()) / 86400000);
-      if (days < 30) alerts.push({ type: 'warn', msg: `CNH de ${d.name} vence em ${days}d`, icon: AlertTriangle, color: 'text-orange-500' });
+    const cnhDate = d.driver?.cnhExpiresAt || d.cnhExpiresAt || d.cnhExpiry;
+    if (cnhDate) {
+      const days = Math.ceil((new Date(cnhDate).getTime() - Date.now()) / 86400000);
+      if (days < 30) alerts.push({ type: 'warn', msg: `CNH de ${d.user?.name || d.name} ${days < 0 ? 'vencida há ' + Math.abs(days) + 'd' : 'vence em ' + days + 'd'}`, icon: AlertTriangle, color: days < 0 ? 'text-red-500' : 'text-orange-500' });
     }
   });
+
+  // Alertas detalhados de documentos
+  const vehicleAlerts: any[] = [];
+  const driverAlerts: any[] = [];
+
+  if (vehicles && Array.isArray(vehicles)) {
+    const allVehicles = vehicles as any[];
+    allVehicles.forEach(function(v: any) {
+      const checkDoc = function(date: any, docName: string) {
+        if (!date) return;
+        const days = Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
+        if (days <= 30) vehicleAlerts.push({ plate: v.plate, nickname: v.nickname, doc: docName, days: days });
+      };
+      checkDoc(v.crlvExpiry, 'CRLV');
+      checkDoc(v.ipvaExpiry, 'IPVA');
+      checkDoc(v.inspectionExpiry, 'Vistoria');
+      checkDoc(v.insuranceExpiry, 'Seguro');
+      checkDoc(v.fireExtinguisherExpiry, 'Extintor');
+    });
+  }
+
+  if (drivers && Array.isArray(drivers)) {
+    const allDrivers = drivers as any[];
+    allDrivers.forEach(function(d: any) {
+      const cnhDate = d.driver?.cnhExpiresAt || d.cnhExpiresAt || d.cnhExpiry;
+      if (!cnhDate) return;
+      const days = Math.ceil((new Date(cnhDate).getTime() - Date.now()) / 86400000);
+      if (days <= 30) driverAlerts.push({ name: d.user?.name || d.name, category: d.driver?.cnhCategory || d.cnhCategory, days: days });
+    });
+  }
+
+  vehicleAlerts.sort(function(a: any, b: any) { return a.days - b.days; });
+  driverAlerts.sort(function(a: any, b: any) { return a.days - b.days; });
 
   const kpis = [
     { label: 'Escolas', value: nSchools, icon: School, color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600' },
@@ -188,6 +234,46 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Alertas de Documentos */}
+      {(vehicleAlerts.length > 0 || driverAlerts.length > 0) && (
+        <div className="card mt-6">
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-yellow-500" />
+            Alertas de Documentos ({vehicleAlerts.length + driverAlerts.length})
+          </h3>
+          <div className="space-y-2">
+            {vehicleAlerts.map(function(a: any, i: number) { return (
+              <div key={'v'+i} className={`flex items-center gap-3 p-3 rounded-xl ${a.days < 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                <Bus size={16} className={a.days < 0 ? 'text-red-500' : 'text-yellow-500'} />
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${a.days < 0 ? 'text-red-700' : 'text-yellow-700'}`}>
+                    {a.plate} — {a.doc}
+                  </p>
+                  <p className="text-xs text-gray-500">{a.nickname || ''}</p>
+                </div>
+                <span className={`text-xs font-bold ${a.days < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                  {a.days < 0 ? `Vencido há ${Math.abs(a.days)}d` : `Vence em ${a.days}d`}
+                </span>
+              </div>
+            ); })}
+            {driverAlerts.map(function(a: any, i: number) { return (
+              <div key={'d'+i} className={`flex items-center gap-3 p-3 rounded-xl ${a.days < 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                <UserCheck size={16} className={a.days < 0 ? 'text-red-500' : 'text-yellow-500'} />
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${a.days < 0 ? 'text-red-700' : 'text-yellow-700'}`}>
+                    {a.name} — CNH
+                  </p>
+                  <p className="text-xs text-gray-500">Categoria {a.category || '—'}</p>
+                </div>
+                <span className={`text-xs font-bold ${a.days < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                  {a.days < 0 ? `Vencida há ${Math.abs(a.days)}d` : `Vence em ${a.days}d`}
+                </span>
+              </div>
+            ); })}
+          </div>
+        </div>
+      )}
     </div>
   );
                                       }

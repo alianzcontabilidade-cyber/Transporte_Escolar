@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle } from 'lucide-react';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp } from 'lucide-react';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -34,6 +34,10 @@ export default function StudentsPage() {
   const [formErr, setFormErr] = useState('');
   const [inviteStudent, setInviteStudent] = useState<any>(null);
   const [inviteSent, setInviteSent] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState('');
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
@@ -101,6 +105,74 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
   const [viewStudent, setViewStudent] = useState<any>(null);
 
+  const handleCSVUpload = function(e: any) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const text = ev.target?.result as string;
+      const lines = text.split('\n').filter(function(l) { return l.trim(); });
+      if (lines.length < 2) { setImportResult('Arquivo vazio ou sem dados'); return; }
+      const headers = lines[0].split(';').map(function(h) { return h.trim().toLowerCase().replace(/"/g, ''); });
+      const rows: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const vals = lines[i].split(';').map(function(v) { return v.trim().replace(/"/g, ''); });
+        if (vals.length < 2) continue;
+        const row: any = {};
+        headers.forEach(function(h, idx) {
+          if (h === 'nome' || h === 'name') row.name = vals[idx];
+          else if (h === 'matricula' || h === 'enrollment') row.enrollment = vals[idx];
+          else if (h === 'serie' || h === 'grade' || h === 'ano') row.grade = vals[idx];
+          else if (h === 'turma' || h === 'class') row.className = vals[idx];
+          else if (h === 'turno' || h === 'shift') {
+            const v = vals[idx]?.toLowerCase();
+            row.shift = v === 'tarde' ? 'afternoon' : v === 'noite' ? 'evening' : 'morning';
+          }
+          else if (h === 'nascimento' || h === 'birthdate') row.birthDate = vals[idx];
+        });
+        if (row.name) rows.push(row);
+      }
+      setCsvData(rows);
+      setImportResult('');
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const doImport = async function() {
+    if (!csvData.length) return;
+    setImporting(true);
+    let ok = 0, fail = 0;
+    for (const row of csvData) {
+      try {
+        const schoolId = allSchools.length > 0 ? allSchools[0].id : undefined;
+        await api.students.create({
+          municipalityId,
+          name: row.name,
+          enrollment: row.enrollment || undefined,
+          grade: row.grade || undefined,
+          classRoom: row.className || undefined,
+          shift: row.shift || 'morning',
+          birthDate: row.birthDate || undefined,
+          schoolId: schoolId,
+          school: schoolId ? String(schoolId) : undefined,
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    setImporting(false);
+    setImportResult(`Importados: ${ok} | Erros: ${fail}`);
+    if (ok > 0) refetch();
+  };
+
+  const downloadTemplate = function() {
+    const csv = 'nome;matricula;serie;turma;turno;nascimento\nJoao Silva;2024001;5 Ano;A;Manha;2014-03-15\nMaria Santos;2024002;3 Ano;B;Tarde;2016-07-22';
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'modelo_alunos.csv';
+    a.click();
+  };
+
   const save = function() {
     if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }
     if (!form.school && !editId) { setFormErr('Escola e obrigatoria.'); return; }
@@ -151,7 +223,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div>
-        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button>
+        <div className="flex gap-2"><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar CSV</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
       </div>
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
       <div className="grid gap-3">
@@ -368,6 +440,29 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
           </div>)}
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Aluno'}</button></div>
+      </div></div>)}
+
+      {showImport&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold flex items-center gap-2"><FileUp size={18} className="text-primary-500"/> Importar Alunos via CSV</h3><button onClick={function(){setShowImport(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+          <div className="p-4 bg-blue-50 rounded-xl">
+            <p className="text-sm text-blue-700 mb-2">Formato esperado: arquivo CSV com separador <strong>;</strong> (ponto e virgula)</p>
+            <p className="text-xs text-blue-600">Colunas: nome, matricula, serie, turma, turno, nascimento</p>
+            <button onClick={downloadTemplate} className="mt-2 text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200">Baixar modelo CSV</button>
+          </div>
+          <div><label className="label">Selecione o arquivo CSV</label><input type="file" accept=".csv,.txt" onChange={handleCSVUpload} className="input"/></div>
+          {csvData.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">{csvData.length} aluno(s) encontrado(s):</p>
+              <div className="max-h-48 overflow-y-auto border rounded-lg">
+                <table className="w-full text-xs"><thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left">Nome</th><th className="px-3 py-2 text-left">Matricula</th><th className="px-3 py-2 text-left">Serie</th><th className="px-3 py-2 text-left">Turma</th><th className="px-3 py-2 text-left">Turno</th></tr></thead>
+                <tbody className="divide-y">{csvData.map(function(r,i){return <tr key={i}><td className="px-3 py-1.5">{r.name}</td><td className="px-3 py-1.5">{r.enrollment||'—'}</td><td className="px-3 py-1.5">{r.grade||'—'}</td><td className="px-3 py-1.5">{r.className||'—'}</td><td className="px-3 py-1.5">{r.shift==='afternoon'?'Tarde':r.shift==='evening'?'Noite':'Manha'}</td></tr>;})}</tbody></table>
+              </div>
+            </div>
+          )}
+          {importResult && <div className={`p-3 rounded-lg text-sm ${importResult.includes('Erro')||importResult.includes('vazio')?'bg-red-50 text-red-700':'bg-green-50 text-green-700'}`}>{importResult}</div>}
+        </div>
+        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowImport(false);}} className="btn-secondary flex-1">Fechar</button><button onClick={doImport} disabled={!csvData.length||importing} className="btn-primary flex-1">{importing?'Importando...':'Importar '+csvData.length+' aluno(s)'}</button></div>
       </div></div>)}
     </div>
   );

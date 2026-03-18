@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp } from 'lucide-react';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download } from 'lucide-react';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -38,6 +38,8 @@ export default function StudentsPage() {
   const [csvData, setCsvData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 25;
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
@@ -51,6 +53,36 @@ export default function StudentsPage() {
   const allRoutes = (routes as any)||[];
   const allSchools = (schoolsData as any)||[];
   const filtered = allStudents.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.enrollment||'').includes(q)||(s.grade||'').toLowerCase().includes(q); });
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const exportStudentsCSV = function() {
+    if (!allStudents.length) return;
+    const rows = allStudents.map(function(s: any) {
+      return {
+        nome: s.name || '',
+        matricula: s.enrollment || '',
+        serie: s.grade || '',
+        turma: s.classRoom || s.className || '',
+        turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+        escola: s.school || '',
+        nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '',
+        endereco: s.address || '',
+        contato1: s.emergencyContact1Name || '',
+        tel1: s.emergencyContact1Phone || '',
+        contato2: s.emergencyContact2Name || '',
+        tel2: s.emergencyContact2Phone || '',
+      };
+    });
+    const keys = Object.keys(rows[0]);
+    const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"' + (r[k] || '') + '"'; }).join(';'); })].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'alunos_transescolar.csv';
+    a.click();
+  };
+
   const shiftLabel = function(v: string) { return SHIFTS.find(function(s) { return s.v===v; })?.l||v; };
   const routeName = function(id: string) { const r = allRoutes.find(function(x:any){return String(x.route?.id || x.id)===String(id);}); return r?.route?.name||''; };
 
@@ -223,11 +255,11 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div>
-        <div className="flex gap-2"><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar CSV</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
+        <div className="flex gap-2"><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
       </div>
-      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
+      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
       <div className="grid gap-3">
-        {filtered.map(function(s: any) { return (
+        {paginated.map(function(s: any) { return (
           <div key={s.id} className="card flex items-center gap-4 hover:border-primary-200 transition-colors">
             <div className="w-11 h-11 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center flex-shrink-0">
               {s.photo?<img src={s.photo} alt={s.name} className="w-full h-full object-cover"/>:<span className="font-bold text-indigo-700">{s.name?.[0]}</span>}
@@ -257,6 +289,18 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         {!filtered.length&&!search&&<div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum aluno</p><button className="btn-primary" onClick={openNew}>Adicionar aluno</button></div>}
         {!filtered.length&&search&&<div className="card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE, filtered.length)} de {filtered.length}</p>
+          <div className="flex gap-1">
+            <button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button>
+            <button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button>
+            <span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span>
+            <button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button>
+            <button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Visualizar Aluno */}
       {viewStudent&&(

@@ -437,8 +437,12 @@ export const schoolsRouter = t.router({
       latitude: z.number().optional(),
       longitude: z.number().optional(),
       phone: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional(),
       directorName: z.string().optional(),
+      morningStart: z.string().optional(),
+      morningEnd: z.string().optional(),
+      afternoonStart: z.string().optional(),
+      afternoonEnd: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const [school] = await db.insert(schools).values({
@@ -452,17 +456,28 @@ export const schoolsRouter = t.router({
   update: adminProcedure
     .input(z.object({
       id: z.number(),
+      municipalityId: z.number().optional(),
       name: z.string().optional(),
       code: z.string().optional(),
       type: z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
       address: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
       phone: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional(),
       directorName: z.string().optional(),
+      morningStart: z.string().optional(),
+      morningEnd: z.string().optional(),
+      afternoonStart: z.string().optional(),
+      afternoonEnd: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      await db.update(schools).set(data).where(eq(schools.id, id));
+      const { id, latitude, longitude, ...data } = input;
+      const updateData: any = { ...data };
+      if (latitude !== undefined) updateData.latitude = latitude.toString();
+      if (longitude !== undefined) updateData.longitude = longitude.toString();
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+      if (Object.keys(updateData).length > 0) await db.update(schools).set(updateData).where(eq(schools.id, id));
       return { success: true };
     }),
 
@@ -940,27 +955,47 @@ export const vehiclesRouter = t.router({
     .input(z.object({
       municipalityId: z.number(), plate: z.string(), nickname: z.string().optional(),
       brand: z.string().optional(), model: z.string().optional(), year: z.number().optional(), capacity: z.number().optional(),
+      color: z.string().optional(), fuel: z.string().optional(), chassis: z.string().optional(), renavam: z.string().optional(),
+      crlvExpiry: z.string().optional(), ipvaExpiry: z.string().optional(), inspectionExpiry: z.string().optional(),
+      insuranceCompany: z.string().optional(), insurancePolicy: z.string().optional(), insuranceExpiry: z.string().optional(),
+      fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const [vehicle] = await db.insert(vehicles).values(input).$returningId();
+      const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...rest } = input;
+      const [vehicle] = await db.insert(vehicles).values({
+        ...rest,
+        fuelType: fuel, chassi: chassis,
+        crlvExpiry: crlvExpiry ? new Date(crlvExpiry) : undefined,
+        ipvaExpiry: ipvaExpiry ? new Date(ipvaExpiry) : undefined,
+        inspectionExpiry: inspectionExpiry ? new Date(inspectionExpiry) : undefined,
+        insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : undefined,
+        fireExtinguisherExpiry: fireExtinguisherExpiry ? new Date(fireExtinguisherExpiry) : undefined,
+      }).$returningId();
       return { success: true, id: vehicle.id };
     }),
 
   update: adminProcedure
     .input(z.object({
       id: z.number(),
-      plate: z.string().optional(),
-      nickname: z.string().optional(),
-      brand: z.string().optional(),
-      model: z.string().optional(),
-      year: z.number().optional(),
-      capacity: z.number().optional(),
+      plate: z.string().optional(), nickname: z.string().optional(),
+      brand: z.string().optional(), model: z.string().optional(), year: z.number().optional(), capacity: z.number().optional(),
+      color: z.string().optional(), fuel: z.string().optional(), chassis: z.string().optional(), renavam: z.string().optional(),
       status: z.enum(['active', 'maintenance', 'inactive']).optional(),
+      crlvExpiry: z.string().optional(), ipvaExpiry: z.string().optional(), inspectionExpiry: z.string().optional(),
+      insuranceCompany: z.string().optional(), insurancePolicy: z.string().optional(), insuranceExpiry: z.string().optional(),
+      fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      const ud: any = {};
-      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...data } = input;
+      const ud: any = { ...data };
+      if (fuel !== undefined) ud.fuelType = fuel;
+      if (chassis !== undefined) ud.chassi = chassis;
+      if (crlvExpiry) ud.crlvExpiry = new Date(crlvExpiry);
+      if (ipvaExpiry) ud.ipvaExpiry = new Date(ipvaExpiry);
+      if (inspectionExpiry) ud.inspectionExpiry = new Date(inspectionExpiry);
+      if (insuranceExpiry) ud.insuranceExpiry = new Date(insuranceExpiry);
+      if (fireExtinguisherExpiry) ud.fireExtinguisherExpiry = new Date(fireExtinguisherExpiry);
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(vehicles).set(ud).where(eq(vehicles.id, id));
       return { success: true };
     }),

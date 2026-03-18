@@ -39,7 +39,7 @@ export default function SchoolsPage() {
   const save = function() {
     if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }
     const fullAddress = [form.address, form.city, form.state].filter(Boolean).join(', ');
-    const payload: any = { municipalityId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:fullAddress||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined, latitude:form.latitude?parseFloat(form.latitude):undefined, longitude:form.longitude?parseFloat(form.longitude):undefined };
+    const payload: any = { municipalityId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:fullAddress||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined, morningStart:form.morningStart||undefined, morningEnd:form.morningEnd||undefined, afternoonStart:form.afternoonStart||undefined, afternoonEnd:form.afternoonEnd||undefined, latitude:form.latitude?parseFloat(form.latitude):undefined, longitude:form.longitude?parseFloat(form.longitude):undefined };
     if (editId!==null) {
       update({id:editId, ...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     } else {

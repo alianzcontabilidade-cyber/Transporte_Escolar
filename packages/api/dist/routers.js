@@ -405,8 +405,12 @@ exports.schoolsRouter = t.router({
         latitude: zod_1.z.number().optional(),
         longitude: zod_1.z.number().optional(),
         phone: zod_1.z.string().optional(),
-        email: zod_1.z.string().email().optional(),
+        email: zod_1.z.string().optional(),
         directorName: zod_1.z.string().optional(),
+        morningStart: zod_1.z.string().optional(),
+        morningEnd: zod_1.z.string().optional(),
+        afternoonStart: zod_1.z.string().optional(),
+        afternoonEnd: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const [school] = await index_1.db.insert(schema_1.schools).values({
@@ -419,17 +423,31 @@ exports.schoolsRouter = t.router({
     update: adminProcedure
         .input(zod_1.z.object({
         id: zod_1.z.number(),
+        municipalityId: zod_1.z.number().optional(),
         name: zod_1.z.string().optional(),
         code: zod_1.z.string().optional(),
         type: zod_1.z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
         address: zod_1.z.string().optional(),
+        latitude: zod_1.z.number().optional(),
+        longitude: zod_1.z.number().optional(),
         phone: zod_1.z.string().optional(),
-        email: zod_1.z.string().email().optional(),
+        email: zod_1.z.string().optional(),
         directorName: zod_1.z.string().optional(),
+        morningStart: zod_1.z.string().optional(),
+        morningEnd: zod_1.z.string().optional(),
+        afternoonStart: zod_1.z.string().optional(),
+        afternoonEnd: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        await index_1.db.update(schema_1.schools).set(data).where((0, drizzle_orm_1.eq)(schema_1.schools.id, id));
+        const { id, latitude, longitude, ...data } = input;
+        const updateData = { ...data };
+        if (latitude !== undefined)
+            updateData.latitude = latitude.toString();
+        if (longitude !== undefined)
+            updateData.longitude = longitude.toString();
+        Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+        if (Object.keys(updateData).length > 0)
+            await index_1.db.update(schema_1.schools).set(updateData).where((0, drizzle_orm_1.eq)(schema_1.schools.id, id));
         return { success: true };
     }),
     delete: adminProcedure
@@ -873,27 +891,53 @@ exports.vehiclesRouter = t.router({
         .input(zod_1.z.object({
         municipalityId: zod_1.z.number(), plate: zod_1.z.string(), nickname: zod_1.z.string().optional(),
         brand: zod_1.z.string().optional(), model: zod_1.z.string().optional(), year: zod_1.z.number().optional(), capacity: zod_1.z.number().optional(),
+        color: zod_1.z.string().optional(), fuel: zod_1.z.string().optional(), chassis: zod_1.z.string().optional(), renavam: zod_1.z.string().optional(),
+        crlvExpiry: zod_1.z.string().optional(), ipvaExpiry: zod_1.z.string().optional(), inspectionExpiry: zod_1.z.string().optional(),
+        insuranceCompany: zod_1.z.string().optional(), insurancePolicy: zod_1.z.string().optional(), insuranceExpiry: zod_1.z.string().optional(),
+        fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
-        const [vehicle] = await index_1.db.insert(schema_1.vehicles).values(input).$returningId();
+        const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...rest } = input;
+        const [vehicle] = await index_1.db.insert(schema_1.vehicles).values({
+            ...rest,
+            fuelType: fuel, chassi: chassis,
+            crlvExpiry: crlvExpiry ? new Date(crlvExpiry) : undefined,
+            ipvaExpiry: ipvaExpiry ? new Date(ipvaExpiry) : undefined,
+            inspectionExpiry: inspectionExpiry ? new Date(inspectionExpiry) : undefined,
+            insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : undefined,
+            fireExtinguisherExpiry: fireExtinguisherExpiry ? new Date(fireExtinguisherExpiry) : undefined,
+        }).$returningId();
         return { success: true, id: vehicle.id };
     }),
     update: adminProcedure
         .input(zod_1.z.object({
         id: zod_1.z.number(),
-        plate: zod_1.z.string().optional(),
-        nickname: zod_1.z.string().optional(),
-        brand: zod_1.z.string().optional(),
-        model: zod_1.z.string().optional(),
-        year: zod_1.z.number().optional(),
-        capacity: zod_1.z.number().optional(),
+        plate: zod_1.z.string().optional(), nickname: zod_1.z.string().optional(),
+        brand: zod_1.z.string().optional(), model: zod_1.z.string().optional(), year: zod_1.z.number().optional(), capacity: zod_1.z.number().optional(),
+        color: zod_1.z.string().optional(), fuel: zod_1.z.string().optional(), chassis: zod_1.z.string().optional(), renavam: zod_1.z.string().optional(),
         status: zod_1.z.enum(['active', 'maintenance', 'inactive']).optional(),
+        crlvExpiry: zod_1.z.string().optional(), ipvaExpiry: zod_1.z.string().optional(), inspectionExpiry: zod_1.z.string().optional(),
+        insuranceCompany: zod_1.z.string().optional(), insurancePolicy: zod_1.z.string().optional(), insuranceExpiry: zod_1.z.string().optional(),
+        fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        const ud = {};
-        Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
-            ud[k] = v; });
+        const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...data } = input;
+        const ud = { ...data };
+        if (fuel !== undefined)
+            ud.fuelType = fuel;
+        if (chassis !== undefined)
+            ud.chassi = chassis;
+        if (crlvExpiry)
+            ud.crlvExpiry = new Date(crlvExpiry);
+        if (ipvaExpiry)
+            ud.ipvaExpiry = new Date(ipvaExpiry);
+        if (inspectionExpiry)
+            ud.inspectionExpiry = new Date(inspectionExpiry);
+        if (insuranceExpiry)
+            ud.insuranceExpiry = new Date(insuranceExpiry);
+        if (fireExtinguisherExpiry)
+            ud.fireExtinguisherExpiry = new Date(fireExtinguisherExpiry);
+        Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.vehicles).set(ud).where((0, drizzle_orm_1.eq)(schema_1.vehicles.id, id));
         return { success: true };

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, Trash2, AlertTriangle, Search, Users, CheckCircle, Loader2 } from 'lucide-react';
+import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, Trash2, AlertTriangle, Search, Users, CheckCircle, Loader2, Navigation } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useQuery } from '../lib/hooks';
 
 
 function maskPhone(v: string): string {
@@ -60,6 +61,8 @@ export default function MonitoresPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [cpfError, setCpfError] = useState('');
   const municipalityId = user?.municipalityId;
+  const { data: routesData } = useQuery(() => api.routes.list({ municipalityId: municipalityId || 0 }), [municipalityId]);
+  const allRoutes: any[] = (routesData as any) || [];
 
   const loadMonitores = async () => {
     if (!municipalityId) return;
@@ -173,7 +176,7 @@ export default function MonitoresPage() {
                   <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
                   <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select></div>
                   <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
-                  <div><label className="label">Rota</label><input className="input" value={form.routeName} onChange={setField('routeName')} placeholder="Ex: Rota Centro"/></div>
+                  <div><label className="label flex items-center gap-1"><Navigation size={12}/> Rota</label><select className="input" value={form.routeName} onChange={setField('routeName')}><option value="">-- Selecione a rota --</option>{allRoutes.map((r: any) => <option key={r.route?.id || r.id} value={r.route?.name || r.name}>{r.route?.name || r.name}{r.route?.code ? ' (' + r.route.code + ')' : ''}</option>)}</select></div>
                   <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
                   <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
                 </div>

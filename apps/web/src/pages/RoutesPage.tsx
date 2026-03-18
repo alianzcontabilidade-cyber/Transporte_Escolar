@@ -66,7 +66,13 @@ export default function RoutesPage() {
   const sl = (s:string) => SHIFTS.find(x=>x.v===s)?.l||s;
   const addStop = (stop?:{name:string;lat:string;lng:string}) => { const s=stop||newStop; if(!s.name)return; setStops(prev=>[...prev,s]); if(!stop)setNewStop({name:'',lat:'',lng:''}) };
   const removeStop = (i:number) => setStops(prev=>prev.filter((_,idx)=>idx!==i));
-  const openNew = () => { setForm({name:'',code:'',description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setShow(true); };
+  const generateCode = () => {
+    const existing = allRoutes.map((r:any) => r.route?.code || '').filter((c:string) => /^R\d+$/.test(c));
+    const nums = existing.map((c:string) => parseInt(c.replace('R', '')));
+    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    return 'R' + String(next).padStart(3, '0');
+  };
+  const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setShow(true); };
 
   const allRoutes = (routes as any)||[];
   const allTrips = (activeTrips as any)||[];
@@ -159,7 +165,7 @@ export default function RoutesPage() {
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="label">Nome da rota *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Ex: Rota Centro – Escola Municipal"/></div>
-            <div><label className="label">Código</label><input className="input" value={form.code} onChange={setField('code')} placeholder="R01"/></div>
+            <div><label className="label">Codigo (automatico)</label><input className="input bg-gray-50 text-gray-600" value={form.code} readOnly/></div>
             <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={setField('type')}>{TYPES.map(t=><option key={t.v} value={t.v}>{t.l}</option>)}</select></div>
             <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(s=><option key={s.v} value={s.v}>{s.l}</option>)}</select></div>
             <div><label className="label">Horário início</label><input className="input" type="time" value={form.scheduledStartTime} onChange={setField('scheduledStartTime')}/></div>

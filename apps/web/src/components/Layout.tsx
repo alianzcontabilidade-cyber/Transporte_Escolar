@@ -143,7 +143,7 @@ export default function Layout() {
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
     return (
       <Link to={to} onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[0.9375rem] font-medium transition-all ${
           isActive ? 'bg-accent-500 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
         }`}>
         <Icon size={18} className={isActive ? 'text-white' : 'text-white/50'} />
@@ -181,7 +181,7 @@ export default function Layout() {
               {user?.name?.charAt(0) || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+              <p className="text-[0.9375rem] font-medium text-white truncate">{user?.name}</p>
               <p className="text-xs text-accent-400">{ROLE_LABELS[role]}</p>
             </div>
             <button onClick={logout} className="p-1.5 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/20" title="Sair">
@@ -218,7 +218,7 @@ export default function Layout() {
                   {user?.name?.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-[0.9375rem] font-medium text-white truncate">{user?.name}</p>
                   <p className="text-xs text-accent-400">{ROLE_LABELS[role]}</p>
                 </div>
                 <button onClick={logout} className="p-1.5 rounded-lg text-white/50 hover:text-red-400"><LogOut size={16} /></button>

@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm install"]
 
 [phases.build]
-cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api"]
+cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api && cp -r apps/web/dist/* packages/api/public/"]
 
 [start]
 cmd = "cd packages/api && npx tsx src/migrate.ts && node dist/index.js"

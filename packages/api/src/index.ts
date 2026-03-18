@@ -112,7 +112,12 @@ const finalFrontendPath = fs.existsSync(path.resolve(__dirname, '../public/index
   ? path.resolve(__dirname, '../public')
   : path.resolve(__dirname, '../../apps/web/dist');
 app.use(express.static(finalFrontendPath));
+// Catch-all: serve index.html ONLY for non-API routes (SPA routing)
 app.get('*', (_req, res) => {
+  // Never serve HTML for API routes
+  if (_req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API route not found' });
+  }
   res.sendFile(path.join(finalFrontendPath, 'index.html'));
 });
 

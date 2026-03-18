@@ -338,5 +338,26 @@ export const api = {
   transparency: {
     publicData: (input: any) => call('transparency.publicData', input, 'query'),
   },
+  descriptiveReports: {
+    list: (input: any) => call('descriptiveReports.list', input, 'query'),
+    save: (input: any) => call('descriptiveReports.save', input, 'mutation'),
+  },
+  schoolCalendar: {
+    list: (input: any) => call('schoolCalendar.list', input, 'query'),
+    create: (input: any) => call('schoolCalendar.create', input, 'mutation'),
+    update: (input: any) => call('schoolCalendar.update', input, 'mutation'),
+    delete: (input: any) => call('schoolCalendar.delete', input, 'mutation'),
+  },
+  messages: {
+    list: (input: any) => call('messages.list', input, 'query'),
+    create: (input: any) => call('messages.create', input, 'mutation'),
+    delete: (input: any) => call('messages.delete', input, 'mutation'),
+  },
+  waitingList: {
+    list: (input: any) => call('waitingList.list', input, 'query'),
+    create: (input: any) => call('waitingList.create', input, 'mutation'),
+    updateStatus: (input: any) => call('waitingList.updateStatus', input, 'mutation'),
+    delete: (input: any) => call('waitingList.delete', input, 'mutation'),
+  },
 
 };

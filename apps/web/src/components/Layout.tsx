@@ -137,11 +137,13 @@ export default function Layout() {
       { to: '/series', icon: BookOpen, text: 'Séries' },
       { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
       { to: '/professores', icon: UserCheck, text: 'Professores' },
+      { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
     ]},
     { label: 'PEDAGÓGICO', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
       { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
+      { to: '/calendario', icon: Calendar, text: 'Calendário Escolar' },
     ]},
     { label: 'TRANSPORTE', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' },
@@ -161,6 +163,7 @@ export default function Layout() {
       { to: '/patrimonio', icon: Package, text: 'Patrimônio e Estoque' },
       { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' },
       { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
+      { to: '/comunicacao', icon: Bell, text: 'Comunicação' },
     ]},
     { label: 'CONFIGURAÇÕES', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' },

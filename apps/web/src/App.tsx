@@ -36,6 +36,9 @@ import LibraryPage from './pages/LibraryPage';
 import AssetsPage from './pages/AssetsPage';
 import EducacensoPage from './pages/EducacensoPage';
 import TransparencyPage from './pages/TransparencyPage';
+import CalendarPage from './pages/CalendarPage';
+import MessagesPage from './pages/MessagesPage';
+import WaitingListPage from './pages/WaitingListPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -108,6 +111,9 @@ export default function App() {
         <Route path="biblioteca" element={<Guard roles={ADMIN_SEC}><LibraryPage /></Guard>} />
         <Route path="patrimonio" element={<Guard roles={ADMIN}><AssetsPage /></Guard>} />
         <Route path="educacenso" element={<Guard roles={ADMIN}><EducacensoPage /></Guard>} />
+        <Route path="calendario" element={<Guard roles={ADMIN_SEC}><CalendarPage /></Guard>} />
+        <Route path="comunicacao" element={<Guard roles={ADMIN_SEC}><MessagesPage /></Guard>} />
+        <Route path="lista-espera" element={<Guard roles={ADMIN_SEC}><WaitingListPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

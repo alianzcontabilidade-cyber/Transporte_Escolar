@@ -18,7 +18,8 @@ function PhotoUpload({ value, onChange }: any) {
 }
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
-const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', state:'', city:'', observations:'' };
+const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', state:'', city:'', observations:'', bloodType:'', allergies:'', medications:'', healthNotes:'', hasSpecialNeeds:false, specialNeedsNotes:'', emergencyContact1Name:'', emergencyContact1Phone:'', emergencyContact1Relation:'', emergencyContact2Name:'', emergencyContact2Phone:'', emergencyContact2Relation:'' };
 
 
 function maskPhone(v: string): string {
@@ -33,7 +34,7 @@ export default function StudentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number|null>(null);
   const [form, setForm] = useState<any>(emptyForm);
-  const [tab, setTab] = useState<'dados'|'endereco'|'responsaveis'>('dados');
+  const [tab, setTab] = useState<'dados'|'saude'|'endereco'|'responsaveis'>('dados');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
@@ -106,7 +107,7 @@ export default function StudentsPage() {
       {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="flex gap-1 px-5 pt-3">
-          {([['dados','Dados'],['endereco','Endereço'],['responsaveis','Responsáveis']] as const).map(function(t){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
+          {([['dados','Dados'],['saude','Saude'],['endereco','Endereco'],['responsaveis','Responsaveis']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
@@ -126,6 +127,24 @@ export default function StudentsPage() {
             </div>
             <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
           </div></>)}
+          {tab==='saude'&&(<div className="space-y-4">
+            <div className="p-4 bg-red-50 rounded-xl"><p className="text-xs font-semibold text-red-700 mb-3 uppercase">Informacoes de Saude</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Tipo Sanguineo</label><select className="input" value={form.bloodType} onChange={setField('bloodType')}><option value="">Selecione</option>{BLOOD_TYPES.map(function(bt){return <option key={bt} value={bt}>{bt}</option>;})}</select></div>
+              <div><label className="label">Necessidades Especiais</label><select className="input" value={form.hasSpecialNeeds?'sim':'nao'} onChange={function(e:any){setForm(function(f:any){return{...f,hasSpecialNeeds:e.target.value==='sim'};});}}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
+              {form.hasSpecialNeeds&&<div className="col-span-2"><label className="label">Detalhes das necessidades especiais</label><textarea className="input" rows={2} value={form.specialNeedsNotes} onChange={setField('specialNeedsNotes')}/></div>}
+              <div className="col-span-2"><label className="label">Alergias</label><input className="input" value={form.allergies} onChange={setField('allergies')} placeholder="Ex: Amendoim, Lactose, Poeira"/></div>
+              <div className="col-span-2"><label className="label">Medicamentos em uso</label><input className="input" value={form.medications} onChange={setField('medications')} placeholder="Ex: Ritalina 10mg"/></div>
+              <div className="col-span-2"><label className="label">Observacoes de saude</label><textarea className="input" rows={2} value={form.healthNotes} onChange={setField('healthNotes')} placeholder="Ex: Asmatico, usa bombinha"/></div>
+            </div></div>
+            <div className="p-4 bg-orange-50 rounded-xl"><p className="text-xs font-semibold text-orange-700 mb-3 uppercase">Contatos de Emergencia</p><div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><label className="label">Contato 1 - Nome</label><input className="input" value={form.emergencyContact1Name} onChange={setField('emergencyContact1Name')} placeholder="Nome completo"/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact1Phone} onChange={function(e:any){setForm(function(f:any){return{...f,emergencyContact1Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div>
+              <div><label className="label">Parentesco</label><input className="input" value={form.emergencyContact1Relation} onChange={setField('emergencyContact1Relation')} placeholder="Ex: Tia"/></div>
+              <div className="col-span-2"><label className="label">Contato 2 - Nome</label><input className="input" value={form.emergencyContact2Name} onChange={setField('emergencyContact2Name')} placeholder="Nome completo"/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact2Phone} onChange={function(e:any){setForm(function(f:any){return{...f,emergencyContact2Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div>
+              <div><label className="label">Parentesco</label><input className="input" value={form.emergencyContact2Relation} onChange={setField('emergencyContact2Relation')} placeholder="Ex: Vizinha"/></div>
+            </div></div>
+          </div>)}
           {tab==='endereco'&&(<div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Endereco</label><input className="input" value={form.address} onChange={setField('address')}/></div><div><label className="label">Estado</label><select className="input" value={form.state} onChange={e => setForm((f: any) => ({...f, state: e.target.value, city: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div><div><label className="label">Cidade {stdMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={setField('city')} disabled={!form.state || stdMunLoading}><option value="">Selecione</option>{stdMunicipios.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div></div>)}
           {tab==='responsaveis'&&(<div className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsável 1</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian1Name} onChange={setField('guardian1Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian1Phone} onChange={handleGuardian1PhoneChange} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><input className="input" value={form.guardian1Relation} onChange={setField('guardian1Relation')} placeholder="Mãe"/></div></div></div>

@@ -62,18 +62,37 @@ export default function AttendancePage() {
   const [tab, setTab] = useState<'register'|'history'|'summary'>('register');
   const { data: students } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const [records, setRecords] = useState<any[]>([]);
+  const { data: activeTrips } = useQuery(() => api.trips.listActive({ municipalityId }), [municipalityId]);
+  const { data: tripHistory } = useQuery(() => api.trips.history({ municipalityId, limit: 50 }), [municipalityId]);
 
   const allStudents = (students as any) || [];
+  const allTrips = (activeTrips as any) || [];
+  const allHistory = (tripHistory as any) || [];
   const filtered = allStudents.filter((s: any) =>
     s.name?.toLowerCase().includes(search.toLowerCase()) || (s.enrollment || '').includes(search)
   );
 
-  const registerAttendance = (studentId: number, type: 'boarding' | 'alighting') => {
+  const registerAttendance = async (studentId: number, type: 'boarding' | 'alighting') => {
     const student = allStudents.find((s: any) => s.id === studentId);
     const record = { id: Date.now(), studentId, studentName: student?.name, enrollment: student?.enrollment, type, time: new Date(), routeName: 'Rota Principal' };
     setRecords(r => [record, ...r]);
     setScanResult({ ...record, student });
     setTimeout(() => setScanResult(null), 3000);
+
+    // Tentar persistir no backend se houver viagem ativa
+    if (allTrips.length > 0) {
+      const trip = allTrips[0];
+      try {
+        if (type === 'boarding') {
+          await api.monitors.boardStudent({ tripId: trip.trip.id, studentId, stopId: 0 });
+        } else {
+          await api.monitors.dropStudent({ tripId: trip.trip.id, studentId, stopId: 0 });
+        }
+      } catch (e) {
+        // Silenciar erro se nao houver parada vinculada
+        console.log('Registro local apenas - sem viagem ativa vinculada');
+      }
+    }
   };
 
   const handleScan = (code: string) => {

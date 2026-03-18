@@ -135,7 +135,23 @@ export const vehicles = mysqlTable("vehicles", {
   // Documentação
   renavam: varchar("renavam", { length: 20 }),
   chassi: varchar("chassi", { length: 20 }),
-  
+  color: varchar("color", { length: 50 }),                         // Cor
+  fuelType: varchar("fuelType", { length: 50 }),                   // Tipo combustível
+
+  // Seguro
+  insuranceCompany: varchar("insuranceCompany", { length: 255 }), // Seguradora
+  insurancePolicy: varchar("insurancePolicy", { length: 100 }),   // Número da apólice
+  insuranceExpiry: timestamp("insuranceExpiry"),                    // Vencimento seguro
+
+  // Documentação - Vencimentos
+  crlvExpiry: timestamp("crlvExpiry"),                              // Vencimento CRLV
+  ipvaExpiry: timestamp("ipvaExpiry"),                              // Vencimento IPVA
+  inspectionExpiry: timestamp("inspectionExpiry"),                  // Vencimento vistoria técnica
+  fireExtinguisherExpiry: timestamp("fireExtinguisherExpiry"),      // Vencimento extintor
+
+  // Quilometragem
+  currentKm: int("currentKm"),                                     // Quilometragem atual
+
   // Status
   status: mysqlEnum("status", ["active", "maintenance", "inactive"]).default("active").notNull(),
   lastMaintenanceAt: timestamp("lastMaintenanceAt"),
@@ -198,7 +214,21 @@ export const students = mysqlTable("students", {
   // Necessidades especiais
   hasSpecialNeeds: boolean("hasSpecialNeeds").default(false),
   specialNeedsNotes: text("specialNeedsNotes"),
-  
+
+  // Saúde
+  bloodType: varchar("bloodType", { length: 5 }),              // Tipo sanguíneo (A+, A-, B+, B-, AB+, AB-, O+, O-)
+  allergies: text("allergies"),                                 // Alergias
+  medications: text("medications"),                             // Medicamentos em uso
+  healthNotes: text("healthNotes"),                             // Observações de saúde
+
+  // Contatos de emergência
+  emergencyContact1Name: varchar("emergencyContact1Name", { length: 255 }),
+  emergencyContact1Phone: varchar("emergencyContact1Phone", { length: 20 }),
+  emergencyContact1Relation: varchar("emergencyContact1Relation", { length: 50 }),
+  emergencyContact2Name: varchar("emergencyContact2Name", { length: 255 }),
+  emergencyContact2Phone: varchar("emergencyContact2Phone", { length: 20 }),
+  emergencyContact2Relation: varchar("emergencyContact2Relation", { length: 50 }),
+
   // Endereço de embarque
   address: text("address"),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),

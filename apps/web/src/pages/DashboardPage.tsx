@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const { data: drivers } = useQuery(function() { return api.drivers.list({ municipalityId }); }, [municipalityId]);
   const { data: vehicles } = useQuery(function() { return api.vehicles.list({ municipalityId }); }, [municipalityId]);
   const { data: activeTrips } = useQuery(function() { return api.trips.listActive({ municipalityId }); }, [municipalityId]);
+  const { data: tripHistory } = useQuery(function() { return api.trips.history({ municipalityId }); }, [municipalityId]);
 
   const nSchools = (schools as any)?.length || 0;
   const nStudents = (students as any)?.length || 0;
@@ -27,8 +28,42 @@ export default function DashboardPage() {
   const nTrips = (activeTrips as any)?.filter(function(t: any) { return t.trip?.status === 'started'; }).length || 0;
   const nActive = (activeTrips as any)?.length || 0;
 
-  const weekData = WEEK.map(function(d, i) { return { day: d, viagens: Math.floor(Math.random() * 8 + 4) }; });
-  const punctualityData = WEEK.map(function(d) { return { day: d, pct: Math.floor(Math.random() * 15 + 80) }; });
+  const weekData = (function() {
+    var counts = [0, 0, 0, 0, 0, 0, 0];
+    var now = new Date();
+    var sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+    if (tripHistory && Array.isArray(tripHistory)) {
+      tripHistory.forEach(function(item: any) {
+        var d = new Date(item.trip?.tripDate);
+        if (d >= sevenDaysAgo && d <= now) {
+          counts[d.getDay()] = counts[d.getDay()] + 1;
+        }
+      });
+    }
+    return WEEK.map(function(label, i) { return { day: label, viagens: counts[i] }; });
+  })();
+  const punctualityData = (function() {
+    var total = [0, 0, 0, 0, 0, 0, 0];
+    var completed = [0, 0, 0, 0, 0, 0, 0];
+    var now = new Date();
+    var sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+    if (tripHistory && Array.isArray(tripHistory)) {
+      tripHistory.forEach(function(item: any) {
+        var d = new Date(item.trip?.tripDate);
+        if (d >= sevenDaysAgo && d <= now) {
+          var dow = d.getDay();
+          total[dow] = total[dow] + 1;
+          if (item.trip?.status === 'completed') {
+            completed[dow] = completed[dow] + 1;
+          }
+        }
+      });
+    }
+    return WEEK.map(function(label, i) {
+      var pct = total[i] > 0 ? Math.round((completed[i] / total[i]) * 100) : 100;
+      return { day: label, pct: pct };
+    });
+  })();
 
   const alerts: { type: string; msg: string; icon: any; color: string }[] = [];
   (vehicles as any)?.forEach(function(v: any) {

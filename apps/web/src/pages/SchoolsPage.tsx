@@ -2,9 +2,17 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users } from 'lucide-react';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2 } from 'lucide-react';
 
-const emptyForm = { name:'', code:'', type:'fundamental', address:'', phone:'', email:'', directorName:'' };
+function maskPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+
+const emptyForm = { name:'', code:'', type:'fundamental', address:'', state:'', city:'', phone:'', email:'', directorName:'', morningStart:'07:00', morningEnd:'12:00', afternoonStart:'13:00', afternoonEnd:'17:00', latitude:'', longitude:'' };
 
 export default function SchoolsPage() {
   const { user } = useAuth();
@@ -20,6 +28,7 @@ export default function SchoolsPage() {
   const { mutate: update, loading: updating } = useMutation(api.schools.update);
   const { mutate: remove } = useMutation(api.schools.delete);
 
+  const { municipios: schMunicipios, loading: schMunLoading } = useMunicipios(form.state);
   const setField = function(k: string) { return function(e: any) { setForm(function(f: any) { return {...f,[k]:e.target.value}; }); }; };
   const all = (schools as any)||[];
   const filtered = all.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.address||'').toLowerCase().includes(q)||(s.directorName||'').toLowerCase().includes(q); });
@@ -28,10 +37,11 @@ export default function SchoolsPage() {
   const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setFormErr(''); setShowModal(true); };
 
   const save = function() {
-    if (!form.name) { setFormErr('Nome é obrigatório.'); return; }
-    const payload = { municipalityId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:form.address||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined };
+    if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }
+    const fullAddress = [form.address, form.city, form.state].filter(Boolean).join(', ');
+    const payload: any = { municipalityId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:fullAddress||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined, latitude:form.latitude?parseFloat(form.latitude):undefined, longitude:form.longitude?parseFloat(form.longitude):undefined };
     if (editId!==null) {
-      update({id:editId, name:form.name, code:form.code||undefined, type:form.type||undefined, address:form.address||undefined, phone:form.phone||undefined, email:form.email||undefined, directorName:form.directorName||undefined},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
+      update({id:editId, ...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     } else {
       create(payload,{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     }
@@ -89,12 +99,31 @@ export default function SchoolsPage() {
               {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2"><label className="label">Nome da escola *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Ex: Escola Municipal Centro"/></div>
-                <div><label className="label">Código (INEP)</label><input className="input" value={form.code} onChange={setField('code')} placeholder="Ex: 12345678"/></div>
-                <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={setField('type')}><option value="infantil">Infantil</option><option value="fundamental">Fundamental</option><option value="medio">Médio</option><option value="tecnico">Técnico</option><option value="especial">Especial</option></select></div>
-                <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
-                <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={setField('phone')} placeholder="(00) 0000-0000"/></div>
+                <div><label className="label">Codigo (INEP)</label><input className="input" value={form.code} onChange={setField('code')} placeholder="Ex: 12345678"/></div>
+                <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={setField('type')}><option value="infantil">Infantil</option><option value="fundamental">Fundamental</option><option value="medio">Medio</option><option value="tecnico">Tecnico</option><option value="especial">Especial</option></select></div>
+                <div className="col-span-2"><label className="label">Endereco</label><input className="input" value={form.address} onChange={setField('address')}/></div>
+                <div><label className="label">Estado</label><select className="input" value={form.state} onChange={function(e: any){setForm(function(f:any){return{...f,state:e.target.value,city:''};});}}><option value="">Selecione</option>{ESTADOS_BR.map(function(es){return <option key={es.uf} value={es.uf}>{es.uf} - {es.nome}</option>;})}</select></div>
+                <div><label className="label">Cidade {schMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={setField('city')} disabled={!form.state||schMunLoading}><option value="">Selecione</option>{schMunicipios.map(function(m:any){return <option key={m.id} value={m.nome}>{m.nome}</option>;})}</select></div>
+                <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={function(e:any){setForm(function(f:any){return{...f,phone:maskPhone(e.target.value)};});}} placeholder="(00) 00000-0000" maxLength={15}/></div>
                 <div><label className="label">E-mail</label><input className="input" type="email" value={form.email} onChange={setField('email')}/></div>
                 <div className="col-span-2"><label className="label">Diretor(a)</label><input className="input" value={form.directorName} onChange={setField('directorName')}/></div>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-xl mt-2">
+                <p className="text-sm font-semibold text-blue-700 mb-3 flex items-center gap-2"><Clock size={14}/> Horarios de Funcionamento</p>
+                <div className="grid grid-cols-4 gap-3">
+                  <div><label className="label text-xs">Manha inicio</label><input className="input" type="time" value={form.morningStart} onChange={setField('morningStart')}/></div>
+                  <div><label className="label text-xs">Manha fim</label><input className="input" type="time" value={form.morningEnd} onChange={setField('morningEnd')}/></div>
+                  <div><label className="label text-xs">Tarde inicio</label><input className="input" type="time" value={form.afternoonStart} onChange={setField('afternoonStart')}/></div>
+                  <div><label className="label text-xs">Tarde fim</label><input className="input" type="time" value={form.afternoonEnd} onChange={setField('afternoonEnd')}/></div>
+                </div>
+              </div>
+              <div className="p-4 bg-green-50 rounded-xl">
+                <p className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2"><MapPin size={14}/> Coordenadas (para o mapa)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="label text-xs">Latitude</label><input className="input" value={form.latitude} onChange={setField('latitude')} placeholder="-10.1234"/></div>
+                  <div><label className="label text-xs">Longitude</label><input className="input" value={form.longitude} onChange={setField('longitude')} placeholder="-48.5678"/></div>
+                </div>
+                <p className="text-xs text-green-600 mt-2">Dica: Abra o Google Maps, clique com botao direito no local e copie as coordenadas.</p>
               </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Escola'}</button></div>

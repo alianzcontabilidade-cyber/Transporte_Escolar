@@ -106,6 +106,19 @@ exports.vehicles = (0, mysql_core_1.mysqlTable)("vehicles", {
     // Documentação
     renavam: (0, mysql_core_1.varchar)("renavam", { length: 20 }),
     chassi: (0, mysql_core_1.varchar)("chassi", { length: 20 }),
+    color: (0, mysql_core_1.varchar)("color", { length: 50 }), // Cor
+    fuelType: (0, mysql_core_1.varchar)("fuelType", { length: 50 }), // Tipo combustível
+    // Seguro
+    insuranceCompany: (0, mysql_core_1.varchar)("insuranceCompany", { length: 255 }), // Seguradora
+    insurancePolicy: (0, mysql_core_1.varchar)("insurancePolicy", { length: 100 }), // Número da apólice
+    insuranceExpiry: (0, mysql_core_1.timestamp)("insuranceExpiry"), // Vencimento seguro
+    // Documentação - Vencimentos
+    crlvExpiry: (0, mysql_core_1.timestamp)("crlvExpiry"), // Vencimento CRLV
+    ipvaExpiry: (0, mysql_core_1.timestamp)("ipvaExpiry"), // Vencimento IPVA
+    inspectionExpiry: (0, mysql_core_1.timestamp)("inspectionExpiry"), // Vencimento vistoria técnica
+    fireExtinguisherExpiry: (0, mysql_core_1.timestamp)("fireExtinguisherExpiry"), // Vencimento extintor
+    // Quilometragem
+    currentKm: (0, mysql_core_1.int)("currentKm"), // Quilometragem atual
     // Status
     status: (0, mysql_core_1.mysqlEnum)("status", ["active", "maintenance", "inactive"]).default("active").notNull(),
     lastMaintenanceAt: (0, mysql_core_1.timestamp)("lastMaintenanceAt"),
@@ -156,6 +169,18 @@ exports.students = (0, mysql_core_1.mysqlTable)("students", {
     // Necessidades especiais
     hasSpecialNeeds: (0, mysql_core_1.boolean)("hasSpecialNeeds").default(false),
     specialNeedsNotes: (0, mysql_core_1.text)("specialNeedsNotes"),
+    // Saúde
+    bloodType: (0, mysql_core_1.varchar)("bloodType", { length: 5 }), // Tipo sanguíneo (A+, A-, B+, B-, AB+, AB-, O+, O-)
+    allergies: (0, mysql_core_1.text)("allergies"), // Alergias
+    medications: (0, mysql_core_1.text)("medications"), // Medicamentos em uso
+    healthNotes: (0, mysql_core_1.text)("healthNotes"), // Observações de saúde
+    // Contatos de emergência
+    emergencyContact1Name: (0, mysql_core_1.varchar)("emergencyContact1Name", { length: 255 }),
+    emergencyContact1Phone: (0, mysql_core_1.varchar)("emergencyContact1Phone", { length: 20 }),
+    emergencyContact1Relation: (0, mysql_core_1.varchar)("emergencyContact1Relation", { length: 50 }),
+    emergencyContact2Name: (0, mysql_core_1.varchar)("emergencyContact2Name", { length: 255 }),
+    emergencyContact2Phone: (0, mysql_core_1.varchar)("emergencyContact2Phone", { length: 20 }),
+    emergencyContact2Relation: (0, mysql_core_1.varchar)("emergencyContact2Relation", { length: 50 }),
     // Endereço de embarque
     address: (0, mysql_core_1.text)("address"),
     latitude: (0, mysql_core_1.decimal)("latitude", { precision: 10, scale: 8 }),

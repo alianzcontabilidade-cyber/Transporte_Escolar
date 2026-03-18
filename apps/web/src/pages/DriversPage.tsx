@@ -152,7 +152,7 @@ export default function DriversPage() {
                                                 <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={sf('city')}/></div>
                                                 <div><label className="label">Observações</label><input className="input" value={form.observations} onChange={sf('observations')}/></div>
                                   </div>
-                      </>>)}
+                      </>)}
                       {tab==='cnh'&&(<div className="grid grid-cols-2 gap-3"><div><label className="label">Número CNH</label><input className="input" value={form.cnhNumber} onChange={sf('cnhNumber')}/></div><div><label className="label">Categoria</label><select className="input" value={form.cnhCategory} onChange={sf('cnhCategory')}>{CNH_CATS.map(function(c){return <option key={c}>{c}</option>;})}</select></div><div><label className="label">Validade CNH</label><input className="input" type="date" value={form.cnhExpiry} onChange={sf('cnhExpiry')}/></div><div><label className="label">Experiência (anos)</label><input className="input" type="number" min="0" value={form.experience} onChange={sf('experience')}/></div></div>)}
                       {tab==='vinculo'&&(<div className="space-y-4"><div className="p-4 bg-primary-50 rounded-xl"><p className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2"><Navigation size={14}/> Rota vinculada</p><select className="input" value={form.routeId} onChange={sf('routeId')}><option value="">— Nenhuma rota —</option>{allR.map(function(rt:any){return <option key={rt.route.id} value={rt.route.id}>{rt.route.name}{rt.route.code?' ('+rt.route.code+')':''}</option>;})}</select></div><div className="p-4 bg-blue-50 rounded-xl"><p className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2"><Bus size={14}/> Veículo vinculado</p><select className="input" value={form.vehicleId} onChange={sf('vehicleId')}><option value="">— Nenhum veículo —</option>{allV.map(function(v:any){return <option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>;})}</select></div><p className="text-xs text-gray-400">Vincular motorista à rota e veículo habilita rastreamento em tempo real.</p></div>)}
                     </div>
@@ -160,4 +160,4 @@ export default function DriversPage() {
             </div></div>)}
           </div>
         );
-}</></div>
+}

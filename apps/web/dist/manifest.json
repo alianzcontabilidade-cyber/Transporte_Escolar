@@ -1,0 +1,47 @@
+{
+  "name": "TransEscolar - Transporte Escolar",
+  "short_name": "TransEscolar",
+  "description": "Sistema de transporte escolar seguro e monitorado em tempo real",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fef9ee",
+  "theme_color": "#f59e0b",
+  "scope": "/",
+  "categories": ["education", "transportation"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/bus.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/bus.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Monitoramento",
+      "short_name": "Monitor",
+      "description": "Acompanhar viagens em tempo real",
+      "url": "/monitor"
+    },
+    {
+      "name": "Mapa ao Vivo",
+      "short_name": "Mapa",
+      "description": "Ver ônibus no mapa em tempo real",
+      "url": "/mapa-tempo-real"
+    },
+    {
+      "name": "Portal do Responsável",
+      "short_name": "Responsável",
+      "description": "Acompanhar transporte do aluno",
+      "url": "/portal-responsavel"
+    }
+  ]
+}

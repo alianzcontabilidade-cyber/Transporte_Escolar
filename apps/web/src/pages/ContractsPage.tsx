@@ -199,7 +199,7 @@ export default function ContractsPage() {
                                           <td className="px-4 py-3 cursor-pointer" onClick={() => setDetail(c)}><p className="font-medium text-gray-700">{c.supplier}</p><p className="text-xs text-gray-400">{c.cnpj}</p></td>
                                           <td className="px-4 py-3 max-w-xs cursor-pointer" onClick={() => setDetail(c)}><p className="text-gray-600 text-xs truncate">{c.object}</p></td>
                                           <td className="px-4 py-3 font-semibold text-gray-800">{fmt(parseFloat(c.value)||0)}</td>
-                                          <td className="px-4 py-3">{c.startDate && <p className="text-xs text-gray-500">{new Date(c.startDate).toLocaleDateString('pt-BR')} –</p>}{c.endDate && <><p className="text-xs text-gray-500">{new Date(c.endDate).toLocaleDateString('pt-BR')}</p><DaysAlert endDate={c.endDate}/></>>}</td>
+                                          <td className="px-4 py-3">{c.startDate && <p className="text-xs text-gray-500">{new Date(c.startDate).toLocaleDateString('pt-BR')} –</p>}{c.endDate && <><p className="text-xs text-gray-500">{new Date(c.endDate).toLocaleDateString('pt-BR')}</p><DaysAlert endDate={c.endDate}/></>}</td>
                                           <td className="px-4 py-3"><span className={"text-xs px-2 py-1 rounded-full font-medium " + (STATUS_COLORS[status]||'')}>{STATUS_LABELS[status]||status}</span></td>
                                           <td className="px-4 py-3"><div className="flex items-center gap-1"><button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={14}/></button><button onClick={() => setConfirmDelete(c)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={14}/></button></div></td>
                           </tr>
@@ -259,4 +259,4 @@ export default function ContractsPage() {
                 )}
           </div>
         );
-}</></span>
+}

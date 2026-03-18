@@ -1,7 +1,7 @@
 {
-  "name": "TransEscolar - Transporte Escolar",
-  "short_name": "TransEscolar",
-  "description": "Sistema de transporte escolar seguro e monitorado em tempo real",
+  "name": "NetEscol - Gestão Escolar Municipal",
+  "short_name": "NetEscol",
+  "description": "Sistema de Gestão Escolar Municipal",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

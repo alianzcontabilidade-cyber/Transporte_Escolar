@@ -1,4 +1,4 @@
-const CACHE_NAME = 'transescolar-v2';
+const CACHE_NAME = 'netescol-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -71,10 +71,10 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: 'TransEscolar', body: event.data ? event.data.text() : 'Nova notificacao' };
+    data = { title: 'NetEscol', body: event.data ? event.data.text() : 'Nova notificacao' };
   }
 
-  const title = data.title || 'TransEscolar';
+  const title = data.title || 'NetEscol';
 
   // Ícones por tipo de notificação
   const typeEmoji = {
@@ -92,7 +92,7 @@ self.addEventListener('push', (event) => {
     icon: '/bus.svg',
     badge: '/bus.svg',
     vibrate: [200, 100, 200, 100, 200],
-    tag: data.tag || data.type || 'transescolar',
+    tag: data.tag || data.type || 'netescol',
     renotify: true,
     requireInteraction: data.type === 'delay' || data.type === 'alert',
     data: {

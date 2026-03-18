@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2 } from 'lucide-react';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle } from 'lucide-react';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -38,6 +38,8 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
+  const [inviteStudent, setInviteStudent] = useState<any>(null);
+  const [inviteSent, setInviteSent] = useState(false);
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
@@ -51,6 +53,36 @@ export default function StudentsPage() {
   const filtered = allStudents.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.enrollment||'').includes(q)||(s.grade||'').toLowerCase().includes(q); });
   const shiftLabel = function(v: string) { return SHIFTS.find(function(s) { return s.v===v; })?.l||v; };
   const routeName = function(id: string) { const r = allRoutes.find(function(x:any){return String(x.route.id)===String(id);}); return r?.route?.name||''; };
+
+  const appUrl = window.location.origin;
+
+  const generateWhatsAppLink = function(student: any, phone?: string) {
+    const enrollment = student.enrollment || '';
+    const studentName = student.name || 'seu filho(a)';
+    const msg = `Ola! Voce foi convidado(a) para acompanhar o transporte escolar de *${studentName}* pelo aplicativo *TransEscolar*.
+
+Para instalar:
+1. Acesse: ${appUrl}/cadastro
+2. Escolha "Sou Pai/Responsavel"
+3. Use a matricula: *${enrollment}*
+4. Crie sua conta e acompanhe em tempo real!
+
+Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.`;
+
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+    const whatsPhone = cleanPhone.length === 11 ? '55' + cleanPhone : cleanPhone.length === 13 ? cleanPhone : '';
+    const url = whatsPhone
+      ? `https://wa.me/${whatsPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    return url;
+  };
+
+  const sendWhatsAppInvite = function(student: any, phone?: string) {
+    const url = generateWhatsAppLink(student, phone);
+    window.open(url, '_blank');
+    setInviteSent(true);
+    setTimeout(function() { setInviteSent(false); }, 3000);
+  };
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setFormErr(''); setShowModal(true); };
   const openEdit = function(s: any) { setForm({...emptyForm,...s}); setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true); };
@@ -93,6 +125,7 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={function(){setInviteStudent(s);}} className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg" title="Convidar responsavel via WhatsApp"><MessageCircle size={15}/></button>
               <button onClick={function(){openEdit(s);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={15}/></button>
               <button onClick={function(){setConfirmDelete(s);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={15}/></button>
             </div>
@@ -101,6 +134,75 @@ export default function StudentsPage() {
         {!filtered.length&&!search&&<div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum aluno</p><button className="btn-primary" onClick={openNew}>Adicionar aluno</button></div>}
         {!filtered.length&&search&&<div className="card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
+
+      {/* Toast de convite enviado */}
+      {inviteSent && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+          <CheckCircle size={18}/> Convite enviado via WhatsApp!
+        </div>
+      )}
+
+      {/* Modal Convidar Responsavel */}
+      {inviteStudent&&(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><MessageCircle size={20} className="text-green-500"/> Convidar Responsavel</h3>
+              <button onClick={function(){setInviteStudent(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={18}/></button>
+            </div>
+
+            <div className="bg-green-50 rounded-xl p-4 mb-4">
+              <p className="text-sm font-medium text-green-800 mb-1">Aluno(a): {inviteStudent.name}</p>
+              {inviteStudent.enrollment && <p className="text-xs text-green-600">Matricula: {inviteStudent.enrollment}</p>}
+              {inviteStudent.grade && <p className="text-xs text-green-600">Turma: {inviteStudent.grade}</p>}
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">Envie o convite para o responsavel instalar o app e acompanhar o transporte escolar em tempo real.</p>
+
+            <div className="space-y-2">
+              {inviteStudent.guardian1Phone && (
+                <button onClick={function(){sendWhatsAppInvite(inviteStudent, inviteStudent.guardian1Phone);}}
+                  className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors">
+                  <MessageCircle size={20}/>
+                  <div className="text-left flex-1">
+                    <p className="font-medium text-sm">{inviteStudent.guardian1Name || 'Responsavel 1'}</p>
+                    <p className="text-xs text-green-100">{inviteStudent.guardian1Phone}</p>
+                  </div>
+                  <Share2 size={16}/>
+                </button>
+              )}
+
+              {inviteStudent.guardian2Phone && (
+                <button onClick={function(){sendWhatsAppInvite(inviteStudent, inviteStudent.guardian2Phone);}}
+                  className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors">
+                  <MessageCircle size={20}/>
+                  <div className="text-left flex-1">
+                    <p className="font-medium text-sm">{inviteStudent.guardian2Name || 'Responsavel 2'}</p>
+                    <p className="text-xs text-green-100">{inviteStudent.guardian2Phone}</p>
+                  </div>
+                  <Share2 size={16}/>
+                </button>
+              )}
+
+              <button onClick={function(){sendWhatsAppInvite(inviteStudent);}}
+                className="w-full flex items-center gap-3 p-3 border-2 border-green-200 hover:bg-green-50 text-green-700 rounded-xl transition-colors">
+                <MessageCircle size={20}/>
+                <div className="text-left flex-1">
+                  <p className="font-medium text-sm">Enviar para outro numero</p>
+                  <p className="text-xs text-green-500">Abre o WhatsApp para escolher o contato</p>
+                </div>
+                <Share2 size={16}/>
+              </button>
+            </div>
+
+            {!inviteStudent.enrollment && (
+              <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-xs text-yellow-700">Este aluno nao tem matricula cadastrada. O responsavel precisara informar o nome do aluno no cadastro.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {confirmDelete&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-red-500"/></div><h3 className="font-bold mb-2">Excluir {confirmDelete.name}?</h3><p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setConfirmDelete(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:confirmDelete.id},{onSuccess:function(){refetch();setConfirmDelete(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
 

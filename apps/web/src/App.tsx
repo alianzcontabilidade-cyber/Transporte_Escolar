@@ -25,6 +25,9 @@ import TrackMapPage from './pages/TrackMapPage';
 import AcademicYearsPage from './pages/AcademicYearsPage';
 import ClassGradesPage from './pages/ClassGradesPage';
 import SubjectsPage from './pages/SubjectsPage';
+import ClassesPage from './pages/ClassesPage';
+import TeachersPage from './pages/TeachersPage';
+import EnrollmentsPage from './pages/EnrollmentsPage';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -81,6 +84,9 @@ export default function App() {
         <Route path="anos-letivos" element={<Guard roles={ADMIN_SEC}><AcademicYearsPage /></Guard>} />
         <Route path="series" element={<Guard roles={ADMIN_SEC}><ClassGradesPage /></Guard>} />
         <Route path="disciplinas" element={<Guard roles={ADMIN_SEC}><SubjectsPage /></Guard>} />
+        <Route path="turmas" element={<Guard roles={ADMIN_SEC}><ClassesPage /></Guard>} />
+        <Route path="professores" element={<Guard roles={ADMIN_SEC}><TeachersPage /></Guard>} />
+        <Route path="matriculas" element={<Guard roles={ADMIN_SEC}><EnrollmentsPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

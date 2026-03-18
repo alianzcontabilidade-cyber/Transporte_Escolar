@@ -83,6 +83,9 @@ export default function Layout() {
       { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
       { to: '/series', icon: BookOpen, text: 'Séries' },
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
+      { to: '/turmas', icon: Users, text: 'Turmas' },
+      { to: '/professores', icon: UserCheck, text: 'Professores' },
+      { to: '/matriculas', icon: ClipboardList, text: 'Matrículas' },
     ]},
     { label: 'GESTÃO', items: [
       { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },

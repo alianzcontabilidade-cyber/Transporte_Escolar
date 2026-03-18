@@ -708,6 +708,174 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
 }));
 
 // ============================================
+// TABELA: ANOS LETIVOS
+// ============================================
+export const academicYears = mysqlTable("academic_years", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  year: int("year").notNull(),
+  name: varchar("name", { length: 50 }).notNull(),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  status: mysqlEnum("academicYearStatus", ["planning", "active", "finished"]).default("planning").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: SÉRIES / ETAPAS
+// ============================================
+export const classGrades = mysqlTable("class_grades", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 100 }).notNull(),
+  level: mysqlEnum("gradeLevel", [
+    "creche", "pre_escola", "fundamental_1", "fundamental_2", "medio", "eja", "tecnico"
+  ]).notNull(),
+  orderIndex: int("orderIndex").notNull().default(0),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: TURMAS
+// ============================================
+export const classes = mysqlTable("classes", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  schoolId: int("schoolId").notNull().references(() => schools.id),
+  academicYearId: int("academicYearId").notNull().references(() => academicYears.id),
+  classGradeId: int("classGradeId").notNull().references(() => classGrades.id),
+  name: varchar("name", { length: 50 }).notNull(),
+  fullName: varchar("fullName", { length: 100 }),
+  shift: mysqlEnum("classShift", ["morning", "afternoon", "evening", "full_time"]).default("morning").notNull(),
+  maxStudents: int("maxStudents").default(30),
+  roomNumber: varchar("roomNumber", { length: 20 }),
+  teacherUserId: int("teacherUserId").references(() => users.id),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: DISCIPLINAS
+// ============================================
+export const subjects = mysqlTable("subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 20 }),
+  category: mysqlEnum("subjectCategory", [
+    "base_nacional", "parte_diversificada", "eletiva"
+  ]).default("base_nacional"),
+  workloadHours: int("workloadHours"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: DISCIPLINAS POR TURMA
+// ============================================
+export const classSubjects = mysqlTable("class_subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  classId: int("classId").notNull().references(() => classes.id),
+  subjectId: int("subjectId").notNull().references(() => subjects.id),
+  teacherUserId: int("teacherUserId").references(() => users.id),
+  weeklyHours: int("weeklyHours").default(2),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: MATRÍCULAS
+// ============================================
+export const enrollments = mysqlTable("enrollments", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  classId: int("classId").notNull().references(() => classes.id),
+  academicYearId: int("academicYearId").notNull().references(() => academicYears.id),
+  enrollmentNumber: varchar("enrollmentNumber", { length: 50 }),
+  enrollmentDate: timestamp("enrollmentDate").defaultNow().notNull(),
+  status: mysqlEnum("enrollmentStatus", [
+    "active", "transferred", "cancelled", "graduated", "retained", "evaded"
+  ]).default("active").notNull(),
+  statusChangedAt: timestamp("statusChangedAt"),
+  statusNotes: text("statusNotes"),
+  transferredFromSchoolId: int("transferredFromSchoolId").references(() => schools.id),
+  transferredToSchoolId: int("transferredToSchoolId").references(() => schools.id),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: PROFESSORES (extensão de users)
+// ============================================
+export const teachers = mysqlTable("teachers", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id).unique(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  registrationNumber: varchar("registrationNumber", { length: 50 }),
+  degree: varchar("degree", { length: 100 }),
+  specialization: varchar("specialization", { length: 255 }),
+  hireDate: timestamp("hireDate"),
+  contractType: mysqlEnum("teacherContractType", ["effective", "temporary", "substitute"]).default("effective"),
+  weeklyWorkload: int("weeklyWorkload").default(40),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// ACADEMIC RELATIONS
+// ============================================
+export const academicYearsRelations = relations(academicYears, ({ many }) => ({
+  classes: many(classes),
+  enrollments: many(enrollments),
+}));
+
+export const classGradesRelations = relations(classGrades, ({ many }) => ({
+  classes: many(classes),
+}));
+
+export const classesRelations = relations(classes, ({ one, many }) => ({
+  municipality: one(municipalities, { fields: [classes.municipalityId], references: [municipalities.id] }),
+  school: one(schools, { fields: [classes.schoolId], references: [schools.id] }),
+  academicYear: one(academicYears, { fields: [classes.academicYearId], references: [academicYears.id] }),
+  classGrade: one(classGrades, { fields: [classes.classGradeId], references: [classGrades.id] }),
+  teacher: one(users, { fields: [classes.teacherUserId], references: [users.id] }),
+  enrollments: many(enrollments),
+  classSubjects: many(classSubjects),
+}));
+
+export const subjectsRelations = relations(subjects, ({ many }) => ({
+  classSubjects: many(classSubjects),
+}));
+
+export const classSubjectsRelations = relations(classSubjects, ({ one }) => ({
+  class: one(classes, { fields: [classSubjects.classId], references: [classes.id] }),
+  subject: one(subjects, { fields: [classSubjects.subjectId], references: [subjects.id] }),
+  teacher: one(users, { fields: [classSubjects.teacherUserId], references: [users.id] }),
+}));
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+  municipality: one(municipalities, { fields: [enrollments.municipalityId], references: [municipalities.id] }),
+  student: one(students, { fields: [enrollments.studentId], references: [students.id] }),
+  class: one(classes, { fields: [enrollments.classId], references: [classes.id] }),
+  academicYear: one(academicYears, { fields: [enrollments.academicYearId], references: [academicYears.id] }),
+}));
+
+export const teachersRelations = relations(teachers, ({ one }) => ({
+  user: one(users, { fields: [teachers.userId], references: [users.id] }),
+  municipality: one(municipalities, { fields: [teachers.municipalityId], references: [municipalities.id] }),
+}));
+
+// ============================================
 // TYPES EXPORTADOS
 // ============================================
 
@@ -757,3 +925,11 @@ export type MaintenanceRecord = typeof maintenanceRecords.$inferSelect;
 export type InsertMaintenanceRecord = typeof maintenanceRecords.$inferInsert;
 
 export type LocationHistory = typeof locationHistory.$inferSelect;
+
+export type AcademicYear = typeof academicYears.$inferSelect;
+export type ClassGrade = typeof classGrades.$inferSelect;
+export type Class = typeof classes.$inferSelect;
+export type Subject = typeof subjects.$inferSelect;
+export type ClassSubject = typeof classSubjects.$inferSelect;
+export type Enrollment = typeof enrollments.$inferSelect;
+export type Teacher = typeof teachers.$inferSelect;

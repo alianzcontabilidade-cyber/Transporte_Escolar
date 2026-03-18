@@ -32,7 +32,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '2.1.0', timestamp: new Date().toISOString() });
 });
 
 // Endpoint temporário para diagnosticar e corrigir banco

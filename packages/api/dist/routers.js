@@ -922,37 +922,107 @@ exports.driversRouter = t.router({
     }),
     create: adminProcedure
         .input(zod_1.z.object({
-        municipalityId: zod_1.z.number(), name: zod_1.z.string(), email: zod_1.z.string().email(),
-        phone: zod_1.z.string().optional(), password: zod_1.z.string().min(6),
-        cnhNumber: zod_1.z.string().optional(), cnhCategory: zod_1.z.string().optional(),
+        municipalityId: zod_1.z.number(), name: zod_1.z.string(),
+        email: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(),
+        password: zod_1.z.string().optional(),
+        cpf: zod_1.z.string().optional(),
+        birthDate: zod_1.z.string().optional(),
+        address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        cnhNumber: zod_1.z.string().optional(),
+        cnhCategory: zod_1.z.string().optional(),
+        cnhExpiry: zod_1.z.string().optional(),
+        experience: zod_1.z.number().optional(),
+        routeId: zod_1.z.number().optional(),
+        vehicleId: zod_1.z.number().optional(),
+        photo: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
-        const passwordHash = await (0, bcryptjs_1.hash)(input.password, 12);
-        const [user] = await index_1.db.insert(schema_1.users).values({
-            municipalityId: input.municipalityId, email: input.email, passwordHash,
-            name: input.name, phone: input.phone, role: 'driver',
-        }).$returningId();
-        const [driver] = await index_1.db.insert(schema_1.drivers).values({
-            userId: user.id, municipalityId: input.municipalityId,
-            cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
-        }).$returningId();
-        return { success: true, driverId: driver.id, userId: user.id };
+        validateOptionalCPF(input.cpf);
+        // Gerar email temporario se nao informado
+        const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.transescolar.local');
+        // Gerar senha padrao se nao informada
+        const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
+        const passwordHash = await (0, bcryptjs_1.hash)(pwd, 12);
+        try {
+            const [user] = await index_1.db.insert(schema_1.users).values({
+                municipalityId: input.municipalityId, email, passwordHash,
+                name: input.name, phone: input.phone, cpf: input.cpf, role: 'driver',
+            }).$returningId();
+            const [driver] = await index_1.db.insert(schema_1.drivers).values({
+                userId: user.id, municipalityId: input.municipalityId,
+                cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
+                cnhExpiresAt: input.cnhExpiry ? new Date(input.cnhExpiry) : undefined,
+                vehicleId: input.vehicleId,
+            }).$returningId();
+            // Vincular rota se informada
+            if (input.routeId) {
+                await index_1.db.update(schema_1.routes).set({ defaultDriverId: driver.id }).where((0, drizzle_orm_1.eq)(schema_1.routes.id, input.routeId));
+            }
+            return { success: true, driverId: driver.id, userId: user.id, generatedPassword: input.password ? undefined : pwd };
+        }
+        catch (err) {
+            if (err?.code === 'ER_DUP_ENTRY' || err?.message?.includes('Duplicate entry')) {
+                if (err.message.includes('email'))
+                    throw new server_1.TRPCError({ code: 'CONFLICT', message: 'Este e-mail ja esta cadastrado.' });
+                if (err.message.includes('cpf'))
+                    throw new server_1.TRPCError({ code: 'CONFLICT', message: 'Este CPF ja esta cadastrado.' });
+                throw new server_1.TRPCError({ code: 'CONFLICT', message: 'Registro duplicado. Verifique e-mail e CPF.' });
+            }
+            throw err;
+        }
     }),
     update: adminProcedure
         .input(zod_1.z.object({
         id: zod_1.z.number(),
+        name: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(),
+        cpf: zod_1.z.string().optional(),
+        email: zod_1.z.string().optional(),
         cnhNumber: zod_1.z.string().optional(),
         cnhCategory: zod_1.z.string().optional(),
+        cnhExpiry: zod_1.z.string().optional(),
         vehicleId: zod_1.z.number().optional(),
+        routeId: zod_1.z.number().optional(),
         isAvailable: zod_1.z.boolean().optional(),
+        address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        birthDate: zod_1.z.string().optional(),
+        experience: zod_1.z.number().optional(),
+        photo: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        const ud = {};
-        Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
-            ud[k] = v; });
+        validateOptionalCPF(input.cpf);
+        const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, ...driverData } = input;
+        // Atualizar dados do driver
+        const ud = { ...driverData };
+        if (cnhExpiry)
+            ud.cnhExpiresAt = new Date(cnhExpiry);
+        Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.drivers).set(ud).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, id));
+        // Atualizar dados do user vinculado
+        const [driver] = await index_1.db.select({ userId: schema_1.drivers.userId }).from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, id)).limit(1);
+        if (driver) {
+            const userData = {};
+            if (name)
+                userData.name = name;
+            if (phone)
+                userData.phone = phone;
+            if (cpf)
+                userData.cpf = cpf;
+            if (email)
+                userData.email = email;
+            if (Object.keys(userData).length > 0)
+                await index_1.db.update(schema_1.users).set(userData).where((0, drizzle_orm_1.eq)(schema_1.users.id, driver.userId));
+        }
+        // Vincular rota se informada
+        if (routeId) {
+            await index_1.db.update(schema_1.routes).set({ defaultDriverId: id }).where((0, drizzle_orm_1.eq)(schema_1.routes.id, routeId));
+        }
         return { success: true };
     }),
     delete: adminProcedure

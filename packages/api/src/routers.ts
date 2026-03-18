@@ -991,37 +991,102 @@ export const driversRouter = t.router({
 
   create: adminProcedure
     .input(z.object({
-      municipalityId: z.number(), name: z.string(), email: z.string().email(),
-      phone: z.string().optional(), password: z.string().min(6),
-      cnhNumber: z.string().optional(), cnhCategory: z.string().optional(),
+      municipalityId: z.number(), name: z.string(),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+      password: z.string().optional(),
+      cpf: z.string().optional(),
+      birthDate: z.string().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      cnhNumber: z.string().optional(),
+      cnhCategory: z.string().optional(),
+      cnhExpiry: z.string().optional(),
+      experience: z.number().optional(),
+      routeId: z.number().optional(),
+      vehicleId: z.number().optional(),
+      photo: z.string().optional(),
+      observations: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const passwordHash = await hash(input.password, 12);
-      const [user] = await db.insert(users).values({
-        municipalityId: input.municipalityId, email: input.email, passwordHash,
-        name: input.name, phone: input.phone, role: 'driver',
-      }).$returningId();
+      validateOptionalCPF(input.cpf);
+      // Gerar email temporario se nao informado
+      const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.transescolar.local');
+      // Gerar senha padrao se nao informada
+      const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
+      const passwordHash = await hash(pwd, 12);
 
-      const [driver] = await db.insert(drivers).values({
-        userId: user.id, municipalityId: input.municipalityId,
-        cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
-      }).$returningId();
-      return { success: true, driverId: driver.id, userId: user.id };
+      try {
+        const [user] = await db.insert(users).values({
+          municipalityId: input.municipalityId, email, passwordHash,
+          name: input.name, phone: input.phone, cpf: input.cpf, role: 'driver',
+        }).$returningId();
+
+        const [driver] = await db.insert(drivers).values({
+          userId: user.id, municipalityId: input.municipalityId,
+          cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
+          cnhExpiresAt: input.cnhExpiry ? new Date(input.cnhExpiry) : undefined,
+          vehicleId: input.vehicleId,
+        }).$returningId();
+
+        // Vincular rota se informada
+        if (input.routeId) {
+          await db.update(routes).set({ defaultDriverId: driver.id }).where(eq(routes.id, input.routeId));
+        }
+
+        return { success: true, driverId: driver.id, userId: user.id, generatedPassword: input.password ? undefined : pwd };
+      } catch (err: any) {
+        if (err?.code === 'ER_DUP_ENTRY' || err?.message?.includes('Duplicate entry')) {
+          if (err.message.includes('email')) throw new TRPCError({ code: 'CONFLICT', message: 'Este e-mail ja esta cadastrado.' });
+          if (err.message.includes('cpf')) throw new TRPCError({ code: 'CONFLICT', message: 'Este CPF ja esta cadastrado.' });
+          throw new TRPCError({ code: 'CONFLICT', message: 'Registro duplicado. Verifique e-mail e CPF.' });
+        }
+        throw err;
+      }
     }),
 
   update: adminProcedure
     .input(z.object({
       id: z.number(),
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      cpf: z.string().optional(),
+      email: z.string().optional(),
       cnhNumber: z.string().optional(),
       cnhCategory: z.string().optional(),
+      cnhExpiry: z.string().optional(),
       vehicleId: z.number().optional(),
+      routeId: z.number().optional(),
       isAvailable: z.boolean().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      birthDate: z.string().optional(),
+      experience: z.number().optional(),
+      photo: z.string().optional(),
+      observations: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      const ud: any = {};
-      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      validateOptionalCPF(input.cpf);
+      const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, ...driverData } = input;
+      // Atualizar dados do driver
+      const ud: any = { ...driverData };
+      if (cnhExpiry) ud.cnhExpiresAt = new Date(cnhExpiry);
+      Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(drivers).set(ud).where(eq(drivers.id, id));
+      // Atualizar dados do user vinculado
+      const [driver] = await db.select({ userId: drivers.userId }).from(drivers).where(eq(drivers.id, id)).limit(1);
+      if (driver) {
+        const userData: any = {};
+        if (name) userData.name = name;
+        if (phone) userData.phone = phone;
+        if (cpf) userData.cpf = cpf;
+        if (email) userData.email = email;
+        if (Object.keys(userData).length > 0) await db.update(users).set(userData).where(eq(users.id, driver.userId));
+      }
+      // Vincular rota se informada
+      if (routeId) {
+        await db.update(routes).set({ defaultDriverId: id }).where(eq(routes.id, routeId));
+      }
       return { success: true };
     }),
 

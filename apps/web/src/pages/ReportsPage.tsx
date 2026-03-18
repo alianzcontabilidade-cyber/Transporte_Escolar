@@ -36,16 +36,16 @@ export default function ReportsPage() {
   const { data: history } = useQuery(() => api.trips.history({ municipalityId, limit:100 }), [municipalityId]);
   const { data: students } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const trips = (history as any)||[];
-  const completed = trips.filter((h: any) => h.trip.status==='completed');
-  const cancelled = trips.filter((h: any) => h.trip.status==='cancelled');
+  const completed = trips.filter((h: any) => h.trip?.status==='completed');
+  const cancelled = trips.filter((h: any) => h.trip?.status==='cancelled');
   const rate = trips.length ? Math.round((completed.length/trips.length)*100) : 0;
-  const pieData = [{ name:'Concluídas', value:completed.length },{ name:'Canceladas', value:cancelled.length },{ name:'Em andamento', value:trips.filter((h: any) => h.trip.status==='started').length }].filter(d => d.value>0);
+  const pieData = [{ name:'Concluídas', value:completed.length },{ name:'Canceladas', value:cancelled.length },{ name:'Em andamento', value:trips.filter((h: any) => h.trip?.status==='started').length }].filter(d => d.value>0);
   const byRoute: any = {};
-  trips.forEach((h: any) => { const name=h.route?.name||'Sem rota'; if(!byRoute[name]) byRoute[name]={name,total:0,completed:0}; byRoute[name].total++; if(h.trip.status==='completed') byRoute[name].completed++; });
+  trips.forEach((h: any) => { const name=h.route?.name||'Sem rota'; if(!byRoute[name]) byRoute[name]={name,total:0,completed:0}; byRoute[name].total++; if(h.trip?.status==='completed') byRoute[name].completed++; });
   const routeData = Object.values(byRoute).slice(0,8);
   const weekData = [{ week:'Sem 1', viagens:12, km:180 },{ week:'Sem 2', viagens:15, km:220 },{ week:'Sem 3', viagens:11, km:165 },{ week:'Sem 4', viagens:14, km:210 }];
   const sl = (s: string) => ({ started:'Em andamento', completed:'Concluída', cancelled:'Cancelada', scheduled:'Agendada' }[s]||s);
-  const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'—', data:new Date(h.trip.tripDate).toLocaleDateString('pt-BR'), inicio:h.trip.startedAt?new Date(h.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', fim:h.trip.endedAt?new Date(h.trip.endedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', status:sl(h.trip.status) }));
+  const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'—', data:new Date(h.trip?.tripDate).toLocaleDateString('pt-BR'), inicio:h.trip?.startedAt?new Date(h.trip?.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', fim:h.trip?.endedAt?new Date(h.trip?.endedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', status:sl(h.trip?.status) }));
   const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matricula:s.enrollment||'—', serie:s.grade||'—', turma:s.classRoom||'—', turno:{ morning:'Manhã', afternoon:'Tarde', evening:'Noite' }[s.shift as string]||'—' }));
 
   return (

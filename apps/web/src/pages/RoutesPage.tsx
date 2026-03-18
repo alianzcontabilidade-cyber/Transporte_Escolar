@@ -82,7 +82,8 @@ export default function RoutesPage() {
   const getActiveTrip = (routeId:number) => allTrips.find((t:any)=>t.trip?.routeId===routeId&&t.trip?.status==='started');
 
   const openTripModal = (rt:any) => {
-    const activeDriver = allDrivers.find((d:any)=>String(d.routeId)===String(rt.route.id));
+    const rtId = rt.route?.id || rt.id;
+    const activeDriver = allDrivers.find((d:any)=>String(d.routeId)===String(rtId));
     const activeVehicle = allVehicles.find((v:any)=>String(v.id)===String(activeDriver?.vehicleId));
     setTripForm({ driverId: activeDriver ? String(activeDriver.id) : '', vehicleId: activeVehicle ? String(activeVehicle.id) : '' });
     setTripModal(rt);

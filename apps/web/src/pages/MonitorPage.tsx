@@ -46,7 +46,7 @@ function LiveMap({ trips, locations }: any) {
         html: '<div style="background:#f97316;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:12px;font-weight:bold;">BUS</div>',
         className: '', iconSize: [36, 36], iconAnchor: [18, 18]
       });
-      const trip = trips?.find((t: any) => t.trip.id === tripId);
+      const trip = trips?.find((t: any) => t.trip?.id === tripId);
       if (markersRef.current.has(tripId)) { markersRef.current.get(tripId).setLatLng([loc.lat, loc.lng]); }
       else {
         const m = L.marker([loc.lat, loc.lng], { icon }).addTo(mapInstanceRef.current)
@@ -77,7 +77,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
 
   async function loadSummary() {
     try {
-      const data = await api.monitors.tripSummary({ tripId: tripData.trip.id });
+      const data = await api.monitors.tripSummary({ tripId: tripData.trip?.id });
       setSummary(data);
     } catch (e) { console.error(e); }
   }
@@ -85,7 +85,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
   async function handleBoard(studentId: number, stopId: number) {
     setProcessingId(studentId);
     try {
-      await api.monitors.boardStudent({ tripId: tripData.trip.id, studentId, stopId });
+      await api.monitors.boardStudent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
     } catch (e: any) { alert(e.message); }
@@ -95,7 +95,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
   async function handleDrop(studentId: number, stopId: number) {
     setProcessingId(studentId);
     try {
-      await api.monitors.dropStudent({ tripId: tripData.trip.id, studentId, stopId });
+      await api.monitors.dropStudent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
     } catch (e: any) { alert(e.message); }
@@ -105,7 +105,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
   async function handleAbsent(studentId: number, stopId: number) {
     setProcessingId(studentId);
     try {
-      await api.monitors.markAbsent({ tripId: tripData.trip.id, studentId, stopId });
+      await api.monitors.markAbsent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
     } catch (e: any) { alert(e.message); }
@@ -121,7 +121,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
           navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 }));
         lat = pos.coords.latitude; lng = pos.coords.longitude;
       }
-      await api.trips.arriveAtStop({ tripId: tripData.trip.id, stopId, latitude: lat, longitude: lng });
+      await api.trips.arriveAtStop({ tripId: tripData.trip?.id, stopId, latitude: lat, longitude: lng });
       onRefresh();
     } catch (e: any) { console.error(e); }
   }
@@ -129,7 +129,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
   async function handleCompleteTrip() {
     if (!confirm('Finalizar esta viagem?')) return;
     try {
-      await api.trips.complete({ tripId: tripData.trip.id });
+      await api.trips.complete({ tripId: tripData.trip?.id });
       onRefresh();
     } catch (e: any) { alert(e.message); }
   }
@@ -222,7 +222,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
                   </button>
                 )}
                 {(student.status === 'dropped' || student.status === 'absent') && (
-                  <span className="text-xs font-medium px-2 py-1 rounded-full ${student.status === 'dropped' ? 'text-blue-600' : 'text-red-600'}">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${student.status === 'dropped' ? 'text-blue-600' : 'text-red-600'}`}>
                     {student.status === 'dropped' ? 'Desembarcou' : 'Ausente'}
                   </span>
                 )}
@@ -314,7 +314,7 @@ export default function MonitorPage() {
         const lng = pos.coords.longitude;
         // Enviar posição ao servidor
         api.trips.updateLocation({
-          tripId: myTrip.trip.id, driverId: myTrip.driverId,
+          tripId: myTrip.trip?.id, driverId: myTrip.driverId,
           latitude: lat, longitude: lng,
           speed: pos.coords.speed ? pos.coords.speed * 3.6 : undefined,
           heading: pos.coords.heading || undefined,
@@ -332,7 +332,7 @@ export default function MonitorPage() {
             if (distance <= radius) {
               lastAutoArrivalRef.current.add(stop.id);
               api.trips.arriveAtStop({
-                tripId: myTrip.trip.id, stopId: stop.id,
+                tripId: myTrip.trip?.id, stopId: stop.id,
                 latitude: lat, longitude: lng,
               }).then(() => loadData()).catch(console.error);
             }
@@ -446,21 +446,21 @@ export default function MonitorPage() {
               ) : (
                 <div className="space-y-3">
                   {activeTrips.map((item: any) => {
-                    const loc = busLocations.get(item.trip.id);
+                    const loc = busLocations.get(item.trip?.id);
                     return (
-                      <div key={item.trip.id} className="card cursor-pointer hover:border-gray-300 transition-all"
-                        onClick={() => setSelectedTrip(selectedTrip?.trip.id === item.trip.id ? null : item)}>
+                      <div key={item.trip?.id} className="card cursor-pointer hover:border-gray-300 transition-all"
+                        onClick={() => setSelectedTrip(selectedTrip?.trip?.id === item.trip?.id ? null : item)}>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-100"><Bus size={18} className="text-green-600" /></div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-800">{item.route?.name || 'Sem rota'}</p>
                             <div className="flex items-center gap-3 mt-0.5">
                               {item.driverName && <span className="text-xs text-gray-500 flex items-center gap-1"><User size={10} />{item.driverName}</span>}
-                              {item.trip.startedAt && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} />{new Date(item.trip.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
+                              {item.trip?.startedAt && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} />{new Date(item.trip?.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             </div>
                           </div>
                           {loc ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10} /> GPS ativo</span>
-                            : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{sl(item.trip.status)}</span>}
+                            : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{sl(item.trip?.status)}</span>}
                         </div>
                       </div>
                     );

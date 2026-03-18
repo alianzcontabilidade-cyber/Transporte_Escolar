@@ -389,13 +389,13 @@ export default function GuardianPage() {
           {tripHistory.length === 0 ? (
             <div className="card text-center py-10"><History size={40} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhuma viagem registrada</p></div>
           ) : tripHistory.map((item: any) => (
-            <div key={item.trip.id} className="card flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.trip.status === 'completed' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                {item.trip.status === 'completed' ? <CheckCircle size={16} className="text-green-600" /> : <Bus size={16} className="text-gray-400" />}
+            <div key={item.trip?.id} className="card flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.trip?.status === 'completed' ? 'bg-green-100' : 'bg-gray-100'}`}>
+                {item.trip?.status === 'completed' ? <CheckCircle size={16} className="text-green-600" /> : <Bus size={16} className="text-gray-400" />}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-sm">{item.route?.name}</p>
-                <p className="text-xs text-gray-500">{new Date(item.trip.tripDate).toLocaleDateString('pt-BR')} · {item.trip.status === 'completed' ? 'Concluída' : item.trip.status}</p>
+                <p className="text-xs text-gray-500">{new Date(item.trip?.tripDate).toLocaleDateString('pt-BR')} · {item.trip?.status === 'completed' ? 'Concluída' : item.trip?.status}</p>
               </div>
               <ChevronRight size={14} className="text-gray-300" />
             </div>

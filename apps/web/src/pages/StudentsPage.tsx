@@ -52,7 +52,7 @@ export default function StudentsPage() {
   const allRoutes = (routes as any)||[];
   const filtered = allStudents.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.enrollment||'').includes(q)||(s.grade||'').toLowerCase().includes(q); });
   const shiftLabel = function(v: string) { return SHIFTS.find(function(s) { return s.v===v; })?.l||v; };
-  const routeName = function(id: string) { const r = allRoutes.find(function(x:any){return String(x.route.id)===String(id);}); return r?.route?.name||''; };
+  const routeName = function(id: string) { const r = allRoutes.find(function(x:any){return String(x.route?.id || x.id)===String(id);}); return r?.route?.name||''; };
 
   const appUrl = window.location.origin;
 
@@ -224,7 +224,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div className="col-span-2"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
               <select className="input" value={form.routeId} onChange={setField('routeId')}>
                 <option value="">— Sem rota vinculada —</option>
-                {allRoutes.map(function(rt:any){return <option key={rt.route.id} value={rt.route.id}>{rt.route.name}{rt.route.code?' ('+rt.route.code+')':''}</option>;})}
+                {allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}
               </select>
             </div>
             <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>

@@ -206,6 +206,7 @@ export default function Layout() {
     { code: '116', to: '/ocorrencias', text: 'Ocorrências', module: 'Gestão Escolar', desc: 'Registro de ocorrências disciplinares', tags: 'ocorrencia indisciplina atraso falta elogio advertencia', color: '#6366f1' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
     { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
+    { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -263,6 +264,7 @@ export default function Layout() {
       { to: '/envio-massa', icon: Bell, text: 'Envio em Massa' },
       { to: '/cotacao-compras', icon: ClipboardList, text: 'Cotação Compras' },
       { to: '/estoque-merenda', icon: Package, text: 'Estoque Merenda' },
+      { to: '/protocolo', icon: ClipboardList, text: 'Protocolo' },
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },

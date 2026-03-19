@@ -60,6 +60,7 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/ocorrencias': { code: '116', title: 'Ocorrências', module: 'Gestão Escolar', color: '#6366f1' },
   '/estoque-merenda': { code: '412', title: 'Estoque Merenda', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/vistoria-veiculos': { code: '311', title: 'Vistoria Veículos', module: 'Frota e Rotas', color: '#f97316' },
+  '/protocolo': { code: '413', title: 'Protocolo', module: 'Gestão e Recursos', color: '#0ea5e9' },
 };
 
 // Favorites management

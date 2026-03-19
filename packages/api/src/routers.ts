@@ -663,66 +663,135 @@ export const studentsRouter = t.router({
       className: z.string().optional(),
       enrollment: z.string().optional(),
       shift: z.enum(['morning', 'afternoon', 'evening']).optional(),
-      address: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      latitude: z.number().optional(),
-      longitude: z.number().optional(),
-      photoUrl: z.string().optional(),
-      photo: z.string().optional(),
-      hasSpecialNeeds: z.boolean().optional(),
-      specialNeedsNotes: z.string().optional(),
-      bloodType: z.string().optional(),
-      allergies: z.string().optional(),
-      medications: z.string().optional(),
-      healthNotes: z.string().optional(),
-      emergencyContact1Name: z.string().optional(),
-      emergencyContact1Phone: z.string().optional(),
+      // Dados pessoais
+      cpf: z.string().optional(), rg: z.string().optional(), rgOrgao: z.string().optional(),
+      rgUf: z.string().optional(), rgDate: z.string().optional(),
+      sex: z.string().optional(), race: z.string().optional(),
+      nationality: z.string().optional(), naturalness: z.string().optional(), naturalnessUf: z.string().optional(),
+      nis: z.string().optional(), cartaoSus: z.string().optional(),
+      // Certidao
+      certidaoTipo: z.string().optional(), certidaoNumero: z.string().optional(),
+      certidaoFolha: z.string().optional(), certidaoLivro: z.string().optional(),
+      certidaoData: z.string().optional(), certidaoCartorio: z.string().optional(),
+      // Endereco
+      address: z.string().optional(), addressNumber: z.string().optional(),
+      addressComplement: z.string().optional(), neighborhood: z.string().optional(),
+      cep: z.string().optional(), city: z.string().optional(), state: z.string().optional(),
+      zone: z.string().optional(), phone: z.string().optional(), cellPhone: z.string().optional(),
+      latitude: z.number().optional(), longitude: z.number().optional(),
+      // Transporte
+      needsTransport: z.boolean().optional(), transportType: z.string().optional(), transportDistance: z.string().optional(),
+      // Programas sociais
+      bolsaFamilia: z.boolean().optional(), bpc: z.boolean().optional(), peti: z.boolean().optional(), otherPrograms: z.string().optional(),
+      // Necessidades especiais
+      photoUrl: z.string().optional(), photo: z.string().optional(),
+      hasSpecialNeeds: z.boolean().optional(), specialNeedsNotes: z.string().optional(),
+      deficiencyType: z.string().optional(), tgd: z.string().optional(),
+      superdotacao: z.boolean().optional(), salaRecursos: z.boolean().optional(),
+      acompanhamento: z.string().optional(), encaminhamento: z.string().optional(),
+      // Saude
+      bloodType: z.string().optional(), allergies: z.string().optional(),
+      medications: z.string().optional(), healthNotes: z.string().optional(),
+      // Contatos emergencia
+      emergencyContact1Name: z.string().optional(), emergencyContact1Phone: z.string().optional(),
       emergencyContact1Relation: z.string().optional(),
-      emergencyContact2Name: z.string().optional(),
-      emergencyContact2Phone: z.string().optional(),
+      emergencyContact2Name: z.string().optional(), emergencyContact2Phone: z.string().optional(),
       emergencyContact2Relation: z.string().optional(),
-      guardian1Name: z.string().optional(),
-      guardian1Phone: z.string().optional(),
-      guardian1Relation: z.string().optional(),
-      guardian2Name: z.string().optional(),
-      guardian2Phone: z.string().optional(),
-      guardian2Relation: z.string().optional(),
-      observations: z.string().optional(),
-      routeId: z.number().optional(),
-      school: z.string().optional(),
+      guardian1Name: z.string().optional(), guardian1Phone: z.string().optional(), guardian1Relation: z.string().optional(),
+      guardian2Name: z.string().optional(), guardian2Phone: z.string().optional(), guardian2Relation: z.string().optional(),
+      // Filiacao
+      fatherName: z.string().optional(), fatherCpf: z.string().optional(), fatherRg: z.string().optional(),
+      fatherPhone: z.string().optional(), fatherProfession: z.string().optional(), fatherWorkplace: z.string().optional(),
+      fatherEducation: z.string().optional(), fatherNaturalness: z.string().optional(), fatherNaturalnessUf: z.string().optional(),
+      motherName: z.string().optional(), motherCpf: z.string().optional(), motherRg: z.string().optional(),
+      motherPhone: z.string().optional(), motherProfession: z.string().optional(), motherWorkplace: z.string().optional(),
+      motherEducation: z.string().optional(), motherNaturalness: z.string().optional(), motherNaturalnessUf: z.string().optional(),
+      familyIncome: z.string().optional(),
+      // Procedencia
+      previousSchool: z.string().optional(), previousSchoolType: z.string().optional(),
+      previousSchoolZone: z.string().optional(), previousCity: z.string().optional(),
+      previousState: z.string().optional(), enrollmentType: z.string().optional(),
+      studentStatus: z.string().optional(),
+      observations: z.string().optional(), routeId: z.number().optional(), school: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const finalSchoolId = input.schoolId || (input.school ? parseInt(input.school) : undefined);
       if (!finalSchoolId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
 
-      const fullAddress = [input.address, input.city, input.state].filter(Boolean).join(', ');
+      const { municipalityId, school: _s, photo, className, guardian1Name, guardian1Phone, guardian1Relation,
+        guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, ...rest } = input;
 
       const [student] = await db.insert(students).values({
-        municipalityId: input.municipalityId,
+        municipalityId,
         schoolId: finalSchoolId,
-        name: input.name,
-        enrollment: input.enrollment || undefined,
-        grade: input.grade || undefined,
-        classRoom: input.classRoom || input.className || undefined,
-        shift: input.shift || undefined,
-        birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
-        photoUrl: input.photoUrl || input.photo || undefined,
-        address: fullAddress || input.address || undefined,
-        hasSpecialNeeds: input.hasSpecialNeeds || false,
-        specialNeedsNotes: input.specialNeedsNotes || undefined,
-        bloodType: input.bloodType || undefined,
-        allergies: input.allergies || undefined,
-        medications: input.medications || undefined,
-        healthNotes: input.healthNotes || undefined,
-        emergencyContact1Name: input.emergencyContact1Name || input.guardian1Name || undefined,
-        emergencyContact1Phone: input.emergencyContact1Phone || input.guardian1Phone || undefined,
-        emergencyContact1Relation: input.emergencyContact1Relation || input.guardian1Relation || undefined,
-        emergencyContact2Name: input.emergencyContact2Name || input.guardian2Name || undefined,
-        emergencyContact2Phone: input.emergencyContact2Phone || input.guardian2Phone || undefined,
-        emergencyContact2Relation: input.emergencyContact2Relation || input.guardian2Relation || undefined,
-        ...(input.latitude !== undefined && { latitude: input.latitude.toFixed(8) }),
-        ...(input.longitude !== undefined && { longitude: input.longitude.toFixed(8) }),
+        name: rest.name,
+        enrollment: rest.enrollment || undefined,
+        grade: rest.grade || undefined,
+        classRoom: rest.classRoom || className || undefined,
+        shift: rest.shift || undefined,
+        birthDate: rest.birthDate ? new Date(rest.birthDate) : undefined,
+        photoUrl: rest.photoUrl || photo || undefined,
+        address: rest.address || undefined,
+        addressNumber: rest.addressNumber || undefined,
+        addressComplement: rest.addressComplement || undefined,
+        neighborhood: rest.neighborhood || undefined,
+        cep: rest.cep || undefined,
+        city: rest.city || undefined,
+        state: rest.state || undefined,
+        zone: rest.zone || undefined,
+        phone: rest.phone || undefined,
+        cellPhone: rest.cellPhone || undefined,
+        // Dados pessoais
+        cpf: rest.cpf || undefined, rg: rest.rg || undefined, rgOrgao: rest.rgOrgao || undefined,
+        rgUf: rest.rgUf || undefined, rgDate: rest.rgDate || undefined,
+        sex: rest.sex || undefined, race: rest.race || undefined,
+        nationality: rest.nationality || undefined, naturalness: rest.naturalness || undefined,
+        naturalnessUf: rest.naturalnessUf || undefined,
+        nis: rest.nis || undefined, cartaoSus: rest.cartaoSus || undefined,
+        // Certidao
+        certidaoTipo: rest.certidaoTipo || undefined, certidaoNumero: rest.certidaoNumero || undefined,
+        certidaoFolha: rest.certidaoFolha || undefined, certidaoLivro: rest.certidaoLivro || undefined,
+        certidaoData: rest.certidaoData || undefined, certidaoCartorio: rest.certidaoCartorio || undefined,
+        // Transporte
+        needsTransport: rest.needsTransport || false, transportType: rest.transportType || undefined,
+        transportDistance: rest.transportDistance || undefined,
+        // Programas sociais
+        bolsaFamilia: rest.bolsaFamilia || false, bpc: rest.bpc || false,
+        peti: rest.peti || false, otherPrograms: rest.otherPrograms || undefined,
+        // Necessidades especiais
+        hasSpecialNeeds: rest.hasSpecialNeeds || false, specialNeedsNotes: rest.specialNeedsNotes || undefined,
+        deficiencyType: rest.deficiencyType || undefined, tgd: rest.tgd || undefined,
+        superdotacao: rest.superdotacao || false, salaRecursos: rest.salaRecursos || false,
+        acompanhamento: rest.acompanhamento || undefined, encaminhamento: rest.encaminhamento || undefined,
+        // Saude
+        bloodType: rest.bloodType || undefined, allergies: rest.allergies || undefined,
+        medications: rest.medications || undefined, healthNotes: rest.healthNotes || undefined,
+        // Contatos emergencia
+        emergencyContact1Name: rest.emergencyContact1Name || guardian1Name || undefined,
+        emergencyContact1Phone: rest.emergencyContact1Phone || guardian1Phone || undefined,
+        emergencyContact1Relation: rest.emergencyContact1Relation || guardian1Relation || undefined,
+        emergencyContact2Name: rest.emergencyContact2Name || guardian2Name || undefined,
+        emergencyContact2Phone: rest.emergencyContact2Phone || guardian2Phone || undefined,
+        emergencyContact2Relation: rest.emergencyContact2Relation || guardian2Relation || undefined,
+        // Filiacao
+        fatherName: rest.fatherName || undefined, fatherCpf: rest.fatherCpf || undefined,
+        fatherRg: rest.fatherRg || undefined, fatherPhone: rest.fatherPhone || undefined,
+        fatherProfession: rest.fatherProfession || undefined, fatherWorkplace: rest.fatherWorkplace || undefined,
+        fatherEducation: rest.fatherEducation || undefined,
+        fatherNaturalness: rest.fatherNaturalness || undefined, fatherNaturalnessUf: rest.fatherNaturalnessUf || undefined,
+        motherName: rest.motherName || undefined, motherCpf: rest.motherCpf || undefined,
+        motherRg: rest.motherRg || undefined, motherPhone: rest.motherPhone || undefined,
+        motherProfession: rest.motherProfession || undefined, motherWorkplace: rest.motherWorkplace || undefined,
+        motherEducation: rest.motherEducation || undefined,
+        motherNaturalness: rest.motherNaturalness || undefined, motherNaturalnessUf: rest.motherNaturalnessUf || undefined,
+        familyIncome: rest.familyIncome || undefined,
+        // Procedencia
+        previousSchool: rest.previousSchool || undefined, previousSchoolType: rest.previousSchoolType || undefined,
+        previousSchoolZone: rest.previousSchoolZone || undefined,
+        previousCity: rest.previousCity || undefined, previousState: rest.previousState || undefined,
+        enrollmentType: rest.enrollmentType || undefined, studentStatus: rest.studentStatus || undefined,
+        ...(rest.latitude !== undefined && { latitude: rest.latitude.toFixed(8) }),
+        ...(rest.longitude !== undefined && { longitude: rest.longitude.toFixed(8) }),
       }).$returningId();
       return { success: true, id: student.id };
     }),
@@ -751,69 +820,115 @@ export const studentsRouter = t.router({
       classRoom: z.string().optional(),
       className: z.string().optional(),
       shift: z.enum(['morning', 'afternoon', 'evening']).optional(),
-      address: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      photoUrl: z.string().optional(),
-      photo: z.string().optional(),
-      hasSpecialNeeds: z.boolean().optional(),
-      specialNeedsNotes: z.string().optional(),
-      bloodType: z.string().optional(),
-      allergies: z.string().optional(),
-      medications: z.string().optional(),
-      healthNotes: z.string().optional(),
-      emergencyContact1Name: z.string().optional(),
-      emergencyContact1Phone: z.string().optional(),
+      // Dados pessoais
+      cpf: z.string().optional(), rg: z.string().optional(), rgOrgao: z.string().optional(),
+      rgUf: z.string().optional(), rgDate: z.string().optional(),
+      sex: z.string().optional(), race: z.string().optional(),
+      nationality: z.string().optional(), naturalness: z.string().optional(), naturalnessUf: z.string().optional(),
+      nis: z.string().optional(), cartaoSus: z.string().optional(),
+      // Certidao
+      certidaoTipo: z.string().optional(), certidaoNumero: z.string().optional(),
+      certidaoFolha: z.string().optional(), certidaoLivro: z.string().optional(),
+      certidaoData: z.string().optional(), certidaoCartorio: z.string().optional(),
+      // Endereco
+      address: z.string().optional(), addressNumber: z.string().optional(),
+      addressComplement: z.string().optional(), neighborhood: z.string().optional(),
+      cep: z.string().optional(), city: z.string().optional(), state: z.string().optional(),
+      zone: z.string().optional(), phone: z.string().optional(), cellPhone: z.string().optional(),
+      // Transporte
+      needsTransport: z.boolean().optional(), transportType: z.string().optional(), transportDistance: z.string().optional(),
+      // Programas sociais
+      bolsaFamilia: z.boolean().optional(), bpc: z.boolean().optional(), peti: z.boolean().optional(), otherPrograms: z.string().optional(),
+      // Necessidades especiais
+      photoUrl: z.string().optional(), photo: z.string().optional(),
+      hasSpecialNeeds: z.boolean().optional(), specialNeedsNotes: z.string().optional(),
+      deficiencyType: z.string().optional(), tgd: z.string().optional(),
+      superdotacao: z.boolean().optional(), salaRecursos: z.boolean().optional(),
+      acompanhamento: z.string().optional(), encaminhamento: z.string().optional(),
+      // Saude
+      bloodType: z.string().optional(), allergies: z.string().optional(),
+      medications: z.string().optional(), healthNotes: z.string().optional(),
+      // Contatos emergencia
+      emergencyContact1Name: z.string().optional(), emergencyContact1Phone: z.string().optional(),
       emergencyContact1Relation: z.string().optional(),
-      emergencyContact2Name: z.string().optional(),
-      emergencyContact2Phone: z.string().optional(),
+      emergencyContact2Name: z.string().optional(), emergencyContact2Phone: z.string().optional(),
       emergencyContact2Relation: z.string().optional(),
-      guardian1Name: z.string().optional(),
-      guardian1Phone: z.string().optional(),
-      guardian1Relation: z.string().optional(),
-      guardian2Name: z.string().optional(),
-      guardian2Phone: z.string().optional(),
-      guardian2Relation: z.string().optional(),
-      observations: z.string().optional(),
-      routeId: z.number().optional(),
+      guardian1Name: z.string().optional(), guardian1Phone: z.string().optional(), guardian1Relation: z.string().optional(),
+      guardian2Name: z.string().optional(), guardian2Phone: z.string().optional(), guardian2Relation: z.string().optional(),
+      // Filiacao
+      fatherName: z.string().optional(), fatherCpf: z.string().optional(), fatherRg: z.string().optional(),
+      fatherPhone: z.string().optional(), fatherProfession: z.string().optional(), fatherWorkplace: z.string().optional(),
+      fatherEducation: z.string().optional(), fatherNaturalness: z.string().optional(), fatherNaturalnessUf: z.string().optional(),
+      motherName: z.string().optional(), motherCpf: z.string().optional(), motherRg: z.string().optional(),
+      motherPhone: z.string().optional(), motherProfession: z.string().optional(), motherWorkplace: z.string().optional(),
+      motherEducation: z.string().optional(), motherNaturalness: z.string().optional(), motherNaturalnessUf: z.string().optional(),
+      familyIncome: z.string().optional(),
+      // Procedencia
+      previousSchool: z.string().optional(), previousSchoolType: z.string().optional(),
+      previousSchoolZone: z.string().optional(), previousCity: z.string().optional(),
+      previousState: z.string().optional(), enrollmentType: z.string().optional(),
+      studentStatus: z.string().optional(),
+      observations: z.string().optional(), routeId: z.number().optional(),
+      latitude: z.number().optional(), longitude: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const { id, municipalityId, school, photo, className, guardian1Name, guardian1Phone, guardian1Relation,
+        guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, latitude, longitude, ...fields } = input;
       const ud: any = {};
-      if (input.name !== undefined) ud.name = input.name;
-      if (input.enrollment !== undefined) ud.enrollment = input.enrollment;
-      if (input.grade !== undefined) ud.grade = input.grade;
-      if (input.classRoom || input.className) ud.classRoom = input.classRoom || input.className;
-      if (input.shift !== undefined) ud.shift = input.shift;
-      if (input.birthDate) ud.birthDate = new Date(input.birthDate);
-      if (input.photoUrl || input.photo) ud.photoUrl = input.photoUrl || input.photo;
-      if (input.school) ud.schoolId = parseInt(input.school);
-      if (input.schoolId) ud.schoolId = input.schoolId;
-      if (input.hasSpecialNeeds !== undefined) ud.hasSpecialNeeds = input.hasSpecialNeeds;
-      if (input.specialNeedsNotes !== undefined) ud.specialNeedsNotes = input.specialNeedsNotes;
-      if (input.bloodType !== undefined) ud.bloodType = input.bloodType;
-      if (input.allergies !== undefined) ud.allergies = input.allergies;
-      if (input.medications !== undefined) ud.medications = input.medications;
-      if (input.healthNotes !== undefined) ud.healthNotes = input.healthNotes;
-      // Address
-      if (input.address || input.city || input.state) {
-        ud.address = [input.address, input.city, input.state].filter(Boolean).join(', ');
+
+      // Basic fields
+      if (fields.name !== undefined) ud.name = fields.name;
+      if (fields.enrollment !== undefined) ud.enrollment = fields.enrollment;
+      if (fields.grade !== undefined) ud.grade = fields.grade;
+      if (fields.classRoom || className) ud.classRoom = fields.classRoom || className;
+      if (fields.shift !== undefined) ud.shift = fields.shift;
+      if (fields.birthDate) ud.birthDate = new Date(fields.birthDate);
+      if (fields.photoUrl || photo) ud.photoUrl = fields.photoUrl || photo;
+      if (school) ud.schoolId = parseInt(school);
+      if (fields.schoolId) ud.schoolId = fields.schoolId;
+      if (latitude !== undefined) ud.latitude = latitude.toFixed(8);
+      if (longitude !== undefined) ud.longitude = longitude.toFixed(8);
+
+      // All string/boolean fields - copy if defined
+      const stringFields = [
+        'cpf','rg','rgOrgao','rgUf','rgDate','sex','race','nationality','naturalness','naturalnessUf',
+        'nis','cartaoSus','certidaoTipo','certidaoNumero','certidaoFolha','certidaoLivro','certidaoData','certidaoCartorio',
+        'address','addressNumber','addressComplement','neighborhood','cep','city','state','zone','phone','cellPhone',
+        'transportType','transportDistance','otherPrograms',
+        'specialNeedsNotes','deficiencyType','tgd','acompanhamento','encaminhamento',
+        'bloodType','allergies','medications','healthNotes',
+        'fatherName','fatherCpf','fatherRg','fatherPhone','fatherProfession','fatherWorkplace','fatherEducation',
+        'fatherNaturalness','fatherNaturalnessUf',
+        'motherName','motherCpf','motherRg','motherPhone','motherProfession','motherWorkplace','motherEducation',
+        'motherNaturalness','motherNaturalnessUf',
+        'familyIncome','previousSchool','previousSchoolType','previousSchoolZone','previousCity','previousState',
+        'enrollmentType','studentStatus',
+      ];
+      for (const f of stringFields) {
+        if ((fields as any)[f] !== undefined) ud[f] = (fields as any)[f];
       }
+      const boolFields = ['hasSpecialNeeds','needsTransport','bolsaFamilia','bpc','peti','superdotacao','salaRecursos'];
+      for (const f of boolFields) {
+        if ((fields as any)[f] !== undefined) ud[f] = (fields as any)[f];
+      }
+
       // Emergency contacts / guardians
-      const ec1Name = input.emergencyContact1Name || input.guardian1Name;
-      const ec1Phone = input.emergencyContact1Phone || input.guardian1Phone;
-      const ec1Rel = input.emergencyContact1Relation || input.guardian1Relation;
-      const ec2Name = input.emergencyContact2Name || input.guardian2Name;
-      const ec2Phone = input.emergencyContact2Phone || input.guardian2Phone;
-      const ec2Rel = input.emergencyContact2Relation || input.guardian2Relation;
+      const ec1Name = fields.emergencyContact1Name || guardian1Name;
+      const ec1Phone = fields.emergencyContact1Phone || guardian1Phone;
+      const ec1Rel = fields.emergencyContact1Relation || guardian1Relation;
+      const ec2Name = fields.emergencyContact2Name || guardian2Name;
+      const ec2Phone = fields.emergencyContact2Phone || guardian2Phone;
+      const ec2Rel = fields.emergencyContact2Relation || guardian2Relation;
       if (ec1Name !== undefined) ud.emergencyContact1Name = ec1Name;
       if (ec1Phone !== undefined) ud.emergencyContact1Phone = ec1Phone;
       if (ec1Rel !== undefined) ud.emergencyContact1Relation = ec1Rel;
       if (ec2Name !== undefined) ud.emergencyContact2Name = ec2Name;
       if (ec2Phone !== undefined) ud.emergencyContact2Phone = ec2Phone;
       if (ec2Rel !== undefined) ud.emergencyContact2Relation = ec2Rel;
+
       // Remove undefined values
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
-      if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, input.id));
+      if (Object.keys(ud).length > 0) await db.update(students).set(ud).where(eq(students.id, id));
       return { success: true };
     }),
 

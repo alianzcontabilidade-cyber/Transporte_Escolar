@@ -199,31 +199,82 @@ export const students = mysqlTable("students", {
   id: int("id").autoincrement().primaryKey(),
   municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
   schoolId: int("schoolId").notNull().references(() => schools.id),
-  
-  // Dados do aluno
+
+  // Dados pessoais do aluno
   name: varchar("name", { length: 255 }).notNull(),
   birthDate: timestamp("birthDate"),
+  cpf: varchar("cpf", { length: 14 }),                          // CPF do aluno
+  rg: varchar("rg", { length: 20 }),                            // RG
+  rgOrgao: varchar("rgOrgao", { length: 20 }),                  // Orgao Expedidor (SSP, etc)
+  rgUf: varchar("rgUf", { length: 2 }),                         // UF do RG
+  rgDate: varchar("rgDate", { length: 10 }),                    // Data expedicao
+  sex: varchar("sex", { length: 1 }),                           // M ou F
+  race: varchar("race", { length: 20 }),                        // Branca, Negra, Parda, Amarela, Indigena, Nao Declarada
+  nationality: varchar("nationality", { length: 50 }),          // Brasileira, etc
+  naturalness: varchar("naturalness", { length: 100 }),         // Cidade de nascimento
+  naturalnessUf: varchar("naturalnessUf", { length: 2 }),       // UF nascimento
+  nis: varchar("nis", { length: 15 }),                          // NIS (Numero de Identificacao Social)
+  cartaoSus: varchar("cartaoSus", { length: 20 }),              // Cartao SUS
+
+  // Certidao de Nascimento
+  certidaoTipo: varchar("certidaoTipo", { length: 20 }),        // nascimento, casamento
+  certidaoNumero: varchar("certidaoNumero", { length: 50 }),    // Numero
+  certidaoFolha: varchar("certidaoFolha", { length: 10 }),      // Folha
+  certidaoLivro: varchar("certidaoLivro", { length: 10 }),      // Livro
+  certidaoData: varchar("certidaoData", { length: 10 }),        // Data emissao
+  certidaoCartorio: varchar("certidaoCartorio", { length: 255 }), // Cartorio
+
+  // Academico
   grade: varchar("grade", { length: 50 }),          // "5º Ano", "1ª Série"
   classRoom: varchar("classRoom", { length: 50 }), // "Turma A"
-  enrollment: varchar("enrollment", { length: 50 }), // Matrícula
-  
-  // Turno
+  enrollment: varchar("enrollment", { length: 50 }), // Numero de Matricula
   shift: mysqlEnum("shift", ["morning", "afternoon", "evening"]).default("morning"),
-  
-  // Foto para identificação
+
+  // Foto
   photoUrl: text("photoUrl"),
-  
-  // Necessidades especiais
+
+  // Endereco completo
+  address: text("address"),                                      // Logradouro
+  addressNumber: varchar("addressNumber", { length: 10 }),       // Numero
+  addressComplement: varchar("addressComplement", { length: 100 }),
+  neighborhood: varchar("neighborhood", { length: 100 }),        // Bairro
+  cep: varchar("cep", { length: 9 }),                            // CEP
+  city: varchar("city", { length: 100 }),                        // Cidade
+  state: varchar("state", { length: 2 }),                        // UF
+  zone: varchar("zone", { length: 10 }),                         // urbana, rural
+  phone: varchar("phone", { length: 20 }),                       // Telefone residencial
+  cellPhone: varchar("cellPhone", { length: 20 }),               // Celular
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+
+  // Transporte escolar
+  needsTransport: boolean("needsTransport").default(false),
+  transportType: varchar("transportType", { length: 50 }),       // Onibus, Van, Barco, etc
+  transportDistance: varchar("transportDistance", { length: 10 }), // km
+
+  // Programas sociais
+  bolsaFamilia: boolean("bolsaFamilia").default(false),
+  bpc: boolean("bpc").default(false),                             // Beneficio Prestacao Continuada
+  peti: boolean("peti").default(false),                           // PETI
+  otherPrograms: varchar("otherPrograms", { length: 255 }),       // Outros programas
+
+  // Necessidades especiais / Deficiencia
   hasSpecialNeeds: boolean("hasSpecialNeeds").default(false),
   specialNeedsNotes: text("specialNeedsNotes"),
+  deficiencyType: varchar("deficiencyType", { length: 255 }),    // Surdez, Auditiva, Mental, Fisica, Multipla, Cegueira, Baixa Visao
+  tgd: varchar("tgd", { length: 255 }),                          // Psicose Infantil, Autismo, Asperger, Rett
+  superdotacao: boolean("superdotacao").default(false),           // Altas Habilidades/Superdotacao
+  salaRecursos: boolean("salaRecursos").default(false),           // Frequenta Sala de Recursos
+  acompanhamento: varchar("acompanhamento", { length: 255 }),    // Psicologia, Fono, Psicopedagogia, Fisioterapia
+  encaminhamento: varchar("encaminhamento", { length: 255 }),    // CAPS, CRAS, CREAS, etc
 
-  // Saúde
-  bloodType: varchar("bloodType", { length: 5 }),              // Tipo sanguíneo (A+, A-, B+, B-, AB+, AB-, O+, O-)
-  allergies: text("allergies"),                                 // Alergias
-  medications: text("medications"),                             // Medicamentos em uso
-  healthNotes: text("healthNotes"),                             // Observações de saúde
+  // Saude
+  bloodType: varchar("bloodType", { length: 5 }),
+  allergies: text("allergies"),
+  medications: text("medications"),
+  healthNotes: text("healthNotes"),
 
-  // Contatos de emergência
+  // Contatos de emergencia
   emergencyContact1Name: varchar("emergencyContact1Name", { length: 255 }),
   emergencyContact1Phone: varchar("emergencyContact1Phone", { length: 20 }),
   emergencyContact1Relation: varchar("emergencyContact1Relation", { length: 50 }),
@@ -231,14 +282,43 @@ export const students = mysqlTable("students", {
   emergencyContact2Phone: varchar("emergencyContact2Phone", { length: 20 }),
   emergencyContact2Relation: varchar("emergencyContact2Relation", { length: 50 }),
 
-  // Endereço de embarque
-  address: text("address"),
-  latitude: decimal("latitude", { precision: 10, scale: 8 }),
-  longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  
+  // Filiacao (dados diretos, sem precisar de users)
+  fatherName: varchar("fatherName", { length: 255 }),
+  fatherCpf: varchar("fatherCpf", { length: 14 }),
+  fatherRg: varchar("fatherRg", { length: 20 }),
+  fatherPhone: varchar("fatherPhone", { length: 20 }),
+  fatherProfession: varchar("fatherProfession", { length: 100 }),
+  fatherWorkplace: varchar("fatherWorkplace", { length: 255 }),
+  fatherEducation: varchar("fatherEducation", { length: 50 }),   // Escolaridade
+  fatherNaturalness: varchar("fatherNaturalness", { length: 50 }),
+  fatherNaturalnessUf: varchar("fatherNaturalnessUf", { length: 2 }),
+
+  motherName: varchar("motherName", { length: 255 }),
+  motherCpf: varchar("motherCpf", { length: 14 }),
+  motherRg: varchar("motherRg", { length: 20 }),
+  motherPhone: varchar("motherPhone", { length: 20 }),
+  motherProfession: varchar("motherProfession", { length: 100 }),
+  motherWorkplace: varchar("motherWorkplace", { length: 255 }),
+  motherEducation: varchar("motherEducation", { length: 50 }),
+  motherNaturalness: varchar("motherNaturalness", { length: 50 }),
+  motherNaturalnessUf: varchar("motherNaturalnessUf", { length: 2 }),
+
+  familyIncome: varchar("familyIncome", { length: 50 }),          // Renda familiar
+
+  // Procedencia / Situacao anterior
+  previousSchool: varchar("previousSchool", { length: 255 }),     // Escola anterior
+  previousSchoolType: varchar("previousSchoolType", { length: 30 }), // municipal, estadual, particular, federal
+  previousSchoolZone: varchar("previousSchoolZone", { length: 10 }), // urbana, rural
+  previousCity: varchar("previousCity", { length: 100 }),
+  previousState: varchar("previousState", { length: 2 }),
+  enrollmentType: varchar("enrollmentType", { length: 20 }),      // novato, renovacao, transferencia
+
+  // Situacao do aluno na serie
+  studentStatus: varchar("studentStatus", { length: 30 }),        // aprovado, reprovado, remanejado, transferido, abandono
+
   // Status
   isActive: boolean("isActive").default(true).notNull(),
-  
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

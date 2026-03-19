@@ -1011,10 +1011,15 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,de=new Blob(["\uFEFF"+W],{type:"t
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
+  /* PAGE WRAPPER - empurra rodape para o final */
+  .page-wrapper{display:flex;flex-direction:column;min-height:calc(100vh - 36mm)}
+
+  .page-content{flex:1}
+
   /* FOOTER */
-  .report-footer-fixed{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:8px 20mm 5px;background:white}
-  .report-footer-fixed .footer-line{margin:1px 0}
-  .report-footer-fixed .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px}
+  .report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:10px 0 0;margin-top:auto}
+  .report-footer-fixed .footer-line{margin:2px 0}
+  .report-footer-fixed .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
   /* TABLE SPECIFIC STYLES */
   .grade-table th{font-size:9px;padding:5px 4px}
@@ -1037,21 +1042,25 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,de=new Blob(["\uFEFF"+W],{type:"t
     body{max-width:900px;margin:20px auto;padding:20px 40px;background:#fff;box-shadow:0 0 20px rgba(0,0,0,0.1)}
   }
 </style></head><body>
-${m}
-<div class="report-title">
-  <h1>${e.title}</h1>
-  ${e.subtitle?`<div class="subtitle">${e.subtitle}</div>`:""}
+<div class="page-wrapper">
+  <div class="page-content">
+    ${m}
+    <div class="report-title">
+      <h1>${e.title}</h1>
+      ${e.subtitle?`<div class="subtitle">${e.subtitle}</div>`:""}
+    </div>
+    <div class="report-body">
+      ${e.content}
+    </div>
+    ${c?`<div class="report-date">${o}</div>`:""}
+    ${d}
+  </div>
+  <div class="report-footer-fixed">
+    ${u.map(x=>`<div class="footer-line">${x}</div>`).join("")}
+    <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString("pt-BR")}</div>
+  </div>
 </div>
-<div class="report-body">
-  ${e.content}
-</div>
-${c?`<div class="report-date">${o}</div>`:""}
-${d}
-<div class="report-footer-fixed">
-  ${u.map(x=>`<div class="footer-line">${x}</div>`).join("")}
-  <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString("pt-BR")}</div>
-</div>
-</body></html>`}function v0(e){const t=window.open("","_blank");t&&(t.document.write(e),t.document.close(),setTimeout(()=>t.print(),700))}async function KA(e,t){const r=(await Wse(async()=>{const{default:d}=await import("./html2pdf-CzBEGXRr.js").then(m=>m.h);return{default:d}},[])).default,a=document.createElement("div");a.innerHTML=e;const s=e.match(/<body[^>]*>([\s\S]*?)<\/body>/i),i=e.match(/<style[^>]*>([\s\S]*?)<\/style>/i),l=document.createElement("div");if(i){const d=document.createElement("style");d.textContent=i[1].replace(/\.report-footer-fixed\{position:fixed[^}]+\}/g,".report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:12px 0 5px;margin-top:30px}").replace(/@page\{[^}]+\}/g,"").replace(/@media screen\{[^}]+\}/g,""),l.appendChild(d)}const c=document.createElement("div");c.innerHTML=s?s[1]:e,c.style.padding="20px 30px",c.style.maxWidth="100%",l.appendChild(c),document.body.appendChild(l);const o=(t||"relatorio").replace(/[^a-zA-Z0-9_-]/g,"_");try{const d={margin:[8,8,12,8],filename:o+".pdf",image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:!0,logging:!1,letterRendering:!0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["avoid-all","css","legacy"]}},m=await r().set(d).from(l).outputPdf("blob"),u=URL.createObjectURL(new Blob([m],{type:"application/pdf"}));window.open(u,"_blank")}catch(d){console.error("Erro ao gerar PDF:",d),v0(e)}finally{document.body.removeChild(l)}}function $h(e,t,r,a){return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e} - NetEscol</title>
+</body></html>`}function v0(e){const t=window.open("","_blank");t&&(t.document.write(e),t.document.close(),setTimeout(()=>t.print(),700))}async function KA(e,t){const r=(await Wse(async()=>{const{default:d}=await import("./html2pdf-DtlYFN3Y.js").then(m=>m.h);return{default:d}},[])).default,a=document.createElement("div");a.innerHTML=e;const s=e.match(/<body[^>]*>([\s\S]*?)<\/body>/i),i=e.match(/<style[^>]*>([\s\S]*?)<\/style>/i),l=document.createElement("div");if(i){const d=document.createElement("style");d.textContent=i[1].replace(/@page\{[^}]+\}/g,"").replace(/@media screen\{[^}]+\}/g,"").replace(/min-height:calc\([^)]+\)/g,"min-height:270mm"),l.appendChild(d)}const c=document.createElement("div");c.innerHTML=s?s[1]:e,c.style.padding="15px 25px",c.style.maxWidth="100%",l.appendChild(c),document.body.appendChild(l);const o=(t||"relatorio").replace(/[^a-zA-Z0-9_-]/g,"_");try{const d={margin:[8,8,12,8],filename:o+".pdf",image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:!0,logging:!1,letterRendering:!0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["avoid-all","css","legacy"]}},m=await r().set(d).from(l).outputPdf("blob"),u=URL.createObjectURL(new Blob([m],{type:"application/pdf"}));window.open(u,"_blank")}catch(d){console.error("Erro ao gerar PDF:",d),v0(e)}finally{document.body.removeChild(l)}}function $h(e,t,r,a){return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e} - NetEscol</title>
   <style>
     *{box-sizing:border-box}
     @page{size:A4;margin:15mm}

@@ -217,10 +217,15 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
+  /* PAGE WRAPPER - empurra rodape para o final */
+  .page-wrapper{display:flex;flex-direction:column;min-height:calc(100vh - 36mm)}
+
+  .page-content{flex:1}
+
   /* FOOTER */
-  .report-footer-fixed{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:8px 20mm 5px;background:white}
-  .report-footer-fixed .footer-line{margin:1px 0}
-  .report-footer-fixed .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px}
+  .report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:10px 0 0;margin-top:auto}
+  .report-footer-fixed .footer-line{margin:2px 0}
+  .report-footer-fixed .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
   /* TABLE SPECIFIC STYLES */
   .grade-table th{font-size:9px;padding:5px 4px}
@@ -243,19 +248,23 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
     body{max-width:900px;margin:20px auto;padding:20px 40px;background:#fff;box-shadow:0 0 20px rgba(0,0,0,0.1)}
   }
 </style></head><body>
-${headerHTML}
-<div class="report-title">
-  <h1>${opts.title}</h1>
-  ${opts.subtitle ? `<div class="subtitle">${opts.subtitle}</div>` : ''}
-</div>
-<div class="report-body">
-  ${opts.content}
-</div>
-${showDate ? `<div class="report-date">${dateText}</div>` : ''}
-${sigHTML}
-<div class="report-footer-fixed">
-  ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
-  <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
+<div class="page-wrapper">
+  <div class="page-content">
+    ${headerHTML}
+    <div class="report-title">
+      <h1>${opts.title}</h1>
+      ${opts.subtitle ? `<div class="subtitle">${opts.subtitle}</div>` : ''}
+    </div>
+    <div class="report-body">
+      ${opts.content}
+    </div>
+    ${showDate ? `<div class="report-date">${dateText}</div>` : ''}
+    ${sigHTML}
+  </div>
+  <div class="report-footer-fixed">
+    ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
+    <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  </div>
 </div>
 </body></html>`;
 }
@@ -285,18 +294,18 @@ export async function openReportAsPDF(html: string, filename?: string) {
   if (styleMatch) {
     const style = document.createElement('style');
     style.textContent = styleMatch[1]
-      // Remove fixed footer for PDF (will be in the flow)
-      .replace(/\.report-footer-fixed\{position:fixed[^}]+\}/g, '.report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:12px 0 5px;margin-top:30px}')
-      // Remove @page (html2pdf handles this)
+      // Remove @page (html2pdf handles margins)
       .replace(/@page\{[^}]+\}/g, '')
       // Remove screen-only styles
-      .replace(/@media screen\{[^}]+\}/g, '');
+      .replace(/@media screen\{[^}]+\}/g, '')
+      // Ensure page-wrapper fills the page height for PDF (A4 = 297mm minus margins)
+      .replace(/min-height:calc\([^)]+\)/g, 'min-height:270mm');
     wrapper.appendChild(style);
   }
 
   const content = document.createElement('div');
   content.innerHTML = bodyMatch ? bodyMatch[1] : html;
-  content.style.padding = '20px 30px';
+  content.style.padding = '15px 25px';
   content.style.maxWidth = '100%';
   wrapper.appendChild(content);
 

@@ -67,35 +67,49 @@ function buildReportHTML(title: string, subtitle: string | undefined, content: s
   </body></html>`;
 }
 
+// Word icon SVG
+function WordIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="2" width="18" height="20" rx="2" fill="#2B579A"/>
+      <text x="12" y="15" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold" fontFamily="Arial">W</text>
+    </svg>
+  );
+}
+
 export default function ReportExportBar({ title, subtitle, children, fullData, fullDataColumns, municipality, school, hideSignatures }: ReportExportBarProps) {
   const [exporting, setExporting] = useState('');
   const [selectedSignatories, setSelectedSignatories] = useState<Signatory[]>([]);
 
+  const getFullHTML = () => {
+    const signaturesHTML = generateSignaturesHTML(selectedSignatories);
+    const content = document.getElementById('report-content')?.innerHTML || '';
+    return buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
+  };
+
+  const safeFilename = () => title.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().split('T')[0];
+
   const exportReport = (format: string) => {
     setExporting(format);
-    const signaturesHTML = generateSignaturesHTML(selectedSignatories);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
+        const html = getFullHTML();
+
         if (format === 'pdfreal') {
-          const content = document.getElementById('report-content')?.innerHTML || '';
-          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
-          openReportAsPDF(html, title).then(() => setExporting('')).catch(() => setExporting(''));
-          return; // async - don't setExporting in finally
+          await openReportAsPDF(html, title);
+          setExporting('');
+          return;
         }
 
         if (format === 'print') {
-          const content = document.getElementById('report-content')?.innerHTML || '';
-          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
           const w = window.open('', '_blank');
-          if (w) {
-            w.document.write(html);
-            w.document.close();
-            setTimeout(() => { w.print(); setExporting(''); }, 700);
-          } else setExporting('');
+          if (w) { w.document.write(html); w.document.close(); setTimeout(() => { w.print(); setExporting(''); }, 700); }
+          else setExporting('');
+          return;
         }
 
-        else if (format === 'excel') {
+        if (format === 'excel') {
           let csv = '';
           if (fullData && fullDataColumns) {
             csv = fullDataColumns.map(c => '"' + c.label + '"').join(';') + '\n';
@@ -118,31 +132,72 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
                 });
                 csv += '\n';
               });
-            } else {
-              csv = title + '\n' + (subtitle || '') + '\nSem dados tabulares para exportar\n';
-            }
+            } else { csv = title + '\n' + (subtitle || '') + '\nSem dados tabulares\n'; }
           }
-          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = title.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().split('T')[0] + '.csv';
-          a.click();
-          setExporting('');
+          downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), safeFilename() + '.csv');
         }
 
         else if (format === 'html') {
-          const content = document.getElementById('report-content')?.innerHTML || '';
-          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
-          const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = title.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().split('T')[0] + '.html';
-          a.click();
-          setExporting('');
+          downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8;' }), safeFilename() + '.html');
         }
+
+        else if (format === 'doc') {
+          // Word .doc format using HTML with Word-specific XML headers
+          const wordHTML = buildWordDocument(html);
+          downloadBlob(new Blob(['\uFEFF' + wordHTML], { type: 'application/msword;charset=utf-8;' }), safeFilename() + '.doc');
+        }
+
+        else if (format === 'docx') {
+          // .docx via Word-compatible HTML (Word opens HTML files natively)
+          const wordHTML = buildWordDocument(html);
+          downloadBlob(new Blob(['\uFEFF' + wordHTML], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), safeFilename() + '.docx');
+        }
+
+        setExporting('');
       } catch (e) { console.error(e); setExporting(''); }
     }, 100);
   };
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function buildWordDocument(html: string): string {
+    // Wrap HTML with Word-compatible XML/mso headers so it opens perfectly in Word
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="NetEscol">
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+${html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || ''}
+<style>
+  @page { size: A4; margin: 2cm; }
+  body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #999; padding: 5px 8px; }
+  th { background-color: #1B3A5C; color: white; }
+</style>
+</head>
+<body>
+${html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html}
+</body>
+</html>`;
+  }
 
   return (
     <div>
@@ -152,11 +207,15 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
           <span className="text-sm font-medium text-gray-500 mr-1">Gerar relatorio:</span>
           <button onClick={() => exportReport('pdfreal')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium shadow-sm">
-            {exporting === 'pdfreal' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} Visualizar PDF
+            {exporting === 'pdfreal' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
           </button>
           <button onClick={() => exportReport('print')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50">
             {exporting === 'print' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Imprimir
+          </button>
+          <button onClick={() => exportReport('doc')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-[#2B579A]/10 text-[#2B579A] hover:bg-[#2B579A]/20 rounded-lg transition-colors disabled:opacity-50">
+            {exporting === 'doc' ? <Loader2 size={14} className="animate-spin" /> : <WordIcon />} Word
           </button>
           <button onClick={() => exportReport('excel')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50">

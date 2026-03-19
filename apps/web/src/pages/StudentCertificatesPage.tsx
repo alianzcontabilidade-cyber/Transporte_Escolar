@@ -65,6 +65,25 @@ export default function StudentCertificatesPage() {
     if (html) printReportHTML(html);
   };
 
+  const handleWord = (type: string) => {
+    const html = buildHTML(type);
+    if (!html) return;
+    const bodyContent = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
+    const styleContent = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || '';
+    const wordHTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><meta name="ProgId" content="Word.Document">
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+${styleContent}
+<style>@page{size:A4;margin:2cm}body{font-family:'Calibri',Arial,sans-serif}table{border-collapse:collapse}th,td{border:1px solid #999;padding:5px 8px}th{background-color:#1B3A5C;color:white}</style>
+</head><body>${bodyContent}</body></html>`;
+    const blob = new Blob(['\uFEFF' + wordHTML], { type: 'application/msword;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (CERT_TYPES.find(c => c.id === type)?.label || 'documento').replace(/[^a-zA-Z0-9]/g, '_') + '.doc';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   const iconColors: any = {
     indigo: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100',
     emerald: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100',
@@ -135,9 +154,13 @@ export default function StudentCertificatesPage() {
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium">
                           {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
                         </button>
+                        <button onClick={() => handleWord(cert.id)}
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-[#2B579A]/10 text-[#2B579A] hover:bg-[#2B579A]/20 rounded-lg transition-colors">
+                          <FileText size={14} /> Word
+                        </button>
                         <button onClick={() => handlePrint(cert.id)}
                           className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors">
-                          <Printer size={14} /> Imprimir
+                          <Printer size={14} />
                         </button>
                       </div>
                     </div>

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
+import PageHeader from './PageHeader';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -527,6 +528,9 @@ export default function Layout() {
             </div>
           )}
         </div>
+
+        {/* Page Header with code */}
+        <PageHeader />
 
         {/* Page content */}
         <main className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : ''}`}>

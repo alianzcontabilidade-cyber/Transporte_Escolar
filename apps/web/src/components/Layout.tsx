@@ -126,67 +126,61 @@ export default function Layout() {
   const isParent = role === 'parent';
 
   // ============================================
-  // MENUS ORGANIZADOS POR MÓDULO
+  // PAINEL COM BLOCOS DE MÓDULOS
   // ============================================
-  const adminMenu = [
-    { label: 'PAINEL', items: [
-      { to: '/', icon: LayoutDashboard, text: 'Dashboard' },
-      { to: '/modulos', icon: LayoutDashboard, text: 'Todos os Módulos' },
-      { to: '/monitor', icon: Navigation, text: 'Monitoramento' },
-      { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
+  const [activeModule, setActiveModule] = useState<string | null>(null);
+
+  const moduleBlocks = [
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: '#2DB5B0', to: '/' },
+    { key: 'secretaria', label: 'Secretaria', icon: School, color: '#6366f1', items: [
+      { to: '/escolas', icon: School, text: 'Escolas' }, { to: '/alunos', icon: Users, text: 'Alunos' },
+      { to: '/matriculas', icon: ClipboardList, text: 'Matrículas' }, { to: '/turmas', icon: Users, text: 'Turmas' },
+      { to: '/series', icon: BookOpen, text: 'Séries' }, { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
+      { to: '/professores', icon: UserCheck, text: 'Professores' }, { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
+      { to: '/remanejamento', icon: Users, text: 'Remanejamento' }, { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
+      { to: '/promocao', icon: Users, text: 'Promoção' }, { to: '/historico-escolar', icon: BookOpen, text: 'Histórico' },
     ]},
-    { label: 'SECRETARIA', items: [
-      { to: '/escolas', icon: School, text: 'Escolas' },
-      { to: '/alunos', icon: Users, text: 'Alunos' },
-      { to: '/matriculas', icon: ClipboardList, text: 'Matrículas' },
-      { to: '/turmas', icon: Users, text: 'Turmas' },
-      { to: '/series', icon: BookOpen, text: 'Séries' },
-      { to: '/anos-letivos', icon: Calendar, text: 'Anos Letivos' },
-      { to: '/professores', icon: UserCheck, text: 'Professores' },
-      { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
-      { to: '/remanejamento', icon: Users, text: 'Remanejamento' },
-      { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
-      { to: '/promocao', icon: Users, text: 'Promo\u00e7\u00e3o Alunos' },
-      { to: '/historico-escolar', icon: BookOpen, text: 'Histórico Escolar' },
-    ]},
-    { label: 'PEDAGÓGICO', items: [
-      { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
-      { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
+    { key: 'pedagogico', label: 'Pedagógico', icon: GraduationCap, color: '#8b5cf6', items: [
+      { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
+      { to: '/lancamento-notas', icon: FileText, text: 'Lançar Notas' }, { to: '/boletim', icon: FileText, text: 'Boletim' },
+      { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer' }, { to: '/ata-resultados', icon: FileText, text: 'ATA Resultados' },
+      { to: '/relatorio-frequencia', icon: BarChart3, text: 'Rel. Frequência' }, { to: '/calendario', icon: Calendar, text: 'Calendário' },
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
-      { to: '/calendario', icon: Calendar, text: 'Calendário Escolar' },
-      { to: '/boletim', icon: FileText, text: 'Boletim Escolar' },
-      { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer Descritivo' },
-      { to: '/ata-resultados', icon: FileText, text: 'ATA de Resultados' },
-      { to: '/lancamento-notas', icon: FileText, text: 'Lançar Notas' },
-      { to: '/relatorio-frequencia', icon: BarChart3, text: 'Relatório Frequência' },
     ]},
-    { label: 'TRANSPORTE', items: [
-      { to: '/rotas', icon: Route, text: 'Rotas' },
-      { to: '/veiculos', icon: Bus, text: 'Veículos' },
-      { to: '/motoristas', icon: UserCheck, text: 'Motoristas' },
-      { to: '/monitores', icon: UserCheck, text: 'Monitores' },
-      { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
-      { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
-      { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' },
-      { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório Transporte' },
+    { key: 'transporte', label: 'Transporte', icon: Bus, color: '#f97316', items: [
+      { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
+      { to: '/motoristas', icon: UserCheck, text: 'Motoristas' }, { to: '/monitores', icon: UserCheck, text: 'Monitores' },
+      { to: '/monitor', icon: Navigation, text: 'Monitoramento' }, { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
+      { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' }, { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
+      { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' }, { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório' },
     ]},
-    { label: 'ADMINISTRATIVO', items: [
-      { to: '/recursos-humanos', icon: Briefcase, text: 'Recursos Humanos' },
-      { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },
-      { to: '/contratos', icon: FileText, text: 'Contratos' },
-      { to: '/merenda', icon: ClipboardList, text: 'Merenda Escolar' },
-      { to: '/biblioteca', icon: BookOpen, text: 'Biblioteca' },
-      { to: '/patrimonio', icon: Package, text: 'Patrimônio e Estoque' },
-      { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' },
-      { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
+    { key: 'administrativo', label: 'Administrativo', icon: Briefcase, color: '#0ea5e9', items: [
+      { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },
+      { to: '/contratos', icon: FileText, text: 'Contratos' }, { to: '/merenda', icon: ClipboardList, text: 'Merenda' },
+      { to: '/biblioteca', icon: BookOpen, text: 'Biblioteca' }, { to: '/patrimonio', icon: Package, text: 'Patrimônio' },
+      { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' }, { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
       { to: '/comunicacao', icon: Bell, text: 'Comunicação' },
     ]},
-    { label: 'CONFIGURAÇÕES', items: [
-      { to: '/configuracoes', icon: Settings, text: 'Configurações' },
-      { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
+    { key: 'configuracoes', label: 'Configurações', icon: Settings, color: '#64748b', items: [
+      { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
     ]},
   ];
+
+  // Auto-detect active module from current path
+  useEffect(() => {
+    const path = location.pathname;
+    for (const mod of moduleBlocks) {
+      if (mod.to && path === mod.to) { setActiveModule(null); return; }
+      if (mod.items?.some(item => path === item.to || (item.to !== '/' && path.startsWith(item.to)))) {
+        setActiveModule(mod.key);
+        return;
+      }
+    }
+  }, [location.pathname]);
+
+  // Compatibility: keep adminMenu for the old rendering fallback
+  const adminMenu = moduleBlocks.filter(m => m.items).map(m => ({ label: m.label.toUpperCase(), items: m.items! }));
 
   const driverMenu = [
     { label: 'MOTORISTA', items: [
@@ -254,8 +248,53 @@ export default function Layout() {
 
   const SidebarContent = () => (
     <>
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {menuSections.map((section) => (
+      <nav className="flex-1 overflow-y-auto p-3">
+        {/* PAINEL - Grid de módulos */}
+        {isAdmin && !activeModule && (
+          <div>
+            <p className="text-xs font-bold text-white/40 uppercase tracking-wider px-2 mb-2">PAINEL</p>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {moduleBlocks.map(mod => {
+                const ModIcon = mod.icon;
+                const isActive = activeModule === mod.key || (mod.to && location.pathname === mod.to);
+                return (
+                  <button key={mod.key}
+                    onClick={() => { if (mod.to) { window.location.href = mod.to; } else { setActiveModule(mod.key); } setSidebarOpen(false); }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl text-center transition-all ${isActive ? 'ring-2 ring-white/40' : 'hover:bg-white/10'}`}
+                    style={{ backgroundColor: (mod.color || '#64748b') + '30' }}>
+                    <ModIcon size={20} style={{ color: mod.color }} />
+                    <span className="text-[11px] font-semibold text-white mt-1.5 leading-tight">{mod.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Subitens do módulo ativo */}
+        {isAdmin && activeModule && (
+          <div>
+            <button onClick={() => setActiveModule(null)} className="flex items-center gap-2 px-2 py-1.5 mb-2 text-xs text-white/50 hover:text-white/80 transition-all w-full">
+              <ChevronRight size={12} className="rotate-180" /> Voltar ao Painel
+            </button>
+            {moduleBlocks.filter(m => m.key === activeModule).map(mod => (
+              <div key={mod.key}>
+                <div className="flex items-center gap-2 px-2 mb-3">
+                  <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: mod.color + '40' }}>
+                    <mod.icon size={14} style={{ color: mod.color }} />
+                  </div>
+                  <span className="text-xs font-bold text-white uppercase">{mod.label}</span>
+                </div>
+                <div className="space-y-0.5" style={{ borderLeft: `2px solid ${mod.color}40` }}>
+                  {mod.items?.map(item => <NavLink key={item.to} {...item} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Menus para motorista/monitor/pai (sem blocos) */}
+        {!isAdmin && menuSections.map((section) => (
           <ModuleSection key={section.label} section={section} />
         ))}
       </nav>

@@ -513,47 +513,15 @@ export default function Layout() {
 
         {/* Search Bar */}
         <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="relative flex-1 max-w-lg">
+          <div className="relative flex-1 max-w-2xl">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
               placeholder="Buscar por nome, código ou palavra-chave... (ex: 102, alunos, nota)"
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
-            {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-[0.9375rem] outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
+            {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
           </div>
-          {/* Search Results Dropdown */}
-          {searchOpen && searchQuery.length >= 1 && (
-            <div className="absolute top-full left-6 mt-1 w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-              {searchResults.length > 0 ? (
-                <>
-                  <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                    <p className="text-xs text-gray-500">{searchResults.length} resultado(s) encontrado(s)</p>
-                  </div>
-                  {searchResults.slice(0, 10).map(r => (
-                    <Link key={r.to} to={r.to} onClick={() => { setSearchQuery(''); setSearchOpen(false); setSidebarOpen(false); }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>
-                        {r.code}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{r.text}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: r.color + '20', color: r.color }}>{r.module}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{r.desc}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </>
-              ) : (
-                <div className="px-4 py-6 text-center">
-                  <Search size={24} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Nenhum resultado para "{searchQuery}"</p>
-                  <p className="text-xs text-gray-400 mt-1">Tente buscar por nome, código ou palavra-chave</p>
-                </div>
-              )}
-            </div>
-          )}
+          {searchQuery.length >= 1 && <span className="text-sm text-gray-400">{searchResults.length} resultado(s)</span>}
         </div>
 
         {/* Page Header with code */}
@@ -561,7 +529,50 @@ export default function Layout() {
 
         {/* Page content */}
         <main className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : ''}`}>
-          <Outlet />
+          {/* Search Results - replaces content when searching */}
+          {searchQuery.length >= 1 && searchOpen ? (
+            <div className="p-6">
+              <div className="mb-5">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Resultados da busca: "{searchQuery}"</h2>
+                <p className="text-gray-500 text-sm">{searchResults.length} funcionalidade(s) encontrada(s)</p>
+              </div>
+              {searchResults.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {searchResults.map(r => {
+                    const isFav = getFavoritesFunc().includes(r.to);
+                    return (
+                      <div key={r.to} className="relative group">
+                        <Link to={r.to} onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
+                          className="block rounded-xl overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]"
+                          style={{ backgroundColor: r.color }}>
+                          <div className="flex items-center gap-3 px-4 py-4 text-white">
+                            <span className="bg-white/20 text-white font-bold text-sm px-2.5 py-1 rounded flex-shrink-0">{r.code}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-[0.9375rem] truncate">{r.text}</p>
+                              <p className="text-white/70 text-xs truncate">{r.desc}</p>
+                            </div>
+                          </div>
+                        </Link>
+                        <button onClick={() => { const favs = getFavoritesFunc(); const idx = favs.indexOf(r.to); if (idx >= 0) favs.splice(idx, 1); else favs.push(r.to); localStorage.setItem('netescol_favorites', JSON.stringify(favs)); }}
+                          className="absolute top-3 right-3 p-1.5 rounded-lg text-white/50 hover:text-yellow-300 transition-colors"
+                          title={isFav ? 'Remover favorito' : 'Favoritar'}>
+                          <Star size={16} fill={isFav ? 'currentColor' : 'none'} className={isFav ? 'text-yellow-300' : ''} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <Search size={48} className="text-gray-200 mx-auto mb-4" />
+                  <p className="text-lg text-gray-500">Nenhum resultado para "{searchQuery}"</p>
+                  <p className="text-sm text-gray-400 mt-1">Tente buscar por nome, número ou palavra-chave</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

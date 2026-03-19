@@ -69,12 +69,27 @@ export default function StudentCertificatesPage() {
     const html = buildHTML(type);
     if (!html) return;
     const bodyContent = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
-    const styleContent = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || '';
+    const rawCSS = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '';
+    const cleanCSS = rawCSS
+      .replace(/@media\s+screen\{[^}]+\}/g, '').replace(/@media\s+print\{[^}]+\}/g, '')
+      .replace(/display:\s*flex[^;}]*/g, '').replace(/flex[^:]*:[^;}]*/g, '')
+      .replace(/gap:[^;}]*/g, '').replace(/border-radius:[^;}]*/g, '')
+      .replace(/background:\s*linear-gradient[^;}]*/g, 'background:#1B3A5C');
     const wordHTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><meta name="ProgId" content="Word.Document">
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-${styleContent}
-<style>@page{size:A4;margin:2cm}body{font-family:'Calibri',Arial,sans-serif}table{border-collapse:collapse}th,td{border:1px solid #999;padding:5px 8px}th{background-color:#1B3A5C;color:white}</style>
+<style>
+@page{size:A4;margin:2cm 2cm 2.5cm 2cm}
+body{font-family:'Calibri',Arial,sans-serif;font-size:12pt;color:#333}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:5px 8px}
+th{background-color:#1B3A5C;color:white;font-size:9pt}
+.header-line{height:3px;background:#1B3A5C;margin-top:10px}
+.mun-name{font-size:14pt;font-weight:bold;color:#1B3A5C;text-align:center}
+.sec-name{font-size:11pt;font-weight:bold;color:#2DB5B0;text-align:center}
+.report-footer-bar{text-align:center;font-size:7pt;color:#999;border-top:2px solid #ddd;padding-top:8px;margin-top:30px}
+.footer-brand{color:#2DB5B0;font-weight:bold}
+${cleanCSS}
+</style>
 </head><body>${bodyContent}</body></html>`;
     const blob = new Blob(['\uFEFF' + wordHTML], { type: 'application/msword;charset=utf-8;' });
     const a = document.createElement('a');

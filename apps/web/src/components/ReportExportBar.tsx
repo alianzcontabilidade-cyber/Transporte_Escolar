@@ -167,7 +167,20 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
   }
 
   function buildWordDocument(html: string): string {
-    // Wrap HTML with Word-compatible XML/mso headers so it opens perfectly in Word
+    const bodyContent = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
+    const styleContent = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '';
+    // Clean CSS that Word doesn't understand
+    const cleanCSS = styleContent
+      .replace(/@media\s+screen\{[^}]+\}/g, '')
+      .replace(/@media\s+print\{[^}]+\}/g, '')
+      .replace(/display:\s*flex[^;}]*/g, '')
+      .replace(/flex[^:]*:[^;}]*/g, '')
+      .replace(/gap:[^;}]*/g, '')
+      .replace(/border-radius:[^;}]*/g, '')
+      .replace(/box-shadow:[^;}]*/g, '')
+      .replace(/transition[^;}]*/g, '')
+      .replace(/background:\s*linear-gradient[^;}]*/g, 'background:#1B3A5C');
+
     return `<html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
 xmlns="http://www.w3.org/TR/REC-html40">
@@ -184,17 +197,23 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </w:WordDocument>
 </xml>
 <![endif]-->
-${html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || ''}
 <style>
-  @page { size: A4; margin: 2cm; }
-  body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }
-  table { border-collapse: collapse; }
+  @page { size: A4; margin: 2cm 2cm 2.5cm 2cm; }
+  body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 12pt; color: #333; }
+  table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #999; padding: 5px 8px; }
-  th { background-color: #1B3A5C; color: white; }
+  th { background-color: #1B3A5C; color: white; font-size: 9pt; }
+  .header-line { height: 3px; background: #1B3A5C; margin-top: 10px; }
+  .mun-name { font-size: 14pt; font-weight: bold; color: #1B3A5C; text-align: center; }
+  .mun-detail { font-size: 8pt; color: #666; text-align: center; }
+  .sec-name { font-size: 11pt; font-weight: bold; color: #2DB5B0; text-align: center; }
+  .report-footer-bar { text-align: center; font-size: 7pt; color: #999; border-top: 2px solid #ddd; padding-top: 8px; margin-top: 30px; }
+  .footer-brand { color: #2DB5B0; font-weight: bold; }
+  ${cleanCSS}
 </style>
 </head>
 <body>
-${html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html}
+${bodyContent}
 </body>
 </html>`;
   }

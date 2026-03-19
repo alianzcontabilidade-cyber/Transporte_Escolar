@@ -217,15 +217,16 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* PAGE WRAPPER - empurra rodape para o final */
-  .page-wrapper{display:flex;flex-direction:column;min-height:calc(100vh - 36mm)}
-
-  .page-content{flex:1}
+  /* PAGE LAYOUT TABLE - funciona em PDF, Word e impressao */
+  .page-layout{width:100%;height:100%;border-collapse:collapse;border:none}
+  .page-layout td{border:none;padding:0;vertical-align:top}
+  .page-layout .content-cell{vertical-align:top;height:auto}
+  .page-layout .footer-cell{vertical-align:bottom;height:1px}
 
   /* FOOTER */
-  .report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:10px 0 0;margin-top:auto}
-  .report-footer-fixed .footer-line{margin:2px 0}
-  .report-footer-fixed .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:10px 0 0;margin-top:40px}
+  .report-footer-bar .footer-line{margin:2px 0}
+  .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
   /* TABLE SPECIFIC STYLES */
   .grade-table th{font-size:9px;padding:5px 4px}
@@ -248,23 +249,19 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
     body{max-width:900px;margin:20px auto;padding:20px 40px;background:#fff;box-shadow:0 0 20px rgba(0,0,0,0.1)}
   }
 </style></head><body>
-<div class="page-wrapper">
-  <div class="page-content">
-    ${headerHTML}
-    <div class="report-title">
-      <h1>${opts.title}</h1>
-      ${opts.subtitle ? `<div class="subtitle">${opts.subtitle}</div>` : ''}
-    </div>
-    <div class="report-body">
-      ${opts.content}
-    </div>
-    ${showDate ? `<div class="report-date">${dateText}</div>` : ''}
-    ${sigHTML}
-  </div>
-  <div class="report-footer-fixed">
-    ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
-    <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
-  </div>
+${headerHTML}
+<div class="report-title">
+  <h1>${opts.title}</h1>
+  ${opts.subtitle ? `<div class="subtitle">${opts.subtitle}</div>` : ''}
+</div>
+<div class="report-body">
+  ${opts.content}
+</div>
+${showDate ? `<div class="report-date">${dateText}</div>` : ''}
+${sigHTML}
+<div class="report-footer-bar">
+  ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
+  <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
 </div>
 </body></html>`;
 }
@@ -297,9 +294,7 @@ export async function openReportAsPDF(html: string, filename?: string) {
       // Remove @page (html2pdf handles margins)
       .replace(/@page\{[^}]+\}/g, '')
       // Remove screen-only styles
-      .replace(/@media screen\{[^}]+\}/g, '')
-      // Remove min-height for PDF - let content flow naturally, no forced page height
-      .replace(/min-height:[^;}]+/g, 'min-height:auto');
+      .replace(/@media screen\{[^}]+\}/g, '');
     wrapper.appendChild(style);
   }
 

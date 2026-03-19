@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BookMarked, Plus, X, Pencil, Trash2, Search, RotateCcw } from 'lucide-react';
+import { lookupISBN } from '../lib/cnpjCep';
 
 const emptyForm = { title: '', author: '', isbn: '', category: '', publisher: '', year: '', quantity: '1', location: '' };
 
@@ -14,6 +15,8 @@ export default function LibraryPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
   const [search, setSearch] = useState('');
+  const [isbnLooking, setIsbnLooking] = useState(false);
+  const [isbnMsg, setIsbnMsg] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
   const { data: booksData, refetch: rBooks } = useQuery(() => api.libraryBooks.list({ municipalityId: mid, search: search || undefined }), [mid, search]);
@@ -35,6 +38,25 @@ export default function LibraryPage() {
     const p = { municipalityId: mid, title: form.title, author: form.author || undefined, isbn: form.isbn || undefined, category: form.category || undefined, publisher: form.publisher || undefined, year: form.year ? parseInt(form.year) : undefined, quantity: parseInt(form.quantity) || 1, location: form.location || undefined };
     const cb = { onSuccess: () => { rBooks(); setShowModal(false); } };
     editId ? updateBook({ id: editId, ...p }, cb) : createBook(p, cb);
+  };
+
+  const handleISBNLookup = async () => {
+    if (!form.isbn) return;
+    setIsbnLooking(true);
+    setIsbnMsg('');
+    try {
+      const data = await lookupISBN(form.isbn);
+      setForm((f: any) => ({
+        ...f,
+        title: data.title || f.title,
+        author: data.authors || f.author,
+        publisher: data.publisher || f.publisher,
+        year: data.year ? String(data.year) : f.year,
+        category: data.category || f.category,
+      }));
+      setIsbnMsg('Dados do livro carregados!');
+    } catch (e: any) { setIsbnMsg('Erro: ' + e.message); }
+    finally { setIsbnLooking(false); setTimeout(() => setIsbnMsg(''), 4000); }
   };
 
   return (
@@ -81,7 +103,7 @@ export default function LibraryPage() {
         <div className="p-5 space-y-4"><div className="grid grid-cols-2 gap-4">
           <div className="col-span-2"><label className="label">Titulo *</label><input className="input" value={form.title} onChange={sf('title')} /></div>
           <div><label className="label">Autor</label><input className="input" value={form.author} onChange={sf('author')} /></div>
-          <div><label className="label">ISBN</label><input className="input" value={form.isbn} onChange={sf('isbn')} /></div>
+          <div><label className="label">ISBN</label><div className="flex gap-2"><input className="input flex-1" value={form.isbn} onChange={sf('isbn')} placeholder="Digite e busque" /><button type="button" onClick={handleISBNLookup} disabled={isbnLooking} className="px-3 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm disabled:opacity-50">{isbnLooking ? '...' : '\uD83D\uDD0D'}</button></div>{isbnMsg && <p className={`text-xs mt-1 ${isbnMsg.includes('Erro') ? 'text-red-500' : 'text-green-600'}`}>{isbnMsg}</p>}</div>
           <div><label className="label">Categoria</label><input className="input" value={form.category} onChange={sf('category')} placeholder="Didatico, Literatura..." /></div>
           <div><label className="label">Editora</label><input className="input" value={form.publisher} onChange={sf('publisher')} /></div>
           <div><label className="label">Ano</label><input className="input" type="number" value={form.year} onChange={sf('year')} /></div>

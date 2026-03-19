@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Calendar, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react';
+import { getHolidays } from '../lib/cnpjCep';
 
 const EVENT_TYPES: any = { aula:'Dia Letivo', feriado:'Feriado', recesso:'Recesso', reuniao:'Reunião', conselho:'Conselho', prova:'Avaliação', evento:'Evento', outro:'Outro' };
 const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#f97316', reuniao:'#6366f1', conselho:'#8b5cf6', prova:'#0ea5e9', evento:'#2DB5B0', outro:'#64748b' };
@@ -16,6 +17,8 @@ export default function CalendarPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<any>({ title:'', startDate:'', endDate:'', eventType:'evento', color:'#2DB5B0', description:'' });
   const [selectedDay, setSelectedDay] = useState<any>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   const { data: events, refetch } = useQuery(() => api.schoolCalendar.list({ municipalityId: mid }), [mid]);
   const { mutate: create } = useMutation(api.schoolCalendar.create);
@@ -46,6 +49,34 @@ export default function CalendarPage() {
       { onSuccess: () => { refetch(); setShowModal(false); } });
   };
 
+  const importHolidays = async () => {
+    setImporting(true);
+    setImportMsg('');
+    try {
+      const holidays = await getHolidays(currentYear);
+      let added = 0;
+      for (const h of holidays) {
+        // Check if already exists
+        const exists = allEvents.some((e: any) => {
+          const eDate = e.startDate ? e.startDate.split('T')[0] : '';
+          return eDate === h.date;
+        });
+        if (exists) continue;
+        await api.schoolCalendar.create({
+          municipalityId: mid,
+          title: h.name,
+          startDate: h.date,
+          eventType: 'feriado' as any,
+          color: '#ef4444',
+        });
+        added++;
+      }
+      setImportMsg(added > 0 ? `${added} feriado(s) importado(s) com sucesso!` : 'Todos os feriados já estão cadastrados.');
+      refetch();
+    } catch (e: any) { setImportMsg('Erro: ' + e.message); }
+    finally { setImporting(false); setTimeout(() => setImportMsg(''), 5000); }
+  };
+
   const openNew = (day?: number) => {
     const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
     setForm({ title:'', startDate: dateStr, endDate:'', eventType:'evento', color:'#2DB5B0', description:'' });
@@ -56,8 +87,10 @@ export default function CalendarPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center"><Calendar size={20} className="text-violet-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Calendário Escolar</h1><p className="text-gray-500">Eventos, feriados e datas importantes</p></div></div>
-        <button onClick={() => openNew()} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Evento</button>
+        <div className="flex gap-2"><button onClick={importHolidays} disabled={importing} className="btn-secondary flex items-center gap-2">{importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Importar Feriados {currentYear}</button><button onClick={() => openNew()} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Evento</button></div>
       </div>
+
+      {importMsg && <div className={`mb-4 p-3 rounded-lg text-sm ${importMsg.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{importMsg}</div>}
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-3 mb-4">

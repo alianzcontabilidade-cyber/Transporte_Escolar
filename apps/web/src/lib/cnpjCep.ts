@@ -55,3 +55,49 @@ export function maskCEP(v: string): string {
   if (d.length <= 5) return d;
   return d.slice(0, 5) + '-' + d.slice(5);
 }
+
+// National Holidays via BrasilAPI
+export async function getHolidays(year: number): Promise<{ date: string; name: string; type: string }[]> {
+  try {
+    const res = await fetch('https://brasilapi.com.br/api/feriados/v1/' + year);
+    if (!res.ok) throw new Error('Erro ao buscar feriados');
+    const data = await res.json();
+    return data.map((h: any) => ({ date: h.date, name: h.name, type: h.type || 'national' }));
+  } catch (e: any) { throw new Error(e.message || 'Erro ao buscar feriados'); }
+}
+
+// ISBN Book Lookup via BrasilAPI
+export async function lookupISBN(isbn: string): Promise<any> {
+  const clean = isbn.replace(/\D/g, '');
+  if (clean.length < 10) throw new Error('ISBN inválido');
+  try {
+    const res = await fetch('https://brasilapi.com.br/api/isbn/v1/' + clean);
+    if (!res.ok) throw new Error('ISBN não encontrado');
+    const data = await res.json();
+    return {
+      title: data.title || '',
+      authors: data.authors ? data.authors.join(', ') : '',
+      publisher: data.publisher || '',
+      year: data.year || data.publish_date ? new Date(data.publish_date || '').getFullYear() : null,
+      isbn: clean,
+      pages: data.page_count || null,
+      synopsis: data.synopsis || '',
+      cover: data.cover_url || '',
+      category: data.subjects ? data.subjects.join(', ') : '',
+    };
+  } catch (e: any) { throw new Error(e.message || 'Erro ao buscar ISBN'); }
+}
+
+// Bank List via BrasilAPI
+export async function getBanks(): Promise<{ code: number; name: string; fullName: string }[]> {
+  try {
+    const res = await fetch('https://brasilapi.com.br/api/banks/v1');
+    if (!res.ok) throw new Error('Erro ao buscar bancos');
+    const data = await res.json();
+    return data.filter((b: any) => b.code && b.name).map((b: any) => ({
+      code: b.code,
+      name: b.name || b.fullName || '',
+      fullName: b.fullName || b.name || '',
+    })).sort((a: any, b: any) => a.code - b.code);
+  } catch (e: any) { throw new Error(e.message || 'Erro ao buscar bancos'); }
+}

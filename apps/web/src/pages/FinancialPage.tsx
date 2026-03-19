@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { DollarSign, Plus, X, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Search, Download } from 'lucide-react';
+import { getBanks } from '../lib/cnpjCep';
 
 const TYPES: any = { pdde: 'PDDE', proprio: 'Próprio', estadual: 'Estadual', federal: 'Federal', outro: 'Outro' };
 
@@ -23,6 +24,9 @@ export default function FinancialPage() {
   const { mutate: deleteAcct } = useMutation(api.financialAccounts.delete);
   const { mutate: createTxn } = useMutation(api.financialTransactions.create);
   const { mutate: deleteTxn } = useMutation(api.financialTransactions.delete);
+
+  const [banks, setBanks] = useState<any[]>([]);
+  useEffect(() => { getBanks().then(b => setBanks(b)).catch(() => {}); }, []);
 
   const allAccts = (accts as any) || [];
   const allTxns = (txns as any) || [];
@@ -109,7 +113,7 @@ export default function FinancialPage() {
               <div className="col-span-2"><label className="label">Nome *</label><input className="input" value={form.name || ''} onChange={sf('name')} /></div>
               <div><label className="label">Tipo</label><select className="input" value={form.type || ''} onChange={sf('type')}>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>
               <div><label className="label">Saldo inicial</label><input className="input" type="number" step="0.01" value={form.balance || ''} onChange={sf('balance')} /></div>
-              <div><label className="label">Banco</label><input className="input" value={form.bankName || ''} onChange={sf('bankName')} /></div>
+              <div><label className="label">Banco</label><input className="input" list="bank-list" value={form.bankName || ''} onChange={sf('bankName')} placeholder="Digite ou selecione" /><datalist id="bank-list">{banks.map(b => <option key={b.code} value={b.code + ' - ' + b.name} />)}</datalist></div>
               <div><label className="label">Agencia</label><input className="input" value={form.agency || ''} onChange={sf('agency')} /></div>
               <div className="col-span-2"><label className="label">Conta</label><input className="input" value={form.accountNumber || ''} onChange={sf('accountNumber')} /></div>
             </div>

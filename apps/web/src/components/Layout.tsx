@@ -200,6 +200,7 @@ export default function Layout() {
     { code: '210', to: '/grade-horaria', text: 'Grade Horária', module: 'Ensino e Aprendizagem', desc: 'Horário de aulas por turma e dia', tags: 'grade horaria horario aula dia semana disciplina', color: '#8b5cf6' },
     { code: '505', to: '/sobre', text: 'Sobre o Sistema', module: 'Central de Controle', desc: 'Informações, versão e funcionalidades', tags: 'sobre sistema versao informacao ajuda', color: '#64748b' },
     { code: '114', to: '/ficha-aluno', text: 'Ficha do Aluno', module: 'Gestão Escolar', desc: 'Ficha completa do aluno para impressão', tags: 'ficha aluno completa impressao dados', color: '#6366f1' },
+    { code: '115', to: '/relatorio-escola', text: 'Relatório por Escola', module: 'Gestão Escolar', desc: 'Visão completa de uma unidade escolar', tags: 'relatorio escola unidade alunos turmas', color: '#6366f1' },
     { code: '506', to: '/backup', text: 'Backup de Dados', module: 'Central de Controle', desc: 'Exportar dados do sistema para segurança', tags: 'backup exportar dados seguranca json csv', color: '#64748b' },
   ];
 
@@ -229,6 +230,7 @@ export default function Layout() {
       { to: '/promocao', icon: Users, text: 'Promoção' }, { to: '/historico-escolar', icon: BookOpen, text: 'Histórico' },
       { to: '/declaracoes', icon: FileText, text: 'Declarações' },
       { to: '/ficha-aluno', icon: FileText, text: 'Ficha do Aluno' },
+      { to: '/relatorio-escola', icon: School, text: 'Relatório Escola' },
     ]},
     { key: 'pedagogico', label: 'Ensino e Aprendizagem', icon: GraduationCap, color: '#8b5cf6', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },

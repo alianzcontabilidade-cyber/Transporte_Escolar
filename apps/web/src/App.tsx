@@ -57,6 +57,7 @@ import PurchaseQuotationPage from './pages/PurchaseQuotationPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import SystemInfoPage from './pages/SystemInfoPage';
 import StudentReportPage from './pages/StudentReportPage';
+import SchoolReportPage from './pages/SchoolReportPage';
 import DataBackupPage from './pages/DataBackupPage';
 import FloatingChat from './components/FloatingChat';
 
@@ -152,6 +153,7 @@ export default function App() {
         <Route path="cotacao-compras" element={<Guard roles={ADMIN}><PurchaseQuotationPage /></Guard>} />
         <Route path="grade-horaria" element={<Guard roles={ADMIN_SEC}><ClassSchedulePage /></Guard>} />
         <Route path="ficha-aluno" element={<Guard roles={ADMIN_SEC}><StudentReportPage /></Guard>} />
+        <Route path="relatorio-escola" element={<Guard roles={ADMIN_SEC}><SchoolReportPage /></Guard>} />
         <Route path="backup" element={<Guard roles={ADMIN}><DataBackupPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 

@@ -107,6 +107,42 @@ function LiveMap({ trips, locations, selectedTrip, fullscreen }: any) {
     }
   }, [selectedTrip?.trip?.id]);
 
+  // Auto-load stops for all trips when map first loads
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!mapInstanceRef.current || !L || !trips || trips.length === 0) return;
+
+    // If we already have bus markers, don't auto-load all stops
+    if (locations.size > 0) return;
+
+    // Show stops for each active trip
+    const allCoords: [number, number][] = [];
+    trips.forEach((t: any) => {
+      const routeId = t.trip?.routeId || t.route?.id;
+      if (!routeId) return;
+      fetch('/api/trpc/stops.listByRoute?input=' + encodeURIComponent(JSON.stringify({ routeId })))
+        .then(r => r.json()).then(data => {
+          const stops = data?.result?.data || data?.[0]?.result?.data || [];
+          stops.forEach((stop: any, i: number) => {
+            const lat = parseFloat(stop.latitude);
+            const lng = parseFloat(stop.longitude);
+            if (isNaN(lat) || isNaN(lng)) return;
+            allCoords.push([lat, lng]);
+            const icon = L.divIcon({
+              html: '<div style="background:#2DB5B0;color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)">' + (i + 1) + '</div>',
+              className: 'auto-stop-marker', iconSize: [20, 20], iconAnchor: [10, 10]
+            });
+            L.marker([lat, lng], { icon }).addTo(mapInstanceRef.current)
+              .bindPopup('<b>' + stop.name + '</b><br><small>' + (t.route?.name || '') + '</small>');
+          });
+          // Fit map to show all stops
+          if (allCoords.length > 0) {
+            mapInstanceRef.current.fitBounds(allCoords, { padding: [30, 30], maxZoom: 14 });
+          }
+        }).catch(() => {});
+    });
+  }, [trips?.length, locations.size]);
+
   return (
     <div className={`relative w-full rounded-xl overflow-hidden border border-gray-200 ${fullscreen ? 'h-[calc(100vh-120px)]' : 'h-[400px]'}`}>
       <div ref={mapRef} className="w-full h-full" />
@@ -334,21 +370,33 @@ export default function MonitorPage() {
       }
       const trips = await api.trips.listActive({ municipalityId });
       setActiveTrips(trips || []);
-      // Pre-populate bus locations from API data (for when Socket hasn't received data yet)
+      // Pre-populate bus locations from API data
       if (trips && trips.length > 0) {
         setBusLocations(prev => {
           const n = new Map(prev);
-          trips.forEach((t: any) => {
+          for (const t of trips) {
             const tripId = t.trip?.id;
-            if (tripId && !n.has(tripId)) {
-              // Use driver's current position or first stop as initial marker
-              const lat = t.driver?.currentLatitude ? parseFloat(t.driver.currentLatitude) : null;
-              const lng = t.driver?.currentLongitude ? parseFloat(t.driver.currentLongitude) : null;
-              if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-                n.set(tripId, { lat, lng, updatedAt: new Date() });
-              }
+            if (!tripId || n.has(tripId)) continue;
+            // Try driver position first
+            let lat = t.driver?.currentLatitude ? parseFloat(t.driver.currentLatitude) : null;
+            let lng = t.driver?.currentLongitude ? parseFloat(t.driver.currentLongitude) : null;
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+              n.set(tripId, { lat, lng, updatedAt: new Date() });
+              continue;
             }
-          });
+            // Fallback: fetch first stop of the route
+            try {
+              api.stops.listByRoute({ routeId: t.trip?.routeId || t.route?.id }).then((stops: any) => {
+                if (stops && stops.length > 0) {
+                  const sLat = parseFloat(stops[0].latitude);
+                  const sLng = parseFloat(stops[0].longitude);
+                  if (!isNaN(sLat) && !isNaN(sLng)) {
+                    setBusLocations(p => { const m = new Map(p); m.set(tripId, { lat: sLat, lng: sLng, updatedAt: new Date() }); return m; });
+                  }
+                }
+              }).catch(() => {});
+            } catch {}
+          }
           return n;
         });
       }

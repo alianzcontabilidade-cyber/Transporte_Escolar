@@ -106,9 +106,28 @@ export default function TrackingPage() {
   async function loadActiveTrip() {
     try {
       setLoading(true);
+      // Try as driver first
       const trip = await api.monitors.myActiveTrip();
-      setActiveTrip(trip);
-      if (trip?.driverId) setDriverId(trip.driverId);
+      if (trip) {
+        setActiveTrip(trip);
+        if (trip.driverId) setDriverId(trip.driverId);
+        return;
+      }
+      // Fallback for admins: get first active trip
+      if (user?.municipalityId) {
+        const activeTrips = await api.trips.listActive({ municipalityId: user.municipalityId });
+        if (activeTrips && activeTrips.length > 0) {
+          const first = activeTrips[0];
+          // Load full trip data
+          try {
+            const fullTrip = await api.trips.getById({ id: first.trip?.id });
+            setActiveTrip(fullTrip);
+            if (fullTrip?.driver?.id) setDriverId(fullTrip.driver.id);
+          } catch {
+            setActiveTrip({ trip: first.trip, route: first.route, stops: [], driverId: first.driver?.id });
+          }
+        }
+      }
     } catch (err) { console.log('Nenhuma viagem ativa'); }
     finally { setLoading(false); }
   }

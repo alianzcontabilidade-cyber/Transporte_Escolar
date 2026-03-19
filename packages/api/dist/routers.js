@@ -3189,6 +3189,121 @@ exports.schoolCalendarRouter = trpc_1.t.router({
         ud.endDate = new Date(endDate); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0)
         await index_1.db.update(schema_1.schoolCalendar).set(ud).where((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.id, id)); return { success: true }; }),
     delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.schoolCalendar).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.id, input.id)); return { success: true }; }),
+    // Check if tracking should be active today
+    trackingStatus: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), date: zod_1.z.string().optional() }))
+        .query(async ({ input }) => {
+        const checkDate = input.date ? new Date(input.date) : new Date();
+        const dateStr = checkDate.toISOString().split('T')[0];
+        const dayOfWeek = checkDate.getDay(); // 0=Sun, 6=Sat
+        // Weekend check
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            return { isSchoolDay: false, reason: 'Fim de semana', trackingActive: false, events: [] };
+        }
+        // Check calendar events for this date
+        const events = await index_1.db.select().from(schema_1.schoolCalendar)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.schoolCalendar.isActive, true), (0, drizzle_orm_1.lte)(schema_1.schoolCalendar.startDate, checkDate)));
+        // Filter events that cover this date
+        const activeEvents = events.filter(e => {
+            const start = e.startDate ? new Date(e.startDate).toISOString().split('T')[0] : '';
+            const end = e.endDate ? new Date(e.endDate).toISOString().split('T')[0] : start;
+            return dateStr >= start && dateStr <= end;
+        });
+        // Check if any event blocks tracking (feriado, recesso)
+        const blockingEvent = activeEvents.find(e => e.eventType === 'feriado' || e.eventType === 'recesso');
+        if (blockingEvent) {
+            return {
+                isSchoolDay: false,
+                reason: blockingEvent.title,
+                eventType: blockingEvent.eventType,
+                trackingActive: false,
+                events: activeEvents.map(e => ({ title: e.title, type: e.eventType, color: e.color })),
+            };
+        }
+        // Check active academic year
+        const [activeYear] = await index_1.db.select().from(schema_1.academicYears)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.academicYears.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.academicYears.status, 'active')))
+            .limit(1);
+        if (!activeYear) {
+            return { isSchoolDay: false, reason: 'Nenhum ano letivo ativo', trackingActive: false, events: [] };
+        }
+        // Check if date is within academic year range
+        const yearStart = new Date(activeYear.startDate).toISOString().split('T')[0];
+        const yearEnd = new Date(activeYear.endDate).toISOString().split('T')[0];
+        if (dateStr < yearStart || dateStr > yearEnd) {
+            return { isSchoolDay: false, reason: 'Fora do período letivo', trackingActive: false, events: [] };
+        }
+        return {
+            isSchoolDay: true,
+            reason: 'Dia letivo',
+            trackingActive: true,
+            academicYear: activeYear.name,
+            events: activeEvents.map(e => ({ title: e.title, type: e.eventType, color: e.color })),
+        };
+    }),
+    // Get tracking status for a week (for dashboard)
+    weekStatus: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), startDate: zod_1.z.string() }))
+        .query(async ({ input }) => {
+        const start = new Date(input.startDate);
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(start);
+            date.setDate(date.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                days.push({ date: dateStr, dayOfWeek, isSchoolDay: false, reason: 'Fim de semana', events: [] });
+                continue;
+            }
+            const events = await index_1.db.select().from(schema_1.schoolCalendar)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.schoolCalendar.isActive, true)));
+            const activeEvents = events.filter(e => {
+                const s = e.startDate ? new Date(e.startDate).toISOString().split('T')[0] : '';
+                const ed = e.endDate ? new Date(e.endDate).toISOString().split('T')[0] : s;
+                return dateStr >= s && dateStr <= ed;
+            });
+            const blocked = activeEvents.find(e => e.eventType === 'feriado' || e.eventType === 'recesso');
+            days.push({
+                date: dateStr,
+                dayOfWeek,
+                isSchoolDay: !blocked,
+                reason: blocked ? blocked.title : 'Dia letivo',
+                events: activeEvents.map(e => ({ title: e.title, type: e.eventType, color: e.color })),
+            });
+        }
+        return days;
+    }),
+    // Get current bimester based on calendar
+    currentBimester: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [activeYear] = await index_1.db.select().from(schema_1.academicYears)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.academicYears.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.academicYears.status, 'active')))
+            .limit(1);
+        if (!activeYear)
+            return { bimester: null, academicYear: null };
+        const today = new Date();
+        const start = new Date(activeYear.startDate);
+        const end = new Date(activeYear.endDate);
+        const totalDays = (end.getTime() - start.getTime()) / 86400000;
+        const elapsed = (today.getTime() - start.getTime()) / 86400000;
+        const progress = Math.max(0, Math.min(1, elapsed / totalDays));
+        let bimester = '1';
+        if (progress > 0.75)
+            bimester = '4';
+        else if (progress > 0.5)
+            bimester = '3';
+        else if (progress > 0.25)
+            bimester = '2';
+        return {
+            bimester,
+            academicYear: activeYear.name,
+            progress: Math.round(progress * 100),
+            startDate: activeYear.startDate,
+            endDate: activeYear.endDate,
+        };
+    }),
 });
 // Recados / Comunicação
 exports.messagesRouter = trpc_1.t.router({

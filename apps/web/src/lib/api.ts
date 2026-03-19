@@ -347,6 +347,9 @@ export const api = {
     create: (input: any) => call('schoolCalendar.create', input, 'mutation'),
     update: (input: any) => call('schoolCalendar.update', input, 'mutation'),
     delete: (input: any) => call('schoolCalendar.delete', input, 'mutation'),
+    trackingStatus: (input: any) => call('schoolCalendar.trackingStatus', input, 'query'),
+    weekStatus: (input: any) => call('schoolCalendar.weekStatus', input, 'query'),
+    currentBimester: (input: any) => call('schoolCalendar.currentBimester', input, 'query'),
   },
   messages: {
     list: (input: any) => call('messages.list', input, 'query'),

@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const { data: vehicles } = useQuery(function() { return api.vehicles.list({ municipalityId }); }, [municipalityId]);
   const { data: activeTrips } = useQuery(function() { return api.trips.listActive({ municipalityId }); }, [municipalityId]);
   const { data: tripHistory } = useQuery(function() { return api.trips.history({ municipalityId }); }, [municipalityId]);
+  const { data: calendarStatus } = useQuery(function() { return api.schoolCalendar.trackingStatus({ municipalityId }); }, [municipalityId]);
+  const { data: bimesterData } = useQuery(function() { return api.schoolCalendar.currentBimester({ municipalityId }); }, [municipalityId]);
 
   const nSchools = (schools as any)?.length || 0;
   const nStudents = (students as any)?.length || 0;
@@ -234,6 +236,43 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Status do Calendário Escolar */}
+      {calendarStatus && (
+        <div className={`card mt-4 ${(calendarStatus as any)?.trackingActive ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${(calendarStatus as any)?.trackingActive ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                <Activity size={18} className={(calendarStatus as any)?.trackingActive ? 'text-green-600' : 'text-yellow-600'} />
+              </div>
+              <div>
+                <p className={`font-semibold ${(calendarStatus as any)?.trackingActive ? 'text-green-700' : 'text-yellow-700'}`}>
+                  {(calendarStatus as any)?.trackingActive ? 'Transporte Ativo' : 'Transporte Pausado'}
+                </p>
+                <p className="text-sm text-gray-500">{(calendarStatus as any)?.reason}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              {(bimesterData as any)?.bimester && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">{(bimesterData as any)?.bimester}° Bimestre</p>
+                  <p className="text-xs text-gray-400">{(bimesterData as any)?.academicYear} · {(bimesterData as any)?.progress}% concluído</p>
+                  <div className="w-32 h-1.5 bg-gray-200 rounded-full mt-1">
+                    <div className="h-full bg-accent-500 rounded-full" style={{width: `${(bimesterData as any)?.progress || 0}%`}} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {(calendarStatus as any)?.events?.length > 0 && (
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {(calendarStatus as any).events.map((e: any, i: number) => (
+                <span key={i} className="text-xs px-2 py-1 rounded-full text-white" style={{backgroundColor: e.color || '#64748b'}}>{e.title}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alertas de Documentos */}
       {(vehicleAlerts.length > 0 || driverAlerts.length > 0) && (

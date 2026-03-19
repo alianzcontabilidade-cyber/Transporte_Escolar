@@ -26,18 +26,55 @@ function PhotoUpload({ value, onChange }: any) {
   );
 }
 
-const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
+const SHIFTS = [{ v:'morning', l:'Manha' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
 const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
-import { maskPhone } from '../lib/utils';
+const RACES = ['Branca','Negra','Parda','Amarela','Indigena','Nao Declarada'];
+const EDUCATION_LEVELS = ['Nao Alfabetizado','Fundamental Incompleto','Fundamental Completo','Medio Incompleto','Medio Completo','Superior Incompleto','Superior Completo','Pos-Graduacao'];
+import { maskPhone, maskCPF } from '../lib/utils';
+import { lookupCEP, maskCEP } from '../lib/cnpjCep';
 
-const emptyForm = { name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'', guardian1Name:'', guardian1Phone:'', guardian1Relation:'', guardian2Name:'', guardian2Phone:'', guardian2Relation:'', address:'', state:'', city:'', observations:'', bloodType:'', allergies:'', medications:'', healthNotes:'', hasSpecialNeeds:false, specialNeedsNotes:'', emergencyContact1Name:'', emergencyContact1Phone:'', emergencyContact1Relation:'', emergencyContact2Name:'', emergencyContact2Phone:'', emergencyContact2Relation:'' };
+const emptyForm = {
+  name:'', enrollment:'', grade:'', className:'', shift:'morning', birthDate:'', school:'', routeId:'', photo:'',
+  // Dados pessoais
+  cpf:'', rg:'', rgOrgao:'', rgUf:'', rgDate:'', sex:'', race:'', nationality:'Brasileira', naturalness:'', naturalnessUf:'',
+  nis:'', cartaoSus:'',
+  // Certidao
+  certidaoTipo:'nascimento', certidaoNumero:'', certidaoFolha:'', certidaoLivro:'', certidaoData:'', certidaoCartorio:'',
+  // Endereco
+  address:'', addressNumber:'', addressComplement:'', neighborhood:'', cep:'', city:'', state:'', zone:'urbana',
+  phone:'', cellPhone:'',
+  // Transporte
+  needsTransport:false, transportType:'', transportDistance:'',
+  // Programas sociais
+  bolsaFamilia:false, bpc:false, peti:false, otherPrograms:'',
+  // Necessidades especiais
+  hasSpecialNeeds:false, specialNeedsNotes:'', deficiencyType:'', tgd:'', superdotacao:false, salaRecursos:false,
+  acompanhamento:'', encaminhamento:'',
+  // Saude
+  bloodType:'', allergies:'', medications:'', healthNotes:'',
+  // Contatos emergencia
+  emergencyContact1Name:'', emergencyContact1Phone:'', emergencyContact1Relation:'',
+  emergencyContact2Name:'', emergencyContact2Phone:'', emergencyContact2Relation:'',
+  guardian1Name:'', guardian1Phone:'', guardian1Relation:'',
+  guardian2Name:'', guardian2Phone:'', guardian2Relation:'',
+  // Filiacao
+  fatherName:'', fatherCpf:'', fatherRg:'', fatherPhone:'', fatherProfession:'', fatherWorkplace:'', fatherEducation:'',
+  fatherNaturalness:'', fatherNaturalnessUf:'',
+  motherName:'', motherCpf:'', motherRg:'', motherPhone:'', motherProfession:'', motherWorkplace:'', motherEducation:'',
+  motherNaturalness:'', motherNaturalnessUf:'',
+  familyIncome:'',
+  // Procedencia
+  previousSchool:'', previousSchoolType:'', previousSchoolZone:'', previousCity:'', previousState:'',
+  enrollmentType:'novato', studentStatus:'',
+  observations:'',
+};
 export default function StudentsPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId || 0;
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number|null>(null);
   const [form, setForm] = useState<any>(emptyForm);
-  const [tab, setTab] = useState<'dados'|'saude'|'endereco'|'responsaveis'>('dados');
+  const [tab, setTab] = useState<'dados'|'documentos'|'endereco'|'filiacao'|'saude'|'social'|'procedencia'>('dados');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
@@ -481,51 +518,164 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
       {confirmDelete&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-red-500"/></div><h3 className="font-bold mb-2">Excluir {confirmDelete.name}?</h3><p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setConfirmDelete(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:confirmDelete.id},{onSuccess:function(){refetch();setConfirmDelete(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
 
-      {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
-        <div className="flex gap-1 px-5 pt-3">
-          {([['dados','Dados'],['saude','Saude'],['endereco','Endereco'],['responsaveis','Responsaveis']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
+        <div className="flex gap-1 px-5 pt-3 overflow-x-auto">
+          {([['dados','Dados'],['documentos','Documentos'],['endereco','Endereco'],['filiacao','Filiacao'],['saude','Saude'],['social','Social'],['procedencia','Procedencia']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
-          {tab==='dados'&&(<><div className="flex justify-center"><PhotoUpload value={form.photo} onChange={function(v:string){setForm(function(f:any){return{...f,photo:v};});}}/></div><div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><label className="label">Nome completo *</label><input className="input" value={form.name} onChange={setField('name')}/></div>
-            <div><label className="label">Matrícula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
-            <div><label className="label">Nascimento</label><input className="input" type="date" value={form.birthDate} onChange={setField('birthDate')}/></div>
-            <div><label className="label">Série/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5º Ano"/></div>
+
+          {/* ABA DADOS */}
+          {tab==='dados'&&(<><div className="flex justify-center"><PhotoUpload value={form.photo} onChange={function(v:string){setForm(function(f:any){return{...f,photo:v};});}}/></div><div className="grid grid-cols-3 gap-3">
+            <div className="col-span-3"><label className="label">Nome completo *</label><input className="input" value={form.name} onChange={setField('name')}/></div>
+            <div><label className="label">Data Nascimento</label><input className="input" type="date" value={form.birthDate} onChange={setField('birthDate')}/></div>
+            <div><label className="label">Sexo</label><select className="input" value={form.sex} onChange={setField('sex')}><option value="">Selecione</option><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+            <div><label className="label">Cor/Raca</label><select className="input" value={form.race} onChange={setField('race')}><option value="">Selecione</option>{RACES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+            <div><label className="label">Nacionalidade</label><input className="input" value={form.nationality} onChange={setField('nationality')}/></div>
+            <div><label className="label">Naturalidade (cidade)</label><input className="input" value={form.naturalness} onChange={setField('naturalness')}/></div>
+            <div><label className="label">UF nasc.</label><input className="input" value={form.naturalnessUf} onChange={setField('naturalnessUf')} maxLength={2} placeholder="TO"/></div>
+            <div><label className="label">Matricula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
+            <div><label className="label">Serie/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
             <div><label className="label">Turma</label><input className="input" value={form.className} onChange={setField('className')} placeholder="A"/></div>
             <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(function(s){return <option key={s.v} value={s.v}>{s.l}</option>;})}</select></div>
-            <div><label className="label">Escola</label><select className="input" value={form.school} onChange={setField('school')}><option value="">Selecione a escola</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select></div>
-            <div className="col-span-2"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
-              <select className="input" value={form.routeId} onChange={setField('routeId')}>
-                <option value="">— Sem rota vinculada —</option>
-                {allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}
-              </select>
+            <div><label className="label">Escola</label><select className="input" value={form.school} onChange={setField('school')}><option value="">Selecione</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select></div>
+            <div><label className="label">Tipo Matricula</label><select className="input" value={form.enrollmentType} onChange={setField('enrollmentType')}><option value="novato">Novato</option><option value="renovacao">Renovacao</option><option value="transferencia">Transferencia</option></select></div>
+            <div className="col-span-3"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
+              <select className="input" value={form.routeId} onChange={setField('routeId')}><option value="">— Sem rota —</option>{allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select>
             </div>
-            <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
           </div></>)}
-          {tab==='saude'&&(<div className="space-y-4">
-            <div className="p-4 bg-red-50 rounded-xl"><p className="text-xs font-semibold text-red-700 mb-3 uppercase">Informacoes de Saude</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Tipo Sanguineo</label><select className="input" value={form.bloodType} onChange={setField('bloodType')}><option value="">Selecione</option>{BLOOD_TYPES.map(function(bt){return <option key={bt} value={bt}>{bt}</option>;})}</select></div>
-              <div><label className="label">Necessidades Especiais</label><select className="input" value={form.hasSpecialNeeds?'sim':'nao'} onChange={function(e:any){setForm(function(f:any){return{...f,hasSpecialNeeds:e.target.value==='sim'};});}}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
-              {form.hasSpecialNeeds&&<div className="col-span-2"><label className="label">Detalhes das necessidades especiais</label><textarea className="input" rows={2} value={form.specialNeedsNotes} onChange={setField('specialNeedsNotes')}/></div>}
-              <div className="col-span-2"><label className="label">Alergias</label><input className="input" value={form.allergies} onChange={setField('allergies')} placeholder="Ex: Amendoim, Lactose, Poeira"/></div>
-              <div className="col-span-2"><label className="label">Medicamentos em uso</label><input className="input" value={form.medications} onChange={setField('medications')} placeholder="Ex: Ritalina 10mg"/></div>
-              <div className="col-span-2"><label className="label">Observacoes de saude</label><textarea className="input" rows={2} value={form.healthNotes} onChange={setField('healthNotes')} placeholder="Ex: Asmatico, usa bombinha"/></div>
+
+          {/* ABA DOCUMENTOS */}
+          {tab==='documentos'&&(<div className="space-y-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Documentos Pessoais</p><div className="grid grid-cols-3 gap-3">
+              <div><label className="label">CPF</label><input className="input" value={form.cpf} onChange={e=>setForm((f:any)=>({...f,cpf:maskCPF(e.target.value)}))} placeholder="000.000.000-00" maxLength={14}/></div>
+              <div><label className="label">RG</label><input className="input" value={form.rg} onChange={setField('rg')}/></div>
+              <div><label className="label">Orgao Exp.</label><input className="input" value={form.rgOrgao} onChange={setField('rgOrgao')} placeholder="SSP"/></div>
+              <div><label className="label">UF RG</label><input className="input" value={form.rgUf} onChange={setField('rgUf')} maxLength={2}/></div>
+              <div><label className="label">Data Exp.</label><input className="input" type="date" value={form.rgDate} onChange={setField('rgDate')}/></div>
+              <div><label className="label">NIS</label><input className="input" value={form.nis} onChange={setField('nis')} placeholder="N. Identificacao Social"/></div>
+              <div><label className="label">Cartao SUS</label><input className="input" value={form.cartaoSus} onChange={setField('cartaoSus')}/></div>
             </div></div>
-            <div className="p-4 bg-orange-50 rounded-xl"><p className="text-xs font-semibold text-orange-700 mb-3 uppercase">Contatos de Emergencia</p><div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><label className="label">Contato 1 - Nome</label><input className="input" value={form.emergencyContact1Name} onChange={setField('emergencyContact1Name')} placeholder="Nome completo"/></div>
-              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact1Phone} onChange={function(e:any){setForm(function(f:any){return{...f,emergencyContact1Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div>
-              <div><label className="label">Parentesco</label><select className="input" value={form.emergencyContact1Relation} onChange={setField('emergencyContact1Relation')}><option value="">Selecione</option><option value="Pai">Pai</option><option value="Mae">Mae</option><option value="Avo/Avo">Avo/Avo</option><option value="Tio/Tia">Tio/Tia</option><option value="Irmao/Irma">Irmao/Irma</option><option value="Padrasto/Madrasta">Padrasto/Madrasta</option><option value="Outro">Outro</option></select></div>
-              <div className="col-span-2"><label className="label">Contato 2 - Nome</label><input className="input" value={form.emergencyContact2Name} onChange={setField('emergencyContact2Name')} placeholder="Nome completo"/></div>
-              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact2Phone} onChange={function(e:any){setForm(function(f:any){return{...f,emergencyContact2Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div>
-              <div><label className="label">Parentesco</label><select className="input" value={form.emergencyContact2Relation} onChange={setField('emergencyContact2Relation')}><option value="">Selecione</option><option value="Pai">Pai</option><option value="Mae">Mae</option><option value="Avo/Avo">Avo/Avo</option><option value="Tio/Tia">Tio/Tia</option><option value="Irmao/Irma">Irmao/Irma</option><option value="Padrasto/Madrasta">Padrasto/Madrasta</option><option value="Outro">Outro</option></select></div>
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Certidao de Nascimento</p><div className="grid grid-cols-3 gap-3">
+              <div><label className="label">Tipo</label><select className="input" value={form.certidaoTipo} onChange={setField('certidaoTipo')}><option value="nascimento">Nascimento</option><option value="casamento">Casamento</option></select></div>
+              <div><label className="label">Numero</label><input className="input" value={form.certidaoNumero} onChange={setField('certidaoNumero')}/></div>
+              <div><label className="label">Folha</label><input className="input" value={form.certidaoFolha} onChange={setField('certidaoFolha')}/></div>
+              <div><label className="label">Livro</label><input className="input" value={form.certidaoLivro} onChange={setField('certidaoLivro')}/></div>
+              <div><label className="label">Data Emissao</label><input className="input" type="date" value={form.certidaoData} onChange={setField('certidaoData')}/></div>
+              <div className="col-span-3"><label className="label">Cartorio</label><input className="input" value={form.certidaoCartorio} onChange={setField('certidaoCartorio')}/></div>
             </div></div>
           </div>)}
-          {tab==='endereco'&&(<div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Endereco</label><input className="input" value={form.address} onChange={setField('address')}/></div><div><label className="label">Estado</label><select className="input" value={form.state} onChange={e => setForm((f: any) => ({...f, state: e.target.value, city: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div><div><label className="label">Cidade {stdMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={setField('city')} disabled={!form.state || stdMunLoading}><option value="">Selecione</option>{stdMunicipios.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div></div>)}
-          {tab==='responsaveis'&&(<div className="space-y-4">
-            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsavel 1</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian1Name} onChange={setField('guardian1Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian1Phone} onChange={function(e:any){setForm(function(f:any){return{...f,guardian1Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><select className="input" value={form.guardian1Relation} onChange={setField('guardian1Relation')}><option value="">Selecione</option><option value="Pai">Pai</option><option value="Mae">Mae</option><option value="Avo/Avo">Avo/Avo</option><option value="Tio/Tia">Tio/Tia</option><option value="Irmao/Irma">Irmao/Irma</option><option value="Padrasto/Madrasta">Padrasto/Madrasta</option><option value="Outro">Outro</option></select></div></div></div>
-            <div className="p-3 bg-gray-50 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Responsavel 2</p><div className="grid grid-cols-2 gap-3"><div className="col-span-2"><label className="label">Nome</label><input className="input" value={form.guardian2Name} onChange={setField('guardian2Name')}/></div><div><label className="label">Telefone</label><input className="input" value={form.guardian2Phone} onChange={function(e:any){setForm(function(f:any){return{...f,guardian2Phone:maskPhone(e.target.value)};});}} placeholder="(63) 00000-0000" maxLength={15}/></div><div><label className="label">Parentesco</label><select className="input" value={form.guardian2Relation} onChange={setField('guardian2Relation')}><option value="">Selecione</option><option value="Pai">Pai</option><option value="Mae">Mae</option><option value="Avo/Avo">Avo/Avo</option><option value="Tio/Tia">Tio/Tia</option><option value="Irmao/Irma">Irmao/Irma</option><option value="Padrasto/Madrasta">Padrasto/Madrasta</option><option value="Outro">Outro</option></select></div></div></div>
+
+          {/* ABA ENDERECO */}
+          {tab==='endereco'&&(<div className="space-y-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Endereco</p><div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="label">CEP</label>
+                <div className="flex gap-2">
+                  <input className="input flex-1" value={form.cep} onChange={e=>setForm((f:any)=>({...f,cep:maskCEP(e.target.value)}))} placeholder="00000-000" maxLength={9}/>
+                  <button type="button" onClick={async()=>{const d=form.cep?.replace(/\D/g,'');if(d?.length===8){try{const r=await lookupCEP(d);setForm((f:any)=>({...f,address:r.logradouro||f.address,neighborhood:r.bairro||f.neighborhood,city:r.cidade||f.city,state:r.estado||f.state}));}catch{}}}} className="px-2 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm">🔍</button>
+                </div>
+              </div>
+              <div className="col-span-2"><label className="label">Logradouro</label><input className="input" value={form.address} onChange={setField('address')}/></div>
+              <div><label className="label">Numero</label><input className="input" value={form.addressNumber} onChange={setField('addressNumber')}/></div>
+              <div><label className="label">Complemento</label><input className="input" value={form.addressComplement} onChange={setField('addressComplement')}/></div>
+              <div><label className="label">Bairro</label><input className="input" value={form.neighborhood} onChange={setField('neighborhood')}/></div>
+              <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
+              <div><label className="label">UF</label><input className="input" value={form.state} onChange={setField('state')} maxLength={2}/></div>
+              <div><label className="label">Zona</label><select className="input" value={form.zone} onChange={setField('zone')}><option value="urbana">Urbana</option><option value="rural">Rural</option></select></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={e=>setForm((f:any)=>({...f,phone:maskPhone(e.target.value)}))} placeholder="(00) 0000-0000" maxLength={15}/></div>
+              <div><label className="label">Celular</label><input className="input" value={form.cellPhone} onChange={e=>setForm((f:any)=>({...f,cellPhone:maskPhone(e.target.value)}))} placeholder="(00) 00000-0000" maxLength={15}/></div>
+            </div></div>
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Transporte Escolar</p><div className="grid grid-cols-3 gap-3">
+              <div><label className="label">Necessita transporte?</label><select className="input" value={form.needsTransport?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,needsTransport:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
+              {form.needsTransport&&<><div><label className="label">Tipo</label><input className="input" value={form.transportType} onChange={setField('transportType')} placeholder="Onibus, Van..."/></div>
+              <div><label className="label">Distancia (km)</label><input className="input" value={form.transportDistance} onChange={setField('transportDistance')}/></div></>}
+            </div></div>
+          </div>)}
+
+          {/* ABA FILIACAO */}
+          {tab==='filiacao'&&(<div className="space-y-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Dados do Pai</p><div className="grid grid-cols-3 gap-3">
+              <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.fatherName} onChange={setField('fatherName')}/></div>
+              <div><label className="label">CPF</label><input className="input" value={form.fatherCpf} onChange={e=>setForm((f:any)=>({...f,fatherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
+              <div><label className="label">RG</label><input className="input" value={form.fatherRg} onChange={setField('fatherRg')}/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.fatherPhone} onChange={e=>setForm((f:any)=>({...f,fatherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
+              <div><label className="label">Profissao</label><input className="input" value={form.fatherProfession} onChange={setField('fatherProfession')}/></div>
+              <div><label className="label">Local de Trabalho</label><input className="input" value={form.fatherWorkplace} onChange={setField('fatherWorkplace')}/></div>
+              <div><label className="label">Escolaridade</label><select className="input" value={form.fatherEducation} onChange={setField('fatherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
+              <div><label className="label">Naturalidade</label><input className="input" value={form.fatherNaturalness} onChange={setField('fatherNaturalness')}/></div>
+              <div><label className="label">UF</label><input className="input" value={form.fatherNaturalnessUf} onChange={setField('fatherNaturalnessUf')} maxLength={2}/></div>
+            </div></div>
+            <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-xl"><p className="text-xs font-semibold text-pink-700 mb-3 uppercase">Dados da Mae</p><div className="grid grid-cols-3 gap-3">
+              <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.motherName} onChange={setField('motherName')}/></div>
+              <div><label className="label">CPF</label><input className="input" value={form.motherCpf} onChange={e=>setForm((f:any)=>({...f,motherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
+              <div><label className="label">RG</label><input className="input" value={form.motherRg} onChange={setField('motherRg')}/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.motherPhone} onChange={e=>setForm((f:any)=>({...f,motherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
+              <div><label className="label">Profissao</label><input className="input" value={form.motherProfession} onChange={setField('motherProfession')}/></div>
+              <div><label className="label">Local de Trabalho</label><input className="input" value={form.motherWorkplace} onChange={setField('motherWorkplace')}/></div>
+              <div><label className="label">Escolaridade</label><select className="input" value={form.motherEducation} onChange={setField('motherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
+              <div><label className="label">Naturalidade</label><input className="input" value={form.motherNaturalness} onChange={setField('motherNaturalness')}/></div>
+              <div><label className="label">UF</label><input className="input" value={form.motherNaturalnessUf} onChange={setField('motherNaturalnessUf')} maxLength={2}/></div>
+            </div></div>
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Renda e Contatos</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Renda Familiar</label><input className="input" value={form.familyIncome} onChange={setField('familyIncome')} placeholder="Ex: 1 salario minimo"/></div>
+              <div></div>
+              <div className="col-span-2"><p className="text-xs text-gray-400 mb-2">Contatos de emergencia</p></div>
+              <div><label className="label">Contato 1 - Nome</label><input className="input" value={form.emergencyContact1Name} onChange={setField('emergencyContact1Name')}/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact1Phone} onChange={e=>setForm((f:any)=>({...f,emergencyContact1Phone:maskPhone(e.target.value)}))} maxLength={15}/></div>
+              <div><label className="label">Contato 2 - Nome</label><input className="input" value={form.emergencyContact2Name} onChange={setField('emergencyContact2Name')}/></div>
+              <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact2Phone} onChange={e=>setForm((f:any)=>({...f,emergencyContact2Phone:maskPhone(e.target.value)}))} maxLength={15}/></div>
+            </div></div>
+          </div>)}
+
+          {/* ABA SAUDE */}
+          {tab==='saude'&&(<div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl"><p className="text-xs font-semibold text-red-700 mb-3 uppercase">Saude</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Tipo Sanguineo</label><select className="input" value={form.bloodType} onChange={setField('bloodType')}><option value="">Selecione</option>{BLOOD_TYPES.map(bt=><option key={bt} value={bt}>{bt}</option>)}</select></div>
+              <div><label className="label">Alergias</label><input className="input" value={form.allergies} onChange={setField('allergies')} placeholder="Amendoim, Lactose..."/></div>
+              <div><label className="label">Medicamentos em uso</label><input className="input" value={form.medications} onChange={setField('medications')}/></div>
+              <div className="col-span-2"><label className="label">Observacoes de saude</label><textarea className="input" rows={2} value={form.healthNotes} onChange={setField('healthNotes')}/></div>
+            </div></div>
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl"><p className="text-xs font-semibold text-purple-700 mb-3 uppercase">Necessidades Especiais / Deficiencia</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Possui deficiencia?</label><select className="input" value={form.hasSpecialNeeds?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,hasSpecialNeeds:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
+              {form.hasSpecialNeeds&&<>
+              <div><label className="label">Tipo de deficiencia</label><input className="input" value={form.deficiencyType} onChange={setField('deficiencyType')} placeholder="Surdez, Auditiva, Mental, Fisica, Multipla, Cegueira, Baixa Visao"/></div>
+              <div><label className="label">TGD</label><input className="input" value={form.tgd} onChange={setField('tgd')} placeholder="Autismo, Asperger, Rett..."/></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.superdotacao} onChange={setField('superdotacao')}/> Altas Habilidades / Superdotacao</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.salaRecursos} onChange={setField('salaRecursos')}/> Frequenta Sala de Recursos</label></div>
+              <div><label className="label">Acompanhamento</label><input className="input" value={form.acompanhamento} onChange={setField('acompanhamento')} placeholder="Psicologia, Fono, Fisioterapia..."/></div>
+              <div><label className="label">Encaminhamento</label><input className="input" value={form.encaminhamento} onChange={setField('encaminhamento')} placeholder="CAPS, CRAS, CREAS..."/></div>
+              <div className="col-span-2"><label className="label">Detalhes</label><textarea className="input" rows={2} value={form.specialNeedsNotes} onChange={setField('specialNeedsNotes')}/></div>
+              </>}
+            </div></div>
+          </div>)}
+
+          {/* ABA SOCIAL */}
+          {tab==='social'&&(<div className="space-y-4">
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Programas Sociais</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bolsaFamilia} onChange={setField('bolsaFamilia')}/> Bolsa Familia</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bpc} onChange={setField('bpc')}/> BPC (Beneficio Prestacao Continuada)</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.peti} onChange={setField('peti')}/> PETI</label></div>
+              <div><label className="label">Outros programas</label><input className="input" value={form.otherPrograms} onChange={setField('otherPrograms')} placeholder="Auxilio gas, Pioneiros Mirins..."/></div>
+            </div></div>
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Observacoes Gerais</p>
+              <textarea className="input" rows={3} value={form.observations} onChange={setField('observations')} placeholder="Informacoes adicionais sobre o aluno..."/>
+            </div>
+          </div>)}
+
+          {/* ABA PROCEDENCIA */}
+          {tab==='procedencia'&&(<div className="space-y-4">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Escola Anterior / Procedencia</p><div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><label className="label">Nome da escola anterior</label><input className="input" value={form.previousSchool} onChange={setField('previousSchool')}/></div>
+              <div><label className="label">Rede</label><select className="input" value={form.previousSchoolType} onChange={setField('previousSchoolType')}><option value="">Selecione</option><option value="municipal">Municipal</option><option value="estadual">Estadual</option><option value="federal">Federal</option><option value="particular">Particular</option></select></div>
+              <div><label className="label">Zona</label><select className="input" value={form.previousSchoolZone} onChange={setField('previousSchoolZone')}><option value="">Selecione</option><option value="urbana">Urbana</option><option value="rural">Rural</option></select></div>
+              <div><label className="label">Cidade</label><input className="input" value={form.previousCity} onChange={setField('previousCity')}/></div>
+              <div><label className="label">UF</label><input className="input" value={form.previousState} onChange={setField('previousState')} maxLength={2}/></div>
+            </div></div>
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Situacao do Aluno</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Situacao</label><select className="input" value={form.studentStatus} onChange={setField('studentStatus')}><option value="">Selecione</option><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="remanejado">Remanejado</option><option value="transferido">Transferido</option><option value="abandono">Abandono</option></select></div>
+            </div></div>
           </div>)}
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Aluno'}</button></div>

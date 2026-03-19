@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2, Eye, Printer } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../lib/utils';
@@ -154,7 +154,7 @@ export default function ContractsPage() {
                                           <td className="px-4 py-3 font-semibold text-gray-800">{fmt(parseFloat(c.value)||0)}</td>
                                           <td className="px-4 py-3">{c.startDate && <p className="text-xs text-gray-500">{new Date(c.startDate).toLocaleDateString('pt-BR')} –</p>}{c.endDate && <><p className="text-xs text-gray-500">{new Date(c.endDate).toLocaleDateString('pt-BR')}</p><DaysAlert endDate={c.endDate}/></>}</td>
                                           <td className="px-4 py-3"><span className={"text-xs px-2 py-1 rounded-full font-medium " + (STATUS_COLORS[status]||'')}>{STATUS_LABELS[status]||status}</span></td>
-                                          <td className="px-4 py-3"><div className="flex items-center gap-1"><button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={14}/></button><button onClick={() => setConfirmDelete(c)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={14}/></button></div></td>
+                                          <td className="px-4 py-3"><div className="flex items-center gap-1"><button onClick={() => setDetail(c)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg" title="Detalhes"><Eye size={14}/></button><button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={14}/></button><button onClick={() => setConfirmDelete(c)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={14}/></button></div></td>
                           </tr>
                         ); })}
                                     {!filtered.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">{contracts.length===0?'Nenhum contrato cadastrado':'Nenhum contrato encontrado'}</td></tr>}
@@ -162,7 +162,33 @@ export default function ContractsPage() {
                         </table>
                 </div>
           
-            {confirmDelete && (
+            {detail && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                                <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Contrato</h3><button onClick={() => setDetail(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+                                <div className="overflow-y-auto flex-1 p-5">
+                                        <div className="flex items-center gap-4 mb-5"><div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center"><FileText size={24} className="text-blue-600"/></div><div><h2 className="text-xl font-bold text-gray-900">Contrato {detail.number}</h2><p className="text-sm text-gray-500">{detail.type}</p><span className={"text-xs px-2 py-1 rounded-full font-medium " + (STATUS_COLORS[getStatus(detail)]||'')}>{STATUS_LABELS[getStatus(detail)]||getStatus(detail)}</span></div></div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Fornecedor</p><p className="text-sm font-medium">{detail.supplier||'--'}</p></div>
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">CNPJ</p><p className="text-sm font-medium">{detail.cnpj||'--'}</p></div>
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Valor</p><p className="text-sm font-medium">{fmt(parseFloat(detail.value)||0)}</p></div>
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Início</p><p className="text-sm font-medium">{detail.startDate ? new Date(detail.startDate).toLocaleDateString('pt-BR') : '--'}</p></div>
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Término</p><p className="text-sm font-medium">{detail.endDate ? new Date(detail.endDate).toLocaleDateString('pt-BR') : '--'}</p>{detail.endDate && <DaysAlert endDate={detail.endDate}/>}</div>
+                                                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Responsável</p><p className="text-sm font-medium">{detail.responsibleName||'--'}</p><p className="text-xs text-gray-500">{detail.responsiblePhone||''}</p></div>
+                                        </div>
+                                        {detail.object && <div className="p-3 bg-gray-50 rounded-lg mb-3"><p className="text-xs text-gray-400">Objeto</p><p className="text-sm">{detail.object}</p></div>}
+                                        {detail.notes && <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Observações</p><p className="text-sm">{detail.notes}</p></div>}
+                                </div>
+                                <div className="flex gap-3 p-5 border-t">
+                                        <button onClick={() => setDetail(null)} className="btn-secondary flex-1">Fechar</button>
+                                        <button onClick={() => { const w = window.open('','_blank'); if(w){ w.document.write('<html><head><title>Contrato '+detail.number+'</title><style>body{font-family:Arial,sans-serif;padding:40px;} h1{font-size:18px;} table{width:100%;border-collapse:collapse;margin-top:20px;} td{padding:8px 12px;border:1px solid #ddd;font-size:13px;} .label{font-weight:bold;background:#f5f5f5;width:30%;}</style></head><body><h1>Contrato '+detail.number+' - '+detail.type+'</h1><table><tr><td class="label">Fornecedor</td><td>'+detail.supplier+'</td></tr><tr><td class="label">CNPJ</td><td>'+(detail.cnpj||'--')+'</td></tr><tr><td class="label">Valor</td><td>'+fmt(parseFloat(detail.value)||0)+'</td></tr><tr><td class="label">Vigência</td><td>'+(detail.startDate?new Date(detail.startDate).toLocaleDateString('pt-BR'):'--')+' a '+(detail.endDate?new Date(detail.endDate).toLocaleDateString('pt-BR'):'--')+'</td></tr><tr><td class="label">Objeto</td><td>'+(detail.object||'--')+'</td></tr><tr><td class="label">Responsável</td><td>'+(detail.responsibleName||'--')+' '+(detail.responsiblePhone||'')+'</td></tr><tr><td class="label">Observações</td><td>'+(detail.notes||'--')+'</td></tr></table></body></html>'); w.document.close(); w.print(); } }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Printer size={14}/> Imprimir</button>
+                                        <button onClick={() => { openEdit(detail); }} className="btn-primary flex-1">Editar</button>
+                                </div>
+                        </div>
+                </div>
+        )}
+
+        {confirmDelete && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
                                           <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-red-500"/></div>

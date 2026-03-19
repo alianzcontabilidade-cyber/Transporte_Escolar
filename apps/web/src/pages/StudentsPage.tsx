@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download, QrCode } from 'lucide-react';
 import { printStudentQRCodes } from '../lib/qrcode';
+import StudentDocumentsModal from '../components/StudentDocumentsModal';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -137,6 +138,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
   };
 
   const [viewStudent, setViewStudent] = useState<any>(null);
+  const [showDocs, setShowDocs] = useState<any>(null);
 
   const handleCSVUpload = function(e: any) {
     const file = e.target.files?.[0];
@@ -382,6 +384,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={function(){setViewStudent(null);}} className="btn-secondary flex-1">Fechar</button>
+              <button onClick={function(){setShowDocs(viewStudent);}} className="btn-secondary flex-1 flex items-center justify-center gap-1"><FileUp size={14}/> Documentos</button>
               <button onClick={function(){setViewStudent(null);openEdit(viewStudent);}} className="btn-primary flex-1">Editar</button>
             </div>
           </div>
@@ -531,6 +534,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowImport(false);}} className="btn-secondary flex-1">Fechar</button><button onClick={doImport} disabled={!csvData.length||importing} className="btn-primary flex-1">{importing?'Importando...':'Importar '+csvData.length+' aluno(s)'}</button></div>
       </div></div>)}
+
+      {showDocs && <StudentDocumentsModal studentId={showDocs.id} studentName={showDocs.name} onClose={() => setShowDocs(null)} />}
     </div>
   );
 }

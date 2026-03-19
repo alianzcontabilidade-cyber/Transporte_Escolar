@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, Trash2, AlertTriangle, Search, Users, CheckCircle, Loader2, Navigation } from 'lucide-react';
+import { UserCheck, Plus, X, Phone, Mail, MapPin, Eye, EyeOff, Camera, Pencil, Trash2, AlertTriangle, Search, Users, CheckCircle, Loader2, Navigation, Download } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
@@ -32,6 +32,7 @@ export default function MonitoresPage() {
   const [formErr, setFormErr] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [viewMonitor, setViewMonitor] = useState<any>(null);
   const [cpfError, setCpfError] = useState('');
   const municipalityId = user?.municipalityId;
   const { municipios: monMunicipios, loading: monMunLoading } = useMunicipios(form.state);
@@ -74,6 +75,14 @@ export default function MonitoresPage() {
   const toggleStatus = async (m: any) => { try { await api.monitorStaff.update({ id: m.id, status: m.status === 'active' ? 'inactive' : 'active' }); await loadMonitores(); } catch (err) { console.error(err); } };
   const doDelete = async (id: number) => { try { await api.monitorStaff.delete({ id }); setConfirmDelete(null); await loadMonitores(); } catch (err) { console.error(err); } };
 
+  const exportMonitoresCSV = () => {
+    if (!monitores.length) return;
+    const rows = monitores.map((m: any) => ({ nome: m.name||'', cpf: m.cpf||'', telefone: m.phone||'', email: m.email||'', turno: shiftLabel(m.shift), rota: m.routeName||'', cidade: m.city||'', status: m.status==='active'?'Ativo':'Inativo' }));
+    const keys = Object.keys(rows[0]);
+    const csv = [keys.join(';'), ...rows.map((r: any) => keys.map(k => '"'+(r[k]||'')+'"').join(';'))].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'monitores_netescol.csv'; a.click();
+  };
+
   if (loading) return <div className="p-6 flex items-center justify-center h-64"><Loader2 className="animate-spin text-primary-500" size={32}/></div>;
 
   return (
@@ -83,7 +92,7 @@ export default function MonitoresPage() {
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><UserCheck size={20} className="text-teal-600"/></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Monitores</h1><p className="text-gray-500">Auxiliares que acompanham o motorista no transporte dos alunos</p></div>
         </div>
-        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button>
+        <div className="flex gap-2"><button onClick={exportMonitoresCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button></div>
       </div>
       <div className="grid grid-cols-3 gap-4 mb-5">
         <div className="card text-center bg-teal-50 border-0"><Users size={22} className="text-teal-500 mx-auto mb-1"/><p className="text-2xl font-bold">{monitores.length}</p><p className="text-xs text-gray-500">Total</p></div>
@@ -112,6 +121,7 @@ export default function MonitoresPage() {
               {m.observations && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.observations}</p>}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => setViewMonitor(m)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Detalhes"><Eye size={15}/></button>
               <button onClick={() => openEdit(m)} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors" title="Editar"><Pencil size={15}/></button>
               <button onClick={() => toggleStatus(m)} className={'p-2 rounded-lg transition-colors ' + (m.status==='active'?'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50':'text-gray-400 hover:text-green-500 hover:bg-green-50')} title={m.status==='active'?'Desativar':'Ativar'}>{m.status==='active'?<AlertTriangle size={15}/>:<CheckCircle size={15}/>}</button>
               <button onClick={() => setConfirmDelete(m.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={15}/></button>
@@ -120,6 +130,27 @@ export default function MonitoresPage() {
         ))}
         {!filtered.length && <div className="card text-center py-12"><UserCheck size={40} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500">{monitores.length === 0 ? 'Nenhum monitor cadastrado' : 'Nenhum monitor encontrado'}</p></div>}
       </div>
+
+      {viewMonitor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Monitor</h3><button onClick={() => setViewMonitor(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+            <div className="overflow-y-auto flex-1 p-5">
+              <div className="flex items-center gap-4 mb-5"><div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-2xl font-bold text-teal-700">{viewMonitor.name?.[0]}</div><div><h2 className="text-xl font-bold text-gray-900">{viewMonitor.name}</h2><p className="text-sm text-gray-500">{shiftLabel(viewMonitor.shift)}{viewMonitor.routeName ? ' - ' + viewMonitor.routeName : ''}</p></div></div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">CPF</p><p className="text-sm font-medium">{viewMonitor.cpf||'--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Telefone</p><p className="text-sm font-medium">{viewMonitor.phone||'--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Email</p><p className="text-sm font-medium">{viewMonitor.email||'--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Cidade</p><p className="text-sm font-medium">{viewMonitor.city||'--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Endereço</p><p className="text-sm font-medium">{viewMonitor.address||'--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Status</p><p className="text-sm font-medium">{viewMonitor.status==='active'?'Ativo':'Inativo'}</p></div>
+                {viewMonitor.observations && <div className="p-3 bg-gray-50 rounded-lg col-span-3"><p className="text-xs text-gray-400">Observações</p><p className="text-sm">{viewMonitor.observations}</p></div>}
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t"><button onClick={() => setViewMonitor(null)} className="btn-secondary flex-1">Fechar</button><button onClick={() => { setViewMonitor(null); openEdit(viewMonitor); }} className="btn-primary flex-1">Editar</button></div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete !== null && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

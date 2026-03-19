@@ -3,6 +3,7 @@ import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Downloa
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../lib/utils';
+import CNPJField from '../components/CNPJField';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', expired:'bg-red-100 text-red-700', pending:'bg-yellow-100 text-yellow-700', cancelled:'bg-gray-100 text-gray-600' };
 const STATUS_LABELS: any = { active:'Vigente', expired:'Vencido', pending:'A vencer', cancelled:'Cancelado' };
@@ -213,11 +214,16 @@ export default function ContractsPage() {
                                                                         <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><Building size={14}/> Fornecedor</p>
                                                                         <div className="grid grid-cols-2 gap-3">
                                                                                           <div className="col-span-2"><label className="label">Razão social *</label><input className="input" value={form.supplier} onChange={setField('supplier')}/></div>
-                                                                                          <div>
-                                                                                                              <label className="label">CNPJ</label>
-                                                                                                              <input className="input" value={form.cnpj} onChange={handleCnpjChange} placeholder="00.000.000/0000-00" maxLength={18}/>
-                                                                                            {cnpjError && <p className="text-xs text-red-500 mt-1">{cnpjError}</p>}
-                                                                                            </div>
+                                                                                          <CNPJField
+                                                                                            value={form.cnpj}
+                                                                                            onChange={(v) => setForm((f: any) => ({...f, cnpj: v}))}
+                                                                                            onDataLoaded={(data) => setForm((f: any) => ({
+                                                                                              ...f,
+                                                                                              supplier: data.razaoSocial || data.nomeFantasia || f.supplier,
+                                                                                              responsiblePhone: data.telefone || f.responsiblePhone,
+                                                                                            }))}
+                                                                                            label="CNPJ"
+                                                                                          />
                                                                                           <div>
                                                                                                               <label className="label">Valor (R$)</label>
                                                                                                               <input className="input" value={form.value} onChange={handleValueChange} placeholder="0,00"/>

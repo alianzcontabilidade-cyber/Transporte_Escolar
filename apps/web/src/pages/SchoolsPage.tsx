@@ -1,9 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { lookupCNPJ, lookupCEP, maskCEP, lookupINEP, searchSchoolsByCity } from '../lib/cnpjCep';
-import { maskCNPJ, validateCNPJ, maskPhone } from '../lib/utils';
+import { lookupCEP, maskCEP, searchSchoolsByCity } from '../lib/cnpjCep';
+import { maskPhone } from '../lib/utils';
+import { getIBGECityCode } from '../lib/ibge';
+import CNPJField from '../components/CNPJField';
+import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen } from 'lucide-react';
 
 const emptyForm = {
@@ -32,11 +35,24 @@ export default function SchoolsPage() {
   const [inepMsg, setInepMsg] = useState('');
   const [inepCityCode, setInepCityCode] = useState('');
   const [inepSelected, setInepSelected] = useState<Set<string>>(new Set());
+  const [ibgeCityCode, setIbgeCityCode] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.schools.create);
   const { mutate: update, loading: updating } = useMutation(api.schools.update);
   const { mutate: remove } = useMutation(api.schools.delete);
+
+  // Auto-detect IBGE city code from municipality data
+  useEffect(() => {
+    if (!municipalityId) return;
+    api.municipalities.getById({ id: municipalityId }).then((m: any) => {
+      if (m?.state && m?.city) {
+        getIBGECityCode(m.state, m.city).then(code => {
+          if (code) setIbgeCityCode(code);
+        });
+      }
+    }).catch(() => {});
+  }, [municipalityId]);
 
   const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
   const all = (schools as any) || [];
@@ -71,47 +87,20 @@ export default function SchoolsPage() {
     localStorage.setItem('netescol_school_extra_' + id, JSON.stringify(data));
   };
 
-  const handleCNPJLookup = async () => {
-    const digits = form.cnpj.replace(/\D/g, '');
-    if (digits.length !== 14) { setFormMsg('CNPJ incompleto'); return; }
-    if (!validateCNPJ(digits)) { setFormMsg('CNPJ invalido'); return; }
-    setLookingUp('cnpj');
-    setFormMsg('');
-    try {
-      const data = await lookupCNPJ(digits);
-      setForm((f: any) => ({
-        ...f,
-        name: data.nomeFantasia || data.razaoSocial || f.name,
-        logradouro: data.logradouro || f.logradouro,
-        numero: data.numero || f.numero,
-        complemento: data.complemento || f.complemento,
-        bairro: data.bairro || f.bairro,
-        cep: data.cep ? maskCEP(data.cep) : f.cep,
-        city: data.cidade || f.city,
-        state: data.estado || f.state,
-        phone: data.telefone || f.phone,
-        email: data.email || f.email,
-      }));
-      setFormMsg('Dados carregados da Receita Federal!');
-    } catch (e: any) { setFormMsg('Erro: ' + e.message); }
-    finally { setLookingUp(''); }
-  };
-
-  const handleINEPLookup = async () => {
-    const code = form.code?.replace(/\D/g, '');
-    if (!code || code.length < 7) { setFormMsg('Codigo INEP incompleto (minimo 7 digitos)'); return; }
-    setLookingUp('inep');
-    setFormMsg('');
-    try {
-      const data = await lookupINEP(code);
-      setForm((f: any) => ({
-        ...f,
-        name: data.name || f.name,
-        code: data.inepCode || f.code,
-      }));
-      setFormMsg('Escola encontrada na base do INEP! Nome: ' + data.name);
-    } catch (e: any) { setFormMsg('Erro: ' + e.message); }
-    finally { setLookingUp(''); }
+  const handleCNPJDataLoaded = (data: any) => {
+    setForm((f: any) => ({
+      ...f,
+      name: data.nomeFantasia || data.razaoSocial || f.name,
+      logradouro: data.logradouro || f.logradouro,
+      numero: data.numero || f.numero,
+      complemento: data.complemento || f.complemento,
+      bairro: data.bairro || f.bairro,
+      cep: data.cep ? maskCEP(data.cep) : f.cep,
+      city: data.cidade || f.city,
+      state: data.estado || f.state,
+      phone: data.telefone || f.phone,
+      email: data.email || f.email,
+    }));
   };
 
   const handleSearchSchoolsByCity = async () => {
@@ -254,7 +243,7 @@ export default function SchoolsPage() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
         <div className="flex gap-2">
-          <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(''); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
+          <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(ibgeCityCode); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
           <button onClick={exportSchoolsCSV} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Escola</button>
         </div>
@@ -362,25 +351,23 @@ export default function SchoolsPage() {
                   <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2"><School size={14} /> Identificacao</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2"><label className="label">Nome da escola *</label><input className="input" value={form.name} onChange={sf('name')} placeholder="Ex: Escola Municipal Centro" /></div>
-                      <div>
-                        <label className="label">CNPJ</label>
-                        <div className="flex gap-2">
-                          <input className="input flex-1" value={form.cnpj} onChange={e => setForm((f: any) => ({ ...f, cnpj: maskCNPJ(e.target.value) }))} placeholder="00.000.000/0000-00" maxLength={18} />
-                          <button onClick={handleCNPJLookup} disabled={!!lookingUp} className="px-3 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 flex items-center gap-1 text-sm disabled:opacity-50" title="Buscar na Receita Federal">
-                            {lookingUp === 'cnpj' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Buscar
-                          </button>
-                        </div>
+                      <div className="col-span-2">
+                        <label className="label">Nome da escola * {ibgeCityCode && <span className="text-[10px] text-emerald-500 font-normal ml-1">(INEP ativo - digite para buscar)</span>}</label>
+                        <SchoolINEPAutocomplete
+                          value={form.name}
+                          onChange={(v) => setForm((f: any) => ({ ...f, name: v }))}
+                          onSelect={(s) => setForm((f: any) => ({ ...f, name: s.name, code: s.inepCode }))}
+                          ibgeCityCode={ibgeCityCode}
+                          placeholder="Digite o nome da escola..."
+                        />
                       </div>
-                      <div>
-                        <label className="label">Codigo INEP</label>
-                        <div className="flex gap-2">
-                          <input className="input flex-1" value={form.code} onChange={sf('code')} placeholder="Ex: 12345678" />
-                          <button onClick={handleINEPLookup} disabled={!!lookingUp} className="px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-1 text-sm disabled:opacity-50 whitespace-nowrap" title="Buscar na base do INEP">
-                            {lookingUp === 'inep' ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />} INEP
-                          </button>
-                        </div>
-                      </div>
+                      <CNPJField
+                        value={form.cnpj}
+                        onChange={(v) => setForm((f: any) => ({ ...f, cnpj: v }))}
+                        onDataLoaded={handleCNPJDataLoaded}
+                        label="CNPJ"
+                      />
+                      <div><label className="label">Codigo INEP</label><input className="input" value={form.code} onChange={sf('code')} placeholder="Ex: 12345678" /></div>
                       <div><label className="label">Tipo</label>
                         <select className="input" value={form.type} onChange={sf('type')}>
                           <option value="infantil">Educacao Infantil</option>

@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { maskCPF, validateCPF, maskCNPJ, validateCNPJ, maskPhone } from '../lib/utils';
+import CNPJField from '../components/CNPJField';
 
 export default function RegisterPage() {
   const [mode, setMode] = useState<'choose' | 'municipality' | 'guardian'>('choose');
@@ -145,7 +146,18 @@ export default function RegisterPage() {
             <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">Nome da Prefeitura</label><input type="text" required value={mForm.municipalityName} onChange={e => setMForm(p => ({...p, municipalityName: e.target.value}))} className={inputClass} /></div>
             <div><label className="text-sm font-medium text-gray-700 block mb-1">Estado (UF)</label><select required value={mForm.state} onChange={e => setMForm(p => ({...p, state: e.target.value, city: ''}))} className={inputClass}><option value="">Selecione o estado</option>{ESTADOS_BR.map(e => <option key={e.uf} value={e.uf}>{e.uf} - {e.nome}</option>)}</select></div>
             <div><label className="text-sm font-medium text-gray-700 block mb-1">Cidade {munLoading && <Loader2 size={12} className="inline animate-spin ml-1" />}</label><select required value={mForm.city} onChange={e => setMForm(p => ({...p, city: e.target.value}))} className={inputClass} disabled={!mForm.state || munLoading}><option value="">Selecione a cidade</option>{munList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
-            <div className="col-span-2"><label className="text-sm font-medium text-gray-700 block mb-1">CNPJ (opcional)</label><input type="text" value={mForm.cnpj} onChange={e => { const masked = maskCNPJ(e.target.value); setMForm(p => ({...p, cnpj: masked})); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 14) { setCnpjError(validateCNPJ(digits) ? '' : 'CNPJ inválido'); } else { setCnpjError(''); } }} className={inputClass} placeholder="00.000.000/0000-00" maxLength={18} />{cnpjError && <p className="text-xs text-red-500 mt-1">{cnpjError}</p>}</div>
+            <div className="col-span-2">
+              <CNPJField
+                value={mForm.cnpj}
+                onChange={(v) => setMForm(p => ({...p, cnpj: v}))}
+                onDataLoaded={(data) => setMForm(p => ({
+                  ...p,
+                  municipalityName: data.razaoSocial || data.nomeFantasia || p.municipalityName,
+                  adminPhone: data.telefone || p.adminPhone,
+                }))}
+                label="CNPJ (opcional)"
+              />
+            </div>
           </div>
           <hr className="my-2" />
           <p className="text-sm font-semibold text-gray-700">Dados do Administrador</p>

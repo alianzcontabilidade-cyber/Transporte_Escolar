@@ -71,3 +71,24 @@ export function useMunicipios(uf: string) {
 
   return { municipios, loading };
 }
+
+// Buscar codigo IBGE pelo nome da cidade e UF
+export async function getIBGECityCode(uf: string, cityName: string): Promise<string | null> {
+  if (!uf || !cityName) return null;
+  const ufUpper = uf.toUpperCase();
+
+  // Check cache first
+  if (cache[ufUpper]) {
+    const match = cache[ufUpper].find(m => m.nome.toLowerCase() === cityName.toLowerCase());
+    return match ? String(match.id) : null;
+  }
+
+  try {
+    const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${ufUpper}/municipios?orderBy=nome`);
+    const data = await res.json();
+    const lista = data.map((m: any) => ({ id: m.id, nome: m.nome }));
+    cache[ufUpper] = lista;
+    const match = lista.find((m: any) => m.nome.toLowerCase() === cityName.toLowerCase());
+    return match ? String(match.id) : null;
+  } catch { return null; }
+}

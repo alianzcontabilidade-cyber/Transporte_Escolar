@@ -49,6 +49,7 @@ import PromotionPage from './pages/PromotionPage';
 import AttendanceReportPage from './pages/AttendanceReportPage';
 import StudentHistoryPage from './pages/StudentHistoryPage';
 import TransportReportPage from './pages/TransportReportPage';
+import ModulesPage from './pages/ModulesPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -89,6 +90,7 @@ export default function App() {
 
         {/* Admin / Secretaria */}
         <Route path="dashboard" element={<Guard roles={ADMIN_SEC}><DashboardPage /></Guard>} />
+        <Route path="modulos" element={<Guard roles={ADMIN_SEC}><ModulesPage /></Guard>} />
         <Route path="monitor" element={<Guard roles={ALL_STAFF}><MonitorPage /></Guard>} />
         <Route path="rotas" element={<Guard roles={ALL_STAFF}><RoutesPage /></Guard>} />
         <Route path="alunos" element={<Guard roles={ADMIN_SEC}><StudentsPage /></Guard>} />

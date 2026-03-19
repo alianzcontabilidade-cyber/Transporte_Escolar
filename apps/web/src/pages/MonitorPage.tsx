@@ -372,33 +372,31 @@ export default function MonitorPage() {
       setActiveTrips(trips || []);
       // Pre-populate bus locations from API data
       if (trips && trips.length > 0) {
-        setBusLocations(prev => {
-          const n = new Map(prev);
-          for (const t of trips) {
-            const tripId = t.trip?.id;
-            if (!tripId || n.has(tripId)) continue;
-            // Try driver position first
-            let lat = t.driver?.currentLatitude ? parseFloat(t.driver.currentLatitude) : null;
-            let lng = t.driver?.currentLongitude ? parseFloat(t.driver.currentLongitude) : null;
-            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-              n.set(tripId, { lat, lng, updatedAt: new Date() });
-              continue;
-            }
-            // Fallback: fetch first stop of the route
-            try {
-              api.stops.listByRoute({ routeId: t.trip?.routeId || t.route?.id }).then((stops: any) => {
-                if (stops && stops.length > 0) {
-                  const sLat = parseFloat(stops[0].latitude);
-                  const sLng = parseFloat(stops[0].longitude);
-                  if (!isNaN(sLat) && !isNaN(sLng)) {
-                    setBusLocations(p => { const m = new Map(p); m.set(tripId, { lat: sLat, lng: sLng, updatedAt: new Date() }); return m; });
-                  }
-                }
-              }).catch(() => {});
-            } catch {}
+        for (const t of trips) {
+          const tripId = t.trip?.id;
+          if (!tripId) continue;
+          // Try driver position first
+          const lat = t.driver?.currentLatitude ? parseFloat(t.driver.currentLatitude) : null;
+          const lng = t.driver?.currentLongitude ? parseFloat(t.driver.currentLongitude) : null;
+          if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            setBusLocations(p => { const m = new Map(p); m.set(tripId, { lat, lng, updatedAt: new Date() }); return m; });
+            continue;
           }
-          return n;
-        });
+          // Fallback: fetch first stop of the route
+          const routeId = t.trip?.routeId || t.route?.id;
+          if (routeId) {
+            api.stops.listByRoute({ routeId }).then((stopsData: any) => {
+              const stopsList = Array.isArray(stopsData) ? stopsData : [];
+              if (stopsList.length > 0) {
+                const sLat = parseFloat(stopsList[0].latitude);
+                const sLng = parseFloat(stopsList[0].longitude);
+                if (!isNaN(sLat) && !isNaN(sLng)) {
+                  setBusLocations(p => { const m = new Map(p); m.set(tripId, { lat: sLat, lng: sLng, updatedAt: new Date() }); return m; });
+                }
+              }
+            }).catch(() => {});
+          }
+        }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }

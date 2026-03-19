@@ -131,6 +131,7 @@ export default function Layout() {
   const adminMenu = [
     { label: 'PAINEL', items: [
       { to: '/', icon: LayoutDashboard, text: 'Dashboard' },
+      { to: '/modulos', icon: LayoutDashboard, text: 'Todos os Módulos' },
       { to: '/monitor', icon: Navigation, text: 'Monitoramento' },
       { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
     ]},

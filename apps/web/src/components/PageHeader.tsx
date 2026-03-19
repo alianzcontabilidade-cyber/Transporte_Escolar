@@ -63,6 +63,7 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/protocolo': { code: '413', title: 'Protocolo', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/eventos': { code: '414', title: 'Gestão de Eventos', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/mural': { code: '415', title: 'Mural Informativo', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/central-relatorios': { code: '416', title: 'Central de Relatórios', module: 'Gestão e Recursos', color: '#0ea5e9' },
 };
 
 // Favorites management

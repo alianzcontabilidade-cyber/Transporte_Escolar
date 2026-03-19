@@ -209,6 +209,7 @@ export default function Layout() {
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
     { code: '414', to: '/eventos', text: 'Gestão de Eventos', module: 'Gestão e Recursos', desc: 'Festas, feiras, formaturas, excursões', tags: 'evento festa feira formatura excursao jogos palestra', color: '#0ea5e9' },
     { code: '415', to: '/mural', text: 'Mural Informativo', module: 'Gestão e Recursos', desc: 'Avisos, comunicados e informativos', tags: 'mural aviso comunicado informativo diario boletim', color: '#0ea5e9' },
+    { code: '416', to: '/central-relatorios', text: 'Central de Relatórios', module: 'Gestão e Recursos', desc: 'Todos os relatórios do sistema organizados por módulo', tags: 'central relatorio todos modulo ficha declaracao lista', color: '#0ea5e9' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -261,7 +262,7 @@ export default function Layout() {
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },
       { to: '/contratos', icon: FileText, text: 'Contratos' }, { to: '/merenda', icon: ClipboardList, text: 'Merenda' },
       { to: '/biblioteca', icon: BookOpen, text: 'Biblioteca' }, { to: '/patrimonio', icon: Package, text: 'Patrimônio' },
-      { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' }, { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
+      { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' }, { to: '/central-relatorios', icon: BarChart3, text: 'Central Relatórios' },
       { to: '/comunicacao', icon: Bell, text: 'Comunicação' },
       { to: '/envio-massa', icon: Bell, text: 'Envio em Massa' },
       { to: '/cotacao-compras', icon: ClipboardList, text: 'Cotação Compras' },

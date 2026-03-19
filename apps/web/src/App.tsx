@@ -66,6 +66,7 @@ import VehicleInspectionPage from './pages/VehicleInspectionPage';
 import ProtocolPage from './pages/ProtocolPage';
 import EventManagementPage from './pages/EventManagementPage';
 import DailyBulletinPage from './pages/DailyBulletinPage';
+import ReportCenterPage from './pages/ReportCenterPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -169,6 +170,7 @@ export default function App() {
         <Route path="protocolo" element={<Guard roles={ADMIN_SEC}><ProtocolPage /></Guard>} />
         <Route path="eventos" element={<Guard roles={ADMIN_SEC}><EventManagementPage /></Guard>} />
         <Route path="mural" element={<Guard roles={ADMIN_SEC}><DailyBulletinPage /></Guard>} />
+        <Route path="central-relatorios" element={<Guard roles={ADMIN_SEC}><ReportCenterPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

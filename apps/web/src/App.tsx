@@ -45,6 +45,7 @@ import StudentTransferPage from './pages/StudentTransferPage';
 import StudentCardPage from './pages/StudentCardPage';
 import ATAResultsPage from './pages/ATAResultsPage';
 import PromotionPage from './pages/PromotionPage';
+import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -72,6 +73,7 @@ export default function App() {
   const { user } = useAuth();
 
   return (
+    <>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
@@ -139,5 +141,7 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    {user && <FloatingChat />}
+  </>
   );
         }

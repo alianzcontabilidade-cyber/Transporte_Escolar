@@ -9,8 +9,9 @@ import {
   BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
   Bell, Shield, Brain, Wrench, UserCheck, ChevronRight, Navigation,
   Locate, MapPinned, Download, Calendar, BookOpen, Briefcase,
-  GraduationCap, DollarSign, Package, Database
+  GraduationCap, DollarSign, Package, Database, Moon, Sun
 } from 'lucide-react';
+import { useTheme } from '../lib/theme';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -55,6 +56,7 @@ export default function Layout() {
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [installBanner, setInstallBanner] = useState(true);
   const { canInstall, isInstalled, install } = usePWAInstall();
+  const { theme, toggle: toggleTheme, isDark } = useTheme();
 
   // Collapsible modules - load from localStorage
   const [openModules, setOpenModules] = useState<Record<string, boolean>>(() => {
@@ -250,6 +252,10 @@ export default function Layout() {
         ))}
       </nav>
       <div className="p-3 border-t border-white/10">
+        <button onClick={toggleTheme} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-2 text-white/50 hover:text-white/80 hover:bg-white/10 w-full transition-all">
+          {isDark ? <Sun size={14} /> : <Moon size={14} />}
+          {isDark ? 'Modo Claro' : 'Modo Escuro'}
+        </button>
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs mb-3 ${connected ? 'text-green-300 bg-green-500/20' : 'text-red-300 bg-red-500/20'}`}>
           {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
           {connected ? 'Conectado' : 'Desconectado'}
@@ -271,7 +277,7 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-screen bg-[#f8f9fa]">
+    <div className={`flex h-screen ${isDark ? 'bg-gray-900 text-gray-200' : 'bg-[#f8f9fa]'}`}>
       {/* Sidebar Desktop */}
       <aside className={`hidden lg:flex flex-col w-60 bg-primary-500 ${isParent ? 'lg:w-52' : ''}`}>
         <div className="p-4 border-b border-white/10">
@@ -328,7 +334,7 @@ export default function Layout() {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : ''}`}>
           <Outlet />
         </main>
       </div>

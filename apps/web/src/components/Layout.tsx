@@ -117,7 +117,7 @@ export default function Layout() {
     if (!user?.municipalityId) return;
     api.schoolCalendar.trackingStatus({ municipalityId: user.municipalityId })
       .then((data: any) => { if (data && !data.trackingActive) setTransportPaused(data); else setTransportPaused(null); })
-      .catch(() => {});
+      .catch(() => setTransportPaused(null));
   }, [user?.municipalityId]);
 
   const role = user?.role || 'parent';

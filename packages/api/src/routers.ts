@@ -3354,25 +3354,30 @@ export const schoolCalendarRouter = t.router({
         };
       }
 
-      // Check active academic year
+      // Check active academic year (accept active or planning)
       const [activeYear] = await db.select().from(academicYears)
-        .where(and(eq(academicYears.municipalityId, input.municipalityId), eq(academicYears.status, 'active')))
+        .where(and(eq(academicYears.municipalityId, input.municipalityId), eq(academicYears.isActive, true)))
+        .orderBy(desc(academicYears.year))
         .limit(1);
 
       if (!activeYear) {
-        return { isSchoolDay: false, reason: 'Nenhum ano letivo ativo', trackingActive: false, events: [] };
+        // No academic year at all - still allow transport (it's independent)
+        return {
+          isSchoolDay: true,
+          reason: 'Dia letivo (sem ano letivo configurado)',
+          trackingActive: true,
+          events: activeEvents.map(e => ({ title: e.title, type: e.eventType, color: e.color })),
+        };
       }
 
-      // Check if date is within academic year range
+      // Check if date is within academic year range (but don't block transport)
       const yearStart = new Date(activeYear.startDate).toISOString().split('T')[0];
       const yearEnd = new Date(activeYear.endDate).toISOString().split('T')[0];
-      if (dateStr < yearStart || dateStr > yearEnd) {
-        return { isSchoolDay: false, reason: 'Fora do período letivo', trackingActive: false, events: [] };
-      }
+      const inPeriod = dateStr >= yearStart && dateStr <= yearEnd;
 
       return {
         isSchoolDay: true,
-        reason: 'Dia letivo',
+        reason: inPeriod ? 'Dia letivo' : 'Fora do período letivo (transporte permitido)',
         trackingActive: true,
         academicYear: activeYear.name,
         events: activeEvents.map(e => ({ title: e.title, type: e.eventType, color: e.color })),

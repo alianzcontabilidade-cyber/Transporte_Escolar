@@ -16,7 +16,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function LiveMap({ trips, locations }: any) {
+function LiveMap({ trips, locations, selectedTrip }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<Map<number, any>>(new Map());
@@ -53,6 +53,59 @@ function LiveMap({ trips, locations }: any) {
       }
     });
   }, [locations, trips]);
+
+  // Show stops for selected trip
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!mapInstanceRef.current || !L) return;
+    // Remove old stop markers (tagged with className 'stop-marker')
+    mapInstanceRef.current.eachLayer((layer: any) => {
+      if (layer._icon && layer._icon.classList?.contains('stop-marker-layer')) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+    // Remove previous polylines
+    mapInstanceRef.current.eachLayer((layer: any) => {
+      if (layer instanceof L.Polyline && !(layer instanceof L.Rectangle)) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+
+    if (!selectedTrip) return;
+
+    // Get stops from selected trip route
+    const tripId = selectedTrip.trip?.id;
+    const tripRoute = selectedTrip.route || selectedTrip;
+
+    // Try to load stops via API
+    if (tripRoute?.id) {
+      fetch('/api/trpc/stops.listByRoute?input=' + encodeURIComponent(JSON.stringify({ routeId: tripRoute.id })))
+        .then(r => r.json()).then(data => {
+          const stops = data?.result?.data || data?.[0]?.result?.data || [];
+          if (!stops.length) return;
+
+          const coords: [number, number][] = [];
+          stops.forEach((stop: any, i: number) => {
+            const lat = parseFloat(stop.latitude);
+            const lng = parseFloat(stop.longitude);
+            if (isNaN(lat) || isNaN(lng)) return;
+            coords.push([lat, lng]);
+            const icon = L.divIcon({
+              html: '<div style="background:#6366f1;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)">' + (i + 1) + '</div>',
+              className: 'stop-marker-layer', iconSize: [24, 24], iconAnchor: [12, 12]
+            });
+            L.marker([lat, lng], { icon }).addTo(mapInstanceRef.current)
+              .bindPopup('<b>' + stop.name + '</b><br><small>Parada ' + (i + 1) + '</small>');
+          });
+
+          // Draw route line
+          if (coords.length >= 2) {
+            L.polyline(coords, { color: '#6366f1', weight: 3, opacity: 0.7, dashArray: '8 4' }).addTo(mapInstanceRef.current);
+            mapInstanceRef.current.fitBounds(coords, { padding: [50, 50] });
+          }
+        }).catch(() => {});
+    }
+  }, [selectedTrip?.trip?.id]);
 
   return (
     <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-gray-200">
@@ -432,7 +485,7 @@ export default function MonitorPage() {
               <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Navigation size={16} className="text-primary-500" /> Mapa ao Vivo</h2>
               <span className="text-xs text-gray-400">{busLocations.size} ônibus</span>
             </div>
-            <LiveMap trips={activeTrips} locations={busLocations} />
+            <LiveMap trips={activeTrips} locations={busLocations} selectedTrip={selectedTrip} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

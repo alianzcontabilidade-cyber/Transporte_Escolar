@@ -146,6 +146,7 @@ export default function Layout() {
       { to: '/remanejamento', icon: Users, text: 'Remanejamento' },
       { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
       { to: '/promocao', icon: Users, text: 'Promo\u00e7\u00e3o Alunos' },
+      { to: '/historico-escolar', icon: BookOpen, text: 'Histórico Escolar' },
     ]},
     { label: 'PEDAGÓGICO', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' },
@@ -166,6 +167,7 @@ export default function Layout() {
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
       { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
       { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' },
+      { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório Transporte' },
     ]},
     { label: 'ADMINISTRATIVO', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'Recursos Humanos' },

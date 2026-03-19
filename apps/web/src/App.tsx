@@ -47,6 +47,8 @@ import ATAResultsPage from './pages/ATAResultsPage';
 import GradeEntryPage from './pages/GradeEntryPage';
 import PromotionPage from './pages/PromotionPage';
 import AttendanceReportPage from './pages/AttendanceReportPage';
+import StudentHistoryPage from './pages/StudentHistoryPage';
+import TransportReportPage from './pages/TransportReportPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -132,6 +134,8 @@ export default function App() {
         <Route path="lancamento-notas" element={<Guard roles={ADMIN_SEC}><GradeEntryPage /></Guard>} />
         <Route path="promocao" element={<Guard roles={ADMIN_SEC}><PromotionPage /></Guard>} />
         <Route path="relatorio-frequencia" element={<Guard roles={ADMIN_SEC}><AttendanceReportPage /></Guard>} />
+        <Route path="historico-escolar" element={<Guard roles={ADMIN_SEC}><StudentHistoryPage /></Guard>} />
+        <Route path="relatorio-transporte" element={<Guard roles={ADMIN_SEC}><TransportReportPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

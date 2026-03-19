@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useVehicleLocations } from '../lib/gps';
-import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi } from 'lucide-react';
+import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi, Maximize2, Minimize2 } from 'lucide-react';
 
 export default function TrackMapPage() {
   const { user } = useAuth();
@@ -12,6 +12,7 @@ export default function TrackMapPage() {
   const markersRef = useRef<Map<number, any>>(new Map());
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load Leaflet CSS and JS dynamically
   useEffect(() => {
@@ -105,12 +106,14 @@ export default function TrackMapPage() {
             <p className="text-gray-500">Acompanhe a localiza&ccedil;&atilde;o dos &ocirc;nibus escolares</p>
           </div>
         </div>
-        <button
-          onClick={refresh}
-          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
-        >
-          <RefreshCw size={16} /> Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setIsFullscreen(!isFullscreen)} className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} {isFullscreen ? 'Sair' : 'Tela cheia'}
+          </button>
+          <button onClick={refresh} className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors flex items-center gap-2">
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -152,7 +155,7 @@ export default function TrackMapPage() {
 
       {/* Map */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div ref={mapRef} style={{ height: '500px', width: '100%' }} className="z-0" />
+        <div ref={mapRef} style={{ height: isFullscreen ? 'calc(100vh - 120px)' : '500px', width: '100%' }} className="z-0" />
         {loading && !vehicles.length && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>

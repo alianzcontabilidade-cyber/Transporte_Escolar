@@ -2030,7 +2030,7 @@ const locationRouter = t.router({
   getActiveVehicles: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      // Get all active trips with their latest locations
+      // Get all active trips filtered by municipality
       const activeTrips = await db.select({
         tripId: trips.id,
         routeId: trips.routeId,
@@ -2038,7 +2038,8 @@ const locationRouter = t.router({
         driverId: trips.driverId,
         status: trips.status,
       }).from(trips)
-        .where(eq(trips.status, 'started'));
+        .innerJoin(routes, eq(trips.routeId, routes.id))
+        .where(and(eq(trips.status, 'started'), eq(routes.municipalityId, input.municipalityId)));
 
       if (activeTrips.length === 0) return [];
 
@@ -2074,19 +2075,38 @@ const locationRouter = t.router({
         const [route] = await db.select({ name: routes.name })
           .from(routes).where(eq(routes.id, trip.routeId));
 
+        // Fallback: use driver's current position if no location history
+        let lat = latestLoc?.latitude || null;
+        let lng = latestLoc?.longitude || null;
+        let spd = latestLoc?.speed ? parseFloat(latestLoc.speed as any) : null;
+        if (!lat && driver) {
+          const [driverPos] = await db.select({ lat: drivers.currentLatitude, lng: drivers.currentLongitude })
+            .from(drivers).where(eq(drivers.id, driver.id)).limit(1);
+          if (driverPos?.lat) { lat = driverPos.lat; lng = driverPos.lng; }
+        }
+
+        // Also get first stop of the route as fallback position
+        if (!lat) {
+          const [firstStop] = await db.select({ lat: stops.latitude, lng: stops.longitude })
+            .from(stops).where(eq(stops.routeId, trip.routeId)).orderBy(stops.orderIndex).limit(1);
+          if (firstStop?.lat) { lat = firstStop.lat; lng = firstStop.lng; }
+        }
+
         result.push({
           tripId: trip.tripId,
+          routeId: trip.routeId,
           vehicleId: trip.vehicleId,
           driverId: trip.driverId,
           plate: vehicle?.plate || 'N/A',
           model: vehicle?.model || '',
           driverName,
           routeName: route?.name || 'N/A',
-          latitude: latestLoc?.latitude || null,
-          longitude: latestLoc?.longitude || null,
-          speed: latestLoc?.speed ? parseFloat(latestLoc.speed) : null,
+          latitude: lat,
+          longitude: lng,
+          speed: spd,
           heading: latestLoc?.heading || null,
           updatedAt: latestLoc?.recordedAt || null,
+          hasGPS: !!latestLoc,
         });
       }
       return result;

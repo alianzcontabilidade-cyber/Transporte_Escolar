@@ -3,9 +3,9 @@ import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported, requestGPSPermission } from '../lib/gps';
 import { useWakeLock } from '../lib/pwa';
-import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square, Bus } from 'lucide-react';
+import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square, Bus, Maximize2, Minimize2 } from 'lucide-react';
 
-function TrackingMap({ position, stops }: { position: any; stops?: any[] }) {
+function TrackingMap({ position, stops, fullscreen }: { position: any; stops?: any[]; fullscreen?: boolean }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -60,7 +60,7 @@ function TrackingMap({ position, stops }: { position: any; stops?: any[] }) {
   }, [position]);
 
   return (
-    <div className="relative w-full h-80 rounded-xl overflow-hidden border border-gray-200">
+    <div className={`relative w-full rounded-xl overflow-hidden border border-gray-200 ${fullscreen ? 'h-[calc(100vh-200px)]' : 'h-80'}`}>
       <div ref={mapRef} className="w-full h-full" />
       {!position && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90">
@@ -80,6 +80,7 @@ export default function TrackingPage() {
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [driverId, setDriverId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<string>('checking');
   const [sendCount, setSendCount] = useState(0);
   const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
@@ -148,6 +149,7 @@ export default function TrackingPage() {
             <button onClick={stopTracking} className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2"><Square size={16} /> Parar</button>
           )}
           <button onClick={loadActiveTrip} className="btn-secondary flex items-center gap-2"><RefreshCw size={16} /> Atualizar</button>
+          <button onClick={() => setIsFullscreen(!isFullscreen)} className="btn-secondary flex items-center gap-2">{isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} {isFullscreen ? 'Sair' : 'Ampliar'}</button>
         </div>
       </div>
 
@@ -171,7 +173,7 @@ export default function TrackingPage() {
       )}
 
       {/* Map */}
-      <TrackingMap position={position} stops={tripStops} />
+      <TrackingMap position={position} stops={tripStops} fullscreen={isFullscreen} />
 
       {/* Status Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

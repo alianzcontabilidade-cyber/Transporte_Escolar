@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
 import { useWakeLock } from '../lib/pwa';
-import { Bus, MapPin, Clock, User, Wifi, WifiOff, Navigation, CheckCircle, XCircle, AlertCircle, Activity, ChevronRight, Play, Square, UserCheck, UserX, Users, BarChart3, RefreshCw, Smartphone } from 'lucide-react';
+import { Bus, MapPin, Clock, User, Wifi, WifiOff, Navigation, CheckCircle, XCircle, AlertCircle, Activity, ChevronRight, Play, Square, UserCheck, UserX, Users, BarChart3, RefreshCw, Smartphone, Maximize2, Minimize2 } from 'lucide-react';
 
 // Calcular distância em metros entre duas coordenadas (fórmula de Haversine)
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -16,7 +16,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function LiveMap({ trips, locations, selectedTrip }: any) {
+function LiveMap({ trips, locations, selectedTrip, fullscreen }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<Map<number, any>>(new Map());
@@ -108,7 +108,7 @@ function LiveMap({ trips, locations, selectedTrip }: any) {
   }, [selectedTrip?.trip?.id]);
 
   return (
-    <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-gray-200">
+    <div className={`relative w-full rounded-xl overflow-hidden border border-gray-200 ${fullscreen ? 'h-[calc(100vh-120px)]' : 'h-[400px]'}`}>
       <div ref={mapRef} className="w-full h-full" />
       {locations.size === 0 && <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90"><div className="text-center"><Navigation size={48} className="text-gray-300 mx-auto mb-3" /><p className="text-gray-600 font-medium">Aguardando posições GPS</p><p className="text-gray-400 text-sm mt-1">Os ônibus aparecerão aqui quando as viagens forem iniciadas</p></div></div>}
     </div>
@@ -302,6 +302,7 @@ export default function MonitorPage() {
   const [availableRoutes, setAvailableRoutes] = useState<any>(null);
   const [activeTrips, setActiveTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const municipalityId = user?.municipalityId || 0;
   const isDriverOrMonitor = user?.role === 'driver' || user?.role === 'monitor';
@@ -333,6 +334,24 @@ export default function MonitorPage() {
       }
       const trips = await api.trips.listActive({ municipalityId });
       setActiveTrips(trips || []);
+      // Pre-populate bus locations from API data (for when Socket hasn't received data yet)
+      if (trips && trips.length > 0) {
+        setBusLocations(prev => {
+          const n = new Map(prev);
+          trips.forEach((t: any) => {
+            const tripId = t.trip?.id;
+            if (tripId && !n.has(tripId)) {
+              // Use driver's current position or first stop as initial marker
+              const lat = t.driver?.currentLatitude ? parseFloat(t.driver.currentLatitude) : null;
+              const lng = t.driver?.currentLongitude ? parseFloat(t.driver.currentLongitude) : null;
+              if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                n.set(tripId, { lat, lng, updatedAt: new Date() });
+              }
+            }
+          });
+          return n;
+        });
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }
@@ -480,12 +499,15 @@ export default function MonitorPage() {
       {/* Visão de administrador */}
       {!isDriverOrMonitor && (
         <>
-          <div className="card p-4 mb-5">
+          <div className={`card p-4 ${isFullscreen ? 'fixed inset-0 z-40 rounded-none m-0' : 'mb-5'}`}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Navigation size={16} className="text-primary-500" /> Mapa ao Vivo</h2>
-              <span className="text-xs text-gray-400">{busLocations.size} ônibus</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">{busLocations.size > 0 ? busLocations.size + ' ônibus' : activeTrips.length + ' viagem(ns) ativa(s)'}</span>
+                <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 rounded-lg border hover:bg-gray-50 text-gray-500" title="Tela cheia">{isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
+              </div>
             </div>
-            <LiveMap trips={activeTrips} locations={busLocations} selectedTrip={selectedTrip} />
+            <LiveMap trips={activeTrips} locations={busLocations} selectedTrip={selectedTrip} fullscreen={isFullscreen} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

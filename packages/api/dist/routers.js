@@ -1915,7 +1915,7 @@ const locationRouter = trpc_1.t.router({
     getActiveVehicles: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
         .query(async ({ input }) => {
-        // Get all active trips with their latest locations
+        // Get all active trips filtered by municipality
         const activeTrips = await index_1.db.select({
             tripId: schema_1.trips.id,
             routeId: schema_1.trips.routeId,
@@ -1923,7 +1923,8 @@ const locationRouter = trpc_1.t.router({
             driverId: schema_1.trips.driverId,
             status: schema_1.trips.status,
         }).from(schema_1.trips)
-            .where((0, drizzle_orm_1.eq)(schema_1.trips.status, 'started'));
+            .innerJoin(schema_1.routes, (0, drizzle_orm_1.eq)(schema_1.trips.routeId, schema_1.routes.id))
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.trips.status, 'started'), (0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, input.municipalityId)));
         if (activeTrips.length === 0)
             return [];
         const result = [];
@@ -1954,19 +1955,42 @@ const locationRouter = trpc_1.t.router({
             // Get route info
             const [route] = await index_1.db.select({ name: schema_1.routes.name })
                 .from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.id, trip.routeId));
+            // Fallback: use driver's current position if no location history
+            let lat = latestLoc?.latitude || null;
+            let lng = latestLoc?.longitude || null;
+            let spd = latestLoc?.speed ? parseFloat(latestLoc.speed) : null;
+            if (!lat && driver) {
+                const [driverPos] = await index_1.db.select({ lat: schema_1.drivers.currentLatitude, lng: schema_1.drivers.currentLongitude })
+                    .from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, driver.id)).limit(1);
+                if (driverPos?.lat) {
+                    lat = driverPos.lat;
+                    lng = driverPos.lng;
+                }
+            }
+            // Also get first stop of the route as fallback position
+            if (!lat) {
+                const [firstStop] = await index_1.db.select({ lat: schema_1.stops.latitude, lng: schema_1.stops.longitude })
+                    .from(schema_1.stops).where((0, drizzle_orm_1.eq)(schema_1.stops.routeId, trip.routeId)).orderBy(schema_1.stops.orderIndex).limit(1);
+                if (firstStop?.lat) {
+                    lat = firstStop.lat;
+                    lng = firstStop.lng;
+                }
+            }
             result.push({
                 tripId: trip.tripId,
+                routeId: trip.routeId,
                 vehicleId: trip.vehicleId,
                 driverId: trip.driverId,
                 plate: vehicle?.plate || 'N/A',
                 model: vehicle?.model || '',
                 driverName,
                 routeName: route?.name || 'N/A',
-                latitude: latestLoc?.latitude || null,
-                longitude: latestLoc?.longitude || null,
-                speed: latestLoc?.speed ? parseFloat(latestLoc.speed) : null,
+                latitude: lat,
+                longitude: lng,
+                speed: spd,
                 heading: latestLoc?.heading || null,
                 updatedAt: latestLoc?.recordedAt || null,
+                hasGPS: !!latestLoc,
             });
         }
         return result;

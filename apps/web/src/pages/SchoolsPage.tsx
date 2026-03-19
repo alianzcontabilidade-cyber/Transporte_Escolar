@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2 } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download } from 'lucide-react';
 import { maskPhone } from '../lib/utils';
 
 const emptyForm = { name:'', code:'', type:'fundamental', address:'', state:'', city:'', phone:'', email:'', directorName:'', morningStart:'07:00', morningEnd:'12:00', afternoonStart:'13:00', afternoonEnd:'17:00', latitude:'', longitude:'' };
@@ -17,6 +17,7 @@ export default function SchoolsPage() {
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
+  const [viewSchool, setViewSchool] = useState<any>(null);
   const { data: schools, refetch } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.schools.create);
   const { mutate: update, loading: updating } = useMutation(api.schools.update);
@@ -41,11 +42,19 @@ export default function SchoolsPage() {
     }
   };
 
+  const exportSchoolsCSV = function() {
+    if (!all.length) return;
+    const rows = all.map(function(s: any) { return { nome: s.name||'', tipo: s.type||'', codigo_inep: s.code||'', diretor: s.directorName||'', telefone: s.phone||'', email: s.email||'', endereco: s.address||'' }; });
+    const keys = Object.keys(rows[0]);
+    const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"'+(r[k]||'')+'"'; }).join(';'); })].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'escolas_netescol.csv'; a.click();
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
-        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Nova Escola</button>
+        <div className="flex gap-2"><button onClick={exportSchoolsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Nova Escola</button></div>
       </div>
 
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, endereço ou diretor..." value={search} onChange={function(e){setSearch(e.target.value);}}/></div>
@@ -56,6 +65,7 @@ export default function SchoolsPage() {
             <div className="flex items-start justify-between mb-3">
               <div className="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0"><School size={20} className="text-emerald-600"/></div>
               <div className="flex items-center gap-1">
+                <button onClick={function(){setViewSchool(s);}} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Detalhes"><Eye size={14}/></button>
                 <button onClick={function(){openEdit(s);}} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors" title="Editar"><Pencil size={14}/></button>
                 <button onClick={function(){setConfirmDelete(s);}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={14}/></button>
               </div>
@@ -73,6 +83,24 @@ export default function SchoolsPage() {
         {!filtered.length&&!search&&<div className="col-span-3 card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhuma escola cadastrada</p><button className="btn-primary" onClick={openNew}>Adicionar escola</button></div>}
         {!filtered.length&&search&&<div className="col-span-3 card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
+
+      {viewSchool&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes da Escola</h3><button onClick={function(){setViewSchool(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+        <div className="overflow-y-auto flex-1 p-5">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{viewSchool.name}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Tipo</p><p className="text-sm font-medium">{viewSchool.type||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Codigo INEP</p><p className="text-sm font-medium">{viewSchool.code||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Diretor(a)</p><p className="text-sm font-medium">{viewSchool.directorName||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Telefone</p><p className="text-sm font-medium">{viewSchool.phone||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Email</p><p className="text-sm font-medium">{viewSchool.email||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Endereco</p><p className="text-sm font-medium">{viewSchool.address||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Manha</p><p className="text-sm font-medium">{viewSchool.morningStart||'--'} - {viewSchool.morningEnd||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Tarde</p><p className="text-sm font-medium">{viewSchool.afternoonStart||'--'} - {viewSchool.afternoonEnd||'--'}</p></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t"><button onClick={function(){setViewSchool(null);}} className="btn-secondary flex-1">Fechar</button><button onClick={function(){setViewSchool(null);openEdit(viewSchool);}} className="btn-primary flex-1">Editar</button></div>
+      </div></div>)}
 
       {confirmDelete&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

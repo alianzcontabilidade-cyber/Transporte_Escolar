@@ -155,6 +155,7 @@ export default function Layout() {
       { to: '/boletim', icon: FileText, text: 'Boletim Escolar' },
       { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer Descritivo' },
       { to: '/ata-resultados', icon: FileText, text: 'ATA de Resultados' },
+      { to: '/lancamento-notas', icon: FileText, text: 'Lançar Notas' },
     ]},
     { label: 'TRANSPORTE', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' },

@@ -44,6 +44,7 @@ import DescriptiveReportPage from './pages/DescriptiveReportPage';
 import StudentTransferPage from './pages/StudentTransferPage';
 import StudentCardPage from './pages/StudentCardPage';
 import ATAResultsPage from './pages/ATAResultsPage';
+import GradeEntryPage from './pages/GradeEntryPage';
 import PromotionPage from './pages/PromotionPage';
 import FloatingChat from './components/FloatingChat';
 
@@ -127,6 +128,7 @@ export default function App() {
         <Route path="remanejamento" element={<Guard roles={ADMIN_SEC}><StudentTransferPage /></Guard>} />
         <Route path="carteirinha" element={<Guard roles={ADMIN_SEC}><StudentCardPage /></Guard>} />
         <Route path="ata-resultados" element={<Guard roles={ADMIN_SEC}><ATAResultsPage /></Guard>} />
+        <Route path="lancamento-notas" element={<Guard roles={ADMIN_SEC}><GradeEntryPage /></Guard>} />
         <Route path="promocao" element={<Guard roles={ADMIN_SEC}><PromotionPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

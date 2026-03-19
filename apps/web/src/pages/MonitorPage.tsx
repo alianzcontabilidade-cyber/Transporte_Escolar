@@ -58,9 +58,9 @@ function LiveMap({ trips, locations }: any) {
   }, [locations, trips]);
 
   return (
-    <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden border border-gray-200">
+    <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-gray-200">
       <div ref={mapRef} className="w-full h-full" />
-      {locations.size === 0 && <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90"><div className="text-center"><Navigation size={40} className="text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Aguardando posições GPS dos ônibus...</p></div></div>}
+      {locations.size === 0 && <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90"><div className="text-center"><Navigation size={48} className="text-gray-300 mx-auto mb-3" /><p className="text-gray-600 font-medium">Aguardando posições GPS</p><p className="text-gray-400 text-sm mt-1">Os ônibus aparecerão aqui quando as viagens forem iniciadas</p></div></div>}
     </div>
   );
 }

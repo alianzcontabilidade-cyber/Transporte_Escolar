@@ -158,6 +158,7 @@ export default function Layout() {
     { code: '110', to: '/carteirinha', text: 'Carteirinha', module: 'Gestão Escolar', desc: 'Carteira estudantil com QR Code', tags: 'carteira estudantil impressao qr', color: '#6366f1' },
     { code: '111', to: '/promocao', text: 'Promoção de Alunos', module: 'Gestão Escolar', desc: 'Promover aprovados para próxima série', tags: 'promover aprovado serie proxima', color: '#6366f1' },
     { code: '112', to: '/historico-escolar', text: 'Histórico Escolar', module: 'Gestão Escolar', desc: 'Trajetória acadêmica do aluno', tags: 'historico trajetoria academica', color: '#6366f1' },
+    { code: '113', to: '/declaracoes', text: 'Declarações e Certidões', module: 'Gestão Escolar', desc: 'Matrícula, frequência, transferência, escolaridade', tags: 'declaracao certidao matricula frequencia transferencia', color: '#6366f1' },
     // Pedagógico
     { code: '201', to: '/disciplinas', text: 'Disciplinas', module: 'Ensino e Aprendizagem', desc: 'Componentes curriculares BNCC', tags: 'materia componente bncc curricular disciplina', color: '#8b5cf6' },
     { code: '202', to: '/diario-escolar', text: 'Diário Escolar', module: 'Ensino e Aprendizagem', desc: 'Frequência e conteúdo das aulas', tags: 'frequencia conteudo aula diario presenca', color: '#8b5cf6' },
@@ -193,6 +194,7 @@ export default function Layout() {
     { code: '501', to: '/configuracoes', text: 'Configurações', module: 'Central de Controle', desc: 'Usuários, prefeitura e segurança', tags: 'configuracao usuario senha prefeitura perfil', color: '#64748b' },
     { code: '502', to: '/ia-rotas', text: 'IA Rotas', module: 'Central de Controle', desc: 'Otimização de rotas por IA', tags: 'inteligencia artificial otimizar rota ia', color: '#64748b' },
     { code: '503', to: '/transparencia', text: 'Transparência', module: 'Central de Controle', desc: 'Portal público de transparência', tags: 'transparencia publico portal lei', color: '#64748b' },
+    { code: '504', to: '/atividade-usuarios', text: 'Atividade Usuários', module: 'Central de Controle', desc: 'Quem está online, último acesso', tags: 'atividade usuario online acesso log', color: '#64748b' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -219,6 +221,7 @@ export default function Layout() {
       { to: '/professores', icon: UserCheck, text: 'Professores' }, { to: '/lista-espera', icon: ClipboardList, text: 'Lista de Espera' },
       { to: '/remanejamento', icon: Users, text: 'Remanejamento' }, { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
       { to: '/promocao', icon: Users, text: 'Promoção' }, { to: '/historico-escolar', icon: BookOpen, text: 'Histórico' },
+      { to: '/declaracoes', icon: FileText, text: 'Declarações' },
     ]},
     { key: 'pedagogico', label: 'Ensino e Aprendizagem', icon: GraduationCap, color: '#8b5cf6', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
@@ -243,6 +246,7 @@ export default function Layout() {
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
+      { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
     ]},
   ];

@@ -49,6 +49,8 @@ import PromotionPage from './pages/PromotionPage';
 import AttendanceReportPage from './pages/AttendanceReportPage';
 import StudentHistoryPage from './pages/StudentHistoryPage';
 import TransportReportPage from './pages/TransportReportPage';
+import StudentCertificatesPage from './pages/StudentCertificatesPage';
+import UserActivityPage from './pages/UserActivityPage';
 import ModulesPage from './pages/ModulesPage';
 import FloatingChat from './components/FloatingChat';
 
@@ -138,6 +140,8 @@ export default function App() {
         <Route path="relatorio-frequencia" element={<Guard roles={ADMIN_SEC}><AttendanceReportPage /></Guard>} />
         <Route path="historico-escolar" element={<Guard roles={ADMIN_SEC}><StudentHistoryPage /></Guard>} />
         <Route path="relatorio-transporte" element={<Guard roles={ADMIN_SEC}><TransportReportPage /></Guard>} />
+        <Route path="declaracoes" element={<Guard roles={ADMIN_SEC}><StudentCertificatesPage /></Guard>} />
+        <Route path="atividade-usuarios" element={<Guard roles={ADMIN}><UserActivityPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

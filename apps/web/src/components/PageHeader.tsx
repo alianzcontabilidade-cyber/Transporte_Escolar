@@ -47,6 +47,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/configuracoes': { code: '501', title: 'Configurações', module: 'Central de Controle', color: '#64748b' },
   '/ia-rotas': { code: '502', title: 'IA Rotas', module: 'Central de Controle', color: '#64748b' },
   '/super-admin': { code: '503', title: 'Super Admin', module: 'Central de Controle', color: '#64748b' },
+  '/declaracoes': { code: '113', title: 'Declarações', module: 'Gestão Escolar', color: '#6366f1' },
+  '/atividade-usuarios': { code: '504', title: 'Atividade Usuários', module: 'Central de Controle', color: '#64748b' },
 };
 
 // Favorites management

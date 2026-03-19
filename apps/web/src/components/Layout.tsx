@@ -156,6 +156,7 @@ export default function Layout() {
       { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer Descritivo' },
       { to: '/ata-resultados', icon: FileText, text: 'ATA de Resultados' },
       { to: '/lancamento-notas', icon: FileText, text: 'Lançar Notas' },
+      { to: '/relatorio-frequencia', icon: BarChart3, text: 'Relatório Frequência' },
     ]},
     { label: 'TRANSPORTE', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' },

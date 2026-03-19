@@ -381,6 +381,18 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                   <p className="text-xs text-gray-500">{viewStudent.emergencyContact2Relation || '--'}</p>
                 </div>
               </div>
+              {(viewStudent.emergencyContact1Phone || viewStudent.guardian1Phone) && (
+                <div className="mt-4 flex gap-2">
+                  <button onClick={function(){ const phone = (viewStudent.emergencyContact1Phone || viewStudent.guardian1Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors">
+                    <MessageCircle size={16} /> WhatsApp Responsável 1
+                  </button>
+                  {(viewStudent.emergencyContact2Phone || viewStudent.guardian2Phone) && (
+                    <button onClick={function(){ const phone = (viewStudent.emergencyContact2Phone || viewStudent.guardian2Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors">
+                      <MessageCircle size={16} /> WhatsApp Responsável 2
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={function(){setViewStudent(null);}} className="btn-secondary flex-1">Fechar</button>

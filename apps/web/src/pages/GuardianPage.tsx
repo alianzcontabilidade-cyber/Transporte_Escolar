@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
-import { Bus, Clock, CheckCircle, Bell, Phone, AlertTriangle, Navigation, MapPin, User, Plus, History, RefreshCw, ChevronRight, Shield, X, Download } from 'lucide-react';
+import { Bus, Clock, CheckCircle, Bell, Phone, AlertTriangle, Navigation, MapPin, User, Plus, History, RefreshCw, ChevronRight, Shield, X, Download, MessageCircle } from 'lucide-react';
 import { notifyUser, usePWAInstall } from '../lib/pwa';
 
 function LiveMap({ driverLocation, stops }: any) {
@@ -396,6 +396,7 @@ export default function GuardianPage() {
                 <p className={`text-sm ${!n.isRead ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>{n.title}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
                 <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Clock size={10} />{new Date(n.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                <button onClick={(e) => { e.stopPropagation(); window.open('https://wa.me/?text=' + encodeURIComponent(n.title + ': ' + n.body), '_blank'); }} className="text-xs text-green-500 hover:underline mt-1 flex items-center gap-1"><MessageCircle size={10} /> Compartilhar</button>
               </div>
             </div>
           ))}

@@ -965,8 +965,9 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,de=new Blob(["\uFEFF"+W],{type:"t
   `,u=[];if(t.name&&t.address?u.push(`${t.name} - ${t.address}`):t.name&&u.push(t.name),r!=null&&r.name){let x=r.name;r.address&&(x+=" - "+r.address),r.phone&&(x+=" | Fone: "+r.phone),u.push(x)}if(t.phone||t.email){const x=[];t.phone&&x.push("Fone: "+t.phone),t.email&&x.push(t.email),u.push(x.join(" | "))}return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e.title} - NetEscol</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  @page{size:${l==="landscape"?"A4 landscape":"A4"};margin:18mm 20mm 28mm 20mm}
-  body{font-family:${s};font-size:${i}px;color:#1a1a1a;line-height:1.6;padding:0;max-width:100%}
+  @page{size:${l==="landscape"?"A4 landscape":"A4"};margin:15mm 20mm 15mm 20mm}
+  html,body{height:100%;margin:0;padding:0}
+  body{font-family:${s};font-size:${i}px;color:#1a1a1a;line-height:1.6;max-width:100%}
 
   /* HEADER */
   .report-institutional-header{margin-bottom:20px}
@@ -1011,14 +1012,15 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,de=new Blob(["\uFEFF"+W],{type:"t
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* PAGE LAYOUT TABLE - funciona em PDF, Word e impressao */
-  .page-layout{width:100%;height:100%;border-collapse:collapse;border:none}
-  .page-layout td{border:none;padding:0;vertical-align:top}
-  .page-layout .content-cell{vertical-align:top;height:auto}
-  .page-layout .footer-cell{vertical-align:bottom;height:1px}
+  /* PAGE LAYOUT TABLE - empurra rodape para o fundo da pagina */
+  /* Funciona em: navegador, html2pdf, Word */
+  .page-table{width:100%;border-collapse:collapse;border:none;height:100%}
+  .page-table td{border:none!important;padding:0}
+  .page-table .td-content{vertical-align:top}
+  .page-table .td-footer{vertical-align:bottom;height:1px}
 
   /* FOOTER */
-  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:10px 0 0;margin-top:40px}
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:8px 0 0}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
@@ -1043,6 +1045,7 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,de=new Blob(["\uFEFF"+W],{type:"t
     body{max-width:900px;margin:20px auto;padding:20px 40px;background:#fff;box-shadow:0 0 20px rgba(0,0,0,0.1)}
   }
 </style></head><body>
+<table class="page-table"><tr><td class="td-content">
 ${m}
 <div class="report-title">
   <h1>${e.title}</h1>
@@ -1053,11 +1056,13 @@ ${m}
 </div>
 ${c?`<div class="report-date">${o}</div>`:""}
 ${d}
+</td></tr><tr><td class="td-footer">
 <div class="report-footer-bar">
   ${u.map(x=>`<div class="footer-line">${x}</div>`).join("")}
   <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString("pt-BR")}</div>
 </div>
-</body></html>`}function v0(e){const t=window.open("","_blank");t&&(t.document.write(e),t.document.close(),setTimeout(()=>t.print(),700))}async function WA(e,t){const r=(await Gse(async()=>{const{default:d}=await import("./html2pdf-BeLNC8aW.js").then(m=>m.h);return{default:d}},[])).default,a=document.createElement("div");a.innerHTML=e;const s=e.match(/<body[^>]*>([\s\S]*?)<\/body>/i),i=e.match(/<style[^>]*>([\s\S]*?)<\/style>/i),l=document.createElement("div");if(i){const d=document.createElement("style");d.textContent=i[1].replace(/@page\{[^}]+\}/g,"").replace(/@media screen\{[^}]+\}/g,""),l.appendChild(d)}const c=document.createElement("div");c.innerHTML=s?s[1]:e,c.style.padding="10px 20px",c.style.maxWidth="100%",l.appendChild(c),document.body.appendChild(l);const o=(t||"relatorio").replace(/[^a-zA-Z0-9_-]/g,"_");try{const d={margin:[10,10,15,10],filename:o+".pdf",image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:!0,logging:!1,letterRendering:!0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["avoid-all","css","legacy"]}},m=await r().set(d).from(l).outputPdf("blob"),u=URL.createObjectURL(new Blob([m],{type:"application/pdf"}));window.open(u,"_blank")}catch(d){console.error("Erro ao gerar PDF:",d),v0(e)}finally{document.body.removeChild(l)}}function Jse(e,t,r,a){return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e} - NetEscol</title>
+</td></tr></table>
+</body></html>`}function v0(e){const t=window.open("","_blank");t&&(t.document.write(e),t.document.close(),setTimeout(()=>t.print(),700))}async function WA(e,t){const r=(await Gse(async()=>{const{default:d}=await import("./html2pdf-LdLirijF.js").then(m=>m.h);return{default:d}},[])).default,a=document.createElement("div");a.innerHTML=e;const s=e.match(/<body[^>]*>([\s\S]*?)<\/body>/i),i=e.match(/<style[^>]*>([\s\S]*?)<\/style>/i),l=document.createElement("div");if(i){const d=document.createElement("style");d.textContent=i[1].replace(/@page\{[^}]+\}/g,"").replace(/@media screen\{[^}]+\}/g,""),l.appendChild(d)}const c=document.createElement("div");c.innerHTML=s?s[1]:e,c.style.padding="10px 20px",c.style.maxWidth="100%",l.appendChild(c),document.body.appendChild(l);const o=(t||"relatorio").replace(/[^a-zA-Z0-9_-]/g,"_");try{const d={margin:[10,10,15,10],filename:o+".pdf",image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:!0,logging:!1,letterRendering:!0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["avoid-all","css","legacy"]}},m=await r().set(d).from(l).outputPdf("blob"),u=URL.createObjectURL(new Blob([m],{type:"application/pdf"}));window.open(u,"_blank")}catch(d){console.error("Erro ao gerar PDF:",d),v0(e)}finally{document.body.removeChild(l)}}function Jse(e,t,r,a){return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e} - NetEscol</title>
   <style>
     *{box-sizing:border-box}
     @page{size:A4;margin:15mm}

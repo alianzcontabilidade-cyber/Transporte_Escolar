@@ -171,8 +171,9 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${opts.title} - NetEscol</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  @page{size:${orientation === 'landscape' ? 'A4 landscape' : 'A4'};margin:18mm 20mm 28mm 20mm}
-  body{font-family:${font};font-size:${fontSize}px;color:#1a1a1a;line-height:1.6;padding:0;max-width:100%}
+  @page{size:${orientation === 'landscape' ? 'A4 landscape' : 'A4'};margin:15mm 20mm 15mm 20mm}
+  html,body{height:100%;margin:0;padding:0}
+  body{font-family:${font};font-size:${fontSize}px;color:#1a1a1a;line-height:1.6;max-width:100%}
 
   /* HEADER */
   .report-institutional-header{margin-bottom:20px}
@@ -217,14 +218,15 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* PAGE LAYOUT TABLE - funciona em PDF, Word e impressao */
-  .page-layout{width:100%;height:100%;border-collapse:collapse;border:none}
-  .page-layout td{border:none;padding:0;vertical-align:top}
-  .page-layout .content-cell{vertical-align:top;height:auto}
-  .page-layout .footer-cell{vertical-align:bottom;height:1px}
+  /* PAGE LAYOUT TABLE - empurra rodape para o fundo da pagina */
+  /* Funciona em: navegador, html2pdf, Word */
+  .page-table{width:100%;border-collapse:collapse;border:none;height:100%}
+  .page-table td{border:none!important;padding:0}
+  .page-table .td-content{vertical-align:top}
+  .page-table .td-footer{vertical-align:bottom;height:1px}
 
   /* FOOTER */
-  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:10px 0 0;margin-top:40px}
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:8px 0 0}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
@@ -249,6 +251,7 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
     body{max-width:900px;margin:20px auto;padding:20px 40px;background:#fff;box-shadow:0 0 20px rgba(0,0,0,0.1)}
   }
 </style></head><body>
+<table class="page-table"><tr><td class="td-content">
 ${headerHTML}
 <div class="report-title">
   <h1>${opts.title}</h1>
@@ -259,10 +262,12 @@ ${headerHTML}
 </div>
 ${showDate ? `<div class="report-date">${dateText}</div>` : ''}
 ${sigHTML}
+</td></tr><tr><td class="td-footer">
 <div class="report-footer-bar">
   ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
   <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
 </div>
+</td></tr></table>
 </body></html>`;
 }
 

@@ -204,6 +204,8 @@ export default function Layout() {
     { code: '506', to: '/backup', text: 'Backup de Dados', module: 'Central de Controle', desc: 'Exportar dados do sistema para segurança', tags: 'backup exportar dados seguranca json csv', color: '#64748b' },
     { code: '211', to: '/conselho-classe', text: 'Conselho de Classe', module: 'Ensino e Aprendizagem', desc: 'Registro de decisões por aluno e bimestre', tags: 'conselho classe decisao aprovado retido recuperacao', color: '#8b5cf6' },
     { code: '116', to: '/ocorrencias', text: 'Ocorrências', module: 'Gestão Escolar', desc: 'Registro de ocorrências disciplinares', tags: 'ocorrencia indisciplina atraso falta elogio advertencia', color: '#6366f1' },
+    { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
+    { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -250,6 +252,7 @@ export default function Layout() {
       { to: '/monitor', icon: Navigation, text: 'Monitoramento' }, { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' }, { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
       { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' }, { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório' },
+      { to: '/vistoria-veiculos', icon: ClipboardList, text: 'Vistoria Veículos' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },
@@ -259,6 +262,7 @@ export default function Layout() {
       { to: '/comunicacao', icon: Bell, text: 'Comunicação' },
       { to: '/envio-massa', icon: Bell, text: 'Envio em Massa' },
       { to: '/cotacao-compras', icon: ClipboardList, text: 'Cotação Compras' },
+      { to: '/estoque-merenda', icon: Package, text: 'Estoque Merenda' },
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },

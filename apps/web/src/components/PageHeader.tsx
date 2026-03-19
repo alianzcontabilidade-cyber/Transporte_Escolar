@@ -58,6 +58,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/backup': { code: '506', title: 'Backup de Dados', module: 'Central de Controle', color: '#64748b' },
   '/conselho-classe': { code: '211', title: 'Conselho de Classe', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
   '/ocorrencias': { code: '116', title: 'Ocorrências', module: 'Gestão Escolar', color: '#6366f1' },
+  '/estoque-merenda': { code: '412', title: 'Estoque Merenda', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/vistoria-veiculos': { code: '311', title: 'Vistoria Veículos', module: 'Frota e Rotas', color: '#f97316' },
 };
 
 // Favorites management

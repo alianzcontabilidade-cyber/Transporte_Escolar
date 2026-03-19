@@ -65,6 +65,7 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/mural': { code: '415', title: 'Mural Informativo', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/central-relatorios': { code: '416', title: 'Central de Relatórios', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/ficha-matricula': { code: '117', title: 'Ficha de Matrícula', module: 'Gestão Escolar', color: '#6366f1' },
+  '/cadastro-prefeitura': { code: '507', title: 'Cadastro da Prefeitura', module: 'Central de Controle', color: '#64748b' },
 };
 
 // Favorites management

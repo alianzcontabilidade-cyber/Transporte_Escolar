@@ -205,6 +205,7 @@ export default function Layout() {
     { code: '211', to: '/conselho-classe', text: 'Conselho de Classe', module: 'Ensino e Aprendizagem', desc: 'Registro de decisões por aluno e bimestre', tags: 'conselho classe decisao aprovado retido recuperacao', color: '#8b5cf6' },
     { code: '116', to: '/ocorrencias', text: 'Ocorrências', module: 'Gestão Escolar', desc: 'Registro de ocorrências disciplinares', tags: 'ocorrencia indisciplina atraso falta elogio advertencia', color: '#6366f1' },
     { code: '117', to: '/ficha-matricula', text: 'Ficha de Matrícula', module: 'Gestão Escolar', desc: 'Formulário oficial de matrícula para impressão', tags: 'ficha matricula formulario impressao requerimento', color: '#6366f1' },
+    { code: '507', to: '/cadastro-prefeitura', text: 'Cadastro da Prefeitura', module: 'Central de Controle', desc: 'Dados completos, CNPJ, responsáveis e logo', tags: 'prefeitura cadastro cnpj receita federal logo responsavel secretaria', color: '#64748b' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
     { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
@@ -274,6 +275,7 @@ export default function Layout() {
       { to: '/mural', icon: Bell, text: 'Mural Informativo' },
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
+      { to: '/cadastro-prefeitura', icon: School, text: 'Cadastro Prefeitura' },
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },

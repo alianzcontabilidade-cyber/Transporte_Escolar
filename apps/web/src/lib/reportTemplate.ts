@@ -298,14 +298,14 @@ export async function openReportAsPDF(html: string, filename?: string) {
       .replace(/@page\{[^}]+\}/g, '')
       // Remove screen-only styles
       .replace(/@media screen\{[^}]+\}/g, '')
-      // Ensure page-wrapper fills the page height for PDF (A4 = 297mm minus margins)
-      .replace(/min-height:calc\([^)]+\)/g, 'min-height:270mm');
+      // Remove min-height for PDF - let content flow naturally, no forced page height
+      .replace(/min-height:[^;}]+/g, 'min-height:auto');
     wrapper.appendChild(style);
   }
 
   const content = document.createElement('div');
   content.innerHTML = bodyMatch ? bodyMatch[1] : html;
-  content.style.padding = '15px 25px';
+  content.style.padding = '10px 20px';
   content.style.maxWidth = '100%';
   wrapper.appendChild(content);
 
@@ -315,7 +315,7 @@ export async function openReportAsPDF(html: string, filename?: string) {
 
   try {
     const opts: any = {
-      margin: [8, 8, 12, 8],
+      margin: [10, 10, 15, 10],
       filename: safeName + '.pdf',
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },

@@ -1070,13 +1070,20 @@ exports.driversRouter = trpc_1.t.router({
     list: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
         .query(async ({ input }) => {
-        return index_1.db.select({
+        const driverList = await index_1.db.select({
             driver: schema_1.drivers,
-            user: { id: schema_1.users.id, name: schema_1.users.name, email: schema_1.users.email, phone: schema_1.users.phone },
+            user: { id: schema_1.users.id, name: schema_1.users.name, email: schema_1.users.email, phone: schema_1.users.phone, cpf: schema_1.users.cpf },
         })
             .from(schema_1.drivers)
             .innerJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.drivers.userId, schema_1.users.id))
             .where((0, drizzle_orm_1.eq)(schema_1.drivers.municipalityId, input.municipalityId));
+        // Find linked routes for each driver
+        const enriched = await Promise.all(driverList.map(async (d) => {
+            const [linkedRoute] = await index_1.db.select({ id: schema_1.routes.id, name: schema_1.routes.name, code: schema_1.routes.code })
+                .from(schema_1.routes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.defaultDriverId, d.driver.id), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true))).limit(1);
+            return { ...d, linkedRoute: linkedRoute || null };
+        }));
+        return enriched;
     }),
     create: trpc_1.adminProcedure
         .input(zod_1.z.object({

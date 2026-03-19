@@ -58,7 +58,7 @@ export default function DriversPage() {
     const allV=(vehicles as any)||[];
     // Normalizar dados: a API retorna { driver: {...}, user: {...} }
     const all=rawDrivers.map(function(d:any){
-      if(d.driver&&d.user) return { id:d.driver.id, name:d.user.name, email:d.user.email, phone:d.user.phone, cpf:d.user.cpf, cnhNumber:d.driver.cnhNumber, cnhCategory:d.driver.cnhCategory, cnhExpiry:d.driver.cnhExpiresAt, vehicleId:d.driver.vehicleId, userId:d.driver.userId, ...d.driver };
+      if(d.driver&&d.user) return { id:d.driver.id, name:d.user.name, email:d.user.email, phone:d.user.phone, cpf:d.user.cpf, cnhNumber:d.driver.cnhNumber, cnhCategory:d.driver.cnhCategory, cnhExpiry:d.driver.cnhExpiresAt, vehicleId:d.driver.vehicleId, userId:d.driver.userId, routeId: d.linkedRoute?.id || null, routeName: d.linkedRoute?.name || '', ...d.driver };
       return d;
     });
     const filtered=all.filter(function(d:any){const q=search.toLowerCase();return d.name?.toLowerCase().includes(q)||d.phone?.includes(q)||(d.cnhNumber||'').includes(q);});
@@ -68,7 +68,7 @@ export default function DriversPage() {
     const vp=function(id:string){const v=allV.find(function(v:any){return String(v.id)===String(id);});return v?v.plate+(v.nickname?' ('+v.nickname+')':''):'';};
 
     const openNew=function(){setForm(EF);setEditId(null);setTab('dados');setErr('');setCpfError('');setShow(true);};
-    const openEdit=function(d:any){setForm({...EF,...d, cnhExpiry: d.cnhExpiry || d.cnhExpiresAt ? (typeof (d.cnhExpiry || d.cnhExpiresAt) === 'string' ? (d.cnhExpiry || d.cnhExpiresAt).split('T')[0] : new Date(d.cnhExpiry || d.cnhExpiresAt).toISOString().split('T')[0]) : '', birthDate: d.birthDate ? (typeof d.birthDate === 'string' ? d.birthDate.split('T')[0] : new Date(d.birthDate).toISOString().split('T')[0]) : '', vehicleId: d.vehicleId ? String(d.vehicleId) : '', routeId: d.routeId || ''});setEditId(d.id);setTab('dados');setErr('');setCpfError('');setShow(true);};
+    const openEdit=function(d:any){setForm({...EF,...d, cnhExpiry: d.cnhExpiry || d.cnhExpiresAt ? (typeof (d.cnhExpiry || d.cnhExpiresAt) === 'string' ? (d.cnhExpiry || d.cnhExpiresAt).split('T')[0] : new Date(d.cnhExpiry || d.cnhExpiresAt).toISOString().split('T')[0]) : '', birthDate: d.birthDate ? (typeof d.birthDate === 'string' ? d.birthDate.split('T')[0] : new Date(d.birthDate).toISOString().split('T')[0]) : '', vehicleId: d.vehicleId ? String(d.vehicleId) : '', routeId: d.routeId ? String(d.routeId) : ''});setEditId(d.id);setTab('dados');setErr('');setCpfError('');setShow(true);};
   
     const save=function(){
           if(!form.name||!form.phone){setErr('Nome e telefone obrigatórios.');return;}
@@ -101,7 +101,7 @@ export default function DriversPage() {
                                   <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-800">{d.name}</p>{d.cnhCategory&&<span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">CNH {d.cnhCategory}</span>}</div>
                                                 <div className="flex gap-3 flex-wrap text-xs text-gray-500">{d.phone&&<span className="flex items-center gap-1"><Phone size={10}/>{d.phone}</span>}{d.email&&<span className="flex items-center gap-1"><Mail size={10}/>{d.email}</span>}{d.cnhNumber&&<span className="flex items-center gap-1"><FileText size={10}/>{d.cnhNumber}</span>}{ca(d.cnhExpiry)}</div>
-                                                <div className="flex gap-2 mt-1">{d.routeId&&<span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10}/>{rn(d.routeId)}</span>}{d.vehicleId&&<span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Bus size={10}/>{vp(d.vehicleId)}</span>}</div>
+                                                <div className="flex gap-2 mt-1">{(d.routeId||d.routeName)&&<span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10}/>{d.routeName || rn(d.routeId)}</span>}{d.vehicleId&&<span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Bus size={10}/>{vp(d.vehicleId)}</span>}</div>
                                   </div>
                                   <div className="flex items-center gap-1"><button onClick={function(){openEdit(d);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15}/></button><button onClick={function(){setDel(d);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button></div>
                       </div>

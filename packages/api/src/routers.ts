@@ -1135,13 +1135,21 @@ export const driversRouter = t.router({
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      return db.select({
+      const driverList = await db.select({
         driver: drivers,
-        user: { id: users.id, name: users.name, email: users.email, phone: users.phone },
+        user: { id: users.id, name: users.name, email: users.email, phone: users.phone, cpf: users.cpf },
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id))
       .where(eq(drivers.municipalityId, input.municipalityId));
+
+      // Find linked routes for each driver
+      const enriched = await Promise.all(driverList.map(async (d) => {
+        const [linkedRoute] = await db.select({ id: routes.id, name: routes.name, code: routes.code })
+          .from(routes).where(and(eq(routes.defaultDriverId, d.driver.id), eq(routes.isActive, true))).limit(1);
+        return { ...d, linkedRoute: linkedRoute || null };
+      }));
+      return enriched;
     }),
 
   create: adminProcedure

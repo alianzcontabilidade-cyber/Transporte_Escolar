@@ -1,129 +1,165 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useQuery } from '../lib/hooks';
+import { api } from '../lib/api';
 import {
-  School, Users, GraduationCap, Bus, Briefcase, Settings,
-  BookOpen, ClipboardList, Calendar, FileText, MapPin, Heart,
-  BarChart3, CreditCard, MessageSquare, ListOrdered, ArrowRightLeft,
-  ArrowUpCircle, History, Navigation, Locate, MapPinned, Wrench,
-  DollarSign, Package, BookMarked, Database, Brain, Shield
+  LayoutDashboard, School, GraduationCap, Bus, Briefcase, Settings,
+  Users, MapPin, BarChart3, ArrowRight
 } from 'lucide-react';
 
-interface ModuleCard {
-  to: string;
-  icon: any;
-  title: string;
-  desc: string;
-  color: string;
-  bgColor: string;
-}
-
-const MODULES: { section: string; sectionColor: string; sectionIcon: any; cards: ModuleCard[] }[] = [
+const MODULES = [
   {
-    section: 'Secretaria', sectionColor: '#6366f1', sectionIcon: School,
-    cards: [
-      { to: '/escolas', icon: School, title: 'Escolas', desc: 'Cadastro de unidades escolares', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/alunos', icon: Users, title: 'Alunos', desc: 'Cadastro e gestao de alunos', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/matriculas', icon: ClipboardList, title: 'Matriculas', desc: 'Matriculas e enturmacao', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/turmas', icon: Users, title: 'Turmas', desc: 'Gestao de turmas por escola', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/series', icon: BookOpen, title: 'Series', desc: 'Niveis e etapas de ensino', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/anos-letivos', icon: Calendar, title: 'Anos Letivos', desc: 'Periodos letivos', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/professores', icon: GraduationCap, title: 'Professores', desc: 'Corpo docente', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/lista-espera', icon: ListOrdered, title: 'Lista de Espera', desc: 'Fila de vagas', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/remanejamento', icon: ArrowRightLeft, title: 'Remanejamento', desc: 'Transferir entre turmas', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/carteirinha', icon: CreditCard, title: 'Carteirinha', desc: 'Carteira estudantil', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/promocao', icon: ArrowUpCircle, title: 'Promocao', desc: 'Promover aprovados', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-      { to: '/historico-escolar', icon: History, title: 'Historico', desc: 'Historico escolar', color: 'text-indigo-600', bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' },
-    ]
+    to: '/dashboard',
+    icon: LayoutDashboard,
+    title: 'Dashboard',
+    desc: 'Visão geral, KPIs, alertas e gráficos do município',
+    color: '#2DB5B0',
+    gradient: 'from-[#2DB5B0] to-[#249a96]',
   },
   {
-    section: 'Pedagogico', sectionColor: '#8b5cf6', sectionIcon: GraduationCap,
-    cards: [
-      { to: '/disciplinas', icon: FileText, title: 'Disciplinas', desc: 'Componentes curriculares', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/diario-escolar', icon: BookOpen, title: 'Diario Escolar', desc: 'Frequencia e conteudo', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/lancamento-notas', icon: ClipboardList, title: 'Lancar Notas', desc: 'Notas por avaliacao', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/boletim', icon: FileText, title: 'Boletim', desc: 'Boletim escolar', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/parecer-descritivo', icon: BookOpen, title: 'Parecer', desc: 'Parecer descritivo', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/ata-resultados', icon: FileText, title: 'ATA Resultados', desc: 'Resultados finais', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/relatorio-frequencia', icon: BarChart3, title: 'Rel. Frequencia', desc: 'Presenca por aluno', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/calendario', icon: Calendar, title: 'Calendario', desc: 'Calendario escolar', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-      { to: '/educacenso', icon: Database, title: 'EDUCACENSO', desc: 'Censo escolar', color: 'text-violet-600', bgColor: 'bg-violet-50 hover:bg-violet-100 border-violet-200' },
-    ]
+    to: '/modulos?m=secretaria',
+    icon: School,
+    title: 'Secretaria',
+    desc: 'Escolas, alunos, matrículas, turmas, séries e professores',
+    color: '#6366f1',
+    gradient: 'from-[#6366f1] to-[#4f46e5]',
+    links: [
+      { to: '/escolas', text: 'Escolas' }, { to: '/alunos', text: 'Alunos' },
+      { to: '/matriculas', text: 'Matrículas' }, { to: '/turmas', text: 'Turmas' },
+      { to: '/professores', text: 'Professores' }, { to: '/historico-escolar', text: 'Histórico' },
+    ],
   },
   {
-    section: 'Transporte', sectionColor: '#f97316', sectionIcon: Bus,
-    cards: [
-      { to: '/rotas', icon: MapPin, title: 'Rotas', desc: 'Rotas e paradas', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/veiculos', icon: Bus, title: 'Veiculos', desc: 'Frota escolar', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/motoristas', icon: Users, title: 'Motoristas', desc: 'Motoristas e CNH', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/monitores', icon: Users, title: 'Monitores', desc: 'Auxiliares de transporte', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/monitor', icon: Navigation, title: 'Monitoramento', desc: 'Viagens em tempo real', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/mapa-tempo-real', icon: MapPinned, title: 'Mapa Tempo Real', desc: 'GPS dos onibus', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/rastreamento', icon: Locate, title: 'Rastreamento', desc: 'GPS do motorista', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/frequencia', icon: ClipboardList, title: 'Frequencia', desc: 'Embarque e desembarque', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/portal-responsavel', icon: Heart, title: 'Portal Responsavel', desc: 'Acompanhamento dos pais', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-      { to: '/relatorio-transporte', icon: BarChart3, title: 'Relatorio', desc: 'Relatorio de transporte', color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
-    ]
+    to: '/modulos?m=pedagogico',
+    icon: GraduationCap,
+    title: 'Pedagógico',
+    desc: 'Diário escolar, notas, boletim, frequência e calendário',
+    color: '#8b5cf6',
+    gradient: 'from-[#8b5cf6] to-[#7c3aed]',
+    links: [
+      { to: '/diario-escolar', text: 'Diário' }, { to: '/lancamento-notas', text: 'Notas' },
+      { to: '/boletim', text: 'Boletim' }, { to: '/calendario', text: 'Calendário' },
+      { to: '/relatorio-frequencia', text: 'Frequência' }, { to: '/educacenso', text: 'EDUCACENSO' },
+    ],
   },
   {
-    section: 'Administrativo', sectionColor: '#0ea5e9', sectionIcon: Briefcase,
-    cards: [
-      { to: '/recursos-humanos', icon: Briefcase, title: 'RH', desc: 'Recursos Humanos', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/financeiro', icon: DollarSign, title: 'Financeiro', desc: 'Contas e movimentacoes', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/contratos', icon: FileText, title: 'Contratos', desc: 'Gestao de contratos', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/merenda', icon: ClipboardList, title: 'Merenda', desc: 'Merenda escolar', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/biblioteca', icon: BookMarked, title: 'Biblioteca', desc: 'Acervo e emprestimos', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/patrimonio', icon: Package, title: 'Patrimonio', desc: 'Bens e estoque', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/manutencao-preditiva', icon: Wrench, title: 'Manutencao', desc: 'Manutencao de veiculos', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/relatorios', icon: BarChart3, title: 'Relatorios', desc: 'Relatorios gerais', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-      { to: '/comunicacao', icon: MessageSquare, title: 'Comunicacao', desc: 'Recados e avisos', color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100 border-sky-200' },
-    ]
+    to: '/modulos?m=transporte',
+    icon: Bus,
+    title: 'Transporte',
+    desc: 'Rotas, veículos, motoristas, GPS e monitoramento em tempo real',
+    color: '#f97316',
+    gradient: 'from-[#f97316] to-[#ea580c]',
+    links: [
+      { to: '/rotas', text: 'Rotas' }, { to: '/veiculos', text: 'Veículos' },
+      { to: '/monitor', text: 'Monitoramento' }, { to: '/mapa-tempo-real', text: 'Mapa GPS' },
+      { to: '/motoristas', text: 'Motoristas' }, { to: '/portal-responsavel', text: 'Portal Pais' },
+    ],
   },
   {
-    section: 'Configuracoes', sectionColor: '#64748b', sectionIcon: Settings,
-    cards: [
-      { to: '/configuracoes', icon: Settings, title: 'Configuracoes', desc: 'Usuarios e sistema', color: 'text-slate-600', bgColor: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-      { to: '/ia-rotas', icon: Brain, title: 'IA Rotas', desc: 'Otimizacao por IA', color: 'text-slate-600', bgColor: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-      { to: '/transparencia', icon: Database, title: 'Transparencia', desc: 'Portal publico', color: 'text-slate-600', bgColor: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-    ]
+    to: '/modulos?m=administrativo',
+    icon: Briefcase,
+    title: 'Administrativo',
+    desc: 'RH, financeiro, contratos, merenda, biblioteca e patrimônio',
+    color: '#0ea5e9',
+    gradient: 'from-[#0ea5e9] to-[#0284c7]',
+    links: [
+      { to: '/recursos-humanos', text: 'RH' }, { to: '/financeiro', text: 'Financeiro' },
+      { to: '/contratos', text: 'Contratos' }, { to: '/merenda', text: 'Merenda' },
+      { to: '/biblioteca', text: 'Biblioteca' }, { to: '/relatorios', text: 'Relatórios' },
+    ],
+  },
+  {
+    to: '/configuracoes',
+    icon: Settings,
+    title: 'Configurações',
+    desc: 'Usuários, perfis de acesso, segurança e preferências',
+    color: '#64748b',
+    gradient: 'from-[#64748b] to-[#475569]',
   },
 ];
 
 export default function ModulesPage() {
   const { user } = useAuth();
-  const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(user?.role || '');
+  const mid = user?.municipalityId || 0;
+
+  const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
+  const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
+  const { data: routesData } = useQuery(() => api.routes.list({ municipalityId: mid }), [mid]);
+  const { data: activeTrips } = useQuery(() => api.trips.listActive({ municipalityId: mid }), [mid]);
+
+  const stats = {
+    students: ((studentsData as any) || []).length,
+    schools: ((schoolsData as any) || []).length,
+    routes: ((routesData as any) || []).length,
+    activeTrips: ((activeTrips as any) || []).length,
+  };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Modulos do Sistema</h1>
-        <p className="text-gray-500">Acesso rapido a todas as funcionalidades</p>
+    <div className="p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Bem-vindo ao NetEscol</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Selecione um módulo para começar</p>
       </div>
 
-      <div className="space-y-8">
-        {MODULES.map(mod => (
-          <div key={mod.section}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: mod.sectionColor + '20' }}>
-                <mod.sectionIcon size={18} style={{ color: mod.sectionColor }} />
-              </div>
-              <h2 className="text-lg font-bold" style={{ color: mod.sectionColor }}>{mod.section}</h2>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center"><Users size={20} className="text-indigo-600" /></div><div><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.students}</p><p className="text-xs text-gray-500">Alunos</p></div></div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><School size={20} className="text-blue-600" /></div><div><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.schools}</p><p className="text-xs text-gray-500">Escolas</p></div></div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center"><MapPin size={20} className="text-orange-600" /></div><div><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.routes}</p><p className="text-xs text-gray-500">Rotas</p></div></div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"><Bus size={20} className="text-green-600" /></div><div><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.activeTrips}</p><p className="text-xs text-gray-500">Viagens Ativas</p></div></div>
+        </div>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {mod.cards.map(card => (
-                <Link key={card.to} to={card.to}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${card.bgColor} group`}>
-                  <div className={`w-11 h-11 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>
-                    <card.icon size={22} className={card.color} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-800 group-hover:text-gray-900">{card.title}</p>
-                    <p className="text-xs text-gray-500 truncate">{card.desc}</p>
-                  </div>
+      {/* Module Banners - Grid 3 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {MODULES.map(mod => (
+          <div key={mod.title} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+            {/* Banner header with gradient */}
+            <Link to={mod.to.startsWith('/modulos') ? (mod.links?.[0]?.to || '/') : mod.to}
+              className={`block bg-gradient-to-r ${mod.gradient} p-5 relative overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <mod.icon size={28} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white">{mod.title}</h3>
+                  <p className="text-white/70 text-sm mt-0.5">{mod.desc}</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Quick links */}
+            {mod.links && (
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {mod.links.map(link => (
+                    <Link key={link.to} to={link.to}
+                      className="text-center py-2.5 px-2 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {link.text}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* For modules without links (Dashboard, Config) */}
+            {!mod.links && (
+              <div className="p-4">
+                <Link to={mod.to} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Acessar <ArrowRight size={14} />
                 </Link>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

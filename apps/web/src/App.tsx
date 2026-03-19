@@ -71,7 +71,7 @@ function HomeRedirect() {
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'parent') return <Navigate to="/portal-responsavel" replace />;
   if (user.role === 'driver' || user.role === 'monitor') return <Navigate to="/monitor" replace />;
-  return <DashboardPage />;
+  return <ModulesPage />;
 }
 
 export default function App() {

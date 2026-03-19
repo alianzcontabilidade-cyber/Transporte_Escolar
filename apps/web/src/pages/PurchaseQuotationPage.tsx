@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
-import { ShoppingCart, Plus, X, Trash2, Printer, Download } from 'lucide-react';
+import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send } from 'lucide-react';
 
 interface QuotationItem {
   id: number;
@@ -17,6 +17,52 @@ export default function PurchaseQuotationPage() {
   const [suppliers, setSuppliers] = useState(['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3']);
   const [title, setTitle] = useState('Cotação de Preços - ' + new Date().toLocaleDateString('pt-BR'));
   const [newItem, setNewItem] = useState({ description: '', unit: 'un', quantity: 1 });
+  const [importMsg, setImportMsg] = useState('');
+  const importRef = useRef<HTMLInputElement>(null);
+
+  // Exportar planilha modelo para enviar ao fornecedor
+  const exportModelSheet = (supplierIndex: number) => {
+    const supplierName = suppliers[supplierIndex] || 'Fornecedor';
+    const header = 'Item;Descricao;Unidade;Quantidade;Preco Unitario (R$)';
+    const rows = items.map((item, i) => `${i + 1};"${item.description}";${item.unit};${item.quantity};`);
+    const csv = header + '\n' + rows.join('\n') + '\n\n;;;;;TOTAL:\n\nINSTRUCOES:\n- Preencha a coluna "Preco Unitario" com o valor unitario de cada item\n- Nao altere as colunas Item, Descricao, Unidade e Quantidade\n- Salve o arquivo e devolva para a prefeitura\n- Cotacao: ' + title + '\n- Fornecedor: ' + supplierName;
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cotacao_' + supplierName.replace(/\s/g, '_') + '.csv';
+    a.click();
+  };
+
+  // Importar planilha preenchida pelo fornecedor
+  const importFilledSheet = (e: any, supplierIndex: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split('\n').filter(l => l.trim());
+      let imported = 0;
+      // Skip header line
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(';').map(c => c.trim().replace(/"/g, ''));
+        if (cols.length < 5) continue;
+        const itemNum = parseInt(cols[0]);
+        const price = parseFloat(cols[4]?.replace(',', '.') || '0');
+        if (isNaN(itemNum) || itemNum < 1 || itemNum > items.length) continue;
+        if (isNaN(price) || price <= 0) continue;
+        const supplierKey = 'supplier' + (supplierIndex + 1) + 'Price';
+        const targetItem = items[itemNum - 1];
+        if (targetItem) {
+          updatePrice(targetItem.id, supplierKey, price);
+          imported++;
+        }
+      }
+      setImportMsg(imported > 0 ? `${imported} preço(s) importado(s) para ${suppliers[supplierIndex]}!` : 'Nenhum preço encontrado no arquivo. Verifique o formato.');
+      setTimeout(() => setImportMsg(''), 5000);
+    };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+  };
 
   const addItem = () => {
     if (!newItem.description) return;
@@ -93,6 +139,31 @@ export default function PurchaseQuotationPage() {
           <button onClick={addItem} className="btn-primary px-4"><Plus size={16} /></button>
         </div>
       </div>
+
+      {/* Exportar/Importar planilhas para fornecedores */}
+      {items.length > 0 && (
+        <div className="card mb-4">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><FileSpreadsheet size={16} /> Planilhas para Fornecedores</h3>
+          <p className="text-sm text-gray-500 mb-4">Exporte a planilha modelo, envie ao fornecedor para preencher os preços, e depois importe a planilha preenchida de volta.</p>
+          <div className="grid grid-cols-3 gap-4">
+            {suppliers.map((s, i) => (
+              <div key={i} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <p className="font-medium text-gray-800 dark:text-gray-200 mb-3">{s}</p>
+                <div className="space-y-2">
+                  <button onClick={() => exportModelSheet(i)} className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm transition-colors">
+                    <Send size={14} /> Gerar Planilha para Enviar
+                  </button>
+                  <label className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm transition-colors cursor-pointer">
+                    <Upload size={14} /> Importar Planilha Preenchida
+                    <input type="file" accept=".csv,.txt" onChange={e => importFilledSheet(e, i)} className="hidden" />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+          {importMsg && <div className={`mt-3 p-3 rounded-lg text-sm ${importMsg.includes('Nenhum') ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}`}>{importMsg}</div>}
+        </div>
+      )}
 
       {/* Quotation table */}
       {items.length > 0 && (

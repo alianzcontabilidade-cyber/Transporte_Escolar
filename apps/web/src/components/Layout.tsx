@@ -202,6 +202,8 @@ export default function Layout() {
     { code: '114', to: '/ficha-aluno', text: 'Ficha do Aluno', module: 'Gestão Escolar', desc: 'Ficha completa do aluno para impressão', tags: 'ficha aluno completa impressao dados', color: '#6366f1' },
     { code: '115', to: '/relatorio-escola', text: 'Relatório por Escola', module: 'Gestão Escolar', desc: 'Visão completa de uma unidade escolar', tags: 'relatorio escola unidade alunos turmas', color: '#6366f1' },
     { code: '506', to: '/backup', text: 'Backup de Dados', module: 'Central de Controle', desc: 'Exportar dados do sistema para segurança', tags: 'backup exportar dados seguranca json csv', color: '#64748b' },
+    { code: '211', to: '/conselho-classe', text: 'Conselho de Classe', module: 'Ensino e Aprendizagem', desc: 'Registro de decisões por aluno e bimestre', tags: 'conselho classe decisao aprovado retido recuperacao', color: '#8b5cf6' },
+    { code: '116', to: '/ocorrencias', text: 'Ocorrências', module: 'Gestão Escolar', desc: 'Registro de ocorrências disciplinares', tags: 'ocorrencia indisciplina atraso falta elogio advertencia', color: '#6366f1' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -231,6 +233,7 @@ export default function Layout() {
       { to: '/declaracoes', icon: FileText, text: 'Declarações' },
       { to: '/ficha-aluno', icon: FileText, text: 'Ficha do Aluno' },
       { to: '/relatorio-escola', icon: School, text: 'Relatório Escola' },
+      { to: '/ocorrencias', icon: ClipboardList, text: 'Ocorrências' },
     ]},
     { key: 'pedagogico', label: 'Ensino e Aprendizagem', icon: GraduationCap, color: '#8b5cf6', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
@@ -239,6 +242,7 @@ export default function Layout() {
       { to: '/relatorio-frequencia', icon: BarChart3, text: 'Rel. Frequência' }, { to: '/calendario', icon: Calendar, text: 'Calendário' },
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
       { to: '/grade-horaria', icon: Calendar, text: 'Grade Horária' },
+      { to: '/conselho-classe', icon: Users, text: 'Conselho de Classe' },
     ]},
     { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#f97316', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },

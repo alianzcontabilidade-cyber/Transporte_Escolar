@@ -56,6 +56,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/ficha-aluno': { code: '114', title: 'Ficha do Aluno', module: 'Gest\u00e3o Escolar', color: '#6366f1' },
   '/relatorio-escola': { code: '115', title: 'Relatório por Escola', module: 'Gestão Escolar', color: '#6366f1' },
   '/backup': { code: '506', title: 'Backup de Dados', module: 'Central de Controle', color: '#64748b' },
+  '/conselho-classe': { code: '211', title: 'Conselho de Classe', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/ocorrencias': { code: '116', title: 'Ocorrências', module: 'Gestão Escolar', color: '#6366f1' },
 };
 
 // Favorites management

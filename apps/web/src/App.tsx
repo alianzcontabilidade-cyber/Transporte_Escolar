@@ -59,6 +59,8 @@ import SystemInfoPage from './pages/SystemInfoPage';
 import StudentReportPage from './pages/StudentReportPage';
 import SchoolReportPage from './pages/SchoolReportPage';
 import DataBackupPage from './pages/DataBackupPage';
+import ClassCouncilPage from './pages/ClassCouncilPage';
+import StudentOccurrencePage from './pages/StudentOccurrencePage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -155,6 +157,8 @@ export default function App() {
         <Route path="ficha-aluno" element={<Guard roles={ADMIN_SEC}><StudentReportPage /></Guard>} />
         <Route path="relatorio-escola" element={<Guard roles={ADMIN_SEC}><SchoolReportPage /></Guard>} />
         <Route path="backup" element={<Guard roles={ADMIN}><DataBackupPage /></Guard>} />
+        <Route path="conselho-classe" element={<Guard roles={ADMIN_SEC}><ClassCouncilPage /></Guard>} />
+        <Route path="ocorrencias" element={<Guard roles={ADMIN_SEC}><StudentOccurrencePage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

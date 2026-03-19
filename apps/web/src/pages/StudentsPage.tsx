@@ -3,7 +3,8 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download } from 'lucide-react';
+import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download, QrCode } from 'lucide-react';
+import { printStudentQRCodes } from '../lib/qrcode';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -255,7 +256,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div>
-        <div className="flex gap-2"><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
+        <div className="flex gap-2"><button onClick={function(){printStudentQRCodes(allStudents, window.location.origin);}} className="btn-secondary flex items-center gap-2"><QrCode size={16}/> QR Codes</button><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
       </div>
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
       <div className="grid gap-3">

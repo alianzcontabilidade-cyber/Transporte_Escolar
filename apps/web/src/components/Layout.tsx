@@ -12,6 +12,7 @@ import {
   GraduationCap, DollarSign, Package, Database, Moon, Sun
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
+import NotificationDropdown from './NotificationDropdown';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -53,7 +54,7 @@ export default function Layout() {
   const { socket, connected } = useSocket();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  // unreadNotifs handled by NotificationDropdown
   const [installBanner, setInstallBanner] = useState(true);
   const { canInstall, isInstalled, install } = usePWAInstall();
   const { theme, toggle: toggleTheme, isDark } = useTheme();
@@ -88,13 +89,7 @@ export default function Layout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  useEffect(() => {
-    api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
-    const interval = setInterval(() => {
-      api.notifications.unreadCount().then(d => setUnreadNotifs(d?.count || 0)).catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Notification polling moved to NotificationDropdown component
 
   useEffect(() => {
     if (socket && user?.municipalityId) {
@@ -104,8 +99,8 @@ export default function Layout() {
 
   useEffect(() => {
     if (!socket) return;
-    const onStudentBoarded = () => { notifyUser(); setUnreadNotifs(n => n + 1); };
-    const onStudentDropped = () => { notifyUser(); setUnreadNotifs(n => n + 1); };
+    const onStudentBoarded = () => { notifyUser(); (window as any).__notifDropdownIncrement?.(); };
+    const onStudentDropped = () => { notifyUser(); (window as any).__notifDropdownIncrement?.(); };
     const onStopArrived = () => { notifyUser(); };
     socket.on('student:boarded', onStudentBoarded);
     socket.on('student:dropped', onStudentDropped);
@@ -307,12 +302,7 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-white/10 text-white"><Menu size={20} /></button>
           <img src="/logo.png" alt="NetEscol" className="h-6 w-auto" />
           <div className="flex items-center gap-2">
-            {unreadNotifs > 0 && (
-              <span className="relative">
-                <Bell size={18} className="text-white" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{unreadNotifs}</span>
-              </span>
-            )}
+            <NotificationDropdown />
             <div className="w-7 h-7 rounded-full bg-accent-500 flex items-center justify-center text-xs font-bold text-white">
               {user?.name?.charAt(0)}
             </div>

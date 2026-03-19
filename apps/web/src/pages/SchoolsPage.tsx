@@ -2,9 +2,9 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { lookupCNPJ, lookupCEP, maskCEP } from '../lib/cnpjCep';
+import { lookupCNPJ, lookupCEP, maskCEP, lookupINEP, searchSchoolsByCity } from '../lib/cnpjCep';
 import { maskCNPJ, validateCNPJ, maskPhone } from '../lib/utils';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen } from 'lucide-react';
 
 const emptyForm = {
   name: '', code: '', type: 'fundamental', cnpj: '', cep: '',
@@ -26,6 +26,12 @@ export default function SchoolsPage() {
   const [formMsg, setFormMsg] = useState('');
   const [viewSchool, setViewSchool] = useState<any>(null);
   const [lookingUp, setLookingUp] = useState('');
+  const [showImportINEP, setShowImportINEP] = useState(false);
+  const [inepResults, setInepResults] = useState<any[]>([]);
+  const [inepLoading, setInepLoading] = useState(false);
+  const [inepMsg, setInepMsg] = useState('');
+  const [inepCityCode, setInepCityCode] = useState('');
+  const [inepSelected, setInepSelected] = useState<Set<string>>(new Set());
   const logoRef = useRef<HTMLInputElement>(null);
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.schools.create);
@@ -89,6 +95,81 @@ export default function SchoolsPage() {
       setFormMsg('Dados carregados da Receita Federal!');
     } catch (e: any) { setFormMsg('Erro: ' + e.message); }
     finally { setLookingUp(''); }
+  };
+
+  const handleINEPLookup = async () => {
+    const code = form.code?.replace(/\D/g, '');
+    if (!code || code.length < 7) { setFormMsg('Codigo INEP incompleto (minimo 7 digitos)'); return; }
+    setLookingUp('inep');
+    setFormMsg('');
+    try {
+      const data = await lookupINEP(code);
+      setForm((f: any) => ({
+        ...f,
+        name: data.name || f.name,
+        code: data.inepCode || f.code,
+      }));
+      setFormMsg('Escola encontrada na base do INEP! Nome: ' + data.name);
+    } catch (e: any) { setFormMsg('Erro: ' + e.message); }
+    finally { setLookingUp(''); }
+  };
+
+  const handleSearchSchoolsByCity = async () => {
+    if (!inepCityCode) { setInepMsg('Informe o codigo IBGE do municipio'); return; }
+    setInepLoading(true);
+    setInepMsg('');
+    setInepResults([]);
+    setInepSelected(new Set());
+    try {
+      const results = await searchSchoolsByCity(inepCityCode);
+      if (results.length === 0) { setInepMsg('Nenhuma escola encontrada para este municipio'); }
+      else {
+        // Filter out schools already registered
+        const existingCodes = new Set(all.map((s: any) => s.code).filter(Boolean));
+        const newResults = results.map(r => ({ ...r, alreadyExists: existingCodes.has(r.inepCode) }));
+        setInepResults(newResults);
+        setInepMsg(results.length + ' escola(s) encontrada(s) na base do INEP');
+      }
+    } catch (e: any) { setInepMsg('Erro: ' + e.message); }
+    finally { setInepLoading(false); }
+  };
+
+  const toggleInepSelect = (code: string) => {
+    setInepSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code); else next.add(code);
+      return next;
+    });
+  };
+
+  const selectAllInep = () => {
+    const available = inepResults.filter(r => !r.alreadyExists);
+    if (inepSelected.size === available.length) setInepSelected(new Set());
+    else setInepSelected(new Set(available.map(r => r.inepCode)));
+  };
+
+  const importSelectedSchools = async () => {
+    if (inepSelected.size === 0) { setInepMsg('Selecione pelo menos uma escola'); return; }
+    setInepLoading(true);
+    let imported = 0;
+    for (const code of inepSelected) {
+      const school = inepResults.find(r => r.inepCode === code);
+      if (!school || school.alreadyExists) continue;
+      try {
+        await api.schools.create({
+          municipalityId, name: school.name, code: school.inepCode, type: 'fundamental',
+        });
+        imported++;
+      } catch {}
+    }
+    setInepMsg(imported + ' escola(s) importada(s) com sucesso!');
+    setInepSelected(new Set());
+    refetch();
+    if (imported > 0) {
+      // Mark imported ones
+      setInepResults(prev => prev.map(r => inepSelected.has(r.inepCode) ? { ...r, alreadyExists: true } : r));
+    }
+    setInepLoading(false);
   };
 
   const handleCEPLookup = async () => {
@@ -173,6 +254,7 @@ export default function SchoolsPage() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
         <div className="flex gap-2">
+          <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(''); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
           <button onClick={exportSchoolsCSV} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Escola</button>
         </div>
@@ -290,7 +372,15 @@ export default function SchoolsPage() {
                           </button>
                         </div>
                       </div>
-                      <div><label className="label">Codigo INEP</label><input className="input" value={form.code} onChange={sf('code')} placeholder="Ex: 12345678" /></div>
+                      <div>
+                        <label className="label">Codigo INEP</label>
+                        <div className="flex gap-2">
+                          <input className="input flex-1" value={form.code} onChange={sf('code')} placeholder="Ex: 12345678" />
+                          <button onClick={handleINEPLookup} disabled={!!lookingUp} className="px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-1 text-sm disabled:opacity-50 whitespace-nowrap" title="Buscar na base do INEP">
+                            {lookingUp === 'inep' ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />} INEP
+                          </button>
+                        </div>
+                      </div>
                       <div><label className="label">Tipo</label>
                         <select className="input" value={form.type} onChange={sf('type')}>
                           <option value="infantil">Educacao Infantil</option>
@@ -386,6 +476,91 @@ export default function SchoolsPage() {
               <button onClick={save} disabled={creating || updating} className="btn-primary flex-1">
                 {creating || updating ? 'Salvando...' : editId ? 'Salvar Alteracoes' : 'Salvar Escola'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import from INEP modal */}
+      {showImportINEP && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><DatabaseZap size={18} className="text-emerald-500" /> Importar Escolas do INEP</h3>
+              <button onClick={() => setShowImportINEP(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-5 space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">Busque todas as escolas do seu municipio na base do INEP (Censo Escolar). Informe o <b>codigo IBGE</b> do municipio.</p>
+                <div className="flex gap-2">
+                  <input className="input flex-1" value={inepCityCode} onChange={e => setInepCityCode(e.target.value.replace(/\D/g, ''))} placeholder="Codigo IBGE do municipio (ex: 1716109)" maxLength={7} onKeyDown={e => e.key === 'Enter' && handleSearchSchoolsByCity()} />
+                  <button onClick={handleSearchSchoolsByCity} disabled={inepLoading} className="btn-primary flex items-center gap-2 px-4">
+                    {inepLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} Buscar Escolas
+                  </button>
+                </div>
+                <p className="text-xs text-blue-500 mt-2">Dica: O codigo IBGE do municipio pode ser encontrado em ibge.gov.br/cidades-e-estados. Ex: Paraiso do Tocantins = 1716109</p>
+              </div>
+
+              {inepMsg && (
+                <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${inepMsg.includes('Erro') || inepMsg.includes('Nenhuma') ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}`}>
+                  {inepMsg.includes('Erro') ? <AlertTriangle size={16} /> : <CheckCircle size={16} />} {inepMsg}
+                </div>
+              )}
+
+              {inepResults.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <button onClick={selectAllInep} className="text-sm text-accent-600 hover:underline">
+                      {inepSelected.size === inepResults.filter(r => !r.alreadyExists).length ? 'Desmarcar todos' : 'Selecionar todos'}
+                    </button>
+                    <span className="text-sm text-gray-500">{inepSelected.size} selecionada(s)</span>
+                  </div>
+                  <div className="border rounded-xl overflow-hidden max-h-[350px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                        <tr>
+                          <th className="w-10 px-3 py-2"></th>
+                          <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Codigo INEP</th>
+                          <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Nome da Escola</th>
+                          <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Ano</th>
+                          <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {inepResults.map(r => (
+                          <tr key={r.inepCode} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${r.alreadyExists ? 'opacity-50' : ''}`}>
+                            <td className="px-3 py-2 text-center">
+                              {r.alreadyExists ? (
+                                <CheckCircle size={16} className="text-green-500 mx-auto" />
+                              ) : (
+                                <input type="checkbox" checked={inepSelected.has(r.inepCode)} onChange={() => toggleInepSelect(r.inepCode)} className="rounded" />
+                              )}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-600">{r.inepCode}</td>
+                            <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-200">{r.name}</td>
+                            <td className="px-3 py-2 text-center text-gray-500">{r.year || '--'}</td>
+                            <td className="px-3 py-2 text-center">
+                              {r.alreadyExists ? (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Ja cadastrada</span>
+                              ) : (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Nova</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3 p-5 border-t">
+              <button onClick={() => setShowImportINEP(false)} className="btn-secondary flex-1">Fechar</button>
+              {inepResults.length > 0 && (
+                <button onClick={importSelectedSchools} disabled={inepLoading || inepSelected.size === 0} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                  {inepLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Importar {inepSelected.size} Escola(s)
+                </button>
+              )}
             </div>
           </div>
         </div>

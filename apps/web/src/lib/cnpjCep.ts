@@ -88,6 +88,53 @@ export async function lookupISBN(isbn: string): Promise<any> {
   } catch (e: any) { throw new Error(e.message || 'Erro ao buscar ISBN'); }
 }
 
+// INEP School Lookup via SimCAQ API (UFPR - free, no auth)
+export async function lookupINEP(code: string): Promise<any> {
+  const clean = code.replace(/\D/g, '');
+  if (clean.length < 7) throw new Error('Codigo INEP invalido (minimo 7 digitos)');
+  try {
+    const res = await fetch('https://simcaq.c3sl.ufpr.br/api/v1/school?filter=id:' + clean);
+    if (!res.ok) throw new Error('Escola nao encontrada no INEP');
+    const data = await res.json();
+    if (!data.result || data.result.length === 0) throw new Error('Escola nao encontrada no INEP');
+    // Get the most recent year entry
+    const sorted = data.result.sort((a: any, b: any) => (b.year || 0) - (a.year || 0));
+    const school = sorted[0];
+    return {
+      inepCode: String(school.id),
+      name: school.name || '',
+      stateId: school.state_id || null,
+      cityId: school.city_id || null,
+      year: school.year || null,
+    };
+  } catch (e: any) { throw new Error(e.message || 'Erro ao consultar INEP'); }
+}
+
+// Search schools by city (IBGE code) via SimCAQ API
+export async function searchSchoolsByCity(cityIbgeCode: string | number): Promise<any[]> {
+  try {
+    const res = await fetch('https://simcaq.c3sl.ufpr.br/api/v1/school?filter=city:' + cityIbgeCode);
+    if (!res.ok) throw new Error('Erro ao buscar escolas do municipio');
+    const data = await res.json();
+    if (!data.result || data.result.length === 0) return [];
+    // Group by school id, keep most recent year
+    const map = new Map<number, any>();
+    for (const s of data.result) {
+      const existing = map.get(s.id);
+      if (!existing || (s.year || 0) > (existing.year || 0)) {
+        map.set(s.id, s);
+      }
+    }
+    return Array.from(map.values()).map(s => ({
+      inepCode: String(s.id),
+      name: s.name || '',
+      stateId: s.state_id || null,
+      cityId: s.city_id || null,
+      year: s.year || null,
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (e: any) { throw new Error(e.message || 'Erro ao buscar escolas'); }
+}
+
 // Bank List via BrasilAPI
 export async function getBanks(): Promise<{ code: number; name: string; fullName: string }[]> {
   try {

@@ -59,7 +59,7 @@ app.use((_req, res, next) => {
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '2.1.0', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '3.0.0', timestamp: new Date().toISOString(), mode: 'tsx-direct' });
 });
 
 // tRPC
@@ -127,7 +127,7 @@ app.get('*', (_req, res) => {
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 NetEscol API v2.2.0 rodando na porta ${PORT}`);
+  console.log(`🚀 NetEscol API v3.0.0 rodando na porta ${PORT} [tsx-direct]`);
   console.log(`📡 Socket.IO ativo`);
   console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });

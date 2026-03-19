@@ -61,6 +61,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/estoque-merenda': { code: '412', title: 'Estoque Merenda', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/vistoria-veiculos': { code: '311', title: 'Vistoria Veículos', module: 'Frota e Rotas', color: '#f97316' },
   '/protocolo': { code: '413', title: 'Protocolo', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/eventos': { code: '414', title: 'Gestão de Eventos', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/mural': { code: '415', title: 'Mural Informativo', module: 'Gestão e Recursos', color: '#0ea5e9' },
 };
 
 // Favorites management

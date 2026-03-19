@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
-import { lookupCNPJ, lookupCEP, maskCEP } from '../lib/cnpjCep';
-import { maskCNPJ, validateCNPJ, maskPhone, maskCPF } from '../lib/utils';
-import { Building2, Search, Save, Upload, Plus, Trash2, Loader2, CheckCircle, AlertTriangle, Image } from 'lucide-react';
+import { lookupCEP, maskCEP } from '../lib/cnpjCep';
+import { maskPhone, maskCPF } from '../lib/utils';
+import { Building2, Save, Upload, Plus, Trash2, Loader2, CheckCircle, AlertTriangle, Image, User, GraduationCap, Users, Pencil } from 'lucide-react';
+import CNPJField from '../components/CNPJField';
 
 interface Responsible {
   id: number;
   name: string;
   role: string;
   cpf: string;
+  decree: string;
 }
 
 export default function MunicipalitySettingsPage() {
@@ -20,17 +22,30 @@ export default function MunicipalitySettingsPage() {
   const [saving, setSaving] = useState(false);
   const [lookingUp, setLookingUp] = useState('');
   const [msg, setMsg] = useState('');
+  const [editingResp, setEditingResp] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     name: '', cnpj: '', logradouro: '', numero: '', complemento: '',
     bairro: '', cep: '', cidade: '', estado: '', phone: '', fax: '',
     email: '', website: '', logoUrl: '',
-    secretariaName: '', secretariaPhone: '', secretariaEmail: '',
-    secretarioName: '', secretarioCpf: '',
+    // Prefeito
+    prefeitoName: '', prefeitoCpf: '', prefeitoCargo: 'Prefeito(a) Municipal',
+    // Secretaria
+    secretariaName: '', secretariaCnpj: '', secretariaPhone: '', secretariaEmail: '',
+    secretariaLogradouro: '', secretariaCep: '',
+    // Secretario
+    secretarioName: '', secretarioCpf: '', secretarioCargo: 'Secretario(a) de Educacao',
+    secretarioDecreto: '',
   });
 
   const [responsibles, setResponsibles] = useState<Responsible[]>([]);
-  const [newResp, setNewResp] = useState({ name: '', role: 'Gestor', cpf: '' });
+  const [newResp, setNewResp] = useState({ name: '', role: '', cpf: '', decree: '' });
+  const [customRoles, setCustomRoles] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState('');
+
+  const DEFAULT_ROLES = ['Contador(a)', 'Controle Interno', 'Ordenador de Despesa', 'Tesoureiro(a)', 'Chefe de Gabinete', 'Assessor Juridico', 'Resp. Setor de Compras', 'Resp. Licitacoes', 'Coordenador(a) Pedagogico', 'Diretor(a) Administrativo'];
+
+  const allRoles = [...DEFAULT_ROLES, ...customRoles];
 
   const sf = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -52,43 +67,46 @@ export default function MunicipalitySettingsPage() {
           logradouro: addr,
         }));
       }
-      // Load responsibles from localStorage
+      // Load from localStorage
       try {
         const saved = JSON.parse(localStorage.getItem('netescol_responsibles_' + mid) || '[]');
         setResponsibles(saved);
       } catch {}
-      // Load extra fields from localStorage
       try {
         const extra = JSON.parse(localStorage.getItem('netescol_mun_extra_' + mid) || '{}');
         if (extra) setForm(f => ({ ...f, ...extra }));
       } catch {}
+      try {
+        const roles = JSON.parse(localStorage.getItem('netescol_custom_roles_' + mid) || '[]');
+        setCustomRoles(roles);
+      } catch {}
     }).catch(() => {}).finally(() => setLoading(false));
   }, [mid]);
 
-  const handleCNPJLookup = async () => {
-    const digits = form.cnpj.replace(/\D/g, '');
-    if (digits.length !== 14) { setMsg('CNPJ incompleto'); return; }
-    if (!validateCNPJ(digits)) { setMsg('CNPJ invalido'); return; }
-    setLookingUp('cnpj');
-    setMsg('');
-    try {
-      const data = await lookupCNPJ(digits);
-      setForm(f => ({
-        ...f,
-        name: data.razaoSocial || f.name,
-        logradouro: data.logradouro || f.logradouro,
-        numero: data.numero || f.numero,
-        complemento: data.complemento || f.complemento,
-        bairro: data.bairro || f.bairro,
-        cep: data.cep ? maskCEP(data.cep) : f.cep,
-        cidade: data.cidade || f.cidade,
-        estado: data.estado || f.estado,
-        phone: data.telefone || f.phone,
-        email: data.email || f.email,
-      }));
-      setMsg('Dados carregados da Receita Federal!');
-    } catch (e: any) { setMsg('Erro: ' + e.message); }
-    finally { setLookingUp(''); }
+  const handleCNPJPrefeituraLoaded = (data: any) => {
+    setForm(f => ({
+      ...f,
+      name: data.razaoSocial || f.name,
+      logradouro: data.logradouro || f.logradouro,
+      numero: data.numero || f.numero,
+      complemento: data.complemento || f.complemento,
+      bairro: data.bairro || f.bairro,
+      cep: data.cep ? maskCEP(data.cep) : f.cep,
+      cidade: data.cidade || f.cidade,
+      estado: data.estado || f.estado,
+      phone: data.telefone || f.phone,
+      email: data.email || f.email,
+    }));
+  };
+
+  const handleCNPJSecretariaLoaded = (data: any) => {
+    setForm(f => ({
+      ...f,
+      secretariaName: data.nomeFantasia || data.razaoSocial || f.secretariaName,
+      secretariaPhone: data.telefone || f.secretariaPhone,
+      secretariaEmail: data.email || f.secretariaEmail,
+      secretariaLogradouro: [data.logradouro, data.numero, data.bairro, data.cidade, data.estado].filter(Boolean).join(', ') || f.secretariaLogradouro,
+    }));
   };
 
   const handleCEPLookup = async () => {
@@ -119,18 +137,32 @@ export default function MunicipalitySettingsPage() {
   };
 
   const addResponsible = () => {
-    if (!newResp.name) return;
+    if (!newResp.name || !newResp.role) return;
     const r: Responsible = { id: Date.now(), ...newResp };
     const next = [...responsibles, r];
     setResponsibles(next);
     localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
-    setNewResp({ name: '', role: 'Gestor', cpf: '' });
+    setNewResp({ name: '', role: '', cpf: '', decree: '' });
+  };
+
+  const updateResponsible = (id: number, data: Partial<Responsible>) => {
+    const next = responsibles.map(r => r.id === id ? { ...r, ...data } : r);
+    setResponsibles(next);
+    localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
   };
 
   const removeResponsible = (id: number) => {
     const next = responsibles.filter(r => r.id !== id);
     setResponsibles(next);
     localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
+  };
+
+  const addCustomRole = () => {
+    if (!newRole.trim() || allRoles.includes(newRole.trim())) return;
+    const next = [...customRoles, newRole.trim()];
+    setCustomRoles(next);
+    localStorage.setItem('netescol_custom_roles_' + mid, JSON.stringify(next));
+    setNewRole('');
   };
 
   const saveAll = async () => {
@@ -143,15 +175,9 @@ export default function MunicipalitySettingsPage() {
         phone: form.phone || undefined, address: fullAddress || undefined,
         logoUrl: form.logoUrl || undefined,
       });
-      // Save extra fields in localStorage
-      localStorage.setItem('netescol_mun_extra_' + mid, JSON.stringify({
-        cnpj: form.cnpj, logradouro: form.logradouro, numero: form.numero,
-        complemento: form.complemento, bairro: form.bairro, cep: form.cep,
-        cidade: form.cidade, estado: form.estado, fax: form.fax, website: form.website,
-        secretariaName: form.secretariaName, secretariaPhone: form.secretariaPhone,
-        secretariaEmail: form.secretariaEmail, secretarioName: form.secretarioName,
-        secretarioCpf: form.secretarioCpf,
-      }));
+      // Save all extra fields in localStorage
+      const { name: _n, ...extraFields } = form;
+      localStorage.setItem('netescol_mun_extra_' + mid, JSON.stringify(extraFields));
       setMsg('Dados salvos com sucesso!');
     } catch (e: any) { setMsg('Erro: ' + (e.message || 'Falha ao salvar')); }
     finally { setSaving(false); setTimeout(() => setMsg(''), 5000); }
@@ -167,7 +193,7 @@ export default function MunicipalitySettingsPage() {
             <Building2 size={20} className="text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cadastro da Prefeitura</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cadastro da Prefeitura</h1>
             <p className="text-gray-500">Dados completos do orgao municipal</p>
           </div>
         </div>
@@ -183,163 +209,217 @@ export default function MunicipalitySettingsPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main form - 2 columns */}
+        {/* Main form */}
         <div className="lg:col-span-2 space-y-5">
-          {/* CNPJ + Auto lookup */}
+
+          {/* === PREFEITURA === */}
           <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">Identificacao</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Building2 size={16} className="text-blue-500" /> Dados da Prefeitura
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <label className="label">Nome / Razao Social *</label>
                 <input className="input" value={form.name} onChange={sf('name')} />
               </div>
-              <div>
-                <label className="label">CNPJ *</label>
-                <div className="flex gap-2">
-                  <input className="input flex-1" value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: maskCNPJ(e.target.value) }))} placeholder="00.000.000/0000-00" maxLength={18} />
-                  <button onClick={handleCNPJLookup} disabled={!!lookingUp} className="px-3 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 flex items-center gap-1 text-sm disabled:opacity-50" title="Buscar na Receita Federal">
-                    {lookingUp === 'cnpj' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Buscar
-                  </button>
-                </div>
-              </div>
+              <CNPJField
+                value={form.cnpj}
+                onChange={v => setForm(f => ({ ...f, cnpj: v }))}
+                onDataLoaded={handleCNPJPrefeituraLoaded}
+                label="CNPJ da Prefeitura *"
+              />
             </div>
           </div>
 
-          {/* Address */}
+          {/* === ENDERECO === */}
           <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">Endereco</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Endereco</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="label">CEP *</label>
                 <div className="flex gap-2">
                   <input className="input flex-1" value={form.cep} onChange={e => setForm(f => ({ ...f, cep: maskCEP(e.target.value) }))} placeholder="00000-000" maxLength={9} />
                   <button onClick={handleCEPLookup} disabled={!!lookingUp} className="px-3 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 flex items-center gap-1 text-sm disabled:opacity-50">
-                    {lookingUp === 'cep' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                    {lookingUp === 'cep' ? <Loader2 size={14} className="animate-spin" /> : '🔍'}
                   </button>
                 </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="label">Logradouro *</label>
-                <input className="input" value={form.logradouro} onChange={sf('logradouro')} />
-              </div>
-              <div>
-                <label className="label">Numero</label>
-                <input className="input" value={form.numero} onChange={sf('numero')} />
-              </div>
-              <div>
-                <label className="label">Complemento</label>
-                <input className="input" value={form.complemento} onChange={sf('complemento')} />
-              </div>
-              <div>
-                <label className="label">Bairro *</label>
-                <input className="input" value={form.bairro} onChange={sf('bairro')} />
-              </div>
-              <div>
-                <label className="label">Municipio *</label>
-                <input className="input" value={form.cidade} onChange={sf('cidade')} />
-              </div>
-              <div>
-                <label className="label">UF *</label>
-                <input className="input" value={form.estado} onChange={sf('estado')} maxLength={2} />
-              </div>
+              <div className="md:col-span-2"><label className="label">Logradouro *</label><input className="input" value={form.logradouro} onChange={sf('logradouro')} /></div>
+              <div><label className="label">Numero</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
+              <div><label className="label">Complemento</label><input className="input" value={form.complemento} onChange={sf('complemento')} /></div>
+              <div><label className="label">Bairro *</label><input className="input" value={form.bairro} onChange={sf('bairro')} /></div>
+              <div><label className="label">Municipio *</label><input className="input" value={form.cidade} onChange={sf('cidade')} /></div>
+              <div><label className="label">UF *</label><input className="input" value={form.estado} onChange={sf('estado')} maxLength={2} /></div>
             </div>
           </div>
 
-          {/* Contact */}
+          {/* === CONTATO === */}
           <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">Contato</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Contato</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: maskPhone(e.target.value) }))} placeholder="(00) 0000-0000" /></div>
+              <div><label className="label">Fax</label><input className="input" value={form.fax} onChange={e => setForm(f => ({ ...f, fax: maskPhone(e.target.value) }))} /></div>
+              <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={sf('email')} /></div>
+              <div><label className="label">Website</label><input className="input" value={form.website} onChange={sf('website')} placeholder="https://..." /></div>
+            </div>
+          </div>
+
+          {/* === PREFEITO === */}
+          <div className="card border-l-4 border-l-blue-500">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <User size={16} className="text-blue-500" /> Prefeito(a)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="label">Telefone</label>
-                <input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: maskPhone(e.target.value) }))} placeholder="(00) 0000-0000" />
+                <label className="label">Nome completo *</label>
+                <input className="input" value={form.prefeitoName} onChange={sf('prefeitoName')} placeholder="Nome do(a) prefeito(a)" />
               </div>
               <div>
-                <label className="label">Fax</label>
-                <input className="input" value={form.fax} onChange={e => setForm(f => ({ ...f, fax: maskPhone(e.target.value) }))} />
+                <label className="label">CPF *</label>
+                <input className="input" value={form.prefeitoCpf} onChange={e => setForm(f => ({ ...f, prefeitoCpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" maxLength={14} />
               </div>
               <div>
-                <label className="label">Email</label>
-                <input className="input" type="email" value={form.email} onChange={sf('email')} />
-              </div>
-              <div>
-                <label className="label">Website</label>
-                <input className="input" value={form.website} onChange={sf('website')} placeholder="https://..." />
+                <label className="label">Cargo</label>
+                <input className="input" value={form.prefeitoCargo} onChange={sf('prefeitoCargo')} />
               </div>
             </div>
           </div>
 
-          {/* Secretaria */}
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">Secretaria de Educacao</h3>
+          {/* === SECRETARIA DE EDUCACAO === */}
+          <div className="card border-l-4 border-l-emerald-500">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <GraduationCap size={16} className="text-emerald-500" /> Secretaria de Educacao
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <label className="label">Nome da Secretaria</label>
                 <input className="input" value={form.secretariaName} onChange={sf('secretariaName')} placeholder="Secretaria Municipal de Educacao" />
               </div>
+              <CNPJField
+                value={form.secretariaCnpj}
+                onChange={v => setForm(f => ({ ...f, secretariaCnpj: v }))}
+                onDataLoaded={handleCNPJSecretariaLoaded}
+                label="CNPJ da Secretaria"
+              />
               <div>
-                <label className="label">Secretario(a) de Educacao</label>
-                <input className="input" value={form.secretarioName} onChange={sf('secretarioName')} />
-              </div>
-              <div>
-                <label className="label">CPF do Secretario(a)</label>
-                <input className="input" value={form.secretarioCpf} onChange={e => setForm(f => ({ ...f, secretarioCpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" maxLength={14} />
-              </div>
-              <div>
-                <label className="label">Telefone da Secretaria</label>
+                <label className="label">Telefone</label>
                 <input className="input" value={form.secretariaPhone} onChange={e => setForm(f => ({ ...f, secretariaPhone: maskPhone(e.target.value) }))} />
               </div>
               <div>
-                <label className="label">Email da Secretaria</label>
+                <label className="label">Email</label>
                 <input className="input" type="email" value={form.secretariaEmail} onChange={sf('secretariaEmail')} />
+              </div>
+              <div>
+                <label className="label">Endereco</label>
+                <input className="input" value={form.secretariaLogradouro} onChange={sf('secretariaLogradouro')} placeholder="Endereco da secretaria (se diferente)" />
+              </div>
+            </div>
+
+            {/* Secretario(a) */}
+            <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
+                <User size={14} /> Secretario(a) de Educacao
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="label text-xs">Nome completo *</label>
+                  <input className="input" value={form.secretarioName} onChange={sf('secretarioName')} />
+                </div>
+                <div>
+                  <label className="label text-xs">CPF *</label>
+                  <input className="input" value={form.secretarioCpf} onChange={e => setForm(f => ({ ...f, secretarioCpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" maxLength={14} />
+                </div>
+                <div>
+                  <label className="label text-xs">Cargo</label>
+                  <input className="input" value={form.secretarioCargo} onChange={sf('secretarioCargo')} />
+                </div>
+                <div>
+                  <label className="label text-xs">Decreto de Nomeacao</label>
+                  <input className="input" value={form.secretarioDecreto} onChange={sf('secretarioDecreto')} placeholder="Ex: Decreto n 001/2025" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Responsaveis */}
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-3">Responsaveis</h3>
+          {/* === DEMAIS RESPONSAVEIS === */}
+          <div className="card border-l-4 border-l-purple-500">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Users size={16} className="text-purple-500" /> Demais Responsaveis
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">Cadastre os responsaveis adicionais do municipio. Cada municipio pode ter cargos diferentes.</p>
+
+            {/* Custom roles management */}
+            <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <p className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Cargos disponiveis</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {allRoles.map(r => (
+                  <span key={r} className="text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full border border-gray-200 dark:border-gray-600">{r}</span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input className="input flex-1 text-sm" value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="Adicionar novo cargo..." onKeyDown={e => e.key === 'Enter' && addCustomRole()} />
+                <button onClick={addCustomRole} className="btn-secondary px-3 text-sm"><Plus size={14} /></button>
+              </div>
+            </div>
+
+            {/* Responsibles table */}
             {responsibles.length > 0 && (
-              <div className="mb-3 overflow-x-auto">
+              <div className="mb-4 overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Nome</th>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Funcao</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Cargo / Funcao</th>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">CPF</th>
-                      <th className="w-10"></th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Decreto</th>
+                      <th className="w-20"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {responsibles.map(r => (
-                      <tr key={r.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-medium">{r.name}</td>
-                        <td className="px-3 py-2 text-gray-600">{r.role}</td>
-                        <td className="px-3 py-2 text-gray-500">{r.cpf}</td>
-                        <td className="px-3 py-2">
-                          <button onClick={() => removeResponsible(r.id)} className="p-1 text-gray-400 hover:text-red-500">
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
+                      <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        {editingResp === r.id ? (
+                          <>
+                            <td className="px-2 py-1.5"><input className="input text-sm py-1" value={r.name} onChange={e => updateResponsible(r.id, { name: e.target.value })} /></td>
+                            <td className="px-2 py-1.5"><input className="input text-sm py-1" value={r.role} onChange={e => updateResponsible(r.id, { role: e.target.value })} /></td>
+                            <td className="px-2 py-1.5"><input className="input text-sm py-1" value={r.cpf} onChange={e => updateResponsible(r.id, { cpf: maskCPF(e.target.value) })} maxLength={14} /></td>
+                            <td className="px-2 py-1.5"><input className="input text-sm py-1" value={r.decree} onChange={e => updateResponsible(r.id, { decree: e.target.value })} /></td>
+                            <td className="px-2 py-1.5"><button onClick={() => setEditingResp(null)} className="text-xs text-accent-600 hover:underline">OK</button></td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-200">{r.name}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{r.role}</td>
+                            <td className="px-3 py-2 text-gray-500 font-mono text-xs">{r.cpf || '--'}</td>
+                            <td className="px-3 py-2 text-gray-500 text-xs">{r.decree || '--'}</td>
+                            <td className="px-3 py-2 flex gap-1">
+                              <button onClick={() => setEditingResp(r.id)} className="p-1 text-gray-400 hover:text-blue-500"><Pencil size={13} /></button>
+                              <button onClick={() => removeResponsible(r.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
-              <input className="input flex-1 min-w-[150px]" value={newResp.name} onChange={e => setNewResp(f => ({ ...f, name: e.target.value }))} placeholder="Nome do responsavel" />
-              <select className="input w-48" value={newResp.role} onChange={e => setNewResp(f => ({ ...f, role: e.target.value }))}>
-                <option>Gestor</option>
-                <option>Prefeito(a)</option>
-                <option>Secretario(a)</option>
-                <option>Contador</option>
-                <option>Controle Interno</option>
-                <option>Ordenador de Despesa</option>
-                <option>Resp. Setor de Compras</option>
-                <option>Outro</option>
-              </select>
-              <input className="input w-40" value={newResp.cpf} onChange={e => setNewResp(f => ({ ...f, cpf: maskCPF(e.target.value) }))} placeholder="CPF" maxLength={14} />
-              <button onClick={addResponsible} className="btn-primary px-3"><Plus size={16} /></button>
+
+            {/* Add new responsible */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Adicionar responsavel</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <input className="input text-sm" value={newResp.name} onChange={e => setNewResp(f => ({ ...f, name: e.target.value }))} placeholder="Nome completo" />
+                <select className="input text-sm" value={newResp.role} onChange={e => setNewResp(f => ({ ...f, role: e.target.value }))}>
+                  <option value="">Selecione o cargo</option>
+                  {allRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <input className="input text-sm" value={newResp.cpf} onChange={e => setNewResp(f => ({ ...f, cpf: maskCPF(e.target.value) }))} placeholder="CPF" maxLength={14} />
+                <div className="flex gap-2">
+                  <input className="input text-sm flex-1" value={newResp.decree} onChange={e => setNewResp(f => ({ ...f, decree: e.target.value }))} placeholder="Decreto nomeacao" />
+                  <button onClick={addResponsible} disabled={!newResp.name || !newResp.role} className="btn-primary px-3 disabled:opacity-40"><Plus size={16} /></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -347,9 +427,9 @@ export default function MunicipalitySettingsPage() {
         {/* Right column - Logo */}
         <div>
           <div className="card text-center">
-            <h3 className="font-semibold text-gray-800 mb-3">Logotipo</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Logotipo da Prefeitura</h3>
             <p className="text-xs text-gray-400 mb-3">Ideal: 120x120px</p>
-            <div className="w-32 h-32 mx-auto mb-4 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 cursor-pointer hover:border-accent-400 transition-colors" onClick={() => logoRef.current?.click()}>
+            <div className="w-32 h-32 mx-auto mb-4 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-700 cursor-pointer hover:border-accent-400 transition-colors" onClick={() => logoRef.current?.click()}>
               {form.logoUrl ? <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" /> : <Image size={32} className="text-gray-300" />}
             </div>
             <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
@@ -364,8 +444,17 @@ export default function MunicipalitySettingsPage() {
           </div>
 
           <div className="card mt-4">
-            <h3 className="font-semibold text-gray-800 mb-2 text-sm">Dica</h3>
-            <p className="text-xs text-gray-500">Digite o CNPJ e clique em "Buscar" para carregar os dados automaticamente da Receita Federal. O mesmo para o CEP.</p>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 text-sm">Resumo</h3>
+            <div className="space-y-2 text-xs text-gray-500">
+              <p><b className="text-gray-700 dark:text-gray-300">Prefeito(a):</b> {form.prefeitoName || 'Nao informado'}</p>
+              <p><b className="text-gray-700 dark:text-gray-300">Secretario(a):</b> {form.secretarioName || 'Nao informado'}</p>
+              <p><b className="text-gray-700 dark:text-gray-300">Responsaveis:</b> {responsibles.length} cadastrado(s)</p>
+            </div>
+          </div>
+
+          <div className="card mt-4">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 text-sm">Dica</h3>
+            <p className="text-xs text-gray-500">Clique no botao <b>Receita Federal</b> ao lado do CNPJ para carregar os dados automaticamente. O mesmo vale para o CEP.</p>
           </div>
         </div>
       </div>

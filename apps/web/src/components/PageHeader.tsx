@@ -51,6 +51,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/super-admin': { code: '503', title: 'Super Admin', module: 'Central de Controle', color: '#64748b' },
   '/declaracoes': { code: '113', title: 'Declarações', module: 'Gestão Escolar', color: '#6366f1' },
   '/atividade-usuarios': { code: '504', title: 'Atividade Usuários', module: 'Central de Controle', color: '#64748b' },
+  '/grade-horaria': { code: '210', title: 'Grade Horária', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/sobre': { code: '505', title: 'Sobre o Sistema', module: 'Central de Controle', color: '#64748b' },
 };
 
 // Favorites management

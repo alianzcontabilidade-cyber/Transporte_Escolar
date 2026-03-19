@@ -197,6 +197,8 @@ export default function Layout() {
     { code: '502', to: '/ia-rotas', text: 'IA Rotas', module: 'Central de Controle', desc: 'Otimização de rotas por IA', tags: 'inteligencia artificial otimizar rota ia', color: '#64748b' },
     { code: '503', to: '/transparencia', text: 'Transparência', module: 'Central de Controle', desc: 'Portal público de transparência', tags: 'transparencia publico portal lei', color: '#64748b' },
     { code: '504', to: '/atividade-usuarios', text: 'Atividade Usuários', module: 'Central de Controle', desc: 'Quem está online, último acesso', tags: 'atividade usuario online acesso log', color: '#64748b' },
+    { code: '210', to: '/grade-horaria', text: 'Grade Horária', module: 'Ensino e Aprendizagem', desc: 'Horário de aulas por turma e dia', tags: 'grade horaria horario aula dia semana disciplina', color: '#8b5cf6' },
+    { code: '505', to: '/sobre', text: 'Sobre o Sistema', module: 'Central de Controle', desc: 'Informações, versão e funcionalidades', tags: 'sobre sistema versao informacao ajuda', color: '#64748b' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -231,6 +233,7 @@ export default function Layout() {
       { to: '/parecer-descritivo', icon: BookOpen, text: 'Parecer' }, { to: '/ata-resultados', icon: FileText, text: 'ATA Resultados' },
       { to: '/relatorio-frequencia', icon: BarChart3, text: 'Rel. Frequência' }, { to: '/calendario', icon: Calendar, text: 'Calendário' },
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
+      { to: '/grade-horaria', icon: Calendar, text: 'Grade Horária' },
     ]},
     { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#f97316', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
@@ -251,6 +254,7 @@ export default function Layout() {
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
+      { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },
       ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
     ]},
   ];

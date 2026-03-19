@@ -268,3 +268,64 @@ export function printReportHTML(html: string) {
     setTimeout(() => w.print(), 700);
   }
 }
+
+// Generate actual PDF and open in new tab as PDF viewer
+export async function openReportAsPDF(html: string, filename?: string) {
+  const html2pdf = (await import('html2pdf.js')).default;
+
+  // Create temporary container with the HTML content
+  const container = document.createElement('div');
+  container.innerHTML = html;
+
+  // Extract body content and styles from the full HTML
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+
+  const wrapper = document.createElement('div');
+  if (styleMatch) {
+    const style = document.createElement('style');
+    style.textContent = styleMatch[1]
+      // Remove fixed footer for PDF (will be in the flow)
+      .replace(/\.report-footer-fixed\{position:fixed[^}]+\}/g, '.report-footer-fixed{text-align:center;font-size:8px;color:#999;border-top:2px solid #e5e7eb;padding:12px 0 5px;margin-top:30px}')
+      // Remove @page (html2pdf handles this)
+      .replace(/@page\{[^}]+\}/g, '')
+      // Remove screen-only styles
+      .replace(/@media screen\{[^}]+\}/g, '');
+    wrapper.appendChild(style);
+  }
+
+  const content = document.createElement('div');
+  content.innerHTML = bodyMatch ? bodyMatch[1] : html;
+  content.style.padding = '20px 30px';
+  content.style.maxWidth = '100%';
+  wrapper.appendChild(content);
+
+  document.body.appendChild(wrapper);
+
+  const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  try {
+    const opts: any = {
+      margin: [8, 8, 12, 8],
+      filename: safeName + '.pdf',
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
+    const pdfBlob: Blob = await html2pdf()
+      .set(opts)
+      .from(wrapper)
+      .outputPdf('blob');
+
+    // Open PDF in new tab
+    const pdfUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+    window.open(pdfUrl, '_blank');
+  } catch (err) {
+    console.error('Erro ao gerar PDF:', err);
+    // Fallback: open as HTML
+    printReportHTML(html);
+  } finally {
+    document.body.removeChild(wrapper);
+  }
+}

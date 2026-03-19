@@ -1,4 +1,4 @@
-import { generateReportHTML, ReportMunicipality, ReportSecretaria, ReportSchool, printReportHTML } from './reportTemplate';
+import { generateReportHTML, ReportMunicipality, ReportSecretaria, ReportSchool, printReportHTML, openReportAsPDF } from './reportTemplate';
 import { Signatory } from '../components/ReportSignatureSelector';
 
 const MONTHS = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -416,4 +416,4 @@ export function generateRelacaoAlunosTurma(
 }
 
 // Reexport for convenience
-export { printReportHTML };
+export { printReportHTML, openReportAsPDF };

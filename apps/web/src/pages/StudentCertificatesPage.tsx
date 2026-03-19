@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, BookOpen, ClipboardList } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
+import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, FileDown, Loader2 } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
 import { generateDeclaracaoEscolaridade, generateDeclaracaoTransferencia, generateDeclaracaoFrequencia, generateFichaMatricula } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
@@ -34,27 +34,34 @@ export default function StudentCertificatesPage() {
     loadMunicipalityData(mid, api).then(setMunReport).catch(() => {});
   }, [mid]);
 
-  const handleGenerate = (type: string) => {
-    if (!selStudent || !munReport) return;
+  const [generating, setGenerating] = useState('');
+
+  const buildHTML = (type: string): string => {
+    if (!selStudent || !munReport) return '';
     const school = loadSchoolData(selStudent.schoolId, allSchools);
     const { municipality, secretaria } = munReport;
-    let html = '';
 
     switch (type) {
-      case 'escolaridade':
-        html = generateDeclaracaoEscolaridade(selStudent, school, municipality, secretaria, selectedSigs);
-        break;
-      case 'transferencia':
-        html = generateDeclaracaoTransferencia(selStudent, school, municipality, secretaria, selectedSigs);
-        break;
-      case 'frequencia':
-        html = generateDeclaracaoFrequencia(selStudent, school, municipality, secretaria, selectedSigs);
-        break;
-      case 'matricula':
-        html = generateFichaMatricula(selStudent, school, municipality, secretaria, selectedSigs);
-        break;
+      case 'escolaridade': return generateDeclaracaoEscolaridade(selStudent, school, municipality, secretaria, selectedSigs);
+      case 'transferencia': return generateDeclaracaoTransferencia(selStudent, school, municipality, secretaria, selectedSigs);
+      case 'frequencia': return generateDeclaracaoFrequencia(selStudent, school, municipality, secretaria, selectedSigs);
+      case 'matricula': return generateFichaMatricula(selStudent, school, municipality, secretaria, selectedSigs);
+      default: return '';
     }
+  };
 
+  const handlePDF = async (type: string) => {
+    const html = buildHTML(type);
+    if (!html) return;
+    setGenerating(type);
+    try {
+      await openReportAsPDF(html, CERT_TYPES.find(c => c.id === type)?.label || 'relatorio');
+    } catch { printReportHTML(html); }
+    finally { setGenerating(''); }
+  };
+
+  const handlePrint = (type: string) => {
+    const html = buildHTML(type);
     if (html) printReportHTML(html);
   };
 
@@ -111,10 +118,10 @@ export default function StudentCertificatesPage() {
               <div className="grid grid-cols-2 gap-3">
                 {CERT_TYPES.map(cert => {
                   const Icon = cert.icon;
+                  const isGenerating = generating === cert.id;
                   return (
-                    <button key={cert.id} onClick={() => handleGenerate(cert.id)}
-                      className="card hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600 transition-all text-left group">
-                      <div className="flex items-start gap-3">
+                    <div key={cert.id} className="card hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600 transition-all group">
+                      <div className="flex items-start gap-3 mb-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${iconColors[cert.color]}`}>
                           <Icon size={18} />
                         </div>
@@ -123,7 +130,17 @@ export default function StudentCertificatesPage() {
                           <p className="text-xs text-gray-500 mt-0.5">{cert.desc}</p>
                         </div>
                       </div>
-                    </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => handlePDF(cert.id)} disabled={isGenerating}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium">
+                          {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
+                        </button>
+                        <button onClick={() => handlePrint(cert.id)}
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors">
+                          <Printer size={14} /> Imprimir
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>

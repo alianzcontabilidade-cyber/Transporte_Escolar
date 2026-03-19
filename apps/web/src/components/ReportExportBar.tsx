@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FileText, FileSpreadsheet, Download, Loader2, Printer } from 'lucide-react';
+import { FileText, FileSpreadsheet, Download, Loader2, Printer, FileDown } from 'lucide-react';
 import ReportSignatureSelector, { generateSignaturesHTML, Signatory } from './ReportSignatureSelector';
+import { openReportAsPDF } from '../lib/reportTemplate';
 
 interface ReportExportBarProps {
   title: string;
@@ -76,7 +77,14 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
 
     setTimeout(() => {
       try {
-        if (format === 'pdf' || format === 'print') {
+        if (format === 'pdfreal') {
+          const content = document.getElementById('report-content')?.innerHTML || '';
+          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
+          openReportAsPDF(html, title).then(() => setExporting('')).catch(() => setExporting(''));
+          return; // async - don't setExporting in finally
+        }
+
+        if (format === 'print') {
           const content = document.getElementById('report-content')?.innerHTML || '';
           const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
           const w = window.open('', '_blank');
@@ -142,17 +150,17 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
       <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-gray-500 mr-1">Gerar relatorio:</span>
-          <button onClick={() => exportReport('pdf')} disabled={!!exporting}
+          <button onClick={() => exportReport('pdfreal')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium shadow-sm">
-            {exporting === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} PDF
-          </button>
-          <button onClick={() => exportReport('excel')} disabled={!!exporting}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50">
-            {exporting === 'excel' ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} Excel
+            {exporting === 'pdfreal' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} Visualizar PDF
           </button>
           <button onClick={() => exportReport('print')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50">
             {exporting === 'print' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Imprimir
+          </button>
+          <button onClick={() => exportReport('excel')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50">
+            {exporting === 'excel' ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} Excel
           </button>
           <button onClick={() => exportReport('html')} disabled={!!exporting}
             className="flex items-center gap-1.5 px-3 py-2 text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">

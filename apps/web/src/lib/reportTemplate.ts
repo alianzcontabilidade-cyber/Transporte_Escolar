@@ -280,94 +280,43 @@ export function printReportHTML(html: string) {
   }
 }
 
-// Generate actual PDF and open in new tab as PDF viewer
+// Open report in new tab with toolbar (Save PDF, Print, Download Word)
 export async function openReportAsPDF(html: string, filename?: string) {
-  const html2pdf = (await import('html2pdf.js')).default;
-
-  // Extract body content and styles from the full HTML
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-
-  const wrapper = document.createElement('div');
-  wrapper.style.position = 'absolute';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
-  wrapper.style.width = '210mm'; // A4 width
-
-  if (styleMatch) {
-    const style = document.createElement('style');
-    style.textContent = styleMatch[1]
-      .replace(/@page\{[^}]+\}/g, '')
-      .replace(/@media screen\{[^}]+\}/g, '')
-      .replace(/height:\s*100%/g, 'height:auto');
-    wrapper.appendChild(style);
-  }
-
-  // Separate content from footer
-  const bodyHTML = bodyMatch ? bodyMatch[1] : html;
-
-  // Extract footer
-  const footerMatch = bodyHTML.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>/i);
-  const footerHTML = footerMatch ? footerMatch[0] : '';
-  // Remove footer from body and remove the table wrapper
-  let mainHTML = bodyHTML
-    .replace(footerHTML, '')
-    .replace(/<table class="page-table">.*?<td class="td-content">/s, '')
-    .replace(/<\/td><\/tr><tr><td class="td-footer">\s*<\/td><\/tr><\/table>/s, '');
-
-  // Build: content div + spacer + footer
-  const contentDiv = document.createElement('div');
-  contentDiv.style.padding = '10px 20px';
-  contentDiv.innerHTML = mainHTML;
-  wrapper.appendChild(contentDiv);
-
-  document.body.appendChild(wrapper);
-
-  // Measure content height, then calculate spacer to push footer to bottom
-  // A4 = 297mm, margins top+bottom = 25mm, so usable = 272mm ≈ 1028px at 96dpi
-  const A4_HEIGHT_PX = 1028; // ~272mm at 96dpi
-  const marginsPx = 95; // ~25mm margins
-  const contentHeight = contentDiv.offsetHeight;
-  const footerHeight = 60; // approximate footer height in px
-
-  if (contentHeight + footerHeight < A4_HEIGHT_PX - marginsPx) {
-    // Content fits in one page - add spacer to push footer to bottom
-    const spacer = document.createElement('div');
-    spacer.style.height = (A4_HEIGHT_PX - marginsPx - contentHeight - footerHeight) + 'px';
-    wrapper.appendChild(spacer);
-  }
-
-  // Add footer at the end
-  if (footerHTML) {
-    const footerDiv = document.createElement('div');
-    footerDiv.innerHTML = footerHTML;
-    wrapper.appendChild(footerDiv);
-  }
-
   const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9_-]/g, '_');
 
-  try {
-    const opts: any = {
-      margin: [10, 10, 10, 10],
-      filename: safeName + '.pdf',
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-    };
-    const pdfBlob: Blob = await html2pdf()
-      .set(opts)
-      .from(wrapper)
-      .outputPdf('blob');
+  // Inject action bar at top of HTML (hidden when printing)
+  const actionBar = `
+    <div id="report-action-bar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#1B3A5C;padding:8px 20px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-family:Arial,sans-serif">
+      <span style="color:white;font-size:14px;font-weight:bold;flex:1">NetEscol - ${safeName.replace(/_/g, ' ')}</span>
+      <button onclick="document.getElementById('report-action-bar').style.display='none';window.print();setTimeout(function(){document.getElementById('report-action-bar').style.display='flex'},500)"
+        style="background:#e53e3e;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Salvar como PDF
+      </button>
+      <button onclick="document.getElementById('report-action-bar').style.display='none';window.print();setTimeout(function(){document.getElementById('report-action-bar').style.display='flex'},500)"
+        style="background:#3182ce;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir
+      </button>
+      <button onclick="var b=new Blob(['\\uFEFF'+document.documentElement.outerHTML.replace(document.getElementById('report-action-bar').outerHTML,'')],{type:'application/msword;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='${safeName}.doc';a.click()"
+        style="background:#2B579A;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg>
+        Word
+      </button>
+    </div>
+    <style>
+      @media print { #report-action-bar { display:none!important } }
+      body { padding-top: 52px !important; }
+      @media print { body { padding-top: 0 !important; } }
+    </style>
+  `;
 
-    // Open PDF in new tab
-    const pdfUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
-    window.open(pdfUrl, '_blank');
-  } catch (err) {
-    console.error('Erro ao gerar PDF:', err);
-    // Fallback: open as HTML
-    printReportHTML(html);
-  } finally {
-    document.body.removeChild(wrapper);
+  // Insert action bar right after <body>
+  const finalHTML = html.replace(/<body>/i, '<body>' + actionBar);
+
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(finalHTML);
+    w.document.close();
   }
 }

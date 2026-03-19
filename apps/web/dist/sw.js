@@ -1,4 +1,4 @@
-const CACHE_NAME = 'netescol-v5';
+const CACHE_NAME = 'netescol-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

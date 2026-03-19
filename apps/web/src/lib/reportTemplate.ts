@@ -284,38 +284,71 @@ export function printReportHTML(html: string) {
 export async function openReportAsPDF(html: string, filename?: string) {
   const html2pdf = (await import('html2pdf.js')).default;
 
-  // Create temporary container with the HTML content
-  const container = document.createElement('div');
-  container.innerHTML = html;
-
   // Extract body content and styles from the full HTML
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
 
   const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  wrapper.style.width = '210mm'; // A4 width
+
   if (styleMatch) {
     const style = document.createElement('style');
     style.textContent = styleMatch[1]
-      // Remove @page (html2pdf handles margins)
       .replace(/@page\{[^}]+\}/g, '')
-      // Remove screen-only styles
-      .replace(/@media screen\{[^}]+\}/g, '');
+      .replace(/@media screen\{[^}]+\}/g, '')
+      .replace(/height:\s*100%/g, 'height:auto');
     wrapper.appendChild(style);
   }
 
-  const content = document.createElement('div');
-  content.innerHTML = bodyMatch ? bodyMatch[1] : html;
-  content.style.padding = '10px 20px';
-  content.style.maxWidth = '100%';
-  wrapper.appendChild(content);
+  // Separate content from footer
+  const bodyHTML = bodyMatch ? bodyMatch[1] : html;
+
+  // Extract footer
+  const footerMatch = bodyHTML.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>/i);
+  const footerHTML = footerMatch ? footerMatch[0] : '';
+  // Remove footer from body and remove the table wrapper
+  let mainHTML = bodyHTML
+    .replace(footerHTML, '')
+    .replace(/<table class="page-table">.*?<td class="td-content">/s, '')
+    .replace(/<\/td><\/tr><tr><td class="td-footer">\s*<\/td><\/tr><\/table>/s, '');
+
+  // Build: content div + spacer + footer
+  const contentDiv = document.createElement('div');
+  contentDiv.style.padding = '10px 20px';
+  contentDiv.innerHTML = mainHTML;
+  wrapper.appendChild(contentDiv);
 
   document.body.appendChild(wrapper);
+
+  // Measure content height, then calculate spacer to push footer to bottom
+  // A4 = 297mm, margins top+bottom = 25mm, so usable = 272mm ≈ 1028px at 96dpi
+  const A4_HEIGHT_PX = 1028; // ~272mm at 96dpi
+  const marginsPx = 95; // ~25mm margins
+  const contentHeight = contentDiv.offsetHeight;
+  const footerHeight = 60; // approximate footer height in px
+
+  if (contentHeight + footerHeight < A4_HEIGHT_PX - marginsPx) {
+    // Content fits in one page - add spacer to push footer to bottom
+    const spacer = document.createElement('div');
+    spacer.style.height = (A4_HEIGHT_PX - marginsPx - contentHeight - footerHeight) + 'px';
+    wrapper.appendChild(spacer);
+  }
+
+  // Add footer at the end
+  if (footerHTML) {
+    const footerDiv = document.createElement('div');
+    footerDiv.innerHTML = footerHTML;
+    wrapper.appendChild(footerDiv);
+  }
 
   const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9_-]/g, '_');
 
   try {
     const opts: any = {
-      margin: [10, 10, 15, 10],
+      margin: [10, 10, 10, 10],
       filename: safeName + '.pdf',
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },

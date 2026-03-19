@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { FileText, FileSpreadsheet, Download, Loader2, Printer } from 'lucide-react';
+import ReportSignatureSelector, { generateSignaturesHTML, Signatory } from './ReportSignatureSelector';
 
 interface ReportExportBarProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  // Optional: pass complete data for full export (not just visible content)
   fullData?: any[];
   fullDataColumns?: { key: string; label: string }[];
   municipality?: string;
   school?: string;
+  hideSignatures?: boolean;
 }
 
-function buildReportHTML(title: string, subtitle: string | undefined, content: string, opts?: { municipality?: string; school?: string }) {
+function buildReportHTML(title: string, subtitle: string | undefined, content: string, opts?: { municipality?: string; school?: string; signaturesHTML?: string }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} - NetEscol</title>
   <style>
     *{box-sizing:border-box}
@@ -41,8 +42,6 @@ function buildReportHTML(title: string, subtitle: string | undefined, content: s
     [class*="z-50"],[class*="z-40"]{display:none!important}
     .report-footer{margin-top:30px;padding-top:10px;border-top:2px solid #eee;text-align:center;font-size:9px;color:#999}
     .report-footer p{margin:2px 0}
-    .signatures{display:flex;justify-content:space-between;margin-top:50px;padding-top:5px}
-    .sig{text-align:center;width:200px;border-top:1px solid #333;padding-top:5px;font-size:11px;color:#666}
     @media print{
       body{padding:10px 15px;font-size:12px}
       .report-header{margin-bottom:15px;padding-bottom:10px}
@@ -59,23 +58,27 @@ function buildReportHTML(title: string, subtitle: string | undefined, content: s
     <div class="meta">Emitido em ${new Date().toLocaleString('pt-BR')} | Sistema NetEscol v3.0</div>
   </div>
   ${content}
+  ${opts?.signaturesHTML || ''}
   <div class="report-footer">
-    <p><b>NetEscol</b> - Sistema de Gestão Escolar Municipal Inteligente</p>
+    <p><b>NetEscol</b> - Sistema de Gestao Escolar Municipal Inteligente</p>
     <p>Documento gerado eletronicamente em ${new Date().toLocaleString('pt-BR')}</p>
   </div>
   </body></html>`;
 }
 
-export default function ReportExportBar({ title, subtitle, children, fullData, fullDataColumns, municipality, school }: ReportExportBarProps) {
+export default function ReportExportBar({ title, subtitle, children, fullData, fullDataColumns, municipality, school, hideSignatures }: ReportExportBarProps) {
   const [exporting, setExporting] = useState('');
+  const [selectedSignatories, setSelectedSignatories] = useState<Signatory[]>([]);
 
   const exportReport = (format: string) => {
     setExporting(format);
+    const signaturesHTML = generateSignaturesHTML(selectedSignatories);
+
     setTimeout(() => {
       try {
         if (format === 'pdf' || format === 'print') {
           const content = document.getElementById('report-content')?.innerHTML || '';
-          const html = buildReportHTML(title, subtitle, content, { municipality, school });
+          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
           const w = window.open('', '_blank');
           if (w) {
             w.document.write(html);
@@ -86,7 +89,6 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
 
         else if (format === 'excel') {
           let csv = '';
-          // If fullData is provided, use it for complete export
           if (fullData && fullDataColumns) {
             csv = fullDataColumns.map(c => '"' + c.label + '"').join(';') + '\n';
             fullData.forEach(row => {
@@ -98,7 +100,6 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
               }).join(';') + '\n';
             });
           } else {
-            // Fallback: extract from DOM tables
             const el = document.getElementById('report-content');
             const tables = el?.querySelectorAll('table');
             if (tables && tables.length > 0) {
@@ -123,7 +124,7 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
 
         else if (format === 'html') {
           const content = document.getElementById('report-content')?.innerHTML || '';
-          const html = buildReportHTML(title, subtitle, content, { municipality, school });
+          const html = buildReportHTML(title, subtitle, content, { municipality, school, signaturesHTML });
           const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
@@ -137,26 +138,37 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
 
   return (
     <div>
-      {/* Export bar - PDF is primary */}
-      <div className="flex items-center gap-2 mb-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex-wrap">
-        <span className="text-sm font-medium text-gray-500 mr-1">Gerar relatório:</span>
-        <button onClick={() => exportReport('pdf')} disabled={!!exporting}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium shadow-sm">
-          {exporting === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} PDF
-        </button>
-        <button onClick={() => exportReport('excel')} disabled={!!exporting}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50">
-          {exporting === 'excel' ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} Excel
-        </button>
-        <button onClick={() => exportReport('print')} disabled={!!exporting}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50">
-          {exporting === 'print' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Imprimir
-        </button>
-        <button onClick={() => exportReport('html')} disabled={!!exporting}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
-          {exporting === 'html' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} HTML
-        </button>
+      {/* Export bar */}
+      <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-500 mr-1">Gerar relatorio:</span>
+          <button onClick={() => exportReport('pdf')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium shadow-sm">
+            {exporting === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} PDF
+          </button>
+          <button onClick={() => exportReport('excel')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50">
+            {exporting === 'excel' ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} Excel
+          </button>
+          <button onClick={() => exportReport('print')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50">
+            {exporting === 'print' ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />} Imprimir
+          </button>
+          <button onClick={() => exportReport('html')} disabled={!!exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
+            {exporting === 'html' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} HTML
+          </button>
+        </div>
+
+        {/* Signature selector */}
+        {!hideSignatures && (
+          <ReportSignatureSelector
+            selected={selectedSignatories}
+            onChange={setSelectedSignatories}
+          />
+        )}
       </div>
+
       {/* Report content */}
       <div id="report-content">
         {children}
@@ -165,4 +177,4 @@ export default function ReportExportBar({ title, subtitle, children, fullData, f
   );
 }
 
-export { buildReportHTML };
+export { buildReportHTML, generateSignaturesHTML };

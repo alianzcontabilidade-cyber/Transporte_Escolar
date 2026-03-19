@@ -27,7 +27,7 @@ const MODULES = [
     links: [
       { to: '/escolas', text: 'Escolas' }, { to: '/alunos', text: 'Alunos' },
       { to: '/matriculas', text: 'Matrículas' }, { to: '/turmas', text: 'Turmas' },
-      { to: '/professores', text: 'Professores' }, { to: '/historico-escolar', text: 'Histórico' },
+      { to: '/professores', text: 'Professores' }, { to: '/ficha-matricula', text: 'Ficha Matríc.' },
     ],
   },
   {

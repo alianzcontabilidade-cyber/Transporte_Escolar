@@ -204,6 +204,7 @@ export default function Layout() {
     { code: '506', to: '/backup', text: 'Backup de Dados', module: 'Central de Controle', desc: 'Exportar dados do sistema para segurança', tags: 'backup exportar dados seguranca json csv', color: '#64748b' },
     { code: '211', to: '/conselho-classe', text: 'Conselho de Classe', module: 'Ensino e Aprendizagem', desc: 'Registro de decisões por aluno e bimestre', tags: 'conselho classe decisao aprovado retido recuperacao', color: '#8b5cf6' },
     { code: '116', to: '/ocorrencias', text: 'Ocorrências', module: 'Gestão Escolar', desc: 'Registro de ocorrências disciplinares', tags: 'ocorrencia indisciplina atraso falta elogio advertencia', color: '#6366f1' },
+    { code: '117', to: '/ficha-matricula', text: 'Ficha de Matrícula', module: 'Gestão Escolar', desc: 'Formulário oficial de matrícula para impressão', tags: 'ficha matricula formulario impressao requerimento', color: '#6366f1' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
     { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
@@ -240,6 +241,7 @@ export default function Layout() {
       { to: '/ficha-aluno', icon: FileText, text: 'Ficha do Aluno' },
       { to: '/relatorio-escola', icon: School, text: 'Relatório Escola' },
       { to: '/ocorrencias', icon: ClipboardList, text: 'Ocorrências' },
+      { to: '/ficha-matricula', icon: FileText, text: 'Ficha Matrícula' },
     ]},
     { key: 'pedagogico', label: 'Ensino e Aprendizagem', icon: GraduationCap, color: '#8b5cf6', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },

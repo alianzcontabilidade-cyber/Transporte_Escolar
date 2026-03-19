@@ -190,6 +190,8 @@ export default function Layout() {
     { code: '407', to: '/manutencao-preditiva', text: 'Manutenção', module: 'Gestão e Recursos', desc: 'Manutenção preventiva de veículos', tags: 'manutencao veiculo preventiva corretiva', color: '#0ea5e9' },
     { code: '408', to: '/relatorios', text: 'Relatórios', module: 'Gestão e Recursos', desc: 'Relatórios gerais com exportação', tags: 'relatorio exportar csv pdf geral', color: '#0ea5e9' },
     { code: '409', to: '/comunicacao', text: 'Comunicação', module: 'Gestão e Recursos', desc: 'Recados e avisos para a comunidade', tags: 'recado mensagem aviso comunicacao whatsapp', color: '#0ea5e9' },
+    { code: '410', to: '/envio-massa', text: 'Envio em Massa', module: 'Gestão e Recursos', desc: 'WhatsApp em massa para responsáveis', tags: 'whatsapp envio massa responsavel pai sms', color: '#0ea5e9' },
+    { code: '411', to: '/cotacao-compras', text: 'Cotação de Compras', module: 'Gestão e Recursos', desc: 'Compare preços de fornecedores', tags: 'cotacao compra preco fornecedor orcamento', color: '#0ea5e9' },
     // Configurações
     { code: '501', to: '/configuracoes', text: 'Configurações', module: 'Central de Controle', desc: 'Usuários, prefeitura e segurança', tags: 'configuracao usuario senha prefeitura perfil', color: '#64748b' },
     { code: '502', to: '/ia-rotas', text: 'IA Rotas', module: 'Central de Controle', desc: 'Otimização de rotas por IA', tags: 'inteligencia artificial otimizar rota ia', color: '#64748b' },
@@ -243,6 +245,8 @@ export default function Layout() {
       { to: '/biblioteca', icon: BookOpen, text: 'Biblioteca' }, { to: '/patrimonio', icon: Package, text: 'Patrimônio' },
       { to: '/manutencao-preditiva', icon: Wrench, text: 'Manutenção' }, { to: '/relatorios', icon: BarChart3, text: 'Relatórios' },
       { to: '/comunicacao', icon: Bell, text: 'Comunicação' },
+      { to: '/envio-massa', icon: Bell, text: 'Envio em Massa' },
+      { to: '/cotacao-compras', icon: ClipboardList, text: 'Cotação Compras' },
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },

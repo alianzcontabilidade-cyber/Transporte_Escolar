@@ -52,6 +52,8 @@ import TransportReportPage from './pages/TransportReportPage';
 import StudentCertificatesPage from './pages/StudentCertificatesPage';
 import UserActivityPage from './pages/UserActivityPage';
 import ModulesPage from './pages/ModulesPage';
+import BulkNotifyPage from './pages/BulkNotifyPage';
+import PurchaseQuotationPage from './pages/PurchaseQuotationPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -142,6 +144,8 @@ export default function App() {
         <Route path="relatorio-transporte" element={<Guard roles={ADMIN_SEC}><TransportReportPage /></Guard>} />
         <Route path="declaracoes" element={<Guard roles={ADMIN_SEC}><StudentCertificatesPage /></Guard>} />
         <Route path="atividade-usuarios" element={<Guard roles={ADMIN}><UserActivityPage /></Guard>} />
+        <Route path="envio-massa" element={<Guard roles={ADMIN_SEC}><BulkNotifyPage /></Guard>} />
+        <Route path="cotacao-compras" element={<Guard roles={ADMIN}><PurchaseQuotationPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

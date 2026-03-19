@@ -44,6 +44,8 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/manutencao-preditiva': { code: '407', title: 'Manutenção', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/relatorios': { code: '408', title: 'Relatórios', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/comunicacao': { code: '409', title: 'Comunicação', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/envio-massa': { code: '410', title: 'Envio em Massa', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/cotacao-compras': { code: '411', title: 'Cotação de Compras', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/configuracoes': { code: '501', title: 'Configurações', module: 'Central de Controle', color: '#64748b' },
   '/ia-rotas': { code: '502', title: 'IA Rotas', module: 'Central de Controle', color: '#64748b' },
   '/super-admin': { code: '503', title: 'Super Admin', module: 'Central de Controle', color: '#64748b' },

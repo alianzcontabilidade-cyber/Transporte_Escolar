@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel, Pencil, Trash2, Search } from 'lucide-react';
+import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel, Pencil, Trash2, Search, Eye, Download } from 'lucide-react';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', maintenance:'bg-yellow-100 text-yellow-700', inactive:'bg-red-100 text-red-700' };
 const STATUS_LABELS: any = { active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' };
@@ -27,6 +27,7 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [viewVehicle, setViewVehicle] = useState<any>(null);
   const [page,setPage]=useState(1);
   const PER_PAGE=20;
   const { data: vehicles, refetch } = useQuery(function() { return api.vehicles.list({ municipalityId }); }, [municipalityId]);
@@ -75,11 +76,19 @@ export default function VehiclesPage() {
     }
   };
 
+  const exportVehiclesCSV = function() {
+    if (!all.length) return;
+    const rows = all.map(function(v: any) { return { placa: v.plate||'', apelido: v.nickname||'', marca: v.brand||'', modelo: v.model||'', ano: v.year||'', capacidade: v.capacity||'', cor: v.color||'', combustivel: v.fuelType||v.fuel||'', status: v.status||'', km: v.currentKm||'' }; });
+    const keys = Object.keys(rows[0]);
+    const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"'+(r[k]||'')+'"'; }).join(';'); })].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'veiculos_netescol.csv'; a.click();
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Veículos</h1><p className="text-gray-500">{all.length} veículo(s) na frota</p></div>
-        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button>
+        <div className="flex gap-2"><button onClick={exportVehiclesCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button></div>
       </div>
 
       <div className="grid grid-cols-4 gap-3 mb-4">
@@ -99,6 +108,7 @@ export default function VehiclesPage() {
               <div className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center"><Bus size={20} className="text-primary-600"/></div>
               <div className="flex items-center gap-1">
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[v.status]||'bg-gray-100 text-gray-600'}`}>{STATUS_LABELS[v.status]||v.status}</span>
+                <button onClick={function(){setViewVehicle(v);}} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Detalhes"><Eye size={14}/></button>
                 <button onClick={function(){openEdit(v);}} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors" title="Editar"><Pencil size={14}/></button>
                 <button onClick={function(){setConfirmDelete(v);}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={14}/></button>
               </div>
@@ -117,6 +127,25 @@ export default function VehiclesPage() {
         {!filtered.length&&<div className="col-span-3 card text-center py-16"><Bus size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum veículo encontrado</p>{!search&&filter==='all'&&<button className="btn-primary" onClick={openNew}>Cadastrar primeiro veículo</button>}</div>}
       </div>
       {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
+
+      {viewVehicle&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Veiculo</h3><div className="flex gap-2"><button onClick={function(){const v=viewVehicle;const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+v.plate+' - NetEscol</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:15px}.field{padding:10px;background:#f8f9fa;border-radius:8px}.field-label{font-size:11px;color:#999;margin-bottom:3px}.field-value{font-size:14px;font-weight:500}.footer{margin-top:30px;text-align:center;font-size:11px;color:#999}</style></head><body><h1>Ficha do Veiculo - '+v.plate+'</h1><div class="grid"><div class="field"><div class="field-label">Placa</div><div class="field-value">'+v.plate+'</div></div><div class="field"><div class="field-label">Apelido</div><div class="field-value">'+(v.nickname||'--')+'</div></div><div class="field"><div class="field-label">Marca/Modelo</div><div class="field-value">'+(v.brand||'')+' '+(v.model||'')+'</div></div><div class="field"><div class="field-label">Ano</div><div class="field-value">'+(v.year||'--')+'</div></div><div class="field"><div class="field-label">Capacidade</div><div class="field-value">'+(v.capacity||'--')+' lugares</div></div><div class="field"><div class="field-label">Cor</div><div class="field-value">'+(v.color||'--')+'</div></div><div class="field"><div class="field-label">Combustivel</div><div class="field-value">'+(v.fuelType||v.fuel||'--')+'</div></div><div class="field"><div class="field-label">Chassi</div><div class="field-value">'+(v.chassi||v.chassis||'--')+'</div></div><div class="field"><div class="field-label">RENAVAM</div><div class="field-value">'+(v.renavam||'--')+'</div></div><div class="field"><div class="field-label">Km Atual</div><div class="field-value">'+(v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'--')+'</div></div><div class="field"><div class="field-label">Status</div><div class="field-value">'+(v.status==='active'?'Ativo':v.status==='maintenance'?'Manutencao':'Inativo')+'</div></div></div><div class="footer">Gerado por NetEscol em '+new Date().toLocaleDateString('pt-BR')+'</div></body></html>';const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.print();}}} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14}/> Imprimir</button><button onClick={function(){setViewVehicle(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div></div>
+        <div className="overflow-y-auto flex-1 p-5">
+          <div className="flex items-center gap-4 mb-5"><div className="w-14 h-14 rounded-xl bg-primary-100 flex items-center justify-center"><Bus size={24} className="text-primary-600"/></div><div><h2 className="text-xl font-bold text-gray-900">{viewVehicle.plate}</h2>{viewVehicle.nickname&&<p className="text-sm text-primary-600 font-medium">{viewVehicle.nickname}</p>}<p className="text-sm text-gray-500">{[viewVehicle.brand,viewVehicle.model,viewVehicle.year].filter(Boolean).join(' · ')}</p></div></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Capacidade</p><p className="text-sm font-medium">{viewVehicle.capacity||'--'} lugares</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Cor</p><p className="text-sm font-medium">{viewVehicle.color||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Combustivel</p><p className="text-sm font-medium">{viewVehicle.fuelType||viewVehicle.fuel||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Chassi</p><p className="text-sm font-medium">{viewVehicle.chassi||viewVehicle.chassis||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">RENAVAM</p><p className="text-sm font-medium">{viewVehicle.renavam||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Km Atual</p><p className="text-sm font-medium">{viewVehicle.currentKm?Number(viewVehicle.currentKm).toLocaleString('pt-BR')+' km':'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Status</p><p className="text-sm font-medium">{viewVehicle.status==='active'?'Ativo':viewVehicle.status==='maintenance'?'Manutencao':'Inativo'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Seguradora</p><p className="text-sm font-medium">{viewVehicle.insuranceCompany||'--'}</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Apolice</p><p className="text-sm font-medium">{viewVehicle.insurancePolicy||'--'}</p></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setViewVehicle(null);}} className="btn-secondary flex-1">Fechar</button><button onClick={function(){setViewVehicle(null);openEdit(viewVehicle);}} className="btn-primary flex-1">Editar</button></div>
+      </div></div>)}
 
       {confirmDelete&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

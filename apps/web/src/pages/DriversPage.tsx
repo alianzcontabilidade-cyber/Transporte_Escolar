@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2 } from 'lucide-react';
+import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2, Eye, Download } from 'lucide-react';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 
 function PhotoUpload({ value, onChange }: any) {
@@ -23,6 +23,7 @@ export default function DriversPage() {
     const [tab,setTab]=useState<'dados'|'cnh'|'vinculo'>('dados');
     const [search,setSearch]=useState('');
     const [del,setDel]=useState<any>(null);
+    const [viewDriver,setViewDriver]=useState<any>(null);
     const [err,setErr]=useState('');
     const [cpfError,setCpfError]=useState('');
     const [page,setPage]=useState(1);
@@ -82,6 +83,19 @@ export default function DriversPage() {
           else{create(p,{onSuccess:function(){refetch();setShow(false);},onError:function(e:any){setErr(e?.message||'Erro');}});}
     };
   
+    const exportDriversCSV = function() {
+      if (!all.length) return;
+      const rows = all.map(function(d: any) { return { nome: d.name||'', cpf: d.cpf||'', telefone: d.phone||'', email: d.email||'', cnh: d.cnhNumber||'', categoria: d.cnhCategory||'', validade_cnh: d.cnhExpiry ? new Date(d.cnhExpiry).toLocaleDateString('pt-BR') : '', rota: d.routeName||'' }; });
+      const keys = Object.keys(rows[0]);
+      const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"'+(r[k]||'')+'"'; }).join(';'); })].join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'motoristas_netescol.csv'; a.click();
+    };
+
+    const printDriver = function(d: any) {
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+d.name+' - NetEscol</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.field{padding:10px;background:#f8f9fa;border-radius:8px}.field-label{font-size:11px;color:#999;margin-bottom:3px}.field-value{font-size:14px;font-weight:500}.footer{margin-top:30px;text-align:center;font-size:11px;color:#999}@media print{body{padding:15px}}</style></head><body><h1>Ficha do Motorista</h1><div class="grid"><div class="field"><div class="field-label">Nome</div><div class="field-value">'+d.name+'</div></div><div class="field"><div class="field-label">CPF</div><div class="field-value">'+(d.cpf||'--')+'</div></div><div class="field"><div class="field-label">Telefone</div><div class="field-value">'+(d.phone||'--')+'</div></div><div class="field"><div class="field-label">Email</div><div class="field-value">'+(d.email||'--')+'</div></div><div class="field"><div class="field-label">CNH Numero</div><div class="field-value">'+(d.cnhNumber||'--')+'</div></div><div class="field"><div class="field-label">CNH Categoria</div><div class="field-value">'+(d.cnhCategory||'--')+'</div></div><div class="field"><div class="field-label">Validade CNH</div><div class="field-value">'+(d.cnhExpiry?new Date(d.cnhExpiry).toLocaleDateString('pt-BR'):'--')+'</div></div><div class="field"><div class="field-label">Rota Vinculada</div><div class="field-value">'+(d.routeName||'--')+'</div></div></div><div class="footer">Gerado por NetEscol em '+new Date().toLocaleDateString('pt-BR')+'</div></body></html>';
+      const w = window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.print();}
+    };
+
     const ca=function(exp:string){
           if(!exp)return null;
           const d=Math.ceil((new Date(exp).getTime()-Date.now())/86400000);
@@ -92,7 +106,7 @@ export default function DriversPage() {
   
     return (
           <div className="p-6">
-                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div>
+                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><div className="flex gap-2"><button onClick={exportDriversCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div></div>
                 <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
                 <div className="grid gap-3">
                   {paginated.map(function(d:any){return(
@@ -103,14 +117,32 @@ export default function DriversPage() {
                                                 <div className="flex gap-3 flex-wrap text-xs text-gray-500">{d.phone&&<span className="flex items-center gap-1"><Phone size={10}/>{d.phone}</span>}{d.email&&<span className="flex items-center gap-1"><Mail size={10}/>{d.email}</span>}{d.cnhNumber&&<span className="flex items-center gap-1"><FileText size={10}/>{d.cnhNumber}</span>}{ca(d.cnhExpiry)}</div>
                                                 <div className="flex gap-2 mt-1">{(d.routeId||d.routeName)&&<span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Navigation size={10}/>{d.routeName || rn(d.routeId)}</span>}{d.vehicleId&&<span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Bus size={10}/>{vp(d.vehicleId)}</span>}</div>
                                   </div>
-                                  <div className="flex items-center gap-1"><button onClick={function(){openEdit(d);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15}/></button><button onClick={function(){setDel(d);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button></div>
+                                  <div className="flex items-center gap-1"><button onClick={function(){setViewDriver(d);}} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg" title="Ver detalhes"><Eye size={15}/></button><button onClick={function(){openEdit(d);}} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15}/></button><button onClick={function(){setDel(d);}} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button></div>
                       </div>
                     );})}
                   {!filtered.length&&!search&&<div className="card text-center py-16"><Truck size={48} className="text-gray-200 mx-auto mb-3"/><p className="text-gray-500 mb-4">Nenhum motorista</p><button className="btn-primary" onClick={openNew}>Adicionar motorista</button></div>}
                 </div>
                 {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
           
-            {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
+            {viewDriver&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold flex items-center gap-2"><Eye size={18} className="text-blue-500"/> Detalhes do Motorista</h3><div className="flex gap-2"><button onClick={function(){printDriver(viewDriver);}} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14}/> Imprimir</button><button onClick={function(){setViewDriver(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div></div>
+      <div className="overflow-y-auto flex-1 p-5">
+        <div className="flex items-center gap-4 mb-5"><div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-2xl font-bold text-orange-700">{viewDriver.name?.[0]}</div><div><h2 className="text-xl font-bold text-gray-900">{viewDriver.name}</h2>{viewDriver.cnhCategory&&<p className="text-sm text-gray-500">CNH {viewDriver.cnhCategory}</p>}</div></div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Telefone</p><p className="text-sm font-medium">{viewDriver.phone||'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Email</p><p className="text-sm font-medium">{viewDriver.email||'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">CPF</p><p className="text-sm font-medium">{viewDriver.cpf||'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">CNH Numero</p><p className="text-sm font-medium">{viewDriver.cnhNumber||'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Categoria</p><p className="text-sm font-medium">{viewDriver.cnhCategory||'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Validade CNH</p><p className="text-sm font-medium">{viewDriver.cnhExpiry?new Date(viewDriver.cnhExpiry).toLocaleDateString('pt-BR'):'--'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Rota</p><p className="text-sm font-medium">{viewDriver.routeName||'Sem rota vinculada'}</p></div>
+          <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Veiculo</p><p className="text-sm font-medium">{viewDriver.vehicleId?vp(viewDriver.vehicleId):'Sem veiculo'}</p></div>
+        </div>
+      </div>
+      <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setViewDriver(null);}} className="btn-secondary flex-1">Fechar</button><button onClick={function(){setViewDriver(null);openEdit(viewDriver);}} className="btn-primary flex-1">Editar</button></div>
+    </div></div>)}
+
+          {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3"/><h3 className="font-bold mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setDel(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:del.id},{onSuccess:function(){refetch();setDel(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
           
             {show&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                     <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Motorista':'Novo Motorista'}</h3><button onClick={function(){setShow(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>

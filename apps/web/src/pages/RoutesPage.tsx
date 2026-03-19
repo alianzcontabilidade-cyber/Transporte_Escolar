@@ -66,7 +66,8 @@ export default function RoutesPage() {
 
   const allRoutes = (routes as any)||[];
   const allTrips = (activeTrips as any)||[];
-  const allDrivers = (drivers as any)||[];
+  const rawDrivers = (drivers as any)||[];
+  const allDrivers = rawDrivers.map(function(d:any){ if(d.driver&&d.user) return { id:d.driver.id, name:d.user.name, cnhCategory:d.driver.cnhCategory, vehicleId:d.driver.vehicleId, routeId:d.linkedRoute?.id||null }; return d; });
   const allVehicles = (vehicles as any)||[];
 
   const filtered=allRoutes.filter(function(r:any){const route=r.route||r;const q=search.toLowerCase();return route.name?.toLowerCase().includes(q)||(route.code||'').toLowerCase().includes(q);});

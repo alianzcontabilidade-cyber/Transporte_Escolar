@@ -99,6 +99,10 @@ export const api = {
     getById: (input: any) => call('municipalities.getById', input, 'query'),
     update: (input: any) => call('municipalities.update', input, 'mutation'),
     getDashboardStats: (input: any) => call('municipalities.getDashboardStats', input, 'query'),
+    listResponsibles: (input: any) => call('municipalities.listResponsibles', input, 'query'),
+    addResponsible: (input: any) => call('municipalities.addResponsible', input, 'mutation'),
+    updateResponsible: (input: any) => call('municipalities.updateResponsible', input, 'mutation'),
+    removeResponsible: (input: any) => call('municipalities.removeResponsible', input, 'mutation'),
   },
   schools: {
     list: (input: any) => call('schools.list', input, 'query'),

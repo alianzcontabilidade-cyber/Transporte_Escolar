@@ -39,63 +39,66 @@ export function useAvailableSignatories() {
     setLoading(true);
     const result: Signatory[] = [];
 
-    // Load from municipality extra data (localStorage)
-    try {
-      const extra = JSON.parse(localStorage.getItem('netescol_mun_extra_' + mid) || '{}');
-
-      // Prefeito
-      if (extra.prefeitoName) {
-        result.push({
-          id: 'prefeito',
-          name: extra.prefeitoName,
-          role: extra.prefeitoCargo || 'Prefeito(a) Municipal',
-          cpf: extra.prefeitoCpf || '',
-          source: 'prefeito',
-        });
+    // Load municipality data from DATABASE (not localStorage)
+    api.municipalities.getById({ id: mid }).then(async (m: any) => {
+      if (m) {
+        // Prefeito
+        if (m.prefeitoName) {
+          result.push({
+            id: 'prefeito',
+            name: m.prefeitoName,
+            role: m.prefeitoCargo || 'Prefeito(a) Municipal',
+            cpf: m.prefeitoCpf || '',
+            source: 'prefeito',
+          });
+        }
+        // Secretário(a) de Educação
+        if (m.secretarioName) {
+          result.push({
+            id: 'secretario',
+            name: m.secretarioName,
+            role: m.secretarioCargo || 'Secretário(a) de Educação',
+            cpf: m.secretarioCpf || '',
+            decree: m.secretarioDecreto || '',
+            source: 'secretario',
+          });
+        }
       }
 
-      // Secretario(a) de Educacao
-      if (extra.secretarioName) {
-        result.push({
-          id: 'secretario',
-          name: extra.secretarioName,
-          role: extra.secretarioCargo || 'Secretario(a) de Educacao',
-          cpf: extra.secretarioCpf || '',
-          decree: extra.secretarioDecreto || '',
-          source: 'secretario',
-        });
-      }
-    } catch {}
-
-    // Load responsaveis
-    try {
-      const responsibles = JSON.parse(localStorage.getItem('netescol_responsibles_' + mid) || '[]');
-      responsibles.forEach((r: any) => {
-        result.push({
-          id: 'resp_' + r.id,
-          name: r.name,
-          role: r.role,
-          cpf: r.cpf || '',
-          decree: r.decree || '',
-          source: 'responsavel',
-        });
-      });
-    } catch {}
-
-    // Load school directors
-    api.schools.list({ municipalityId: mid }).then((schools: any) => {
-      if (Array.isArray(schools)) {
-        schools.forEach((s: any) => {
-          if (s.directorName) {
+      // Load responsáveis from DATABASE
+      try {
+        const responsibles = await api.municipalities.listResponsibles({ municipalityId: mid });
+        if (Array.isArray(responsibles)) {
+          responsibles.forEach((r: any) => {
             result.push({
-              id: 'dir_' + s.id,
-              name: s.directorName,
-              role: 'Diretor(a) - ' + s.name,
-              source: 'diretor',
+              id: 'resp_' + r.id,
+              name: r.name,
+              role: r.role,
+              cpf: r.cpf || '',
+              decree: r.decree || '',
+              source: 'responsavel',
             });
-          }
-        });
-      }
+          });
+        }
+      } catch {}
+
+      // Load school directors
+      try {
+        const schools = await api.schools.list({ municipalityId: mid });
+        if (Array.isArray(schools)) {
+          schools.forEach((s: any) => {
+            if (s.directorName) {
+              result.push({
+                id: 'dir_' + s.id,
+                name: s.directorName,
+                role: 'Diretor(a) - ' + s.name,
+                source: 'diretor',
+              });
+            }
+          });
+        }
+      } catch {}
+
       cachedSignatories = result;
       cachedMid = mid;
       setSignatories(result);

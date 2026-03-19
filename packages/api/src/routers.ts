@@ -12,7 +12,8 @@ import {
   positions, departments, staffAllocations, staffEvaluations,
   financialAccounts, financialTransactions,
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
-  descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList
+  descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
+  municipalityResponsibles
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -342,15 +343,89 @@ export const municipalitiesRouter = t.router({
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional(),
       phone: z.string().optional(),
       address: z.string().optional(),
       logoUrl: z.string().optional(),
       primaryColor: z.string().optional(),
+      cnpj: z.string().optional(),
+      cep: z.string().optional(),
+      logradouro: z.string().optional(),
+      numero: z.string().optional(),
+      complemento: z.string().optional(),
+      bairro: z.string().optional(),
+      fax: z.string().optional(),
+      website: z.string().optional(),
+      prefeitoName: z.string().optional(),
+      prefeitoCpf: z.string().optional(),
+      prefeitoCargo: z.string().optional(),
+      secretariaName: z.string().optional(),
+      secretariaCnpj: z.string().optional(),
+      secretariaPhone: z.string().optional(),
+      secretariaEmail: z.string().optional(),
+      secretariaLogradouro: z.string().optional(),
+      secretarioName: z.string().optional(),
+      secretarioCpf: z.string().optional(),
+      secretarioCargo: z.string().optional(),
+      secretarioDecreto: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
-      await db.update(municipalities).set(data).where(eq(municipalities.id, id));
+      // Remove undefined values
+      const cleanData: any = {};
+      for (const [k, v] of Object.entries(data)) {
+        if (v !== undefined) cleanData[k] = v;
+      }
+      if (Object.keys(cleanData).length > 0) {
+        await db.update(municipalities).set(cleanData).where(eq(municipalities.id, id));
+      }
+      return { success: true };
+    }),
+
+  // Responsáveis do município
+  listResponsibles: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(municipalityResponsibles)
+        .where(eq(municipalityResponsibles.municipalityId, input.municipalityId))
+        .orderBy(municipalityResponsibles.name);
+    }),
+
+  addResponsible: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      name: z.string().min(2),
+      role: z.string().min(2),
+      cpf: z.string().optional(),
+      decree: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [r] = await db.insert(municipalityResponsibles).values(input).$returningId();
+      return { success: true, id: r.id };
+    }),
+
+  updateResponsible: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      role: z.string().optional(),
+      cpf: z.string().optional(),
+      decree: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const cleanData: any = {};
+      for (const [k, v] of Object.entries(data)) { if (v !== undefined) cleanData[k] = v; }
+      if (Object.keys(cleanData).length > 0) {
+        await db.update(municipalityResponsibles).set(cleanData).where(eq(municipalityResponsibles.id, id));
+      }
+      return { success: true };
+    }),
+
+  removeResponsible: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(municipalityResponsibles).where(eq(municipalityResponsibles.id, input.id));
       return { success: true };
     }),
 

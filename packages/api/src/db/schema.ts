@@ -39,9 +39,49 @@ export const municipalities = mysqlTable("municipalities", {
   isActive: boolean("isActive").default(true).notNull(),
   subscriptionPlan: mysqlEnum("subscriptionPlan", ["free", "basic", "premium", "enterprise"]).default("free").notNull(),
   subscriptionExpiresAt: timestamp("subscriptionExpiresAt"),
-  
+
+  // Endereço completo
+  cep: varchar("cep", { length: 9 }),
+  logradouro: varchar("logradouro", { length: 255 }),
+  numero: varchar("numero", { length: 10 }),
+  complemento: varchar("complemento", { length: 100 }),
+  bairro: varchar("bairro", { length: 100 }),
+  fax: varchar("fax", { length: 20 }),
+  website: varchar("website", { length: 255 }),
+
+  // Prefeito(a)
+  prefeitoName: varchar("prefeitoName", { length: 255 }),
+  prefeitoCpf: varchar("prefeitoCpf", { length: 14 }),
+  prefeitoCargo: varchar("prefeitoCargo", { length: 100 }),
+
+  // Secretaria de Educação
+  secretariaName: varchar("secretariaName", { length: 255 }),
+  secretariaCnpj: varchar("secretariaCnpj", { length: 18 }),
+  secretariaPhone: varchar("secretariaPhone", { length: 20 }),
+  secretariaEmail: varchar("secretariaEmail", { length: 320 }),
+  secretariaLogradouro: varchar("secretariaLogradouro", { length: 255 }),
+
+  // Secretário(a) de Educação
+  secretarioName: varchar("secretarioName", { length: 255 }),
+  secretarioCpf: varchar("secretarioCpf", { length: 14 }),
+  secretarioCargo: varchar("secretarioCargo", { length: 100 }),
+  secretarioDecreto: varchar("secretarioDecreto", { length: 100 }),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: RESPONSÁVEIS DO MUNICÍPIO
+// ============================================
+export const municipalityResponsibles = mysqlTable("municipality_responsibles", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 100 }).notNull(),
+  cpf: varchar("cpf", { length: 14 }),
+  decree: varchar("decree", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 // ============================================

@@ -54,7 +54,6 @@ export default function MunicipalitySettingsPage() {
     setLoading(true);
     api.municipalities.getById({ id: mid }).then((m: any) => {
       if (m) {
-        const addr = m.address || '';
         setForm(f => ({
           ...f,
           name: m.name || '',
@@ -64,18 +63,32 @@ export default function MunicipalitySettingsPage() {
           cidade: m.city || '',
           estado: m.state || '',
           logoUrl: m.logoUrl || '',
-          logradouro: addr,
+          logradouro: m.logradouro || m.address || '',
+          numero: m.numero || '',
+          complemento: m.complemento || '',
+          bairro: m.bairro || '',
+          cep: m.cep || '',
+          fax: m.fax || '',
+          website: m.website || '',
+          prefeitoName: m.prefeitoName || '',
+          prefeitoCpf: m.prefeitoCpf || '',
+          prefeitoCargo: m.prefeitoCargo || 'Prefeito(a) Municipal',
+          secretariaName: m.secretariaName || '',
+          secretariaCnpj: m.secretariaCnpj || '',
+          secretariaPhone: m.secretariaPhone || '',
+          secretariaEmail: m.secretariaEmail || '',
+          secretariaLogradouro: m.secretariaLogradouro || '',
+          secretarioName: m.secretarioName || '',
+          secretarioCpf: m.secretarioCpf || '',
+          secretarioCargo: m.secretarioCargo || 'Secretário(a) de Educação',
+          secretarioDecreto: m.secretarioDecreto || '',
         }));
       }
-      // Load from localStorage
-      try {
-        const saved = JSON.parse(localStorage.getItem('netescol_responsibles_' + mid) || '[]');
-        setResponsibles(saved);
-      } catch {}
-      try {
-        const extra = JSON.parse(localStorage.getItem('netescol_mun_extra_' + mid) || '{}');
-        if (extra) setForm(f => ({ ...f, ...extra }));
-      } catch {}
+      // Load responsibles from database
+      api.municipalities.listResponsibles({ municipalityId: mid }).then((r: any) => {
+        if (Array.isArray(r)) setResponsibles(r);
+      }).catch(() => {});
+      // Load custom roles from localStorage (small data, ok to keep here)
       try {
         const roles = JSON.parse(localStorage.getItem('netescol_custom_roles_' + mid) || '[]');
         setCustomRoles(roles);
@@ -136,25 +149,25 @@ export default function MunicipalitySettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const addResponsible = () => {
+  const addResponsible = async () => {
     if (!newResp.name || !newResp.role) return;
-    const r: Responsible = { id: Date.now(), ...newResp };
-    const next = [...responsibles, r];
-    setResponsibles(next);
-    localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
-    setNewResp({ name: '', role: '', cpf: '', decree: '' });
+    try {
+      const result = await api.municipalities.addResponsible({ municipalityId: mid, ...newResp });
+      setResponsibles(prev => [...prev, { id: result.id, ...newResp }]);
+      setNewResp({ name: '', role: '', cpf: '', decree: '' });
+    } catch (e: any) { setMsg('Erro ao adicionar: ' + (e.message || '')); }
   };
 
-  const updateResponsible = (id: number, data: Partial<Responsible>) => {
-    const next = responsibles.map(r => r.id === id ? { ...r, ...data } : r);
-    setResponsibles(next);
-    localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
+  const updateResponsible = async (id: number, data: Partial<Responsible>) => {
+    setResponsibles(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+    try { await api.municipalities.updateResponsible({ id, ...data }); }
+    catch {}
   };
 
-  const removeResponsible = (id: number) => {
-    const next = responsibles.filter(r => r.id !== id);
-    setResponsibles(next);
-    localStorage.setItem('netescol_responsibles_' + mid, JSON.stringify(next));
+  const removeResponsible = async (id: number) => {
+    setResponsibles(prev => prev.filter(r => r.id !== id));
+    try { await api.municipalities.removeResponsible({ id }); }
+    catch {}
   };
 
   const addCustomRole = () => {
@@ -171,13 +184,33 @@ export default function MunicipalitySettingsPage() {
     try {
       const fullAddress = [form.logradouro, form.numero, form.complemento, form.bairro].filter(Boolean).join(', ');
       await api.municipalities.update({
-        id: mid, name: form.name || undefined, email: form.email || undefined,
-        phone: form.phone || undefined, address: fullAddress || undefined,
+        id: mid,
+        name: form.name || undefined,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        address: fullAddress || undefined,
         logoUrl: form.logoUrl || undefined,
+        cnpj: form.cnpj || undefined,
+        cep: form.cep || undefined,
+        logradouro: form.logradouro || undefined,
+        numero: form.numero || undefined,
+        complemento: form.complemento || undefined,
+        bairro: form.bairro || undefined,
+        fax: form.fax || undefined,
+        website: form.website || undefined,
+        prefeitoName: form.prefeitoName || undefined,
+        prefeitoCpf: form.prefeitoCpf || undefined,
+        prefeitoCargo: form.prefeitoCargo || undefined,
+        secretariaName: form.secretariaName || undefined,
+        secretariaCnpj: form.secretariaCnpj || undefined,
+        secretariaPhone: form.secretariaPhone || undefined,
+        secretariaEmail: form.secretariaEmail || undefined,
+        secretariaLogradouro: form.secretariaLogradouro || undefined,
+        secretarioName: form.secretarioName || undefined,
+        secretarioCpf: form.secretarioCpf || undefined,
+        secretarioCargo: form.secretarioCargo || undefined,
+        secretarioDecreto: form.secretarioDecreto || undefined,
       });
-      // Save all extra fields in localStorage
-      const { name: _n, ...extraFields } = form;
-      localStorage.setItem('netescol_mun_extra_' + mid, JSON.stringify(extraFields));
       setMsg('Dados salvos com sucesso!');
     } catch (e: any) { setMsg('Erro: ' + (e.message || 'Falha ao salvar')); }
     finally { setSaving(false); setTimeout(() => setMsg(''), 5000); }

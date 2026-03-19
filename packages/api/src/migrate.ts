@@ -21,6 +21,37 @@ async function migrate() {
       if (!e.message?.includes('Duplicate')) console.log('users.role enum already up to date or:', e.message);
     }
 
+    // Municipality extra columns (v3.2 - dados prefeito, secretaria, responsaveis)
+    const munCols = [
+      "cep VARCHAR(9)", "logradouro VARCHAR(255)", "numero VARCHAR(10)",
+      "complemento VARCHAR(100)", "bairro VARCHAR(100)", "fax VARCHAR(20)", "website VARCHAR(255)",
+      "prefeitoName VARCHAR(255)", "prefeitoCpf VARCHAR(14)", "prefeitoCargo VARCHAR(100)",
+      "secretariaName VARCHAR(255)", "secretariaCnpj VARCHAR(18)",
+      "secretariaPhone VARCHAR(20)", "secretariaEmail VARCHAR(320)", "secretariaLogradouro VARCHAR(255)",
+      "secretarioName VARCHAR(255)", "secretarioCpf VARCHAR(14)",
+      "secretarioCargo VARCHAR(100)", "secretarioDecreto VARCHAR(100)",
+    ];
+    for (const col of munCols) {
+      const colName = col.split(' ')[0];
+      try { await conn.execute(`ALTER TABLE municipalities ADD COLUMN ${col}`); console.log(`Added municipalities.${colName}`); }
+      catch (e: any) { if (!e.message?.includes('Duplicate column')) console.log(`municipalities.${colName}: ${e.message?.substring(0,60)}`); }
+    }
+
+    // Responsibles table
+    try {
+      await conn.execute(`CREATE TABLE IF NOT EXISTS municipality_responsibles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(100) NOT NULL,
+        cpf VARCHAR(14),
+        decree VARCHAR(100),
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id)
+      )`);
+      console.log('Created municipality_responsibles table');
+    } catch (e: any) { console.log('municipality_responsibles:', e.message?.substring(0,60)); }
+
     // Create new tables if they don't exist
     const tables = [
       `CREATE TABLE IF NOT EXISTS academic_years (

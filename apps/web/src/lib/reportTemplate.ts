@@ -52,7 +52,7 @@ function formatDateBR(): string {
   return `${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
-// Load municipality + secretaria data from API + localStorage
+// Load municipality + secretaria data from DATABASE
 export async function loadMunicipalityData(mid: number, api: any): Promise<{ municipality: ReportMunicipality; secretaria: ReportSecretaria }> {
   const municipality: ReportMunicipality = { name: '', city: '', state: '' };
   const secretaria: ReportSecretaria = {};
@@ -66,28 +66,24 @@ export async function loadMunicipalityData(mid: number, api: any): Promise<{ mun
       municipality.phone = m.phone || '';
       municipality.email = m.email || '';
       municipality.logoUrl = m.logoUrl || '';
-      municipality.address = m.address || '';
-    }
-  } catch {}
+      municipality.cnpj = m.cnpj || '';
 
-  try {
-    const extra = JSON.parse(localStorage.getItem('netescol_mun_extra_' + mid) || '{}');
-    municipality.cnpj = extra.cnpj || '';
-    municipality.logoUrl = municipality.logoUrl || extra.logoUrl || '';
-    if (extra.logradouro) {
-      municipality.address = [extra.logradouro, extra.numero, extra.bairro, extra.cidade, extra.estado].filter(Boolean).join(', ');
-    }
-    municipality.city = municipality.city || extra.cidade || '';
-    municipality.state = municipality.state || extra.estado || '';
-    municipality.phone = municipality.phone || extra.phone || '';
+      // Address from structured fields (DB) or legacy address field
+      if (m.logradouro) {
+        municipality.address = [m.logradouro, m.numero, m.bairro, m.city, m.state].filter(Boolean).join(', ');
+      } else {
+        municipality.address = m.address || '';
+      }
 
-    secretaria.name = extra.secretariaName || '';
-    secretaria.cnpj = extra.secretariaCnpj || '';
-    secretaria.secretarioName = extra.secretarioName || '';
-    secretaria.secretarioCargo = extra.secretarioCargo || 'Secretario(a) de Educação';
-    secretaria.phone = extra.secretariaPhone || '';
-    secretaria.email = extra.secretariaEmail || '';
-    secretaria.address = extra.secretariaLogradouro || '';
+      // Secretaria data from DB
+      secretaria.name = m.secretariaName || '';
+      secretaria.cnpj = m.secretariaCnpj || '';
+      secretaria.secretarioName = m.secretarioName || '';
+      secretaria.secretarioCargo = m.secretarioCargo || 'Secretário(a) de Educação';
+      secretaria.phone = m.secretariaPhone || '';
+      secretaria.email = m.secretariaEmail || '';
+      secretaria.address = m.secretariaLogradouro || '';
+    }
   } catch {}
 
   return { municipality, secretaria };

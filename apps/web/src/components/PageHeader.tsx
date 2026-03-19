@@ -1,7 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Star } from 'lucide-react';
+import { Home, Star, Printer, Download, FileText, FileSpreadsheet, Search, Clock, X } from 'lucide-react';
 
-// Page code registry
 const PAGE_CODES: Record<string, { code: string; title: string; module: string; color: string }> = {
   '/dashboard': { code: '001', title: 'Dashboard', module: 'Painel', color: '#2DB5B0' },
   '/escolas': { code: '101', title: 'Escolas', module: 'Secretaria', color: '#6366f1' },
@@ -47,31 +47,164 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/configuracoes': { code: '501', title: 'Configurações', module: 'Config', color: '#64748b' },
   '/ia-rotas': { code: '502', title: 'IA Rotas', module: 'Config', color: '#64748b' },
   '/super-admin': { code: '503', title: 'Super Admin', module: 'Config', color: '#64748b' },
-  '/transparencia': { code: '504', title: 'Transparência', module: 'Config', color: '#64748b' },
-  '/modulos': { code: '000', title: 'Módulos', module: 'Painel', color: '#2DB5B0' },
 };
+
+// Favorites management
+function getFavorites(): string[] {
+  try { return JSON.parse(localStorage.getItem('netescol_favorites') || '[]'); } catch { return []; }
+}
+function saveFavorites(favs: string[]) {
+  localStorage.setItem('netescol_favorites', JSON.stringify(favs));
+}
+function toggleFavorite(path: string): string[] {
+  const favs = getFavorites();
+  const idx = favs.indexOf(path);
+  if (idx >= 0) favs.splice(idx, 1);
+  else favs.push(path);
+  saveFavorites(favs);
+  return favs;
+}
+
+// History management
+function getHistory(): { path: string; time: string }[] {
+  try { return JSON.parse(localStorage.getItem('netescol_history') || '[]'); } catch { return []; }
+}
+function addToHistory(path: string) {
+  const hist = getHistory().filter(h => h.path !== path);
+  hist.unshift({ path, time: new Date().toISOString() });
+  localStorage.setItem('netescol_history', JSON.stringify(hist.slice(0, 20)));
+}
+
+// Export function
+function exportPage(format: string, title: string) {
+  const content = document.querySelector('main')?.innerHTML || '';
+  const pageTitle = title + ' - NetEscol';
+
+  if (format === 'print') {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px;color:#333}h1{color:#1B3A5C;border-bottom:2px solid #2DB5B0;padding-bottom:8px}
+      table{width:100%;border-collapse:collapse}th{background:#1B3A5C;color:white;padding:8px;text-align:left}td{padding:6px 8px;border:1px solid #ddd}
+      .footer{margin-top:20px;text-align:center;font-size:10px;color:#999}
+      button,input[type=file],select,.btn-primary,.btn-secondary{display:none!important}
+      @media print{body{padding:0}}</style></head><body>
+      <h1>${pageTitle}</h1>${content}
+      <div class="footer">Gerado por NetEscol em ${new Date().toLocaleString('pt-BR')}</div></body></html>`);
+      w.document.close();
+      setTimeout(() => w.print(), 500);
+    }
+    return;
+  }
+
+  if (format === 'pdf') {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>
+      <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:20px}
+      table{width:100%;border-collapse:collapse;font-size:12px}th{background:#1B3A5C;color:white;padding:8px;text-align:left}
+      td{padding:6px 8px;border:1px solid #ddd}tr:nth-child(even){background:#f8f9fa}
+      .card,.rounded-xl,.rounded-2xl{border:1px solid #eee;padding:10px;margin:5px 0;border-radius:8px}
+      button,input[type=file],select,.btn-primary,.btn-secondary,.fixed{display:none!important}
+      .footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
+      @media print{body{padding:15px}}</style></head><body>
+      <h1>${pageTitle}</h1>${content}
+      <div class="footer">Gerado por NetEscol em ${new Date().toLocaleString('pt-BR')} | Salve como PDF na janela de impressao</div></body></html>`);
+      w.document.close();
+      setTimeout(() => w.print(), 500);
+    }
+    return;
+  }
+
+  if (format === 'excel') {
+    // Extract tables from the page
+    const tables = document.querySelectorAll('main table');
+    if (tables.length === 0) { alert('Nenhuma tabela encontrada nesta página para exportar'); return; }
+    let csv = '';
+    tables.forEach(table => {
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const rowData = Array.from(cells).map(cell => '"' + (cell.textContent || '').replace(/"/g, '""').trim() + '"');
+        csv += rowData.join(';') + '\n';
+      });
+      csv += '\n';
+    });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = title.replace(/\s/g, '_') + '_netescol.csv';
+    a.click();
+    return;
+  }
+
+  if (format === 'html') {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title></head><body>
+    <h1>${pageTitle}</h1>${content}
+    <p style="margin-top:20px;font-size:10px;color:#999">Gerado por NetEscol em ${new Date().toLocaleString('pt-BR')}</p></body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = title.replace(/\s/g, '_') + '_netescol.html';
+    a.click();
+  }
+}
+
+export { PAGE_CODES, getFavorites, getHistory };
 
 export default function PageHeader() {
   const location = useLocation();
   const path = location.pathname;
   const page = PAGE_CODES[path];
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
-  // Don't show on home/modules page
+  useEffect(() => {
+    if (page) {
+      setIsFavorite(getFavorites().includes(path));
+      addToHistory(path);
+    }
+  }, [path]);
+
   if (!page || path === '/' || path === '/modulos') return null;
 
+  const handleFavorite = () => {
+    const newFavs = toggleFavorite(path);
+    setIsFavorite(newFavs.includes(path));
+  };
+
   return (
-    <div className="flex items-center gap-0" style={{ backgroundColor: page.color }}>
-      <Link to="/" className="flex items-center justify-center w-11 h-11 hover:bg-white/20 transition-colors" title="Voltar ao início">
-        <Home size={18} className="text-white" />
-      </Link>
-      <div className="flex items-center gap-3 px-4 py-2.5 flex-1">
-        <span className="bg-white/20 text-white font-bold text-sm px-2.5 py-0.5 rounded">{page.code}</span>
-        <span className="text-white font-semibold text-[0.9375rem]">{page.title}</span>
-        <span className="text-white/50 text-xs hidden sm:inline">• {page.module}</span>
+    <>
+      <div className="flex items-center" style={{ backgroundColor: page.color }}>
+        <Link to="/" className="flex items-center justify-center w-11 h-11 hover:bg-white/20 transition-colors" title="Voltar ao início">
+          <Home size={18} className="text-white" />
+        </Link>
+        <div className="flex items-center gap-3 px-3 py-2 flex-1 min-w-0">
+          <span className="bg-white/20 text-white font-bold text-sm px-2.5 py-0.5 rounded flex-shrink-0">{page.code}</span>
+          <span className="text-white font-semibold text-[0.9375rem] truncate">{page.title}</span>
+          <span className="text-white/50 text-xs hidden md:inline flex-shrink-0">• {page.module}</span>
+        </div>
+        <div className="flex items-center gap-1 pr-2">
+          <button onClick={handleFavorite} className={`p-2 rounded-lg transition-all ${isFavorite ? 'text-yellow-300 bg-white/10' : 'text-white/50 hover:text-yellow-300 hover:bg-white/10'}`} title={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
+            <Star size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
+          <button onClick={() => setShowExport(!showExport)} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all" title="Exportar / Imprimir">
+            <Download size={16} />
+          </button>
+        </div>
       </div>
-      <Link to="/" className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg text-xs transition-colors">
-        <Star size={12} /> Início
-      </Link>
-    </div>
+
+      {/* Export dropdown */}
+      {showExport && (
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500 mr-2">Exportar como:</span>
+          <button onClick={() => { exportPage('print', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"><Printer size={14} /> Impressão Direta</button>
+          <button onClick={() => { exportPage('pdf', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors"><FileText size={14} /> PDF (Salvar)</button>
+          <button onClick={() => { exportPage('excel', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"><FileSpreadsheet size={14} /> Excel (CSV)</button>
+          <button onClick={() => { exportPage('html', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-orange-50 text-orange-700 hover:bg-orange-100 rounded-lg transition-colors"><Download size={14} /> HTML</button>
+          <button onClick={() => setShowExport(false)} className="ml-auto p-1 text-gray-400 hover:text-gray-600"><X size={14} /></button>
+        </div>
+      )}
+    </>
   );
 }

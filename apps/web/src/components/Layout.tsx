@@ -10,11 +10,12 @@ import {
   Bell, Shield, Brain, Wrench, UserCheck, ChevronRight, Navigation,
   Locate, MapPinned, Download, Calendar, BookOpen, Briefcase,
   GraduationCap, DollarSign, Package, Database, Moon, Sun, AlertTriangle,
-  Search, PanelLeftClose, PanelLeft
+  Search, PanelLeftClose, PanelLeft, Star, Clock
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
 import PageHeader from './PageHeader';
+import { getFavorites as getFavoritesFunc, getHistory as getHistoryFunc } from './PageHeader';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -328,6 +329,32 @@ export default function Layout() {
   const SidebarContent = () => (
     <>
       <nav className="flex-1 overflow-y-auto p-3">
+        {/* Favoritos e Histórico */}
+        {isAdmin && (() => {
+          const favPaths = getFavoritesFunc();
+          const histPaths = getHistoryFunc();
+          const favPages = favPaths.map((p: string) => allPages.find(ap => ap.to === p)).filter(Boolean);
+          const histPages = histPaths.slice(0, 5).map((h: any) => allPages.find(ap => ap.to === h.path)).filter(Boolean);
+          if (favPages.length === 0 && histPages.length === 0) return null;
+          return (
+            <div className="mb-3">
+              {favPages.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider px-2 mb-1 flex items-center gap-1"><Star size={10} fill="currentColor" /> Favoritos</p>
+                  {favPages.map((p: any) => <NavLink key={p.to} to={p.to} icon={Star} text={p.text} />)}
+                </div>
+              )}
+              {histPages.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider px-2 mb-1 flex items-center gap-1"><Clock size={10} /> Recentes</p>
+                  {histPages.map((p: any) => <NavLink key={p.to} to={p.to} icon={Clock} text={p.text} />)}
+                </div>
+              )}
+              <div className="border-b border-white/10 my-2" />
+            </div>
+          );
+        })()}
+
         {/* PAINEL - Grid de módulos */}
         {isAdmin && !activeModule && (
           <div>

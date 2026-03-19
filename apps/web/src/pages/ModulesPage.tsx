@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
+import DashboardWidget from '../components/DashboardWidget';
 import {
   LayoutDashboard, School, GraduationCap, Bus, Briefcase, Settings,
   Users, MapPin, BarChart3, ArrowRight
@@ -117,6 +118,9 @@ export default function ModulesPage() {
           <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"><Bus size={20} className="text-green-600" /></div><div><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.activeTrips}</p><p className="text-xs text-gray-500">Viagens Ativas</p></div></div>
         </div>
       </div>
+
+      {/* Live Status */}
+      <DashboardWidget />
 
       {/* Module Banners - Grid 3 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">

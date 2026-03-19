@@ -199,6 +199,8 @@ export default function Layout() {
     { code: '504', to: '/atividade-usuarios', text: 'Atividade Usuários', module: 'Central de Controle', desc: 'Quem está online, último acesso', tags: 'atividade usuario online acesso log', color: '#64748b' },
     { code: '210', to: '/grade-horaria', text: 'Grade Horária', module: 'Ensino e Aprendizagem', desc: 'Horário de aulas por turma e dia', tags: 'grade horaria horario aula dia semana disciplina', color: '#8b5cf6' },
     { code: '505', to: '/sobre', text: 'Sobre o Sistema', module: 'Central de Controle', desc: 'Informações, versão e funcionalidades', tags: 'sobre sistema versao informacao ajuda', color: '#64748b' },
+    { code: '114', to: '/ficha-aluno', text: 'Ficha do Aluno', module: 'Gestão Escolar', desc: 'Ficha completa do aluno para impressão', tags: 'ficha aluno completa impressao dados', color: '#6366f1' },
+    { code: '506', to: '/backup', text: 'Backup de Dados', module: 'Central de Controle', desc: 'Exportar dados do sistema para segurança', tags: 'backup exportar dados seguranca json csv', color: '#64748b' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -226,6 +228,7 @@ export default function Layout() {
       { to: '/remanejamento', icon: Users, text: 'Remanejamento' }, { to: '/carteirinha', icon: Users, text: 'Carteirinha' },
       { to: '/promocao', icon: Users, text: 'Promoção' }, { to: '/historico-escolar', icon: BookOpen, text: 'Histórico' },
       { to: '/declaracoes', icon: FileText, text: 'Declarações' },
+      { to: '/ficha-aluno', icon: FileText, text: 'Ficha do Aluno' },
     ]},
     { key: 'pedagogico', label: 'Ensino e Aprendizagem', icon: GraduationCap, color: '#8b5cf6', items: [
       { to: '/disciplinas', icon: FileText, text: 'Disciplinas' }, { to: '/diario-escolar', icon: BookOpen, text: 'Diário Escolar' },
@@ -255,6 +258,7 @@ export default function Layout() {
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },
+      { to: '/backup', icon: Database, text: 'Backup de Dados' },
       ...(role === 'super_admin' ? [{ to: '/super-admin', icon: Shield, text: 'Super Admin' }] : []),
     ]},
   ];

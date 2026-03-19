@@ -56,6 +56,8 @@ import BulkNotifyPage from './pages/BulkNotifyPage';
 import PurchaseQuotationPage from './pages/PurchaseQuotationPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import SystemInfoPage from './pages/SystemInfoPage';
+import StudentReportPage from './pages/StudentReportPage';
+import DataBackupPage from './pages/DataBackupPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -149,6 +151,8 @@ export default function App() {
         <Route path="envio-massa" element={<Guard roles={ADMIN_SEC}><BulkNotifyPage /></Guard>} />
         <Route path="cotacao-compras" element={<Guard roles={ADMIN}><PurchaseQuotationPage /></Guard>} />
         <Route path="grade-horaria" element={<Guard roles={ADMIN_SEC}><ClassSchedulePage /></Guard>} />
+        <Route path="ficha-aluno" element={<Guard roles={ADMIN_SEC}><StudentReportPage /></Guard>} />
+        <Route path="backup" element={<Guard roles={ADMIN}><DataBackupPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

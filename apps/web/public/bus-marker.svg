@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Shadow -->
+  <ellipse cx="24" cy="46" rx="14" ry="2" fill="rgba(0,0,0,0.15)"/>
+  <!-- Bus body -->
+  <rect x="6" y="8" width="36" height="30" rx="6" fill="#FDB813"/>
+  <rect x="6" y="8" width="36" height="30" rx="6" stroke="#E8A000" stroke-width="1"/>
+  <!-- Roof -->
+  <rect x="8" y="6" width="32" height="6" rx="3" fill="#FFD54F"/>
+  <!-- Windows -->
+  <rect x="10" y="14" width="8" height="8" rx="2" fill="#E3F2FD" stroke="#FFA000" stroke-width="0.5"/>
+  <rect x="20" y="14" width="8" height="8" rx="2" fill="#E3F2FD" stroke="#FFA000" stroke-width="0.5"/>
+  <rect x="30" y="14" width="8" height="8" rx="2" fill="#E3F2FD" stroke="#FFA000" stroke-width="0.5"/>
+  <!-- Front/door stripe -->
+  <rect x="6" y="26" width="36" height="3" fill="#FFA000"/>
+  <!-- Headlights -->
+  <circle cx="10" cy="34" r="2.5" fill="#FFF9C4"/>
+  <circle cx="38" cy="34" r="2.5" fill="#FFF9C4"/>
+  <!-- Tail lights -->
+  <circle cx="10" cy="34" r="1.5" fill="#FFEB3B"/>
+  <circle cx="38" cy="34" r="1.5" fill="#FFEB3B"/>
+  <!-- Bumper -->
+  <rect x="8" y="36" width="32" height="2" rx="1" fill="#E8A000"/>
+  <!-- Wheels -->
+  <circle cx="14" cy="40" r="4" fill="#424242"/>
+  <circle cx="14" cy="40" r="2" fill="#757575"/>
+  <circle cx="34" cy="40" r="4" fill="#424242"/>
+  <circle cx="34" cy="40" r="2" fill="#757575"/>
+  <!-- ESCOLAR text -->
+  <text x="24" y="33" text-anchor="middle" font-family="Arial,sans-serif" font-size="4" font-weight="bold" fill="#5D4037">ESCOLAR</text>
+</svg>

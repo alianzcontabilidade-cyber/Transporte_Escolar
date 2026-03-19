@@ -47,11 +47,7 @@ function TrackingMap({ position, stops }: { position: any; stops?: any[] }) {
     const L = (window as any).L;
     if (!mapInstanceRef.current || !L || !position) return;
 
-    const icon = L.divIcon({
-      html: `<div style="background:#f97316;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);animation:pulse 2s infinite">BUS</div>
-      <style>@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}</style>`,
-      className: '', iconSize: [40, 40], iconAnchor: [20, 20]
-    });
+    const icon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [48, 48], iconAnchor: [24, 44], popupAnchor: [0, -44] });
 
     if (markerRef.current) {
       markerRef.current.setLatLng([position.latitude, position.longitude]);

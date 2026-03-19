@@ -47,10 +47,7 @@ function LiveMap({ driverLocation, stops }: any) {
   useEffect(() => {
     const L = (window as any).L;
     if (!mapInstanceRef.current || !L || !driverLocation?.lat) return;
-    const icon = L.divIcon({
-      html: '<div style="background:#f97316;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulse 2s infinite;">BUS</div>',
-      className: '', iconSize: [40, 40], iconAnchor: [20, 20]
-    });
+    const icon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [48, 48], iconAnchor: [24, 44], popupAnchor: [0, -44] });
     if (busMarkerRef.current) {
       busMarkerRef.current.setLatLng([driverLocation.lat, driverLocation.lng]);
     } else {

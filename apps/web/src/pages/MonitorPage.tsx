@@ -42,10 +42,7 @@ function LiveMap({ trips, locations }: any) {
     const L = (window as any).L;
     if (!mapInstanceRef.current || !L) return;
     locations.forEach((loc: any, tripId: number) => {
-      const icon = L.divIcon({
-        html: '<div style="background:#f97316;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:12px;font-weight:bold;">BUS</div>',
-        className: '', iconSize: [36, 36], iconAnchor: [18, 18]
-      });
+      const icon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [48, 48], iconAnchor: [24, 44], popupAnchor: [0, -44] });
       const trip = trips?.find((t: any) => t.trip?.id === tripId);
       if (markersRef.current.has(tripId)) { markersRef.current.get(tripId).setLatLng([loc.lat, loc.lng]); }
       else {

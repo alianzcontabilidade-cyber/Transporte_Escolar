@@ -45,7 +45,7 @@ export interface ReportTemplateOptions {
   fontFamily?: 'serif' | 'sans-serif';
 }
 
-const MONTHS = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
 function formatDateBR(): string {
   const d = new Date();
@@ -84,7 +84,7 @@ export async function loadMunicipalityData(mid: number, api: any): Promise<{ mun
     secretaria.name = extra.secretariaName || '';
     secretaria.cnpj = extra.secretariaCnpj || '';
     secretaria.secretarioName = extra.secretarioName || '';
-    secretaria.secretarioCargo = extra.secretarioCargo || 'Secretario(a) de Educacao';
+    secretaria.secretarioCargo = extra.secretarioCargo || 'Secretario(a) de Educação';
     secretaria.phone = extra.secretariaPhone || '';
     secretaria.email = extra.secretariaEmail || '';
     secretaria.address = extra.secretariaLogradouro || '';
@@ -265,7 +265,7 @@ ${sigHTML}
 </td></tr><tr><td class="td-footer">
 <div class="report-footer-bar">
   ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
-  <div class="footer-line footer-brand">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  <div class="footer-line footer-brand">NetEscol - Sistema de Gestão Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
 </div>
 </td></tr></table>
 </body></html>`;
@@ -280,39 +280,95 @@ export function printReportHTML(html: string) {
   }
 }
 
-// Open report in new tab with toolbar (Save PDF, Print, Download Word)
+// Open report in new tab with action toolbar
 export async function openReportAsPDF(html: string, filename?: string) {
-  const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_');
+  const safeNameClean = safeName.replace(/_+/g, '_');
 
-  // Inject action bar at top of HTML (hidden when printing)
+  const actionBarScript = `
+<script>
+function downloadWord() {
+  var bar = document.getElementById('report-action-bar');
+  var barHTML = bar ? bar.outerHTML : '';
+  var styleBar = document.getElementById('action-bar-style');
+  var styleHTML = styleBar ? styleBar.outerHTML : '';
+  var fullHTML = document.documentElement.outerHTML.replace(barHTML, '').replace(styleHTML, '');
+  var wordWrap = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif}</style></head>' + fullHTML.substring(fullHTML.indexOf('<body'));
+  var blob = new Blob(['\\uFEFF' + wordWrap], {type: 'application/msword'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '${safeNameClean}.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function downloadPDF() {
+  var btn = document.getElementById('btn-pdf');
+  btn.innerHTML = 'Gerando PDF...';
+  btn.disabled = true;
+  var script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+  script.onload = function() {
+    var bar = document.getElementById('report-action-bar');
+    bar.style.display = 'none';
+    var opt = {
+      margin: [10, 10, 10, 10],
+      filename: '${safeNameClean}.pdf',
+      image: {type: 'jpeg', quality: 0.95},
+      html2canvas: {scale: 2, useCORS: true},
+      jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
+    };
+    html2pdf().set(opt).from(document.body).save().then(function() {
+      bar.style.display = 'flex';
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF';
+      btn.disabled = false;
+    });
+  };
+  document.head.appendChild(script);
+}
+function imprimirDoc() {
+  var bar = document.getElementById('report-action-bar');
+  bar.style.display = 'none';
+  setTimeout(function() {
+    window.print();
+    setTimeout(function() { bar.style.display = 'flex'; }, 500);
+  }, 100);
+}
+<\/script>`;
+
   const actionBar = `
-    <div id="report-action-bar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#1B3A5C;padding:8px 20px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-family:Arial,sans-serif">
-      <span style="color:white;font-size:14px;font-weight:bold;flex:1">NetEscol - ${safeName.replace(/_/g, ' ')}</span>
-      <button onclick="document.getElementById('report-action-bar').style.display='none';window.print();setTimeout(function(){document.getElementById('report-action-bar').style.display='flex'},500)"
-        style="background:#e53e3e;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;display:flex;align-items:center;gap:6px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Salvar como PDF
-      </button>
-      <button onclick="document.getElementById('report-action-bar').style.display='none';window.print();setTimeout(function(){document.getElementById('report-action-bar').style.display='flex'},500)"
-        style="background:#3182ce;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Imprimir
-      </button>
-      <button onclick="var b=new Blob(['\\uFEFF'+document.documentElement.outerHTML.replace(document.getElementById('report-action-bar').outerHTML,'')],{type:'application/msword;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='${safeName}.doc';a.click()"
-        style="background:#2B579A;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg>
-        Word
-      </button>
-    </div>
-    <style>
-      @media print { #report-action-bar { display:none!important } }
-      body { padding-top: 52px !important; }
-      @media print { body { padding-top: 0 !important; } }
-    </style>
-  `;
+<style id="action-bar-style">
+  #report-action-bar { position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 12px rgba(0,0,0,0.4);font-family:Arial,sans-serif }
+  #report-action-bar .bar-title { color:white;font-size:14px;font-weight:bold;flex:1 }
+  #report-action-bar button { border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.2s }
+  #report-action-bar button:hover { opacity:0.9 }
+  #report-action-bar button:disabled { opacity:0.5;cursor:wait }
+  .btn-pdf-dl { background:#e53e3e;color:white }
+  .btn-print { background:#3182ce;color:white }
+  .btn-word { background:#2B579A;color:white }
+  body { padding-top: 56px !important }
+  @media print { #report-action-bar, #action-bar-style + style { display:none!important } body { padding-top:0!important } }
+</style>
+<div id="report-action-bar">
+  <span class="bar-title">NetEscol</span>
+  <button id="btn-pdf" class="btn-pdf-dl" onclick="downloadPDF()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Baixar PDF
+  </button>
+  <button class="btn-print" onclick="imprimirDoc()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Imprimir
+  </button>
+  <button class="btn-word" onclick="downloadWord()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg>
+    Word
+  </button>
+</div>`;
 
-  // Insert action bar right after <body>
-  const finalHTML = html.replace(/<body>/i, '<body>' + actionBar);
+  // Insert action bar + script into HTML
+  const finalHTML = html
+    .replace('</head>', actionBarScript + '</head>')
+    .replace(/<body[^>]*>/i, '$&' + actionBar);
 
   const w = window.open('', '_blank');
   if (w) {

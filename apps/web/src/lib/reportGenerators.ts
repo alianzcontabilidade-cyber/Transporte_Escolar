@@ -1,7 +1,7 @@
 import { generateReportHTML, ReportMunicipality, ReportSecretaria, ReportSchool, printReportHTML, openReportAsPDF } from './reportTemplate';
 import { Signatory } from '../components/ReportSignatureSelector';
 
-const MONTHS = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
 function formatDate(d: string | Date | undefined): string {
   if (!d) return '--';
@@ -26,7 +26,7 @@ function shiftLabel(s: string): string {
 }
 
 // ==========================================
-// DECLARACAO DE ESCOLARIDADE
+// DECLARAÇÃO DE ESCOLARIDADE
 // ==========================================
 export function generateDeclaracaoEscolaridade(
   student: any, school: ReportSchool | undefined,
@@ -42,11 +42,11 @@ export function generateDeclaracaoEscolaridade(
       e aluno(a) deste Estabelecimento de Ensino, esta cursando o(a) <b>${student.grade || '--'}</b>
       do turno <b>${shiftLabel(student.shift)}</b>,
       no ano letivo de <b>${new Date().getFullYear()}</b>,
-      com Matricula N. <b>${student.enrollment || '--'}</b>.
+      com Matrícula N. <b>${student.enrollment || '--'}</b>.
     </p>
     <p class="declaration-text">
-      Declaramos ainda que o(a) referido(a) aluno(a) encontra-se com a situacao academica regular
-      nesta instituicao de ensino, nada constando que o(a) desabone.
+      Declaramos ainda que o(a) referido(a) aluno(a) encontra-se com a situação acadêmica regular
+      nesta instituição de ensino, nada constando que o(a) desabone.
     </p>
     ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#666"><b>NIS:</b> ${student.nis}</div>` : ''}
     ${student.code || school?.code ? `<div style="font-size:11px;color:#666"><b>INEP:</b> ${school?.code || ''}</div>` : ''}
@@ -54,13 +54,13 @@ export function generateDeclaracaoEscolaridade(
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'DECLARACAO DE ESCOLARIDADE',
+    title: 'DECLARAÇÃO DE ESCOLARIDADE',
     content, signatories: sigs, fontFamily: 'serif', fontSize: 13,
   });
 }
 
 // ==========================================
-// DECLARACAO DE TRANSFERENCIA
+// DECLARAÇÃO DE TRANSFERÊNCIA
 // ==========================================
 export function generateDeclaracaoTransferencia(
   student: any, school: ReportSchool | undefined,
@@ -84,13 +84,13 @@ export function generateDeclaracaoTransferencia(
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'DECLARACAO DE TRANSFERENCIA',
+    title: 'DECLARAÇÃO DE TRANSFERÊNCIA',
     content, signatories: sigs, fontFamily: 'serif', fontSize: 13,
   });
 }
 
 // ==========================================
-// DECLARACAO DE FREQUENCIA
+// DECLARAÇÃO DE FREQUÊNCIA
 // ==========================================
 export function generateDeclaracaoFrequencia(
   student: any, school: ReportSchool | undefined,
@@ -100,17 +100,17 @@ export function generateDeclaracaoFrequencia(
   const content = `
     <p class="declaration-text">
       Declaramos, para os devidos fins, que <b>${student.name || 'ALUNO'}</b>,
-      matricula <b>${student.enrollment || '--'}</b>,
-      e aluno(a) regularmente matriculado(a) neste Estabelecimento de Ensino,
+      matrícula <b>${student.enrollment || '--'}</b>,
+      é aluno(a) regularmente matriculado(a) neste Estabelecimento de Ensino,
       no(a) <b>${student.grade || '--'}</b>, turno <b>${shiftLabel(student.shift)}</b>,
       e que frequenta regularmente as aulas no corrente ano letivo de <b>${new Date().getFullYear()}</b>.
     </p>
-    ${percentual !== undefined ? `<p class="declaration-text">Percentual de frequencia: <b>${percentual.toFixed(1)}%</b>.</p>` : ''}
+    ${percentual !== undefined ? `<p class="declaration-text">Percentual de frequência: <b>${percentual.toFixed(1)}%</b>.</p>` : ''}
   `;
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'DECLARACAO DE FREQUENCIA',
+    title: 'DECLARAÇÃO DE FREQUÊNCIA',
     content, signatories: sigs, fontFamily: 'serif', fontSize: 13,
   });
 }
@@ -172,7 +172,7 @@ export function generateBoletimEscolar(
         <th>1 BIM</th><th>2 BIM</th><th>3 BIM</th><th>4 BIM</th>
         <th style="background:#15304d">MEDIA</th>
         <th>FALTAS</th>
-        <th>SITUACAO</th>
+        <th>SITUAÇÃO</th>
       </tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr class="total-row">
@@ -184,10 +184,10 @@ export function generateBoletimEscolar(
     </table>
     <div style="margin-top:15px;font-size:10px;color:#888">
       <b>Legenda:</b> BIM = Bimestre | MEDIA = Media Aritmetica dos Bimestres | FALTAS = Total de faltas no ano<br>
-      Aluno(a) considerado(a) <b>APROVADO(A)</b> quando a media final for igual ou superior a <b>6,0</b> (seis) e frequencia minima de <b>75%</b>.
+      Aluno(a) considerado(a) <b>APROVADO(A)</b> quando a média final for igual ou superior a <b>6,0</b> (seis) e frequência mínima de <b>75%</b>.
     </div>
     <div style="margin-top:10px;font-size:11px;color:#555;font-style:italic;text-align:center">
-      "Pais, a sua participacao na escola e muito significativa, pois contribui para uma gestao democratica e qualidade no ensino."
+      "Pais, a sua participação na escola é muito significativa, pois contribui para uma gestão democrática e qualidade no ensino."
     </div>
   `;
 
@@ -201,7 +201,7 @@ export function generateBoletimEscolar(
 }
 
 // ==========================================
-// HISTORICO ESCOLAR
+// HISTÓRICO ESCOLAR
 // ==========================================
 export function generateHistoricoEscolar(
   student: any, history: { year: number; grade: string; school: string; result: string; grades?: any[] }[],
@@ -221,7 +221,7 @@ export function generateHistoricoEscolar(
       ${field('RG', student.rg ? student.rg + (student.rgOrgao ? ' - ' + student.rgOrgao + '/' + (student.rgUf || '') : '') : '--')}
       ${field('NIS', student.nis)}
     </div>
-    <div class="section-title">FILIACAO</div>
+    <div class="section-title">FILIAÇÃO</div>
     <div class="field-grid">
       ${field('Pai', student.fatherName)}
       ${field('Mae', student.motherName)}
@@ -251,14 +251,14 @@ export function generateHistoricoEscolar(
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'HISTORICO ESCOLAR',
+    title: 'HISTÓRICO ESCOLAR',
     content: studentData + historyTable,
     signatories: sigs, fontFamily: 'sans-serif', fontSize: 11,
   });
 }
 
 // ==========================================
-// FICHA DE MATRICULA
+// FICHA DE MATRÍCULA
 // ==========================================
 export function generateFichaMatricula(
   student: any, school: ReportSchool | undefined,
@@ -280,24 +280,24 @@ export function generateFichaMatricula(
       ${field('Cartao SUS', student.cartaoSus)}
     </div>
 
-    <div class="section-title">CERTIDAO DE NASCIMENTO</div>
+    <div class="section-title">CERTIDÃO DE NASCIMENTO</div>
     <div class="field-grid">
       ${field('Tipo', student.certidaoTipo)}
       ${field('Numero', student.certidaoNumero)}
       ${field('Folha', student.certidaoFolha)}
       ${field('Livro', student.certidaoLivro)}
-      ${field('Data Emissao', student.certidaoData)}
-      ${field('Cartorio', student.certidaoCartorio)}
+      ${field('Data Emissão', student.certidaoData)}
+      ${field('Cartório', student.certidaoCartorio)}
     </div>
 
-    <div class="section-title">SITUACAO ESCOLAR</div>
+    <div class="section-title">SITUAÇÃO ESCOLAR</div>
     <div class="field-grid">
       ${field('Escola', school?.name || '--')}
       ${field('Serie/Ano', student.grade)}
       ${field('Turma', student.classRoom || student.className)}
       ${field('Turno', shiftLabel(student.shift))}
-      ${field('Tipo Matricula', student.enrollmentType === 'novato' ? 'Novato (Primeira Matricula)' : student.enrollmentType === 'renovacao' ? 'Renovacao' : student.enrollmentType === 'transferencia' ? 'Transferencia' : '--')}
-      ${field('Situacao', student.studentStatus)}
+      ${field('Tipo Matricula', student.enrollmentType === 'novato' ? 'Novato (Primeira Matrícula)' : student.enrollmentType === 'renovacao' ? 'Renovação' : student.enrollmentType === 'transferencia' ? 'Transferência' : '--')}
+      ${field('Situação', student.studentStatus)}
     </div>
 
     <div class="section-title">ENDERECO</div>
@@ -313,31 +313,31 @@ export function generateFichaMatricula(
       ${field('Celular', student.cellPhone)}
     </div>
 
-    <div class="section-title">FILIACAO - PAI</div>
+    <div class="section-title">FILIAÇÃO - PAI</div>
     <div class="field-grid">
       ${field('Nome', student.fatherName)}
       ${field('CPF', student.fatherCpf)}
       ${field('RG', student.fatherRg)}
       ${field('Telefone', student.fatherPhone)}
-      ${field('Profissao', student.fatherProfession)}
+      ${field('Profissão', student.fatherProfession)}
       ${field('Local Trabalho', student.fatherWorkplace)}
       ${field('Escolaridade', student.fatherEducation)}
       ${field('Naturalidade', (student.fatherNaturalness || '') + (student.fatherNaturalnessUf ? '/' + student.fatherNaturalnessUf : ''))}
     </div>
 
-    <div class="section-title">FILIACAO - MAE</div>
+    <div class="section-title">FILIAÇÃO - MAE</div>
     <div class="field-grid">
       ${field('Nome', student.motherName)}
       ${field('CPF', student.motherCpf)}
       ${field('RG', student.motherRg)}
       ${field('Telefone', student.motherPhone)}
-      ${field('Profissao', student.motherProfession)}
+      ${field('Profissão', student.motherProfession)}
       ${field('Local Trabalho', student.motherWorkplace)}
       ${field('Escolaridade', student.motherEducation)}
       ${field('Naturalidade', (student.motherNaturalness || '') + (student.motherNaturalnessUf ? '/' + student.motherNaturalnessUf : ''))}
     </div>
 
-    <div class="section-title">INFORMACOES COMPLEMENTARES</div>
+    <div class="section-title">INFORMAÇÕES COMPLEMENTARES</div>
     <div class="field-grid">
       ${field('Renda Familiar', student.familyIncome)}
       ${field('Tipo Sanguineo', student.bloodType)}
@@ -346,10 +346,10 @@ export function generateFichaMatricula(
       ${field('Transporte Escolar', student.needsTransport ? 'Sim - ' + (student.transportType || '') + ' ' + (student.transportDistance ? student.transportDistance + ' km' : '') : 'Nao')}
       ${field('Bolsa Familia', student.bolsaFamilia ? 'Sim' : 'Nao')}
       ${field('BPC', student.bpc ? 'Sim' : 'Nao')}
-      ${field('Deficiencia', student.hasSpecialNeeds ? (student.deficiencyType || 'Sim') : 'Nao')}
+      ${field('Deficiência', student.hasSpecialNeeds ? (student.deficiencyType || 'Sim') : 'Nao')}
     </div>
 
-    <div class="section-title">PROCEDENCIA</div>
+    <div class="section-title">PROCEDÊNCIA</div>
     <div class="field-grid">
       ${field('Escola Anterior', student.previousSchool)}
       ${field('Rede', student.previousSchoolType)}
@@ -360,14 +360,14 @@ export function generateFichaMatricula(
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'FICHA DE MATRICULA',
-    subtitle: student.enrollmentType === 'novato' ? 'NOVATO (PRIMEIRA MATRICULA)' : student.enrollmentType === 'renovacao' ? 'RENOVACAO DE MATRICULA' : 'MATRICULA POR TRANSFERENCIA',
+    title: 'FICHA DE MATRÍCULA',
+    subtitle: student.enrollmentType === 'novato' ? 'NOVATO (PRIMEIRA MATRÍCULA)' : student.enrollmentType === 'renovacao' ? 'RENOVAÇÃO DE MATRÍCULA' : 'MATRÍCULA POR TRANSFERÊNCIA',
     content, signatories: sigs, fontFamily: 'sans-serif', fontSize: 11,
   });
 }
 
 // ==========================================
-// RELACAO DE ALUNOS POR TURMA
+// RELAÇÃO DE ALUNOS POR TURMA
 // ==========================================
 export function generateRelacaoAlunosTurma(
   students: any[], classInfo: { grade: string; className: string; shift: string; year: number },
@@ -396,7 +396,7 @@ export function generateRelacaoAlunosTurma(
 
   const table = `
     <table>
-      <thead><tr><th style="width:40px">N</th><th style="text-align:left">NOME DO ALUNO</th><th>MATRICULA</th><th>NASCIMENTO</th><th>SEXO</th><th>SITUACAO</th></tr></thead>
+      <thead><tr><th style="width:40px">N</th><th style="text-align:left">NOME DO ALUNO</th><th>MATRICULA</th><th>NASCIMENTO</th><th>SEXO</th><th>SITUAÇÃO</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div style="margin-top:15px;font-size:11px;display:flex;gap:30px">
@@ -408,7 +408,7 @@ export function generateRelacaoAlunosTurma(
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
-    title: 'RELACAO DE ALUNOS MATRICULADOS POR TURMA',
+    title: 'RELAÇÃO DE ALUNOS MATRICULADOS POR TURMA',
     subtitle: `${classInfo.grade} - Turma ${classInfo.className} - ${shiftLabel(classInfo.shift)} - ${classInfo.year}`,
     content: info + table,
     signatories: sigs, fontFamily: 'sans-serif', fontSize: 11,

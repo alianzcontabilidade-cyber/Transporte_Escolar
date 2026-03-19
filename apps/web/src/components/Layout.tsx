@@ -9,7 +9,8 @@ import {
   BarChart3, FileText, Heart, Settings, LogOut, Menu, X, Wifi, WifiOff,
   Bell, Shield, Brain, Wrench, UserCheck, ChevronRight, Navigation,
   Locate, MapPinned, Download, Calendar, BookOpen, Briefcase,
-  GraduationCap, DollarSign, Package, Database, Moon, Sun, AlertTriangle
+  GraduationCap, DollarSign, Package, Database, Moon, Sun, AlertTriangle,
+  Search, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
@@ -54,6 +55,11 @@ export default function Layout() {
   const { socket, connected } = useSocket();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('netescol_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   // unreadNotifs handled by NotificationDropdown
   const [installBanner, setInstallBanner] = useState(true);
   const { canInstall, isInstalled, install } = usePWAInstall();
@@ -124,6 +130,69 @@ export default function Layout() {
   const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(role);
   const isDriver = role === 'driver' || role === 'monitor';
   const isParent = role === 'parent';
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('netescol_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  // Search index - all navigable pages
+  const allPages = [
+    { to: '/', text: 'Início', tags: 'home modulos painel' },
+    { to: '/dashboard', text: 'Dashboard', tags: 'painel kpi grafico' },
+    { to: '/escolas', text: 'Escolas', tags: 'escola unidade inep' },
+    { to: '/alunos', text: 'Alunos', tags: 'aluno estudante cadastro' },
+    { to: '/matriculas', text: 'Matrículas', tags: 'matricula enturmacao' },
+    { to: '/turmas', text: 'Turmas', tags: 'turma classe sala' },
+    { to: '/series', text: 'Séries', tags: 'serie etapa nivel ano' },
+    { to: '/anos-letivos', text: 'Anos Letivos', tags: 'ano letivo periodo' },
+    { to: '/professores', text: 'Professores', tags: 'professor docente' },
+    { to: '/lista-espera', text: 'Lista de Espera', tags: 'espera fila vaga' },
+    { to: '/remanejamento', text: 'Remanejamento', tags: 'transferir turma' },
+    { to: '/carteirinha', text: 'Carteirinha', tags: 'carteira estudantil' },
+    { to: '/promocao', text: 'Promoção', tags: 'promover aprovado' },
+    { to: '/historico-escolar', text: 'Histórico Escolar', tags: 'historico trajetoria' },
+    { to: '/disciplinas', text: 'Disciplinas', tags: 'materia componente' },
+    { to: '/diario-escolar', text: 'Diário Escolar', tags: 'frequencia conteudo aula' },
+    { to: '/lancamento-notas', text: 'Lançar Notas', tags: 'nota avaliacao prova' },
+    { to: '/boletim', text: 'Boletim Escolar', tags: 'boletim nota media' },
+    { to: '/parecer-descritivo', text: 'Parecer Descritivo', tags: 'parecer qualitativo' },
+    { to: '/ata-resultados', text: 'ATA de Resultados', tags: 'ata resultado final' },
+    { to: '/relatorio-frequencia', text: 'Relatório Frequência', tags: 'presenca falta' },
+    { to: '/calendario', text: 'Calendário Escolar', tags: 'calendario feriado evento' },
+    { to: '/educacenso', text: 'EDUCACENSO', tags: 'censo escolar inep' },
+    { to: '/rotas', text: 'Rotas', tags: 'rota parada itinerario' },
+    { to: '/veiculos', text: 'Veículos', tags: 'veiculo onibus frota' },
+    { to: '/motoristas', text: 'Motoristas', tags: 'motorista cnh' },
+    { to: '/monitores', text: 'Monitores', tags: 'monitor auxiliar' },
+    { to: '/monitor', text: 'Monitoramento', tags: 'monitorar viagem tempo real' },
+    { to: '/mapa-tempo-real', text: 'Mapa Tempo Real', tags: 'mapa gps localizar' },
+    { to: '/rastreamento', text: 'Rastreamento GPS', tags: 'gps rastrear posicao' },
+    { to: '/frequencia', text: 'Frequência Transporte', tags: 'embarque desembarque qr' },
+    { to: '/portal-responsavel', text: 'Portal Responsável', tags: 'pai mae responsavel filho' },
+    { to: '/relatorio-transporte', text: 'Relatório Transporte', tags: 'relatorio viagem' },
+    { to: '/recursos-humanos', text: 'Recursos Humanos', tags: 'rh cargo lotacao' },
+    { to: '/financeiro', text: 'Financeiro', tags: 'financeiro conta receita despesa' },
+    { to: '/contratos', text: 'Contratos', tags: 'contrato fornecedor' },
+    { to: '/merenda', text: 'Merenda Escolar', tags: 'merenda cardapio alimentacao' },
+    { to: '/biblioteca', text: 'Biblioteca', tags: 'livro acervo emprestimo' },
+    { to: '/patrimonio', text: 'Patrimônio e Estoque', tags: 'patrimonio bem estoque' },
+    { to: '/manutencao-preditiva', text: 'Manutenção', tags: 'manutencao veiculo' },
+    { to: '/relatorios', text: 'Relatórios', tags: 'relatorio exportar' },
+    { to: '/comunicacao', text: 'Comunicação', tags: 'recado mensagem aviso' },
+    { to: '/configuracoes', text: 'Configurações', tags: 'configuracao usuario senha' },
+    { to: '/ia-rotas', text: 'IA Rotas', tags: 'inteligencia artificial otimizar' },
+  ];
+
+  const searchResults = searchQuery.length >= 2
+    ? allPages.filter(p => {
+        const q = searchQuery.toLowerCase();
+        return p.text.toLowerCase().includes(q) || p.tags.includes(q);
+      })
+    : [];
 
   // ============================================
   // PAINEL COM BLOCOS DE MÓDULOS
@@ -326,11 +395,26 @@ export default function Layout() {
   return (
     <div className={`flex h-screen ${isDark ? 'bg-gray-900 text-gray-200' : 'bg-[#f8f9fa]'}`}>
       {/* Sidebar Desktop */}
-      <aside className={`hidden lg:flex flex-col w-60 bg-primary-500 ${isParent ? 'lg:w-52' : ''}`}>
-        <div className="p-4 border-b border-white/10">
-          <img src="/logo.png" alt="NetEscol" className="h-8 w-auto" />
+      <aside className={`hidden lg:flex flex-col bg-primary-500 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : isParent ? 'w-52' : 'w-60'}`}>
+        <div className="p-3 border-b border-white/10 flex items-center justify-between">
+          {!sidebarCollapsed && <img src="/logo.png" alt="NetEscol" className="h-7 w-auto" />}
+          <button onClick={toggleSidebarCollapse} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all" title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}>
+            {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
-        <SidebarContent />
+        {sidebarCollapsed ? (
+          <div className="flex-1 overflow-y-auto py-3 flex flex-col items-center gap-2">
+            {moduleBlocks.map(mod => (
+              <button key={mod.key} onClick={() => { if (mod.to) window.location.href = mod.to; else setActiveModule(mod.key); setSidebarCollapsed(false); }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/10 transition-all" title={mod.label}
+                style={{ backgroundColor: (mod.color || '#64748b') + '20' }}>
+                <mod.icon size={18} style={{ color: mod.color }} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <SidebarContent />
+        )}
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -389,6 +473,30 @@ export default function Layout() {
             </div>
           </div>
         )}
+
+        {/* Search Bar */}
+        <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="relative flex-1 max-w-lg">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              placeholder="Buscar funcionalidade... (ex: alunos, boletim, financeiro)"
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
+            {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
+          </div>
+          {/* Search Results Dropdown */}
+          {searchOpen && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 mx-6 max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              {searchResults.slice(0, 8).map(r => (
+                <Link key={r.to} to={r.to} onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0">
+                  <Search size={14} className="text-gray-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{r.text}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Page content */}
         <main className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : ''}`}>

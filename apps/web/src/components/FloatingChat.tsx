@@ -22,40 +22,40 @@ function generateResponse(question: string): string {
   const q = question.toLowerCase();
 
   if (q.includes('cadastrar aluno') || q.includes('novo aluno'))
-    return 'Para cadastrar um aluno:\n1. Acesse o módulo **Secretaria > Alunos**\n2. Clique em **+ Novo Aluno**\n3. Preencha os dados nas abas: Dados, Saúde, Endereço e Responsáveis\n4. Clique em **Salvar**\n\nVocê também pode importar alunos em lote via CSV clicando em **Importar**.';
+    return 'Para cadastrar um aluno:\n1. Acesse o módulo **Gestão Escolar > Alunos**\n2. Clique em **+ Novo Aluno**\n3. Preencha os dados nas abas: Dados, Saúde, Endereço e Responsáveis\n4. Clique em **Salvar**\n\nVocê também pode importar alunos em lote via CSV clicando em **Importar**.';
 
   if (q.includes('boletim'))
-    return 'Para gerar o boletim escolar:\n1. Acesse **Pedagógico > Boletim Escolar**\n2. Selecione a **turma**\n3. Selecione o **aluno**\n4. O boletim será exibido com notas por bimestre e média final\n5. Clique em **Imprimir** para gerar o documento';
+    return 'Para gerar o boletim escolar:\n1. Acesse **Ensino e Aprendizagem > Boletim Escolar**\n2. Selecione a **turma**\n3. Selecione o **aluno**\n4. O boletim será exibido com notas por bimestre e média final\n5. Clique em **Imprimir** para gerar o documento';
 
   if (q.includes('matrícula') || q.includes('matricula'))
-    return 'Para matricular alunos:\n1. Acesse **Secretaria > Matrículas**\n2. Clique em **Matricular Alunos**\n3. Selecione o **Ano Letivo** e a **Turma**\n4. Marque os alunos desejados\n5. Clique em **Matricular**\n\nPara matrícula individual, use o botão na lista de matrículas.';
+    return 'Para matricular alunos:\n1. Acesse **Gestão Escolar > Matrículas**\n2. Clique em **Matricular Alunos**\n3. Selecione o **Ano Letivo** e a **Turma**\n4. Marque os alunos desejados\n5. Clique em **Matricular**\n\nPara matrícula individual, use o botão na lista de matrículas.';
 
   if (q.includes('educacenso') || q.includes('censo'))
-    return 'O EDUCACENSO é o Censo Escolar da Educação Básica:\n1. Acesse **Pedagógico > EDUCACENSO**\n2. Verifique o **checklist de prontidão** (escolas, alunos, professores, turmas)\n3. Use os botões **Exportar CSV** para gerar os arquivos\n4. Importe os CSVs no sistema do INEP';
+    return 'O EDUCACENSO é o Censo Escolar da Educação Básica:\n1. Acesse **Ensino e Aprendizagem > EDUCACENSO**\n2. Verifique o **checklist de prontidão** (escolas, alunos, professores, turmas)\n3. Use os botões **Exportar CSV** para gerar os arquivos\n4. Importe os CSVs no sistema do INEP';
 
   if (q.includes('gps') || q.includes('rastreamento') || q.includes('transporte'))
     return 'O rastreamento GPS funciona assim:\n1. O **motorista** acessa **Rastreamento GPS** e inicia o tracking\n2. A posição é enviada a cada 10 segundos via Socket.IO\n3. Os **pais** acompanham em tempo real no **Portal do Responsável**\n4. O **admin** vê todos os ônibus no **Mapa Tempo Real**';
 
   if (q.includes('lista de espera') || q.includes('espera') || q.includes('vaga'))
-    return 'Para gerenciar a lista de espera:\n1. Acesse **Secretaria > Lista de Espera**\n2. Clique em **Adicionar** para incluir um aluno\n3. O sistema atribui a posição automaticamente\n4. Use os botões para **Convocar** ou **Matricular**\n5. Filtre por status: Aguardando, Convocado, Matriculado';
+    return 'Para gerenciar a lista de espera:\n1. Acesse **Gestão Escolar > Lista de Espera**\n2. Clique em **Adicionar** para incluir um aluno\n3. O sistema atribui a posição automaticamente\n4. Use os botões para **Convocar** ou **Matricular**\n5. Filtre por status: Aguardando, Convocado, Matriculado';
 
   if (q.includes('calendário') || q.includes('calendario') || q.includes('feriado'))
-    return 'Para gerenciar o calendário escolar:\n1. Acesse **Pedagógico > Calendário Escolar**\n2. Clique em um dia ou em **+ Novo Evento**\n3. Escolha o tipo: Dia Letivo, Feriado, Recesso, Reunião, etc.\n4. Cada tipo tem uma cor diferente no calendário\n5. Navegue entre os meses com as setas';
+    return 'Para gerenciar o calendário escolar:\n1. Acesse **Ensino e Aprendizagem > Calendário Escolar**\n2. Clique em um dia ou em **+ Novo Evento**\n3. Escolha o tipo: Dia Letivo, Feriado, Recesso, Reunião, etc.\n4. Cada tipo tem uma cor diferente no calendário\n5. Navegue entre os meses com as setas';
 
   if (q.includes('parecer') || q.includes('descritivo'))
-    return 'Para registrar pareceres descritivos:\n1. Acesse **Pedagógico > Parecer Descritivo**\n2. Selecione a **turma** e o **bimestre**\n3. Clique em **Escrever** ao lado de cada aluno\n4. Digite o parecer e clique em **Salvar**\n5. Use **Publicar Todos** quando finalizar';
+    return 'Para registrar pareceres descritivos:\n1. Acesse **Ensino e Aprendizagem > Parecer Descritivo**\n2. Selecione a **turma** e o **bimestre**\n3. Clique em **Escrever** ao lado de cada aluno\n4. Digite o parecer e clique em **Salvar**\n5. Use **Publicar Todos** quando finalizar';
 
   if (q.includes('remanejamento') || q.includes('transferir') || q.includes('transferência'))
-    return 'Para remanejar alunos entre turmas:\n1. Acesse **Secretaria > Remanejamento**\n2. Selecione a **turma de origem**\n3. Marque os alunos que deseja transferir\n4. Selecione a **turma de destino**\n5. Clique em **Confirmar Transferência**';
+    return 'Para remanejar alunos entre turmas:\n1. Acesse **Gestão Escolar > Remanejamento**\n2. Selecione a **turma de origem**\n3. Marque os alunos que deseja transferir\n4. Selecione a **turma de destino**\n5. Clique em **Confirmar Transferência**';
 
   if (q.includes('carteirinha') || q.includes('carteira'))
-    return 'Para gerar carteirinhas estudantis:\n1. Acesse **Secretaria > Carteirinha**\n2. Filtre por escola se desejar\n3. Clique em **Imprimir Carteirinhas** para todas\n4. Ou clique em um card individual para imprimir uma só';
+    return 'Para gerar carteirinhas estudantis:\n1. Acesse **Gestão Escolar > Carteirinha**\n2. Filtre por escola se desejar\n3. Clique em **Imprimir Carteirinhas** para todas\n4. Ou clique em um card individual para imprimir uma só';
 
   if (q.includes('financeiro') || q.includes('receita') || q.includes('despesa'))
-    return 'Para gerenciar o financeiro:\n1. Acesse **Administrativo > Financeiro**\n2. Na aba **Contas**, cadastre contas bancárias (PDDE, próprio, etc.)\n3. Na aba **Movimentações**, registre receitas e despesas\n4. Os KPIs mostram saldo total, receitas e despesas';
+    return 'Para gerenciar o financeiro:\n1. Acesse **Gestão e Recursos > Financeiro**\n2. Na aba **Contas**, cadastre contas bancárias (PDDE, próprio, etc.)\n3. Na aba **Movimentações**, registre receitas e despesas\n4. Os KPIs mostram saldo total, receitas e despesas';
 
   if (q.includes('merenda') || q.includes('cardápio') || q.includes('cardapio'))
-    return 'Para gerenciar a merenda escolar:\n1. Acesse **Administrativo > Merenda Escolar**\n2. Clique em **Novo Cardápio**\n3. Informe data, refeição, descrição, calorias e custo\n4. Os cardápios ficam listados por data';
+    return 'Para gerenciar a merenda escolar:\n1. Acesse **Gestão e Recursos > Merenda Escolar**\n2. Clique em **Novo Cardápio**\n3. Informe data, refeição, descrição, calorias e custo\n4. Os cardápios ficam listados por data';
 
   if (q.includes('oi') || q.includes('olá') || q.includes('ola') || q.includes('ajuda') || q.includes('help'))
     return 'Olá! Sou o assistente do **NetEscol**. Posso ajudar com:\n\n- Cadastro de alunos e matrículas\n- Boletim escolar e notas\n- Transporte e rastreamento GPS\n- Calendário escolar\n- Financeiro e contratos\n- E muito mais!\n\nDigite sua dúvida que eu respondo!';

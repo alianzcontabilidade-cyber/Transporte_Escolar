@@ -12,16 +12,16 @@ const MODULES = [
   {
     to: '/dashboard',
     icon: LayoutDashboard,
-    title: 'Dashboard',
-    desc: 'Visão geral, KPIs, alertas e gráficos do município',
+    title: 'Painel Central',
+    desc: 'Visão geral, indicadores, alertas e gráficos',
     color: '#2DB5B0',
     gradient: 'from-[#2DB5B0] to-[#249a96]',
   },
   {
     to: '/modulos?m=secretaria',
     icon: School,
-    title: 'Secretaria',
-    desc: 'Escolas, alunos, matrículas, turmas, séries e professores',
+    title: 'Gestão Escolar',
+    desc: 'Escolas, alunos, matrículas, turmas e professores',
     color: '#6366f1',
     gradient: 'from-[#6366f1] to-[#4f46e5]',
     links: [
@@ -33,8 +33,8 @@ const MODULES = [
   {
     to: '/modulos?m=pedagogico',
     icon: GraduationCap,
-    title: 'Pedagógico',
-    desc: 'Diário escolar, notas, boletim, frequência e calendário',
+    title: 'Ensino e Aprendizagem',
+    desc: 'Diário escolar, notas, boletim e calendário',
     color: '#8b5cf6',
     gradient: 'from-[#8b5cf6] to-[#7c3aed]',
     links: [
@@ -46,8 +46,8 @@ const MODULES = [
   {
     to: '/modulos?m=transporte',
     icon: Bus,
-    title: 'Transporte',
-    desc: 'Rotas, veículos, motoristas, GPS e monitoramento em tempo real',
+    title: 'Frota e Rotas',
+    desc: 'Rotas, veículos, motoristas e monitoramento GPS',
     color: '#f97316',
     gradient: 'from-[#f97316] to-[#ea580c]',
     links: [
@@ -59,8 +59,8 @@ const MODULES = [
   {
     to: '/modulos?m=administrativo',
     icon: Briefcase,
-    title: 'Administrativo',
-    desc: 'RH, financeiro, contratos, merenda, biblioteca e patrimônio',
+    title: 'Gestão e Recursos',
+    desc: 'RH, financeiro, contratos, merenda e patrimônio',
     color: '#0ea5e9',
     gradient: 'from-[#0ea5e9] to-[#0284c7]',
     links: [
@@ -72,8 +72,8 @@ const MODULES = [
   {
     to: '/configuracoes',
     icon: Settings,
-    title: 'Configurações',
-    desc: 'Usuários, perfis de acesso, segurança e preferências',
+    title: 'Central de Controle',
+    desc: 'Usuários, segurança, perfis e preferências do sistema',
     color: '#64748b',
     gradient: 'from-[#64748b] to-[#475569]',
   },

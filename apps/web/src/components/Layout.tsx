@@ -139,58 +139,67 @@ export default function Layout() {
     });
   };
 
-  // Search index - all navigable pages
+  // Search index with codes, module, and description
   const allPages = [
-    { to: '/', text: 'Início', tags: 'home modulos painel' },
-    { to: '/dashboard', text: 'Dashboard', tags: 'painel kpi grafico' },
-    { to: '/escolas', text: 'Escolas', tags: 'escola unidade inep' },
-    { to: '/alunos', text: 'Alunos', tags: 'aluno estudante cadastro' },
-    { to: '/matriculas', text: 'Matrículas', tags: 'matricula enturmacao' },
-    { to: '/turmas', text: 'Turmas', tags: 'turma classe sala' },
-    { to: '/series', text: 'Séries', tags: 'serie etapa nivel ano' },
-    { to: '/anos-letivos', text: 'Anos Letivos', tags: 'ano letivo periodo' },
-    { to: '/professores', text: 'Professores', tags: 'professor docente' },
-    { to: '/lista-espera', text: 'Lista de Espera', tags: 'espera fila vaga' },
-    { to: '/remanejamento', text: 'Remanejamento', tags: 'transferir turma' },
-    { to: '/carteirinha', text: 'Carteirinha', tags: 'carteira estudantil' },
-    { to: '/promocao', text: 'Promoção', tags: 'promover aprovado' },
-    { to: '/historico-escolar', text: 'Histórico Escolar', tags: 'historico trajetoria' },
-    { to: '/disciplinas', text: 'Disciplinas', tags: 'materia componente' },
-    { to: '/diario-escolar', text: 'Diário Escolar', tags: 'frequencia conteudo aula' },
-    { to: '/lancamento-notas', text: 'Lançar Notas', tags: 'nota avaliacao prova' },
-    { to: '/boletim', text: 'Boletim Escolar', tags: 'boletim nota media' },
-    { to: '/parecer-descritivo', text: 'Parecer Descritivo', tags: 'parecer qualitativo' },
-    { to: '/ata-resultados', text: 'ATA de Resultados', tags: 'ata resultado final' },
-    { to: '/relatorio-frequencia', text: 'Relatório Frequência', tags: 'presenca falta' },
-    { to: '/calendario', text: 'Calendário Escolar', tags: 'calendario feriado evento' },
-    { to: '/educacenso', text: 'EDUCACENSO', tags: 'censo escolar inep' },
-    { to: '/rotas', text: 'Rotas', tags: 'rota parada itinerario' },
-    { to: '/veiculos', text: 'Veículos', tags: 'veiculo onibus frota' },
-    { to: '/motoristas', text: 'Motoristas', tags: 'motorista cnh' },
-    { to: '/monitores', text: 'Monitores', tags: 'monitor auxiliar' },
-    { to: '/monitor', text: 'Monitoramento', tags: 'monitorar viagem tempo real' },
-    { to: '/mapa-tempo-real', text: 'Mapa Tempo Real', tags: 'mapa gps localizar' },
-    { to: '/rastreamento', text: 'Rastreamento GPS', tags: 'gps rastrear posicao' },
-    { to: '/frequencia', text: 'Frequência Transporte', tags: 'embarque desembarque qr' },
-    { to: '/portal-responsavel', text: 'Portal Responsável', tags: 'pai mae responsavel filho' },
-    { to: '/relatorio-transporte', text: 'Relatório Transporte', tags: 'relatorio viagem' },
-    { to: '/recursos-humanos', text: 'Recursos Humanos', tags: 'rh cargo lotacao' },
-    { to: '/financeiro', text: 'Financeiro', tags: 'financeiro conta receita despesa' },
-    { to: '/contratos', text: 'Contratos', tags: 'contrato fornecedor' },
-    { to: '/merenda', text: 'Merenda Escolar', tags: 'merenda cardapio alimentacao' },
-    { to: '/biblioteca', text: 'Biblioteca', tags: 'livro acervo emprestimo' },
-    { to: '/patrimonio', text: 'Patrimônio e Estoque', tags: 'patrimonio bem estoque' },
-    { to: '/manutencao-preditiva', text: 'Manutenção', tags: 'manutencao veiculo' },
-    { to: '/relatorios', text: 'Relatórios', tags: 'relatorio exportar' },
-    { to: '/comunicacao', text: 'Comunicação', tags: 'recado mensagem aviso' },
-    { to: '/configuracoes', text: 'Configurações', tags: 'configuracao usuario senha' },
-    { to: '/ia-rotas', text: 'IA Rotas', tags: 'inteligencia artificial otimizar' },
+    { code: '001', to: '/', text: 'Painel Inicial', module: 'Painel', desc: 'Tela inicial com módulos do sistema', tags: 'home modulos painel inicio', color: '#2DB5B0' },
+    { code: '002', to: '/dashboard', text: 'Dashboard', module: 'Painel', desc: 'KPIs, gráficos e alertas do município', tags: 'painel kpi grafico estatistica', color: '#2DB5B0' },
+    // Secretaria
+    { code: '101', to: '/escolas', text: 'Escolas', module: 'Secretaria', desc: 'Cadastro de unidades escolares, INEP, horários', tags: 'escola unidade inep cadastro horario', color: '#6366f1' },
+    { code: '102', to: '/alunos', text: 'Alunos', module: 'Secretaria', desc: 'Cadastro, saúde, responsáveis, documentos', tags: 'aluno estudante cadastro saude responsavel', color: '#6366f1' },
+    { code: '103', to: '/matriculas', text: 'Matrículas', module: 'Secretaria', desc: 'Matrícula individual e em lote', tags: 'matricula enturmacao lote vaga', color: '#6366f1' },
+    { code: '104', to: '/turmas', text: 'Turmas', module: 'Secretaria', desc: 'Gestão de turmas por escola e ano', tags: 'turma classe sala serie', color: '#6366f1' },
+    { code: '105', to: '/series', text: 'Séries', module: 'Secretaria', desc: 'Níveis e etapas de ensino', tags: 'serie etapa nivel fundamental medio', color: '#6366f1' },
+    { code: '106', to: '/anos-letivos', text: 'Anos Letivos', module: 'Secretaria', desc: 'Períodos letivos e status', tags: 'ano letivo periodo planejamento', color: '#6366f1' },
+    { code: '107', to: '/professores', text: 'Professores', module: 'Secretaria', desc: 'Corpo docente, formação, contrato', tags: 'professor docente formacao cnh contrato', color: '#6366f1' },
+    { code: '108', to: '/lista-espera', text: 'Lista de Espera', module: 'Secretaria', desc: 'Fila de vagas com convocação', tags: 'espera fila vaga convocacao', color: '#6366f1' },
+    { code: '109', to: '/remanejamento', text: 'Remanejamento', module: 'Secretaria', desc: 'Transferir alunos entre turmas', tags: 'transferir turma remanejamento mover', color: '#6366f1' },
+    { code: '110', to: '/carteirinha', text: 'Carteirinha', module: 'Secretaria', desc: 'Carteira estudantil com QR Code', tags: 'carteira estudantil impressao qr', color: '#6366f1' },
+    { code: '111', to: '/promocao', text: 'Promoção de Alunos', module: 'Secretaria', desc: 'Promover aprovados para próxima série', tags: 'promover aprovado serie proxima', color: '#6366f1' },
+    { code: '112', to: '/historico-escolar', text: 'Histórico Escolar', module: 'Secretaria', desc: 'Trajetória acadêmica do aluno', tags: 'historico trajetoria academica', color: '#6366f1' },
+    // Pedagógico
+    { code: '201', to: '/disciplinas', text: 'Disciplinas', module: 'Pedagógico', desc: 'Componentes curriculares BNCC', tags: 'materia componente bncc curricular disciplina', color: '#8b5cf6' },
+    { code: '202', to: '/diario-escolar', text: 'Diário Escolar', module: 'Pedagógico', desc: 'Frequência e conteúdo das aulas', tags: 'frequencia conteudo aula diario presenca', color: '#8b5cf6' },
+    { code: '203', to: '/lancamento-notas', text: 'Lançar Notas', module: 'Pedagógico', desc: 'Notas por avaliação e bimestre', tags: 'nota avaliacao prova trabalho bimestre lancar', color: '#8b5cf6' },
+    { code: '204', to: '/boletim', text: 'Boletim Escolar', module: 'Pedagógico', desc: 'Consulta e impressão de boletins', tags: 'boletim nota media impressao resultado', color: '#8b5cf6' },
+    { code: '205', to: '/parecer-descritivo', text: 'Parecer Descritivo', module: 'Pedagógico', desc: 'Avaliação qualitativa por aluno', tags: 'parecer qualitativo descritivo texto', color: '#8b5cf6' },
+    { code: '206', to: '/ata-resultados', text: 'ATA de Resultados', module: 'Pedagógico', desc: 'Documento oficial de resultados finais', tags: 'ata resultado final aprovado retido', color: '#8b5cf6' },
+    { code: '207', to: '/relatorio-frequencia', text: 'Relatório Frequência', module: 'Pedagógico', desc: 'Presença por aluno e período', tags: 'presenca falta relatorio frequencia percentual', color: '#8b5cf6' },
+    { code: '208', to: '/calendario', text: 'Calendário Escolar', module: 'Pedagógico', desc: 'Eventos, feriados e datas importantes', tags: 'calendario feriado evento recesso reuniao', color: '#8b5cf6' },
+    { code: '209', to: '/educacenso', text: 'EDUCACENSO', module: 'Pedagógico', desc: 'Exportação para o Censo Escolar', tags: 'censo escolar inep exportar educacenso', color: '#8b5cf6' },
+    // Transporte
+    { code: '301', to: '/rotas', text: 'Rotas', module: 'Transporte', desc: 'Rotas, paradas e itinerários', tags: 'rota parada itinerario trajeto viagem', color: '#f97316' },
+    { code: '302', to: '/veiculos', text: 'Veículos', module: 'Transporte', desc: 'Frota, documentos e manutenção', tags: 'veiculo onibus frota placa documento', color: '#f97316' },
+    { code: '303', to: '/motoristas', text: 'Motoristas', module: 'Transporte', desc: 'Motoristas, CNH e vinculação', tags: 'motorista cnh habilitacao condutor', color: '#f97316' },
+    { code: '304', to: '/monitores', text: 'Monitores', module: 'Transporte', desc: 'Auxiliares do transporte escolar', tags: 'monitor auxiliar acompanhante', color: '#f97316' },
+    { code: '305', to: '/monitor', text: 'Monitoramento', module: 'Transporte', desc: 'Viagens em tempo real no mapa', tags: 'monitorar viagem tempo real mapa ao vivo', color: '#f97316' },
+    { code: '306', to: '/mapa-tempo-real', text: 'Mapa Tempo Real', module: 'Transporte', desc: 'GPS de todos os ônibus no mapa', tags: 'mapa gps localizar onibus posicao', color: '#f97316' },
+    { code: '307', to: '/rastreamento', text: 'Rastreamento GPS', module: 'Transporte', desc: 'Transmissão de posição do motorista', tags: 'gps rastrear posicao transmitir motorista', color: '#f97316' },
+    { code: '308', to: '/frequencia', text: 'Frequência Transporte', module: 'Transporte', desc: 'Embarque e desembarque de alunos', tags: 'embarque desembarque qr code presenca', color: '#f97316' },
+    { code: '309', to: '/portal-responsavel', text: 'Portal Responsável', module: 'Transporte', desc: 'Acompanhamento pelos pais', tags: 'pai mae responsavel filho acompanhar', color: '#f97316' },
+    { code: '310', to: '/relatorio-transporte', text: 'Relatório Transporte', module: 'Transporte', desc: 'Relatório de viagens e frota', tags: 'relatorio viagem frota transporte', color: '#f97316' },
+    // Administrativo
+    { code: '401', to: '/recursos-humanos', text: 'Recursos Humanos', module: 'Administrativo', desc: 'Cargos, lotações e avaliações', tags: 'rh cargo lotacao avaliacao servidor funcionario', color: '#0ea5e9' },
+    { code: '402', to: '/financeiro', text: 'Financeiro', module: 'Administrativo', desc: 'Contas, receitas e despesas', tags: 'financeiro conta receita despesa pdde banco', color: '#0ea5e9' },
+    { code: '403', to: '/contratos', text: 'Contratos', module: 'Administrativo', desc: 'Gestão de contratos e fornecedores', tags: 'contrato fornecedor licitacao vigencia', color: '#0ea5e9' },
+    { code: '404', to: '/merenda', text: 'Merenda Escolar', module: 'Administrativo', desc: 'Cardápios, calorias e porções', tags: 'merenda cardapio alimentacao refeicao caloria', color: '#0ea5e9' },
+    { code: '405', to: '/biblioteca', text: 'Biblioteca', module: 'Administrativo', desc: 'Acervo, empréstimos e devoluções', tags: 'livro acervo emprestimo biblioteca devolucao', color: '#0ea5e9' },
+    { code: '406', to: '/patrimonio', text: 'Patrimônio e Estoque', module: 'Administrativo', desc: 'Bens, equipamentos e controle de estoque', tags: 'patrimonio bem estoque equipamento material', color: '#0ea5e9' },
+    { code: '407', to: '/manutencao-preditiva', text: 'Manutenção', module: 'Administrativo', desc: 'Manutenção preventiva de veículos', tags: 'manutencao veiculo preventiva corretiva', color: '#0ea5e9' },
+    { code: '408', to: '/relatorios', text: 'Relatórios', module: 'Administrativo', desc: 'Relatórios gerais com exportação', tags: 'relatorio exportar csv pdf geral', color: '#0ea5e9' },
+    { code: '409', to: '/comunicacao', text: 'Comunicação', module: 'Administrativo', desc: 'Recados e avisos para a comunidade', tags: 'recado mensagem aviso comunicacao whatsapp', color: '#0ea5e9' },
+    // Configurações
+    { code: '501', to: '/configuracoes', text: 'Configurações', module: 'Config', desc: 'Usuários, prefeitura e segurança', tags: 'configuracao usuario senha prefeitura perfil', color: '#64748b' },
+    { code: '502', to: '/ia-rotas', text: 'IA Rotas', module: 'Config', desc: 'Otimização de rotas por IA', tags: 'inteligencia artificial otimizar rota ia', color: '#64748b' },
+    { code: '503', to: '/transparencia', text: 'Transparência', module: 'Config', desc: 'Portal público de transparência', tags: 'transparencia publico portal lei', color: '#64748b' },
   ];
 
-  const searchResults = searchQuery.length >= 2
+  const searchResults = searchQuery.length >= 1
     ? allPages.filter(p => {
-        const q = searchQuery.toLowerCase();
-        return p.text.toLowerCase().includes(q) || p.tags.includes(q);
+        const q = searchQuery.toLowerCase().trim();
+        // Search by code number
+        if (/^\d+$/.test(q)) return p.code.includes(q);
+        // Search by text, module, desc, or tags
+        return p.text.toLowerCase().includes(q) || p.module.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.tags.includes(q);
       })
     : [];
 
@@ -480,20 +489,41 @@ export default function Layout() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
-              placeholder="Buscar funcionalidade... (ex: alunos, boletim, financeiro)"
+              placeholder="Buscar por nome, código ou palavra-chave... (ex: 102, alunos, nota)"
               className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
             {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
           </div>
           {/* Search Results Dropdown */}
-          {searchOpen && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 mx-6 max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-              {searchResults.slice(0, 8).map(r => (
-                <Link key={r.to} to={r.to} onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <Search size={14} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{r.text}</span>
-                </Link>
-              ))}
+          {searchOpen && searchQuery.length >= 1 && (
+            <div className="absolute top-full left-6 mt-1 w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+              {searchResults.length > 0 ? (
+                <>
+                  <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <p className="text-xs text-gray-500">{searchResults.length} resultado(s) encontrado(s)</p>
+                  </div>
+                  {searchResults.slice(0, 10).map(r => (
+                    <Link key={r.to} to={r.to} onClick={() => { setSearchQuery(''); setSearchOpen(false); setSidebarOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>
+                        {r.code}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{r.text}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: r.color + '20', color: r.color }}>{r.module}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{r.desc}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              ) : (
+                <div className="px-4 py-6 text-center">
+                  <Search size={24} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Nenhum resultado para "{searchQuery}"</p>
+                  <p className="text-xs text-gray-400 mt-1">Tente buscar por nome, código ou palavra-chave</p>
+                </div>
+              )}
             </div>
           )}
         </div>

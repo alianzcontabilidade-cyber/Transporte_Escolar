@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { History, Search, Printer, Download, Users, BookOpen, CheckCircle } from 'lucide-react';
+import { History, Search, Printer, Download, Users, BookOpen, CheckCircle, FileDown } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { generateHistoricoEscolar } from '../lib/reportGenerators';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function StudentHistoryPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
   const [selStudent, setSelStudent] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [munReport, setMunReport] = useState<any>(null);
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selStudent ? api.enrollments.list({ municipalityId: mid, studentId: parseInt(selStudent) }) : Promise.resolve([]), [mid, selStudent]);
   const { data: yearsData } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
+  const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
+
+  const allSchools = (schoolsData as any) || [];
+
+  // Load municipality data for report header
+  useEffect(() => {
+    if (!mid) return;
+    loadMunicipalityData(mid, api).then(setMunReport).catch(() => {});
+  }, [mid]);
 
   const allStudents = (studentsData as any) || [];
   const allEnrollments = (enrollmentsData as any) || [];
@@ -29,31 +43,48 @@ export default function StudentHistoryPage() {
   const STATUS_LABELS: any = { active: 'Cursando', graduated: 'Aprovado', retained: 'Retido', transferred: 'Transferido', evaded: 'Evadido', cancelled: 'Cancelado' };
   const STATUS_COLORS: any = { active: 'bg-blue-100 text-blue-700', graduated: 'bg-green-100 text-green-700', retained: 'bg-red-100 text-red-700', transferred: 'bg-yellow-100 text-yellow-700', evaded: 'bg-orange-100 text-orange-700', cancelled: 'bg-gray-100 text-gray-600' };
 
-  const printHistory = () => {
-    if (!student) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Historico - ${student.name}</title>
-    <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
-    .info{margin:15px 0;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:15px}
-    th{background:#1B3A5C;color:white;padding:8px;text-align:left;font-size:13px}td{padding:8px;border:1px solid #ddd;font-size:13px}
-    tr:nth-child(even){background:#f8f9fa}.footer{margin-top:30px;text-align:center;font-size:11px;color:#999}
-    @media print{body{padding:15px}}</style></head><body>
-    <h1>HISTORICO ESCOLAR</h1>
-    <div class="info"><b>Aluno:</b> ${student.name}<br><b>Matricula:</b> ${student.enrollment || '--'}<br><b>Escola:</b> ${student.school || '--'}</div>
-    <table><thead><tr><th>Ano Letivo</th><th>Turma</th><th>Status</th><th>Data Matricula</th></tr></thead>
-    <tbody>${allEnrollments.map((e: any) => {
+  const buildHistoricoHTML = (): string => {
+    if (!student || !munReport) return '';
+    const school = loadSchoolData(student.schoolId, allSchools);
+    const { municipality, secretaria } = munReport;
+
+    const history = allEnrollments.map((e: any) => {
       const year = allYears.find((y: any) => y.id === e.academicYearId);
-      return '<tr><td>'+(year?.name||'--')+'</td><td>'+(e.className||'--')+'</td><td>'+(STATUS_LABELS[e.status]||e.status)+'</td><td>'+(e.enrollmentDate?new Date(e.enrollmentDate).toLocaleDateString('pt-BR'):'--')+'</td></tr>';
-    }).join('')}</tbody></table>
-    <div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
+      return {
+        year: year?.year || 0,
+        grade: e.className || year?.name || '--',
+        school: student.school || school?.name || '--',
+        result: STATUS_LABELS[e.status] || e.status || '--',
+      };
+    });
+
+    return generateHistoricoEscolar(student, history, school, municipality, secretaria, selectedSigs);
+  };
+
+  const handlePDF = async () => {
+    const html = buildHistoricoHTML();
+    if (!html) return;
+    try {
+      await openReportAsPDF(html, 'Historico_' + (student?.name || 'aluno'));
+    } catch { printReportHTML(html); }
+  };
+
+  const handlePrint = () => {
+    const html = buildHistoricoHTML();
+    if (!html) return;
+    printReportHTML(html);
   };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><History size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Historico Escolar</h1><p className="text-gray-500">Trajetoria academica do aluno</p></div></div>
-        {selStudent && allEnrollments.length > 0 && <button onClick={printHistory} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button>}
+        {selStudent && allEnrollments.length > 0 && (
+          <div className="flex items-center gap-2">
+            <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> PDF</button>
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -82,6 +113,8 @@ export default function StudentHistoryPage() {
                   <div><h2 className="text-lg font-bold">{student.name}</h2><p className="text-indigo-200">{student.enrollment ? 'Mat. ' + student.enrollment : ''} {student.grade ? '· ' + student.grade : ''}</p><p className="text-indigo-300 text-sm">{student.school || ''}</p></div>
                 </div>
               </div>
+
+              <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
               {allEnrollments.length > 0 ? (
                 <div className="space-y-3">

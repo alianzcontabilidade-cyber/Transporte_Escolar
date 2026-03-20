@@ -1033,6 +1033,23 @@ export const studentsRouter = t.router({
 // TRIPS ROUTER
 // ============================================
 export const tripsRouter = t.router({
+  // Finalizar todas as viagens ativas de um município
+  completeAll: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .mutation(async ({ input }) => {
+      const activeTrips = await db.select({ tripId: trips.id })
+        .from(trips)
+        .innerJoin(routes, eq(trips.routeId, routes.id))
+        .where(and(eq(trips.status, 'started'), eq(routes.municipalityId, input.municipalityId)));
+
+      let count = 0;
+      for (const t of activeTrips) {
+        await db.update(trips).set({ status: 'completed', completedAt: new Date() }).where(eq(trips.id, t.tripId));
+        count++;
+      }
+      return { success: true, finalized: count };
+    }),
+
   listActive: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {

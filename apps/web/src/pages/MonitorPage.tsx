@@ -493,6 +493,18 @@ export default function MonitorPage() {
             {connected ? <><Wifi size={12} /> Online</> : <><WifiOff size={12} /> Offline</>}
           </div>
           <button onClick={loadData} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50"><RefreshCw size={14} /></button>
+          {!isDriverOrMonitor && activeTrips.length > 0 && (
+            <button onClick={async () => {
+              if (!confirm('Finalizar TODAS as viagens ativas? (' + activeTrips.length + ' viagem(ns))')) return;
+              try {
+                const result = await api.trips.completeAll({ municipalityId });
+                alert('Finalizadas ' + (result as any).finalized + ' viagem(ns)');
+                loadData();
+              } catch (e: any) { alert(e.message); }
+            }} className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600">
+              Finalizar Todas ({activeTrips.length})
+            </button>
+          )}
         </div>
       </div>
 

@@ -144,6 +144,7 @@ export const api = {
     delete: (input: any) => call('vehicles.delete', input, 'mutation'),
   },
   trips: {
+    completeAll: (input: any) => call('trips.completeAll', input, 'mutation'),
     listActive: (input: any) => call('trips.listActive', input, 'query'),
     getById: (input: any) => call('trips.getById', input, 'query'),
     start: (input: any) => call('trips.start', input, 'mutation'),

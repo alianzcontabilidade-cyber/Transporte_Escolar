@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import QuickAddModal from '../components/QuickAddModal';
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
 const TYPES = [{ v:'pickup', l:'Ida' },{ v:'dropoff', l:'Volta' },{ v:'both', l:'Ida e Volta' }];
@@ -52,10 +53,11 @@ export default function RoutesPage() {
   const [newStop, setNewStop] = useState({ name:'', lat:'', lng:'' });
   const [tripModal, setTripModal] = useState<any>(null);
   const [tripForm, setTripForm] = useState({ driverId:'', vehicleId:'' });
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
   const { data: routes, refetch } = useQuery(function(){return api.routes.list({municipalityId});}, [municipalityId]);
   const { data: activeTrips, refetch: refetchTrips } = useQuery(function(){return api.trips.listActive({municipalityId});}, [municipalityId]);
-  const { data: drivers } = useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
-  const { data: vehicles } = useQuery(function(){return api.vehicles.list({municipalityId});}, [municipalityId]);
+  const { data: drivers, refetch: refetchDrivers } = useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
+  const { data: vehicles, refetch: refetchVehicles } = useQuery(function(){return api.vehicles.list({municipalityId});}, [municipalityId]);
   const { mutate: create, loading } = useMutation(api.routes.create);
   const { mutate: removeRoute } = useMutation(api.routes.delete);
   const { mutate: startTrip, loading: starting } = useMutation(api.trips.start);
@@ -169,8 +171,8 @@ export default function RoutesPage() {
         <div className="flex items-center justify-between p-5 border-b border-gray-100"><div><h3 className="text-lg font-semibold flex items-center gap-2"><Play size={18} className="text-green-500"/> Iniciar Viagem</h3><p className="text-sm text-gray-500 mt-0.5">{tRoute.name}</p></div><button onClick={()=>setTripModal(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="p-5 space-y-4">
           <div className="p-3 bg-gray-50 rounded-xl text-sm text-gray-600 flex items-center gap-3"><Clock size={16} className="text-primary-500"/><span>{sl(tRoute.shift)} - {tRoute.scheduledStartTime} - {tRoute.scheduledEndTime} - {tripModal.stops?.length||0} paradas</span></div>
-          <div><label className="label flex items-center gap-1"><User size={13}/> Motorista *</label><select className="input" value={tripForm.driverId} onChange={e=>setTripForm(f=>({...f,driverId:e.target.value}))}><option value="">— Selecione o motorista —</option>{allDrivers.map((d:any)=><option key={d.id} value={d.id}>{d.name}{d.cnhCategory?' (CNH '+d.cnhCategory+')':''}</option>)}</select></div>
-          <div><label className="label flex items-center gap-1"><Bus size={13}/> Veículo *</label><select className="input" value={tripForm.vehicleId} onChange={e=>setTripForm(f=>({...f,vehicleId:e.target.value}))}><option value="">— Selecione o veículo —</option>{allVehicles.map((v:any)=><option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>)}</select></div>
+          <div><label className="label flex items-center gap-1"><User size={13}/> Motorista *</label><div className="flex gap-1"><select className="input" value={tripForm.driverId} onChange={e=>setTripForm(f=>({...f,driverId:e.target.value}))}><option value="">— Selecione o motorista —</option>{allDrivers.map((d:any)=><option key={d.id} value={d.id}>{d.name}{d.cnhCategory?' (CNH '+d.cnhCategory+')':''}</option>)}</select><button type="button" onClick={()=>setQuickAdd('driver')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar motorista"><Plus size={16}/></button></div></div>
+          <div><label className="label flex items-center gap-1"><Bus size={13}/> Veículo *</label><div className="flex gap-1"><select className="input" value={tripForm.vehicleId} onChange={e=>setTripForm(f=>({...f,vehicleId:e.target.value}))}><option value="">— Selecione o veículo —</option>{allVehicles.map((v:any)=><option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>)}</select><button type="button" onClick={()=>setQuickAdd('vehicle')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar veículo"><Plus size={16}/></button></div></div>
           <div className="p-3 bg-green-50 rounded-xl text-xs text-green-700 flex items-center gap-2"><CheckCircle size={14}/> A viagem será visível no monitoramento em tempo real após iniciada.</div>
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setTripModal(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={handleStartTrip} disabled={starting} className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-medium py-2.5 rounded-xl transition-colors">{starting?'Iniciando...':<><Play size={15}/> Iniciar Viagem</>}</button></div>
@@ -196,6 +198,9 @@ export default function RoutesPage() {
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setShow(false)} className="btn-secondary flex-1">Cancelar</button><button disabled={loading} onClick={()=>create({municipalityId,...form,stops},{onSuccess:()=>{refetch();setShow(false);}})} className="btn-primary flex-1">{loading?'Salvando...':'Salvar Rota'}</button></div>
       </div></div>)}
+
+      {/* QuickAddModal */}
+      {quickAdd&&<QuickAddModal entityType={quickAdd as any} municipalityId={municipalityId} onClose={()=>setQuickAdd(null)} onSuccess={(newEntity:any)=>{if(quickAdd==='driver'){refetchDrivers();setTripForm(f=>({...f,driverId:String(newEntity.id)}));}if(quickAdd==='vehicle'){refetchVehicles();setTripForm(f=>({...f,vehicleId:String(newEntity.id)}));}}}/>}
     </div>
   );
             }

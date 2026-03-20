@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2, Eye, Download } from 'lucide-react';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
+import QuickAddModal from '../components/QuickAddModal';
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);
@@ -26,14 +27,15 @@ export default function DriversPage() {
     const [del,setDel]=useState<any>(null);
     const [viewDriver,setViewDriver]=useState<any>(null);
     const [err,setErr]=useState('');
+    const [quickAdd, setQuickAdd] = useState<string | null>(null);
     const [cpfError,setCpfError]=useState('');
     const [page,setPage]=useState(1);
     const PER_PAGE=20;
     const { municipios: drvMunicipios, loading: drvMunLoading } = useMunicipios(form.state);
   
     const {data:drivers,refetch}=useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
-    const {data:routes}=useQuery(function(){return api.routes.list({municipalityId});}, [municipalityId]);
-    const {data:vehicles}=useQuery(function(){return api.vehicles.list({municipalityId});}, [municipalityId]);
+    const {data:routes, refetch:refetchRoutes}=useQuery(function(){return api.routes.list({municipalityId});}, [municipalityId]);
+    const {data:vehicles, refetch:refetchVehicles}=useQuery(function(){return api.vehicles.list({municipalityId});}, [municipalityId]);
     const {mutate:create,loading:creating}=useMutation(api.drivers.create);
     const {mutate:update,loading:updating}=useMutation(api.drivers.update);
     const {mutate:remove}=useMutation(api.drivers.delete);
@@ -169,10 +171,24 @@ export default function DriversPage() {
                                   </div>
                       </>)}
                       {tab==='cnh'&&(<div className="grid grid-cols-2 gap-3"><div><label className="label">Número CNH</label><input className="input" value={form.cnhNumber} onChange={sf('cnhNumber')}/></div><div><label className="label">Categoria</label><select className="input" value={form.cnhCategory} onChange={sf('cnhCategory')}>{CNH_CATS.map(function(c){return <option key={c}>{c}</option>;})}</select></div><div><label className="label">Validade CNH</label><input className="input" type="date" value={form.cnhExpiry} onChange={sf('cnhExpiry')}/></div><div><label className="label">Experiência (anos)</label><input className="input" type="number" min="0" value={form.experience} onChange={sf('experience')}/></div></div>)}
-                      {tab==='vinculo'&&(<div className="space-y-4"><div className="p-4 bg-primary-50 rounded-xl"><p className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2"><Navigation size={14}/> Rota vinculada</p><select className="input" value={form.routeId} onChange={sf('routeId')}><option value="">— Nenhuma rota —</option>{allR.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select></div><div className="p-4 bg-blue-50 rounded-xl"><p className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2"><Bus size={14}/> Veículo vinculado</p><select className="input" value={form.vehicleId} onChange={sf('vehicleId')}><option value="">— Nenhum veículo —</option>{allV.map(function(v:any){return <option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>;})}</select></div><p className="text-xs text-gray-400">Vincular motorista à rota e veículo habilita rastreamento em tempo real.</p></div>)}
+                      {tab==='vinculo'&&(<div className="space-y-4"><div className="p-4 bg-primary-50 rounded-xl"><p className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2"><Navigation size={14}/> Rota vinculada</p><div className="flex gap-1"><select className="input flex-1" value={form.routeId} onChange={sf('routeId')}><option value="">— Nenhuma rota —</option>{allR.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select><button type="button" onClick={() => setQuickAdd('route')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar rota"><Plus size={16}/></button></div></div><div className="p-4 bg-blue-50 rounded-xl"><p className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2"><Bus size={14}/> Veículo vinculado</p><div className="flex gap-1"><select className="input flex-1" value={form.vehicleId} onChange={sf('vehicleId')}><option value="">— Nenhum veículo —</option>{allV.map(function(v:any){return <option key={v.id} value={v.id}>{v.plate}{v.nickname?' — '+v.nickname:''}{v.brand?' ('+v.brand+(v.model?' '+v.model:'')+(v.year?' '+v.year:'')+')':''}</option>;})}</select><button type="button" onClick={() => setQuickAdd('vehicle')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar veículo"><Plus size={16}/></button></div></div><p className="text-xs text-gray-400">Vincular motorista à rota e veículo habilita rastreamento em tempo real.</p></div>)}
                     </div>
                     <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShow(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Motorista'}</button></div>
             </div></div>)}
+
+          {/* Quick Add Modal */}
+          {quickAdd && (
+            <QuickAddModal
+              entityType={quickAdd as any}
+              municipalityId={municipalityId}
+              onClose={() => setQuickAdd(null)}
+              onSuccess={(entity) => {
+                if (quickAdd === 'vehicle') { refetchVehicles(); setForm((f: any) => ({ ...f, vehicleId: String(entity.id) })); }
+                else if (quickAdd === 'route') { refetchRoutes(); setForm((f: any) => ({ ...f, routeId: String(entity.id) })); }
+                setQuickAdd(null);
+              }}
+            />
+          )}
           </div>
         );
 }

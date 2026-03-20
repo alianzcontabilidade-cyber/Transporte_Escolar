@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2 } from 'lucide-react';
+import QuickAddModal from '../components/QuickAddModal';
 
 const STATUS_LABELS: any = { active: 'Ativo', transferred: 'Transferido', cancelled: 'Cancelado', graduated: 'Aprovado', retained: 'Retido', evaded: 'Evadido' };
 const STATUS_COLORS: any = { active: 'bg-green-100 text-green-700', transferred: 'bg-blue-100 text-blue-700', cancelled: 'bg-gray-100 text-gray-600', graduated: 'bg-emerald-100 text-emerald-700', retained: 'bg-red-100 text-red-700', evaded: 'bg-yellow-100 text-yellow-700' };
@@ -22,11 +23,12 @@ export default function EnrollmentsPage() {
   const [statusModal, setStatusModal] = useState<any>(null);
   const [newStatus, setNewStatus] = useState('');
   const [statusNotes, setStatusNotes] = useState('');
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
 
   const { data: enrollmentsList, refetch } = useQuery(() => api.enrollments.list({ municipalityId: mid, classId: filterClass ? parseInt(filterClass) : undefined, academicYearId: filterYear ? parseInt(filterYear) : undefined, status: filterStatus || undefined }), [mid, filterClass, filterYear, filterStatus]);
-  const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid, academicYearId: filterYear ? parseInt(filterYear) : undefined }), [mid, filterYear]);
-  const { data: yearsData } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
-  const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
+  const { data: classesData, refetch: refetchClasses } = useQuery(() => api.classes.list({ municipalityId: mid, academicYearId: filterYear ? parseInt(filterYear) : undefined }), [mid, filterYear]);
+  const { data: yearsData, refetch: refetchYears } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
+  const { data: studentsData, refetch: refetchStudents } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { mutate: updateStatus } = useMutation(api.enrollments.updateStatus);
 
   const all = (enrollmentsList as any) || [];
@@ -72,8 +74,8 @@ export default function EnrollmentsPage() {
       </div>
 
       <div className="flex gap-3 mb-4 flex-wrap">
-        <select className="input w-48" value={filterYear} onChange={e => { setFilterYear(e.target.value); setFilterClass(''); }}><option value="">Todos os anos</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select>
-        <select className="input w-56" value={filterClass} onChange={e => setFilterClass(e.target.value)}><option value="">Todas as turmas</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select>
+        <div className="flex gap-1"><select className="input w-48" value={filterYear} onChange={e => { setFilterYear(e.target.value); setFilterClass(''); }}><option value="">Todos os anos</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select><button type="button" onClick={() => setQuickAdd('academicYear')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm"><Plus size={16}/></button></div>
+        <div className="flex gap-1"><select className="input w-56" value={filterClass} onChange={e => setFilterClass(e.target.value)}><option value="">Todas as turmas</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select><button type="button" onClick={() => setQuickAdd('class')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm"><Plus size={16}/></button></div>
         <select className="input w-40" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select>
         <div className="relative flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar aluno..." value={search} onChange={e => setSearch(e.target.value)} /></div>
       </div>
@@ -111,11 +113,11 @@ export default function EnrollmentsPage() {
         <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold flex items-center gap-2"><UserPlus size={18} className="text-teal-500" /> Matricular Alunos em Lote</h3><button onClick={() => setShowBulk(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div>
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Ano Letivo *</label><select className="input" value={filterYear} onChange={e => setFilterYear(e.target.value)}><option value="">Selecione</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select></div>
-            <div><label className="label">Turma *</label><select className="input" value={bulkClassId} onChange={e => setBulkClassId(e.target.value)}><option value="">Selecione</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select></div>
+            <div><label className="label">Ano Letivo *</label><div className="flex gap-1"><select className="input" value={filterYear} onChange={e => setFilterYear(e.target.value)}><option value="">Selecione</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select><button type="button" onClick={() => setQuickAdd('academicYear')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm"><Plus size={16}/></button></div></div>
+            <div><label className="label">Turma *</label><div className="flex gap-1"><select className="input" value={bulkClassId} onChange={e => setBulkClassId(e.target.value)}><option value="">Selecione</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select><button type="button" onClick={() => setQuickAdd('class')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm"><Plus size={16}/></button></div></div>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Selecione os alunos ({selectedStudents.length} selecionados)</p>
+            <div className="flex items-center justify-between mb-2"><p className="text-sm font-medium text-gray-700">Selecione os alunos ({selectedStudents.length} selecionados)</p><button type="button" onClick={() => setQuickAdd('student')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm flex items-center gap-1"><Plus size={16}/> Novo Aluno</button></div>
             <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
               {availableStudents.map((s: any) => (
                 <label key={s.id} className="flex items-center gap-3 p-2.5 hover:bg-gray-50 cursor-pointer">
@@ -132,6 +134,21 @@ export default function EnrollmentsPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowBulk(false)} className="btn-secondary flex-1">Fechar</button><button onClick={doBulkEnroll} disabled={!bulkClassId || !filterYear || !selectedStudents.length || importing} className="btn-primary flex-1 flex items-center justify-center gap-2">{importing && <Loader2 size={16} className="animate-spin" />}{importing ? 'Matriculando...' : `Matricular ${selectedStudents.length} aluno(s)`}</button></div>
       </div></div>)}
+
+      {/* QuickAddModal */}
+      {quickAdd && (
+        <QuickAddModal
+          entityType={quickAdd as any}
+          municipalityId={mid}
+          onClose={() => setQuickAdd(null)}
+          onSuccess={(newEntity: any) => {
+            if (quickAdd === 'academicYear') { refetchYears(); setFilterYear(String(newEntity.id)); }
+            if (quickAdd === 'class') { refetchClasses(); setBulkClassId(String(newEntity.id)); setFilterClass(String(newEntity.id)); }
+            if (quickAdd === 'student') { refetchStudents(); if (newEntity.id) setSelectedStudents(prev => [...prev, newEntity.id]); }
+            setQuickAdd(null);
+          }}
+        />
+      )}
     </div>
   );
 }

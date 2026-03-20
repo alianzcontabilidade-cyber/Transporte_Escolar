@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { GraduationCap, Plus, X, Pencil, Trash2, Search, Users, School } from 'lucide-react';
+import QuickAddModal from '../components/QuickAddModal';
 
 const SHIFTS: any = { morning: 'Manhã', afternoon: 'Tarde', evening: 'Noite', full_time: 'Integral' };
 const emptyForm = { schoolId: '', academicYearId: '', classGradeId: '', name: '', shift: 'morning', maxStudents: '30', roomNumber: '', teacherUserId: '' };
@@ -18,12 +19,13 @@ export default function ClassesPage() {
   const [filterYear, setFilterYear] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
 
   const { data: classList, refetch } = useQuery(() => api.classes.list({ municipalityId: mid, schoolId: filterSchool ? parseInt(filterSchool) : undefined, academicYearId: filterYear ? parseInt(filterYear) : undefined }), [mid, filterSchool, filterYear]);
-  const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
-  const { data: yearsData } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
-  const { data: gradesData } = useQuery(() => api.classGrades.list({ municipalityId: mid }), [mid]);
-  const { data: teachersData } = useQuery(() => api.teachers.list({ municipalityId: mid }), [mid]);
+  const { data: schoolsData, refetch: refetchSchools } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
+  const { data: yearsData, refetch: refetchYears } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
+  const { data: gradesData, refetch: refetchGrades } = useQuery(() => api.classGrades.list({ municipalityId: mid }), [mid]);
+  const { data: teachersData, refetch: refetchTeachers } = useQuery(() => api.teachers.list({ municipalityId: mid }), [mid]);
   const { mutate: create, loading: creating } = useMutation(api.classes.create);
   const { mutate: update, loading: updating } = useMutation(api.classes.update);
   const { mutate: remove } = useMutation(api.classes.delete);
@@ -90,18 +92,46 @@ export default function ClassesPage() {
         <div className="p-5 space-y-4">
           {formErr && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Escola *</label><select className="input" value={form.schoolId} onChange={sf('schoolId')} disabled={!!editId}><option value="">Selecione</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-            <div><label className="label">Ano Letivo *</label><select className="input" value={form.academicYearId} onChange={sf('academicYearId')} disabled={!!editId}><option value="">Selecione</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select></div>
-            <div><label className="label">Serie *</label><select className="input" value={form.classGradeId} onChange={sf('classGradeId')} disabled={!!editId}><option value="">Selecione</option>{allGrades.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
+            <div><label className="label">Escola *</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.schoolId} onChange={sf('schoolId')} disabled={!!editId}><option value="">Selecione</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+              {!editId && <button type="button" onClick={() => setQuickAdd('school')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar escola"><Plus size={16}/></button>}</div>
+            </div>
+            <div><label className="label">Ano Letivo *</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.academicYearId} onChange={sf('academicYearId')} disabled={!!editId}><option value="">Selecione</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select>
+              {!editId && <button type="button" onClick={() => setQuickAdd('academicYear')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar ano letivo"><Plus size={16}/></button>}</div>
+            </div>
+            <div><label className="label">Série *</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.classGradeId} onChange={sf('classGradeId')} disabled={!!editId}><option value="">Selecione</option>{allGrades.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
+              {!editId && <button type="button" onClick={() => setQuickAdd('classGrade')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar série"><Plus size={16}/></button>}</div>
+            </div>
             <div><label className="label">Nome da turma *</label><input className="input" value={form.name} onChange={sf('name')} placeholder="A, B, C..." /></div>
             <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={sf('shift')}>{Object.entries(SHIFTS).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>
             <div><label className="label">Max. alunos</label><input className="input" type="number" value={form.maxStudents} onChange={sf('maxStudents')} /></div>
             <div><label className="label">Sala</label><input className="input" value={form.roomNumber} onChange={sf('roomNumber')} placeholder="Sala 05" /></div>
-            <div><label className="label">Professor regente</label><select className="input" value={form.teacherUserId} onChange={sf('teacherUserId')}><option value="">Selecione</option>{allTeachers.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            <div><label className="label">Professor regente</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.teacherUserId} onChange={sf('teacherUserId')}><option value="">Selecione</option>{allTeachers.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+              <button type="button" onClick={() => setQuickAdd('teacher')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar professor"><Plus size={16}/></button></div>
+            </div>
           </div>
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating || updating} className="btn-primary flex-1">{creating || updating ? 'Salvando...' : 'Salvar'}</button></div>
       </div></div>)}
+
+      {/* Quick Add Modal */}
+      {quickAdd && (
+        <QuickAddModal
+          entityType={quickAdd as any}
+          municipalityId={mid}
+          onClose={() => setQuickAdd(null)}
+          onSuccess={(entity) => {
+            if (quickAdd === 'school') { refetchSchools(); setForm((f: any) => ({ ...f, schoolId: String(entity.id) })); }
+            else if (quickAdd === 'academicYear') { refetchYears(); setForm((f: any) => ({ ...f, academicYearId: String(entity.id) })); }
+            else if (quickAdd === 'classGrade') { refetchGrades(); setForm((f: any) => ({ ...f, classGradeId: String(entity.id) })); }
+            else if (quickAdd === 'teacher') { refetchTeachers(); setForm((f: any) => ({ ...f, teacherUserId: String(entity.id) })); }
+            setQuickAdd(null);
+          }}
+        />
+      )}
     </div>
   );
 }

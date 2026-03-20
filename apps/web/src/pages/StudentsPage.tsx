@@ -8,6 +8,7 @@ import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen
 import { printStudentQRCodes } from '../lib/qrcode';
 import StudentDocumentsModal from '../components/StudentDocumentsModal';
 import { QuickActionButton } from '../components/EntitySummaries';
+import QuickAddModal from '../components/QuickAddModal';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -91,7 +92,7 @@ export default function StudentsPage() {
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
-  const { data: schoolsData } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
+  const { data: schoolsData, refetch: refetchSchools } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.students.create);
   const { mutate: update, loading: updating } = useMutation(api.students.update);
   const { mutate: remove } = useMutation(api.students.delete);
@@ -185,6 +186,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
   const [viewStudent, setViewStudent] = useState<any>(null);
   const [showDocs, setShowDocs] = useState<any>(null);
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
 
   const handleCSVUpload = function(e: any) {
     const file = e.target.files?.[0];
@@ -553,7 +555,10 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div><label className="label">Serie/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
             <div><label className="label">Turma</label><input className="input" value={form.className} onChange={setField('className')} placeholder="A"/></div>
             <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(function(s){return <option key={s.v} value={s.v}>{s.l}</option>;})}</select></div>
-            <div><label className="label">Escola</label><select className="input" value={form.school} onChange={setField('school')}><option value="">Selecione</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select></div>
+            <div><label className="label">Escola</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.school} onChange={setField('school')}><option value="">Selecione</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select>
+              <button type="button" onClick={() => setQuickAdd('school')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar escola"><Plus size={16}/></button></div>
+            </div>
             <div><label className="label">Tipo Matricula</label><select className="input" value={form.enrollmentType} onChange={setField('enrollmentType')}><option value="novato">Novato</option><option value="renovacao">Renovacao</option><option value="transferencia">Transferencia</option></select></div>
             <div className="col-span-3"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
               <select className="input" value={form.routeId} onChange={setField('routeId')}><option value="">— Sem rota —</option>{allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select>
@@ -719,6 +724,19 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       </div></div>)}
 
       {showDocs && <StudentDocumentsModal studentId={showDocs.id} studentName={showDocs.name} onClose={() => setShowDocs(null)} />}
+
+      {/* Quick Add Modal */}
+      {quickAdd && (
+        <QuickAddModal
+          entityType={quickAdd as any}
+          municipalityId={municipalityId}
+          onClose={() => setQuickAdd(null)}
+          onSuccess={(entity) => {
+            if (quickAdd === 'school') { refetchSchools(); setForm((f: any) => ({ ...f, school: String(entity.id) })); }
+            setQuickAdd(null);
+          }}
+        />
+      )}
     </div>
   );
 }

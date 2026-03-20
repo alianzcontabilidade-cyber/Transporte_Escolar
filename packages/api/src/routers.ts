@@ -1778,8 +1778,22 @@ export const monitorsRouter = t.router({
     const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
     if (!driver) return null;
 
-    const [activeTrip] = await db.select().from(trips)
-      .where(and(eq(trips.driverId, driver.id), eq(trips.status, 'started'))).limit(1);
+    // Buscar TODAS as viagens ativas deste motorista (pode haver mais de uma presa)
+    const allActive = await db.select().from(trips)
+      .where(and(eq(trips.driverId, driver.id), eq(trips.status, 'started')));
+
+    // Se não há viagens ativas, retornar null
+    if (allActive.length === 0) return null;
+
+    // Se há mais de uma, finalizar as extras (manter só a mais recente)
+    if (allActive.length > 1) {
+      const sorted = allActive.sort((a, b) => (b.id || 0) - (a.id || 0));
+      for (let i = 1; i < sorted.length; i++) {
+        await db.update(trips).set({ status: 'completed', completedAt: new Date() }).where(eq(trips.id, sorted[i].id));
+      }
+    }
+
+    const activeTrip = allActive.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
     if (!activeTrip) return null;
 
     const [route] = await db.select().from(routes).where(eq(routes.id, activeTrip.routeId)).limit(1);

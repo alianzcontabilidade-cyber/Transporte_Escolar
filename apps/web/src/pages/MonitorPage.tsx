@@ -214,10 +214,13 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
 
   async function handleCompleteTrip() {
     if (!confirm('Finalizar esta viagem?')) return;
+    const tid = tripData.trip?.id || tripData.id;
+    if (!tid) { alert('ID da viagem não encontrado. Tente recarregar a página.'); return; }
     try {
-      await api.trips.complete({ tripId: tripData.trip?.id });
+      await api.trips.complete({ tripId: tid });
+      alert('Viagem finalizada com sucesso!');
       onRefresh();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { alert('Erro ao finalizar: ' + (e.message || 'Tente novamente')); }
   }
 
   const stopsData = tripData?.stops || [];
@@ -362,8 +365,11 @@ export default function MonitorPage() {
       if (isDriverOrMonitor) {
         const trip = await api.monitors.myActiveTrip();
         setMyTrip(trip);
-        if (trip) setView('checklist');
-        else {
+        if (trip && trip.trip) {
+          setView('checklist');
+        } else {
+          setMyTrip(null);
+          setView('overview');
           const routes = await api.monitors.availableTrips();
           setAvailableRoutes(routes);
         }

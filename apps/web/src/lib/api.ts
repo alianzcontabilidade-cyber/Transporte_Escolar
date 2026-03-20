@@ -124,6 +124,7 @@ export const api = {
     reorder: (input: any) => call('stops.reorder', input, 'mutation'),
   },
   students: {
+    listCartorios: (input: any) => call('students.listCartorios', input, 'query'),
     list: (input: any) => call('students.list', input, 'query'),
     create: (input: any) => call('students.create', input, 'mutation'),
     update: (input: any) => call('students.update', input, 'mutation'),

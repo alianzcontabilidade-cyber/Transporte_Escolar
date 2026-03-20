@@ -93,6 +93,8 @@ export default function StudentsPage() {
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
   const { data: schoolsData, refetch: refetchSchools } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
+  const { data: cartoriosData } = useQuery(function() { return api.students.listCartorios({ municipalityId }); }, [municipalityId]);
+  const allCartorios: string[] = (cartoriosData as any) || [];
   const { mutate: create, loading: creating } = useMutation(api.students.create);
   const { mutate: update, loading: updating } = useMutation(api.students.update);
   const { mutate: remove } = useMutation(api.students.delete);
@@ -582,7 +584,10 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div><label className="label">Folha</label><input className="input" value={form.certidaoFolha} onChange={setField('certidaoFolha')}/></div>
               <div><label className="label">Livro</label><input className="input" value={form.certidaoLivro} onChange={setField('certidaoLivro')}/></div>
               <div><label className="label">Data Emissão</label><input className="input" type="date" value={form.certidaoData} onChange={setField('certidaoData')}/></div>
-              <div className="col-span-3"><label className="label">Cartório</label><input className="input" value={form.certidaoCartorio} onChange={setField('certidaoCartorio')}/></div>
+              <div className="col-span-3"><label className="label">Cartório {allCartorios.length > 0 && <span className="text-[10px] text-accent-500 font-normal ml-1">({allCartorios.length} cadastrado{allCartorios.length>1?'s':''})</span>}</label>
+                <input className="input" value={form.certidaoCartorio} onChange={setField('certidaoCartorio')} list="cartorios-list" placeholder="Digite o nome do cartório..."/>
+                <datalist id="cartorios-list">{allCartorios.map((c,i) => <option key={i} value={c}/>)}</datalist>
+              </div>
             </div></div>
           </div>)}
 

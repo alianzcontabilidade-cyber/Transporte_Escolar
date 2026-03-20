@@ -681,6 +681,20 @@ export const stopsRouter = t.router({
 // STUDENTS ROUTER
 // ============================================
 export const studentsRouter = t.router({
+  // Lista cartórios distintos já cadastrados para autocomplete
+  listCartorios: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const result = await db.selectDistinct({ cartorio: students.certidaoCartorio })
+        .from(students)
+        .where(and(
+          eq(students.municipalityId, input.municipalityId),
+          sql`${students.certidaoCartorio} IS NOT NULL AND ${students.certidaoCartorio} != ''`
+        ))
+        .orderBy(students.certidaoCartorio);
+      return result.map(r => r.cartorio).filter(Boolean);
+    }),
+
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
     .query(async ({ input }) => {

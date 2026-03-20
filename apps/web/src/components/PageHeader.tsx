@@ -66,6 +66,7 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/central-relatorios': { code: '416', title: 'Central de Relatórios', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/ficha-matricula': { code: '117', title: 'Ficha de Matrícula', module: 'Gestão Escolar', color: '#6366f1' },
   '/cadastro-prefeitura': { code: '507', title: 'Cadastro da Prefeitura', module: 'Central de Controle', color: '#64748b' },
+  '/relacao-alunos-turma': { code: '118', title: 'Relação de Alunos por Turma', module: 'Gestão Escolar', color: '#6366f1' },
 };
 
 // Favorites management

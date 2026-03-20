@@ -58,6 +58,7 @@ import ClassSchedulePage from './pages/ClassSchedulePage';
 import SystemInfoPage from './pages/SystemInfoPage';
 import StudentReportPage from './pages/StudentReportPage';
 import SchoolReportPage from './pages/SchoolReportPage';
+import ClassRosterPage from './pages/ClassRosterPage';
 import DataBackupPage from './pages/DataBackupPage';
 import ClassCouncilPage from './pages/ClassCouncilPage';
 import StudentOccurrencePage from './pages/StudentOccurrencePage';
@@ -164,6 +165,7 @@ export default function App() {
         <Route path="grade-horaria" element={<Guard roles={ADMIN_SEC}><ClassSchedulePage /></Guard>} />
         <Route path="ficha-aluno" element={<Guard roles={ADMIN_SEC}><StudentReportPage /></Guard>} />
         <Route path="relatorio-escola" element={<Guard roles={ADMIN_SEC}><SchoolReportPage /></Guard>} />
+        <Route path="relacao-alunos-turma" element={<Guard roles={ADMIN_SEC}><ClassRosterPage /></Guard>} />
         <Route path="backup" element={<Guard roles={ADMIN}><DataBackupPage /></Guard>} />
         <Route path="conselho-classe" element={<Guard roles={ADMIN_SEC}><ClassCouncilPage /></Guard>} />
         <Route path="ocorrencias" element={<Guard roles={ADMIN_SEC}><StudentOccurrencePage /></Guard>} />

@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Bus, Printer, Download, MapPin, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
+import { loadMunicipalityData } from '../lib/reportTemplate';
 
 export default function TransportReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [municipalityName, setMunicipalityName] = useState('');
+
+  useEffect(() => {
+    if (!mid) return;
+    loadMunicipalityData(mid, api).then(({ municipality }) => {
+      setMunicipalityName(municipality.name || '');
+    });
+  }, [mid]);
 
   const { data: routesData } = useQuery(() => api.routes.list({ municipalityId: mid }), [mid]);
   const { data: vehiclesData } = useQuery(() => api.vehicles.list({ municipalityId: mid }), [mid]);
@@ -61,7 +70,7 @@ export default function TransportReportPage() {
         </div>
       </div>
 
-      <ReportExportBar title="Relatório de Transporte" subtitle={`${allRoutes.length} rotas · ${completed.length} viagens concluídas`}
+      <ReportExportBar title="Relatório de Transporte" subtitle={`${allRoutes.length} rotas · ${completed.length} viagens concluídas`} municipality={municipalityName}
         fullData={allTrips.map((t: any) => ({ rota: t.route?.name||'', data: t.trip?.tripDate?new Date(t.trip.tripDate).toLocaleDateString('pt-BR'):'', status: t.trip?.status==='completed'?'Concluída':t.trip?.status||'', inicio: t.trip?.startedAt?new Date(t.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'', fim: t.trip?.completedAt?new Date(t.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'' }))}
         fullDataColumns={[{key:'rota',label:'Rota'},{key:'data',label:'Data'},{key:'status',label:'Status'},{key:'inicio',label:'Início'},{key:'fim',label:'Fim'}]}>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

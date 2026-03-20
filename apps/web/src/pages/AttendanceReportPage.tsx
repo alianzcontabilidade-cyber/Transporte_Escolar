@@ -1,14 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
+import { loadMunicipalityData } from '../lib/reportTemplate';
 
 export default function AttendanceReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [municipalityName, setMunicipalityName] = useState('');
   const [selClass, setSelClass] = useState('');
+
+  useEffect(() => {
+    if (!mid) return;
+    loadMunicipalityData(mid, api).then(({ municipality }) => {
+      setMunicipalityName(municipality.name || '');
+    });
+  }, [mid]);
   const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
@@ -71,6 +80,8 @@ export default function AttendanceReportPage() {
 
       {summary.length > 0 ? (
         <ReportExportBar title="Relatório de Frequência" subtitle={`Turma: ${allClasses.find((c: any) => String(c.id) === selClass)?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`}
+          municipality={municipalityName}
+          school={allClasses.find((c: any) => String(c.id) === selClass)?.schoolName || ''}
           fullData={summary.map((s: any) => ({ aluno: s.studentName, presencas: s.present, faltas: s.absent||0, justificadas: s.justified||0, atrasos: s.late||0, total: s.total, percentual: s.total > 0 ? Math.round(((s.present+(s.justified||0))/s.total)*100)+'%' : '0%' }))}
           fullDataColumns={[{key:'aluno',label:'Aluno'},{key:'presencas',label:'Presenças'},{key:'faltas',label:'Faltas'},{key:'justificadas',label:'Justificadas'},{key:'atrasos',label:'Atrasos'},{key:'total',label:'Total'},{key:'percentual',label:'% Presença'}]}>
         <>

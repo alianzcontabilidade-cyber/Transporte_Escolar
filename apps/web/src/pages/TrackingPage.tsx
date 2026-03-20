@@ -22,7 +22,7 @@ function TrackingMap({ position, stops, fullscreen }: { position: any; stops?: a
       const L = (window as any).L;
       const center = position ? [position.latitude, position.longitude] : [-14.235, -51.925];
       const map = L.map(mapRef.current!).setView(center, position ? 15 : 5);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 }).addTo(map);
       mapInstanceRef.current = map;
 
       // Add stop markers if available

@@ -31,7 +31,7 @@ function LiveMap({ trips, locations, selectedTrip, fullscreen }: any) {
       document.head.appendChild(link);
       const L = (window as any).L;
       const map = L.map(mapRef.current!).setView([-15.78, -47.93], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 }).addTo(map);
       mapInstanceRef.current = map;
     };
     document.head.appendChild(script);

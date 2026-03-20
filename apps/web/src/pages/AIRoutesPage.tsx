@@ -15,7 +15,7 @@ function RouteMap({ routes, selected }: any) {
       const link = document.createElement('link'); link.rel='stylesheet'; link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
       const L = (window as any).L;
       const map = L.map(mapRef.current).setView([-10.18, -48.33], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO &copy; OSM',maxZoom:20}).addTo(map);
       mapInstanceRef.current = map;
     };
     document.head.appendChild(script);

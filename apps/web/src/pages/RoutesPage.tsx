@@ -18,7 +18,7 @@ function LeafletMap({ stops, onAddStop, readonly }: { stops: any[]; onAddStop: (
   useEffect(() => {
     if (!mapRef.current||mapInst.current) return;
     const sc = document.createElement('script'); sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    sc.onload = () => { const lk=document.createElement('link');lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(lk); const L=(window as any).L; const map=L.map(mapRef.current!).setView([-15.78,-47.93],13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map); if(!readonly)map.on('click',(e:any)=>{const n=prompt('Nome da parada:');if(n)onAddStop({name:n,lat:String(e.latlng.lat.toFixed(6)),lng:String(e.latlng.lng.toFixed(6))});}); mapInst.current=map; };
+    sc.onload = () => { const lk=document.createElement('link');lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(lk); const L=(window as any).L; const map=L.map(mapRef.current!).setView([-15.78,-47.93],13); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO &copy; OSM',maxZoom:20}).addTo(map); if(!readonly)map.on('click',(e:any)=>{const n=prompt('Nome da parada:');if(n)onAddStop({name:n,lat:String(e.latlng.lat.toFixed(6)),lng:String(e.latlng.lng.toFixed(6))});}); mapInst.current=map; };
     document.head.appendChild(sc);
     return () => { if(mapInst.current){mapInst.current.remove();mapInst.current=null;} };
   }, [readonly]);

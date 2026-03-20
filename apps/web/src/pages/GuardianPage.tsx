@@ -22,7 +22,7 @@ function LiveMap({ driverLocation, stops }: any) {
       const defaultCenter = driverLocation?.lat && driverLocation?.lng
         ? [driverLocation.lat, driverLocation.lng] : [-15.78, -47.93];
       const map = L.map(mapRef.current!).setView(defaultCenter, 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 }).addTo(map);
       mapInstanceRef.current = map;
 
       // Adicionar paradas ao mapa

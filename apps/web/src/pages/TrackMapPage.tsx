@@ -96,9 +96,13 @@ export default function TrackMapPage() {
     if (!L) return;
 
     const map = L.map(mapRef.current).setView([-14.235, -51.9253], 5); // Brazil center
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
+    // CartoDB Voyager (modern, clean) as default + layer control
+    const streets = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 });
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
+    const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 });
+    const terrain = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
+    streets.addTo(map);
+    L.control.layers({ 'Ruas': streets, 'Satélite': satellite, 'Escuro': dark, 'Terreno': terrain }, {}, { position: 'topright', collapsed: true }).addTo(map);
     mapInstanceRef.current = map;
   }, [mapLoaded]);
 

@@ -98,7 +98,10 @@ export default function StudentsPage() {
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
   const { data: schoolsData, refetch: refetchSchools } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
   const { data: cartoriosData } = useQuery(function() { return api.students.listCartorios({ municipalityId }); }, [municipalityId]);
+  const { data: requiredFieldsData } = useQuery(function() { return api.formConfig.list({ municipalityId, formType: 'student' }); }, [municipalityId]);
   const allCartorios: string[] = (cartoriosData as any) || [];
+  const requiredFields = new Set(((requiredFieldsData as any) || []).map((f: any) => f.fieldName));
+  const isRequired = (field: string) => requiredFields.has(field);
   const { mutate: create, loading: creating } = useMutation(api.students.create);
   const { mutate: update, loading: updating } = useMutation(api.students.update);
   const { mutate: remove } = useMutation(api.students.delete);
@@ -262,9 +265,23 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     a.click();
   };
 
+  const FIELD_LABELS: Record<string, string> = {
+    name:'Nome', cpf:'CPF', rg:'RG', sex:'Sexo', race:'Cor/Raça', birthDate:'Data Nascimento',
+    nationality:'Nacionalidade', naturalness:'Naturalidade', nis:'NIS', cartaoSus:'Cartão SUS',
+    certidaoNumero:'Certidão Número', address:'Endereço', cep:'CEP', neighborhood:'Bairro',
+    city:'Cidade', state:'UF', phone:'Telefone', fatherName:'Nome do Pai', fatherCpf:'CPF do Pai',
+    motherName:'Nome da Mãe', motherCpf:'CPF da Mãe', bloodType:'Tipo Sanguíneo',
+  };
+
   const save = function() {
-    if (!form.name) { setFormErr('Nome e obrigatorio.'); return; }
-    if (!form.school && !editId) { setFormErr('Escola e obrigatoria.'); return; }
+    if (!form.name) { setFormErr('Nome é obrigatório.'); return; }
+    if (!form.school && !editId) { setFormErr('Escola é obrigatória.'); return; }
+    // Validate configured required fields
+    const missing: string[] = [];
+    requiredFields.forEach((field: string) => {
+      if (!form[field] && field !== 'name') missing.push(FIELD_LABELS[field] || field);
+    });
+    if (missing.length > 0) { setFormErr('Campos obrigatórios não preenchidos: ' + missing.join(', ')); return; }
     const payload: any = {
       municipalityId, name:form.name,
       schoolId:form.school?parseInt(form.school):undefined,
@@ -547,6 +564,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
+          {requiredFields.size > 0 && <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs rounded-lg flex items-center gap-1"><span className="text-red-500 font-bold">*</span> Campos obrigatórios definidos pelo administrador ({requiredFields.size})</div>}
 
           {/* ABA DADOS */}
           {tab==='dados'&&(<><div className="flex justify-center"><PhotoUpload value={form.photo} onChange={function(v:string){setForm(function(f:any){return{...f,photo:v};});}}/></div><div className="grid grid-cols-3 gap-3">

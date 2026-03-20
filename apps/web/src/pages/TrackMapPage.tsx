@@ -113,42 +113,61 @@ export default function TrackMapPage() {
     if (!L) return;
     const map = mapInstanceRef.current;
 
+    // Remove stale markers (vehicles that no longer exist)
+    const currentIds = new Set(vehicles.map((v: any) => Number(v.vehicleId || v.id || 0)));
+    markersRef.current.forEach((marker: any, key: number) => {
+      if (!currentIds.has(key)) { map.removeLayer(marker); markersRef.current.delete(key); }
+    });
+
     // Update or create markers
+    const busIcon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36] });
+
     vehicles.forEach((vehicle: any) => {
       const lat = parseFloat(vehicle.latitude);
       const lng = parseFloat(vehicle.longitude);
-      if (isNaN(lat) || isNaN(lng)) return;
+      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
 
-      const busIcon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [48, 48], iconAnchor: [24, 44], popupAnchor: [0, -44] });
+      const key = Number(vehicle.vehicleId || vehicle.id || 0);
 
-      if (markersRef.current.has(vehicle.vehicleId)) {
-        // Update position
-        const marker = markersRef.current.get(vehicle.vehicleId);
+      if (markersRef.current.has(key)) {
+        const marker = markersRef.current.get(key);
         marker.setLatLng([lat, lng]);
+        marker.setPopupContent(`
+          <div style="min-width:180px;font-family:Arial,sans-serif">
+            <b style="color:#1B3A5C">${vehicle.plate || 'Veículo'}</b><br>
+            <small>Motorista: ${vehicle.driverName || 'N/A'}</small><br>
+            <small>Rota: ${vehicle.routeName || 'N/A'}</small><br>
+            <small>Velocidade: ${vehicle.speed ? (vehicle.speed * 3.6).toFixed(0) + ' km/h' : 'N/A'}</small><br>
+            <small>Atualizado: ${vehicle.updatedAt ? new Date(vehicle.updatedAt).toLocaleTimeString('pt-BR') : 'agora'}</small>
+          </div>
+        `);
       } else {
-        // Create new marker
         const marker = L.marker([lat, lng], { icon: busIcon })
           .addTo(map)
           .bindPopup(`
-            <div style="min-width:200px">
-              <b>${vehicle.plate || 'Veiculo #' + vehicle.vehicleId}</b><br>
+            <div style="min-width:180px;font-family:Arial,sans-serif">
+              <b style="color:#1B3A5C">${vehicle.plate || 'Veículo'}</b><br>
               <small>Motorista: ${vehicle.driverName || 'N/A'}</small><br>
               <small>Rota: ${vehicle.routeName || 'N/A'}</small><br>
-              <small>Velocidade: ${vehicle.speed ? (vehicle.speed * 3.6).toFixed(1) + ' km/h' : 'N/A'}</small><br>
-              <small>Atualizado: ${vehicle.updatedAt ? new Date(vehicle.updatedAt).toLocaleTimeString() : 'N/A'}</small>
+              <small>Velocidade: ${vehicle.speed ? (vehicle.speed * 3.6).toFixed(0) + ' km/h' : 'N/A'}</small><br>
+              <small>Atualizado: ${vehicle.updatedAt ? new Date(vehicle.updatedAt).toLocaleTimeString('pt-BR') : 'agora'}</small>
             </div>
           `);
         marker.on('click', () => setSelectedVehicle(vehicle));
-        markersRef.current.set(vehicle.vehicleId, marker);
+        markersRef.current.set(key, marker);
       }
     });
 
-    // Fit bounds if we have vehicles
-    if (vehicles.length > 0) {
-      const validVehicles = vehicles.filter((v: any) => !isNaN(parseFloat(v.latitude)) && !isNaN(parseFloat(v.longitude)));
-      if (validVehicles.length > 0) {
+    // Fit bounds only on FIRST load (not every update)
+    if (vehicles.length > 0 && markersRef.current.size <= vehicles.length) {
+      const validVehicles = vehicles.filter((v: any) => {
+        const la = parseFloat(v.latitude), lo = parseFloat(v.longitude);
+        return !isNaN(la) && !isNaN(lo) && la !== 0 && lo !== 0;
+      });
+      if (validVehicles.length > 0 && !map._hasFitBounds) {
         const bounds = validVehicles.map((v: any) => [parseFloat(v.latitude), parseFloat(v.longitude)]);
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        map._hasFitBounds = true;
       }
     }
   }, [vehicles, mapLoaded]);

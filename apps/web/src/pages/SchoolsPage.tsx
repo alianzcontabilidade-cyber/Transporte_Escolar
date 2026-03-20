@@ -7,7 +7,9 @@ import { maskPhone } from '../lib/utils';
 import { getIBGECityCode } from '../lib/ibge';
 import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText } from 'lucide-react';
+import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
+import { StudentMiniCard, ClassMiniCard, QuickActionButton } from '../components/EntitySummaries';
 
 const emptyForm = {
   name: '', code: '', type: 'fundamental', cnpj: '', cep: '',
@@ -38,9 +40,25 @@ export default function SchoolsPage() {
   const [ibgeCityCode, setIbgeCityCode] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
+  const { data: allStudents } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
+  const { data: allClasses } = useQuery(() => api.classes?.list?.({ municipalityId }) || Promise.resolve([]), [municipalityId]);
+  const { data: allRoutes } = useQuery(() => api.routes.list({ municipalityId }), [municipalityId]);
   const { mutate: create, loading: creating } = useMutation(api.schools.create);
   const { mutate: update, loading: updating } = useMutation(api.schools.update);
   const { mutate: remove } = useMutation(api.schools.delete);
+
+  // Cross-navigation panel
+  const [panelSchool, setPanelSchool] = useState<any>(null);
+  const [panelType, setPanelType] = useState<'students' | 'classes' | 'routes' | null>(null);
+
+  const getStudentsBySchool = (schoolId: number) => ((allStudents as any) || []).filter((s: any) => s.schoolId === schoolId);
+  const getClassesBySchool = (schoolId: number) => ((allClasses as any) || []).filter((c: any) => c.schoolId === schoolId);
+  const getRoutesBySchool = (schoolId: number) => ((allRoutes as any) || []).filter((r: any) => (r.route?.schoolId || r.schoolId) === schoolId);
+
+  const openPanel = (school: any, type: 'students' | 'classes' | 'routes') => {
+    setPanelSchool(school);
+    setPanelType(type);
+  };
 
   // Auto-detect IBGE city code from municipality data
   useEffect(() => {
@@ -264,14 +282,18 @@ export default function SchoolsPage() {
                 <button onClick={() => setConfirmDelete(s)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><Trash2 size={14} /></button>
               </div>
             </div>
-            <p className="font-bold text-gray-900">{s.name}</p>
+            <p className="font-bold text-gray-900 dark:text-white">{s.name}</p>
             {s.code && <p className="text-xs text-accent-600 font-medium">INEP: {s.code}</p>}
             <div className="mt-2 space-y-1">
               {s.address && <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} />{s.address}</p>}
-              {s.phone && <p className="text-xs text-gray-500 flex items-center gap-1"><Phone size={10} />{s.phone}</p>}
-              {s.email && <p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10} />{s.email}</p>}
               {s.directorName && <p className="text-xs text-gray-500">Diretor(a): {s.directorName}</p>}
-              {s.type && <p className="text-xs text-gray-500 flex items-center gap-1"><Users size={10} />{s.type === 'infantil' ? 'Educacao Infantil' : s.type === 'fundamental' ? 'Ensino Fundamental' : s.type === 'medio' ? 'Ensino Medio' : s.type === 'tecnico' ? 'Ensino Tecnico' : s.type === 'especial' ? 'Educacao Especial' : s.type}</p>}
+              {s.type && <p className="text-xs text-gray-500 flex items-center gap-1"><Users size={10} />{s.type === 'infantil' ? 'Ed. Infantil' : s.type === 'fundamental' ? 'Ens. Fundamental' : s.type === 'medio' ? 'Ens. Médio' : s.type === 'tecnico' ? 'Ens. Técnico' : s.type === 'especial' ? 'Ed. Especial' : s.type}</p>}
+            </div>
+            {/* Quick navigation badges */}
+            <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center gap-1.5">
+              <QuickNavButton icon={Users} label="Alunos" count={getStudentsBySchool(s.id).length} onClick={() => openPanel(s, 'students')} color="#3b82f6" />
+              <QuickNavButton icon={GraduationCap} label="Turmas" count={getClassesBySchool(s.id).length} onClick={() => openPanel(s, 'classes')} color="#8b5cf6" />
+              <QuickNavButton icon={Bus} label="Rotas" count={getRoutesBySchool(s.id).length} onClick={() => openPanel(s, 'routes')} color="#f59e0b" />
             </div>
           </div>
         ))}
@@ -552,6 +574,63 @@ export default function SchoolsPage() {
           </div>
         </div>
       )}
+
+      {/* Cross-navigation panel */}
+      <CrossNavPanel
+        open={!!panelSchool && !!panelType}
+        onClose={() => { setPanelSchool(null); setPanelType(null); }}
+        title={panelType === 'students' ? `Alunos - ${panelSchool?.name || ''}` : panelType === 'classes' ? `Turmas - ${panelSchool?.name || ''}` : `Rotas - ${panelSchool?.name || ''}`}
+        icon={panelType === 'students' ? Users : panelType === 'classes' ? GraduationCap : Bus}
+      >
+        {panelSchool && panelType === 'students' && (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm text-gray-500">{getStudentsBySchool(panelSchool.id).length} aluno(s)</span>
+              <QuickActionButton icon={Users} label="Ver todos" to="/alunos" />
+            </div>
+            <div className="space-y-1">
+              {getStudentsBySchool(panelSchool.id).map((s: any) => (
+                <StudentMiniCard key={s.id} student={s} />
+              ))}
+              {getStudentsBySchool(panelSchool.id).length === 0 && <p className="text-sm text-gray-400 text-center py-6">Nenhum aluno nesta escola</p>}
+            </div>
+          </div>
+        )}
+        {panelSchool && panelType === 'classes' && (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm text-gray-500">{getClassesBySchool(panelSchool.id).length} turma(s)</span>
+              <QuickActionButton icon={GraduationCap} label="Ver turmas" to="/turmas" />
+            </div>
+            <div className="space-y-1">
+              {getClassesBySchool(panelSchool.id).map((c: any) => (
+                <ClassMiniCard key={c.id} cls={c} />
+              ))}
+              {getClassesBySchool(panelSchool.id).length === 0 && <p className="text-sm text-gray-400 text-center py-6">Nenhuma turma nesta escola</p>}
+            </div>
+          </div>
+        )}
+        {panelSchool && panelType === 'routes' && (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm text-gray-500">{getRoutesBySchool(panelSchool.id).length} rota(s)</span>
+              <QuickActionButton icon={Bus} label="Ver rotas" to="/rotas" />
+            </div>
+            <div className="space-y-1">
+              {getRoutesBySchool(panelSchool.id).map((r: any) => {
+                const rt = r.route || r;
+                return (
+                  <div key={rt.id} className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{rt.name}</p>
+                    <p className="text-xs text-gray-500">{rt.code ? 'Código: ' + rt.code : ''}</p>
+                  </div>
+                );
+              })}
+              {getRoutesBySchool(panelSchool.id).length === 0 && <p className="text-sm text-gray-400 text-center py-6">Nenhuma rota para esta escola</p>}
+            </div>
+          </div>
+        )}
+      </CrossNavPanel>
     </div>
   );
 }

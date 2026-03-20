@@ -557,15 +557,42 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div><label className="label">Nacionalidade</label><input className="input" value={form.nationality} onChange={setField('nationality')}/></div>
             <div><label className="label">UF nasc.</label><select className="input" value={form.naturalnessUf} onChange={e=>{setForm((f:any)=>({...f,naturalnessUf:e.target.value,naturalness:''}));}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
             <div><label className="label">Naturalidade {natMunLoading&&<Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.naturalness} onChange={setField('naturalness')} disabled={!form.naturalnessUf||natMunLoading}><option value="">Selecione</option>{natMunicipios.map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
-            <div><label className="label">Matrícula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
-            <div><label className="label">Série/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
-            <div><label className="label">Turma</label><input className="input" value={form.className} onChange={setField('className')} placeholder="A"/></div>
-            <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(function(s){return <option key={s.v} value={s.v}>{s.l}</option>;})}</select></div>
-            <div><label className="label">Escola</label>
-              <div className="flex gap-1"><select className="input flex-1" value={form.school} onChange={setField('school')}><option value="">Selecione</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select>
+
+            {/* Escola */}
+            <div className="col-span-3"><label className="label">Escola *</label>
+              <div className="flex gap-1"><select className="input flex-1" value={form.school} onChange={setField('school')}><option value="">Selecione a escola</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select>
               <button type="button" onClick={() => setQuickAdd('school')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar escola"><Plus size={16}/></button></div>
             </div>
-            <div><label className="label">Tipo Matrícula</label><select className="input" value={form.enrollmentType} onChange={setField('enrollmentType')}><option value="novato">Novato</option><option value="renovacao">Renovação</option><option value="transferencia">Transferência</option></select></div>
+
+            {/* Situação da Matrícula - informativo */}
+            <div className="col-span-3">
+              {(form.enrollment || form.grade) ? (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase mb-1">Situação Acadêmica</p>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                        {form.enrollment ? 'Mat. ' + form.enrollment + ' | ' : ''}
+                        {form.grade || '--'} {form.className ? '- Turma ' + form.className : ''} {form.shift ? '| ' + (form.shift==='morning'?'Manhã':form.shift==='afternoon'?'Tarde':'Noite') : ''}
+                      </p>
+                    </div>
+                    <QuickActionButton icon={GraduationCap} label="Ir para Matrículas" to="/matriculas" />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase mb-1">Sem Matrícula</p>
+                      <p className="text-sm text-amber-600 dark:text-amber-300">Este aluno ainda não possui matrícula efetivada. Salve o cadastro e depois efetive a matrícula.</p>
+                    </div>
+                    <QuickActionButton icon={GraduationCap} label="Matricular" to="/matriculas" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Rota de transporte */}
             <div className="col-span-3"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
               <select className="input" value={form.routeId} onChange={setField('routeId')}><option value="">— Sem rota —</option>{allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select>
             </div>

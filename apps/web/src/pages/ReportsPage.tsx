@@ -2,34 +2,21 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Calendar, CheckCircle, XCircle, Download, Filter, BarChart2, TrendingUp, Users, MapPin, Bus, FileDown } from 'lucide-react';
+import { FileText, Calendar, CheckCircle, XCircle, Download, BarChart2, TrendingUp, Users, MapPin, Bus, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
-import { loadMunicipalityData, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
+import { loadMunicipalityData, generateReportHTML } from '../lib/reportTemplate';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const COLORS = ['#10b981','#ef4444','#f97316','#3b82f6','#8b5cf6'];
 
-function exportCSV(data: any[], filename: string) {
-  if (!data?.length) { alert('Sem dados para exportar'); return; }
-  const keys = Object.keys(data[0]);
-  const csv = [keys.join(';'), ...data.map(row => keys.map(k => `"${row[k]??''}"`).join(';'))].join('\n');
-  const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
-}
-
-function generatePDFReport(title: string, data: any[], cols: string[], munReport: any) {
-  if (!data?.length) { alert('Sem dados para exportar'); return; }
-  const rows = data.map(row => '<tr>' + Object.values(row).map(v => `<td>${v??''}</td>`).join('') + '</tr>').join('');
-  const content = `<table><thead><tr>${cols.map(c => `<th style="text-align:left">${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: ${data.length} registro(s)</p>`;
+function buildReportHTML(title: string, data: any[], cols: string[], munReport: any): string {
+  if (!data?.length) return '';
+  const rows = data.map(row => '<tr>' + Object.values(row).map(v => '<td>' + (v ?? '') + '</td>').join('') + '</tr>').join('');
+  const content = '<table><thead><tr>' + cols.map(c => '<th style="text-align:left">' + c + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: ' + data.length + ' registro(s)</p>';
   if (munReport) {
-    const html = generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: title.toUpperCase(), subtitle: data.length + ' registro(s)', content, fontFamily: 'sans-serif', fontSize: 11 });
-    openReportAsPDF(html, title.replace(/\s+/g, '_'));
-  } else {
-    // Fallback simples
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}.footer{margin-top:20px;text-align:center;font-size:10px;color:#999}</style></head><body><h1>${title}</h1>${content}<div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); w.print(); }
+    return generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: title.toUpperCase(), subtitle: data.length + ' registro(s)', content, fontFamily: 'sans-serif', fontSize: 11 });
   }
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}.footer{margin-top:20px;text-align:center;font-size:10px;color:#999}@media print{@page{margin:10mm;size:A4}}</style></head><body><h1>' + title + '</h1>' + content + '<div class="footer">Gerado por NetEscol em ' + new Date().toLocaleDateString('pt-BR') + '</div></body></html>';
 }
 
 export default function ReportsPage() {
@@ -87,6 +74,14 @@ export default function ReportsPage() {
   const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutencao', inactive:'Inativo' }[s]||s);
   const vehicleRows = ((vehiclesData as any)||[]).map((v: any) => ({ placa:v.plate||'--', apelido:v.nickname||'--', marca_modelo:[v.brand,v.model,v.year].filter(Boolean).join(' ')||'--', capacidade:v.capacity?`${v.capacity} lugares`:'--', km_atual:v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'--', status:statusLabel(v.status) }));
   const clearFilter = () => { setDateFrom(''); setDateTo(''); };
+  const [exportModal, setExportModal] = useState<{ title: string; data: any[]; cols: string[]; filename: string } | null>(null);
+
+  const doExport = (format: ExportFormat) => {
+    if (!exportModal) return;
+    const html = buildReportHTML(exportModal.title, exportModal.data, exportModal.cols, munReport);
+    if (!html && format !== 'csv') { alert('Sem dados para exportar'); return; }
+    handleExport(format, exportModal.data, html, exportModal.filename);
+  };
 
   return (
     <div className="p-6">
@@ -126,8 +121,8 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><FileText size={18} className="text-gray-500"/><h3 className="font-semibold">Histórico de Viagens</h3><span className="text-sm text-gray-400">({tripRows.length} registros)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(tripRows,'viagens_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => generatePDFReport('Relatorio de Viagens',tripRows,['Rota','Data','Inicio','Fim','Status'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
+              <button onClick={() => { const html = buildReportHTML('Relatorio de Viagens',tripRows,['Rota','Data','Inicio','Fim','Status'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              <button onClick={() => setExportModal({ title:'Relatorio de Viagens', data:tripRows, cols:['Rota','Data','Inicio','Fim','Status'], filename:'viagens_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Rota','Data','Início','Fim','Status'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{tripRows.map((r: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium text-gray-800">{r.rota}</td><td className="px-5 py-3 text-gray-500">{r.data}</td><td className="px-5 py-3 text-gray-500">{r.inicio}</td><td className="px-5 py-3 text-gray-500">{r.fim}</td><td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status==='Concluída'?'bg-green-100 text-green-700':r.status==='Cancelada'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status}</span></td></tr>))}{!tripRows.length && <tr><td colSpan={5} className="px-5 py-12 text-center text-gray-400">Nenhuma viagem registrada</td></tr>}</tbody></table></div>
@@ -139,8 +134,8 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><Users size={18} className="text-gray-500"/><h3 className="font-semibold">Lista de Alunos</h3><span className="text-sm text-gray-400">({studentRows.length} alunos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(studentRows,'alunos_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => generatePDFReport('Lista de Alunos',studentRows,['Nome','Matricula','Serie','Turma','Turno','Escola'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
+              <button onClick={() => { const html = buildReportHTML('Lista de Alunos',studentRows,['Nome','Matricula','Serie','Turma','Turno','Escola'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              <button onClick={() => setExportModal({ title:'Lista de Alunos', data:studentRows, cols:['Nome','Matricula','Serie','Turma','Turno','Escola'], filename:'alunos_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Nome','Matricula','Serie','Turma','Turno','Escola'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{studentRows.map((s: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium">{s.nome}</td><td className="px-5 py-3 text-gray-500">{s.matricula}</td><td className="px-5 py-3 text-gray-500">{s.serie}</td><td className="px-5 py-3 text-gray-500">{s.turma}</td><td className="px-5 py-3 text-gray-500">{s.turno}</td><td className="px-5 py-3 text-gray-500">{s.escola}</td></tr>))}{!studentRows.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Nenhum aluno cadastrado</td></tr>}</tbody></table></div>
@@ -152,13 +147,20 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-500"/><h3 className="font-semibold">Relatório de Frota</h3><span className="text-sm text-gray-400">({vehicleRows.length} veículos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => exportCSV(vehicleRows,'frota_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => generatePDFReport('Relatorio de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
+              <button onClick={() => { const html = buildReportHTML('Relatorio de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              <button onClick={() => setExportModal({ title:'Relatorio de Frota', data:vehicleRows, cols:['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'], filename:'frota_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{vehicleRows.map((v: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium text-gray-800">{v.placa}</td><td className="px-5 py-3 text-gray-500">{v.apelido}</td><td className="px-5 py-3 text-gray-500">{v.marca_modelo}</td><td className="px-5 py-3 text-gray-500">{v.capacidade}</td><td className="px-5 py-3 text-gray-500">{v.km_atual}</td><td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${v.status==='Ativo'?'bg-green-100 text-green-700':v.status==='Manutenção'?'bg-yellow-100 text-yellow-700':'bg-red-100 text-red-700'}`}>{v.status}</span></td></tr>))}{!vehicleRows.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Nenhum veículo cadastrado</td></tr>}</tbody></table></div>
         </div>
       )}
+      {/* Modal de Exportacao - estilo Megasoft */}
+      <ExportModal
+        open={!!exportModal}
+        onClose={() => setExportModal(null)}
+        onExport={doExport}
+        title={exportModal ? 'Exportar: ' + exportModal.title : undefined}
+      />
     </div>
   );
 }

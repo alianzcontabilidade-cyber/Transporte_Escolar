@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { lookupCEP, maskCEP, searchSchoolsByCity } from '../lib/cnpjCep';
+import { lookupCEP, maskCEP } from '../lib/cnpjCep';
 import { maskPhone } from '../lib/utils';
-import { getIBGECityCode } from '../lib/ibge';
+import { searchSchoolsByMunicipality } from '../lib/inepData';
 import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText } from 'lucide-react';
@@ -37,7 +37,7 @@ export default function SchoolsPage() {
   const [inepMsg, setInepMsg] = useState('');
   const [inepCityCode, setInepCityCode] = useState('');
   const [inepSelected, setInepSelected] = useState<Set<string>>(new Set());
-  const [ibgeCityCode, setIbgeCityCode] = useState('');
+  const [munCityName, setMunCityName] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { data: allStudents } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
@@ -60,14 +60,12 @@ export default function SchoolsPage() {
     setPanelType(type);
   };
 
-  // Auto-detect IBGE city code from municipality data
+  // Auto-detect municipality name for INEP school search
   useEffect(() => {
     if (!municipalityId) return;
     api.municipalities.getById({ id: municipalityId }).then((m: any) => {
-      if (m?.state && m?.city) {
-        getIBGECityCode(m.state, m.city).then(code => {
-          if (code) setIbgeCityCode(code);
-        });
+      if (m?.city) {
+        setMunCityName(m.city);
       }
     }).catch(() => {});
   }, [municipalityId]);
@@ -122,16 +120,15 @@ export default function SchoolsPage() {
   };
 
   const handleSearchSchoolsByCity = async () => {
-    if (!inepCityCode) { setInepMsg('Informe o codigo IBGE do municipio'); return; }
+    if (!inepCityCode) { setInepMsg('Informe o nome do município'); return; }
     setInepLoading(true);
     setInepMsg('');
     setInepResults([]);
     setInepSelected(new Set());
     try {
-      const results = await searchSchoolsByCity(inepCityCode);
-      if (results.length === 0) { setInepMsg('Nenhuma escola encontrada para este municipio'); }
+      const results = await searchSchoolsByMunicipality(inepCityCode);
+      if (results.length === 0) { setInepMsg('Nenhuma escola encontrada para "' + inepCityCode + '"'); }
       else {
-        // Filter out schools already registered
         const existingCodes = new Set(all.map((s: any) => s.code).filter(Boolean));
         const newResults = results.map(r => ({ ...r, alreadyExists: existingCodes.has(r.inepCode) }));
         setInepResults(newResults);
@@ -261,7 +258,7 @@ export default function SchoolsPage() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
         <div className="flex gap-2">
-          <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(ibgeCityCode); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
+          <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(munCityName); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
           <button onClick={exportSchoolsCSV} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Escola</button>
         </div>
@@ -374,12 +371,12 @@ export default function SchoolsPage() {
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2"><School size={14} /> Identificacao</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="col-span-2">
-                        <label className="label">Nome da escola * {ibgeCityCode && <span className="text-[10px] text-emerald-500 font-normal ml-1">(INEP ativo - digite para buscar)</span>}</label>
+                        <label className="label">Nome da escola * {munCityName && <span className="text-[10px] text-emerald-500 font-normal ml-1">(INEP ativo - digite para buscar)</span>}</label>
                         <SchoolINEPAutocomplete
                           value={form.name}
                           onChange={(v) => setForm((f: any) => ({ ...f, name: v }))}
                           onSelect={(s) => setForm((f: any) => ({ ...f, name: s.name, code: s.inepCode }))}
-                          ibgeCityCode={ibgeCityCode}
+                          municipalityName={munCityName}
                           placeholder="Digite o nome da escola..."
                         />
                       </div>
@@ -500,14 +497,14 @@ export default function SchoolsPage() {
             </div>
             <div className="overflow-y-auto flex-1 p-5 space-y-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">Busque todas as escolas do seu municipio na base do INEP (Censo Escolar). Informe o <b>codigo IBGE</b> do municipio.</p>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">Busque todas as escolas do seu município na base do INEP (Censo Escolar). Digite o <b>nome do município</b>.</p>
                 <div className="flex gap-2">
-                  <input className="input flex-1" value={inepCityCode} onChange={e => setInepCityCode(e.target.value.replace(/\D/g, ''))} placeholder="Codigo IBGE do municipio (ex: 1716109)" maxLength={7} onKeyDown={e => e.key === 'Enter' && handleSearchSchoolsByCity()} />
+                  <input className="input flex-1" value={inepCityCode} onChange={e => setInepCityCode(e.target.value)} placeholder="Nome do município (ex: Fátima)" onKeyDown={e => e.key === 'Enter' && handleSearchSchoolsByCity()} />
                   <button onClick={handleSearchSchoolsByCity} disabled={inepLoading} className="btn-primary flex items-center gap-2 px-4">
                     {inepLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} Buscar Escolas
                   </button>
                 </div>
-                <p className="text-xs text-blue-500 mt-2">Dica: O codigo IBGE do municipio pode ser encontrado em ibge.gov.br/cidades-e-estados. Ex: Paraiso do Tocantins = 1716109</p>
+                <p className="text-xs text-blue-500 mt-2">Base de dados: Catálogo de Escolas INEP/MEC - Censo Escolar (1.588 escolas do Tocantins)</p>
               </div>
 
               {inepMsg && (

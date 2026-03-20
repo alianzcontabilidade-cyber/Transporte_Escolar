@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Star, Printer, Download, FileText, FileSpreadsheet, Search, Clock, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Star, Printer, Download, FileText, FileSpreadsheet, Search, Clock, X, ArrowLeft } from 'lucide-react';
 
 const PAGE_CODES: Record<string, { code: string; title: string; module: string; color: string }> = {
   '/dashboard': { code: '001', title: 'Dashboard', module: 'Painel Central', color: '#2DB5B0' },
@@ -46,7 +46,7 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/comunicacao': { code: '409', title: 'Comunicação', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/envio-massa': { code: '410', title: 'Envio em Massa', module: 'Gestão e Recursos', color: '#0ea5e9' },
   '/cotacao-compras': { code: '411', title: 'Cotação de Compras', module: 'Gestão e Recursos', color: '#0ea5e9' },
-  '/configuracoes': { code: '501', title: 'Configurações', module: 'Central de Controle', color: '#64748b' },
+  '/configuracoes': { code: '501', title: 'Usuários e Segurança', module: 'Central de Controle', color: '#64748b' },
   '/ia-rotas': { code: '502', title: 'IA Rotas', module: 'Central de Controle', color: '#64748b' },
   '/super-admin': { code: '503', title: 'Super Admin', module: 'Central de Controle', color: '#64748b' },
   '/declaracoes': { code: '113', title: 'Declarações', module: 'Gestão Escolar', color: '#6366f1' },
@@ -173,6 +173,7 @@ export { PAGE_CODES, getFavorites, getHistory };
 
 export default function PageHeader() {
   const location = useLocation();
+  const navigate = useNavigate();
   const path = location.pathname;
   const page = PAGE_CODES[path];
   const [isFavorite, setIsFavorite] = useState(false);
@@ -195,8 +196,11 @@ export default function PageHeader() {
   return (
     <>
       <div className="flex items-center" style={{ backgroundColor: page.color }}>
-        <Link to="/" className="flex items-center justify-center w-11 h-11 hover:bg-white/20 transition-colors" title="Voltar ao início">
-          <Home size={18} className="text-white" />
+        <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-11 hover:bg-white/20 transition-colors" title="Voltar à tela anterior">
+          <ArrowLeft size={18} className="text-white" />
+        </button>
+        <Link to="/" className="flex items-center justify-center w-10 h-11 hover:bg-white/20 transition-colors border-l border-white/20" title="Tela inicial">
+          <Home size={16} className="text-white/80" />
         </Link>
         <div className="flex items-center gap-3 px-3 py-2 flex-1 min-w-0">
           <span className="bg-white/20 text-white font-bold text-sm px-2.5 py-0.5 rounded flex-shrink-0">{page.code}</span>

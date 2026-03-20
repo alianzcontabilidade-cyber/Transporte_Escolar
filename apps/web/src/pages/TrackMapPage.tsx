@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth';
 import { useVehicleLocations } from '../lib/gps';
 import { useSocket } from '../lib/socket';
-import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi, Maximize2, Minimize2 } from 'lucide-react';
+import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi, Maximize2, Minimize2, Navigation } from 'lucide-react';
 
 export default function TrackMapPage() {
   const { user } = useAuth();
@@ -188,6 +188,24 @@ export default function TrackMapPage() {
         <div className="flex gap-2">
           <button onClick={() => setIsFullscreen(!isFullscreen)} className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} {isFullscreen ? 'Sair' : 'Tela cheia'}
+          </button>
+          <button onClick={() => {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition((pos) => {
+              const map = mapInstanceRef.current;
+              if (map) {
+                const L = (window as any).L;
+                map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                // Add/update my location marker
+                if ((map as any)._myMarker) { (map as any)._myMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]); }
+                else {
+                  const myIcon = L.divIcon({ html: '<div style="width:16px;height:16px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(59,130,246,0.5)"></div>', iconSize: [16, 16], iconAnchor: [8, 8], className: '' });
+                  (map as any)._myMarker = L.marker([pos.coords.latitude, pos.coords.longitude], { icon: myIcon }).addTo(map).bindPopup('Minha localização');
+                }
+              }
+            }, () => {}, { enableHighAccuracy: true });
+          }} className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
+            <Navigation size={16} /> Minha Localização
           </button>
           <button onClick={refresh} className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors flex items-center gap-2">
             <RefreshCw size={16} /> Atualizar

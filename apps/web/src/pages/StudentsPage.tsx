@@ -31,8 +31,8 @@ function PhotoUpload({ value, onChange }: any) {
 
 const SHIFTS = [{ v:'morning', l:'Manha' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
 const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
-const RACES = ['Branca','Negra','Parda','Amarela','Indigena','Nao Declarada'];
-const EDUCATION_LEVELS = ['Nao Alfabetizado','Fundamental Incompleto','Fundamental Completo','Medio Incompleto','Medio Completo','Superior Incompleto','Superior Completo','Pos-Graduacao'];
+const RACES = ['Branca','Negra','Parda','Amarela','Indígena','Não Declarada'];
+const EDUCATION_LEVELS = ['Não Alfabetizado','Fundamental Incompleto','Fundamental Completo','Médio Incompleto','Médio Completo','Superior Incompleto','Superior Completo','Pós-Graduação'];
 import { maskPhone, maskCPF } from '../lib/utils';
 import { lookupCEP, maskCEP } from '../lib/cnpjCep';
 
@@ -394,23 +394,23 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Dados Escolares</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Escola</p><p className="text-sm font-medium">{allSchools.find(function(sc:any){return sc.id===viewStudent.schoolId;})?.name || viewStudent.school || '--'}</p></div>
-                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Serie/Ano</p><p className="text-sm font-medium">{viewStudent.grade || '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Série/Ano</p><p className="text-sm font-medium">{viewStudent.grade || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turma</p><p className="text-sm font-medium">{viewStudent.classRoom || viewStudent.className || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turno</p><p className="text-sm font-medium">{shiftLabel(viewStudent.shift)}</p></div>
-                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Matricula</p><p className="text-sm font-medium">{viewStudent.enrollment || '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Matrícula</p><p className="text-sm font-medium">{viewStudent.enrollment || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Nascimento</p><p className="text-sm font-medium">{viewStudent.birthDate ? new Date(viewStudent.birthDate).toLocaleDateString('pt-BR') : '--'}</p></div>
               </div>
 
-              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Endereco</h2>
+              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Endereço</h2>
               <div className="p-3 bg-gray-50 rounded-lg mb-5"><p className="text-sm font-medium">{viewStudent.address || '--'}</p></div>
 
               <h2 className="text-sm font-bold text-red-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Heart size={14}/> Saude</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-red-50 rounded-xl">
-                <div><p className="text-xs text-gray-400">Tipo Sanguineo</p><p className="text-sm font-medium">{viewStudent.bloodType || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Tipo Sanguíneo</p><p className="text-sm font-medium">{viewStudent.bloodType || '--'}</p></div>
                 <div><p className="text-xs text-gray-400">Necessidades Especiais</p><p className="text-sm font-medium">{viewStudent.hasSpecialNeeds ? 'Sim' : 'Nao'}</p></div>
                 <div><p className="text-xs text-gray-400">Alergias</p><p className="text-sm font-medium">{viewStudent.allergies || '--'}</p></div>
                 <div><p className="text-xs text-gray-400">Medicamentos</p><p className="text-sm font-medium">{viewStudent.medications || '--'}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">Observacoes de saude</p><p className="text-sm font-medium">{viewStudent.healthNotes || '--'}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400">Observações de saúde</p><p className="text-sm font-medium">{viewStudent.healthNotes || '--'}</p></div>
                 {viewStudent.hasSpecialNeeds && viewStudent.specialNeedsNotes && <div className="col-span-3"><p className="text-xs text-gray-400">Detalhes nec. especiais</p><p className="text-sm font-medium">{viewStudent.specialNeedsNotes}</p></div>}
               </div>
 
@@ -536,8 +536,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
       {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
-        <div className="flex gap-1 px-5 pt-3 overflow-x-auto">
-          {([['dados','Dados'],['documentos','Documentos'],['endereco','Endereco'],['filiacao','Filiacao'],['saude','Saude'],['social','Social'],['procedencia','Procedencia']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
+        <div className="flex gap-1 px-5 pt-3 overflow-x-auto pb-1 scrollbar-thin">
+          {([['dados','Dados'],['documentos','Documentos'],['endereco','Endereço'],['filiacao','Filiação'],['saude','Saúde'],['social','Social'],['procedencia','Procedência']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
@@ -547,19 +547,19 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div className="col-span-3"><label className="label">Nome completo *</label><input className="input" value={form.name} onChange={setField('name')}/></div>
             <div><label className="label">Data Nascimento</label><input className="input" type="date" value={form.birthDate} onChange={setField('birthDate')}/></div>
             <div><label className="label">Sexo</label><select className="input" value={form.sex} onChange={setField('sex')}><option value="">Selecione</option><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
-            <div><label className="label">Cor/Raca</label><select className="input" value={form.race} onChange={setField('race')}><option value="">Selecione</option>{RACES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+            <div><label className="label">Cor/Raça</label><select className="input" value={form.race} onChange={setField('race')}><option value="">Selecione</option>{RACES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
             <div><label className="label">Nacionalidade</label><input className="input" value={form.nationality} onChange={setField('nationality')}/></div>
             <div><label className="label">Naturalidade (cidade)</label><input className="input" value={form.naturalness} onChange={setField('naturalness')}/></div>
             <div><label className="label">UF nasc.</label><input className="input" value={form.naturalnessUf} onChange={setField('naturalnessUf')} maxLength={2} placeholder="TO"/></div>
-            <div><label className="label">Matricula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
-            <div><label className="label">Serie/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
+            <div><label className="label">Matrícula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
+            <div><label className="label">Série/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
             <div><label className="label">Turma</label><input className="input" value={form.className} onChange={setField('className')} placeholder="A"/></div>
             <div><label className="label">Turno</label><select className="input" value={form.shift} onChange={setField('shift')}>{SHIFTS.map(function(s){return <option key={s.v} value={s.v}>{s.l}</option>;})}</select></div>
             <div><label className="label">Escola</label>
               <div className="flex gap-1"><select className="input flex-1" value={form.school} onChange={setField('school')}><option value="">Selecione</option>{allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select>
               <button type="button" onClick={() => setQuickAdd('school')} className="px-2 py-1 bg-accent-500 text-white rounded-lg hover:bg-accent-600 text-sm" title="Cadastrar escola"><Plus size={16}/></button></div>
             </div>
-            <div><label className="label">Tipo Matricula</label><select className="input" value={form.enrollmentType} onChange={setField('enrollmentType')}><option value="novato">Novato</option><option value="renovacao">Renovacao</option><option value="transferencia">Transferencia</option></select></div>
+            <div><label className="label">Tipo Matrícula</label><select className="input" value={form.enrollmentType} onChange={setField('enrollmentType')}><option value="novato">Novato</option><option value="renovacao">Renovação</option><option value="transferencia">Transferência</option></select></div>
             <div className="col-span-3"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
               <select className="input" value={form.routeId} onChange={setField('routeId')}><option value="">— Sem rota —</option>{allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select>
             </div>
@@ -570,25 +570,25 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Documentos Pessoais</p><div className="grid grid-cols-3 gap-3">
               <div><label className="label">CPF</label><input className="input" value={form.cpf} onChange={e=>setForm((f:any)=>({...f,cpf:maskCPF(e.target.value)}))} placeholder="000.000.000-00" maxLength={14}/></div>
               <div><label className="label">RG</label><input className="input" value={form.rg} onChange={setField('rg')}/></div>
-              <div><label className="label">Orgao Exp.</label><input className="input" value={form.rgOrgao} onChange={setField('rgOrgao')} placeholder="SSP"/></div>
+              <div><label className="label">Órgão Exp.</label><input className="input" value={form.rgOrgao} onChange={setField('rgOrgao')} placeholder="SSP"/></div>
               <div><label className="label">UF RG</label><input className="input" value={form.rgUf} onChange={setField('rgUf')} maxLength={2}/></div>
               <div><label className="label">Data Exp.</label><input className="input" type="date" value={form.rgDate} onChange={setField('rgDate')}/></div>
-              <div><label className="label">NIS</label><input className="input" value={form.nis} onChange={setField('nis')} placeholder="N. Identificacao Social"/></div>
-              <div><label className="label">Cartao SUS</label><input className="input" value={form.cartaoSus} onChange={setField('cartaoSus')}/></div>
+              <div><label className="label">NIS</label><input className="input" value={form.nis} onChange={setField('nis')} placeholder="Nº Identificação Social"/></div>
+              <div><label className="label">Cartão SUS</label><input className="input" value={form.cartaoSus} onChange={setField('cartaoSus')}/></div>
             </div></div>
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Certidao de Nascimento</p><div className="grid grid-cols-3 gap-3">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Certidão de Nascimento</p><div className="grid grid-cols-3 gap-3">
               <div><label className="label">Tipo</label><select className="input" value={form.certidaoTipo} onChange={setField('certidaoTipo')}><option value="nascimento">Nascimento</option><option value="casamento">Casamento</option></select></div>
-              <div><label className="label">Numero</label><input className="input" value={form.certidaoNumero} onChange={setField('certidaoNumero')}/></div>
+              <div><label className="label">Número</label><input className="input" value={form.certidaoNumero} onChange={setField('certidaoNumero')}/></div>
               <div><label className="label">Folha</label><input className="input" value={form.certidaoFolha} onChange={setField('certidaoFolha')}/></div>
               <div><label className="label">Livro</label><input className="input" value={form.certidaoLivro} onChange={setField('certidaoLivro')}/></div>
-              <div><label className="label">Data Emissao</label><input className="input" type="date" value={form.certidaoData} onChange={setField('certidaoData')}/></div>
-              <div className="col-span-3"><label className="label">Cartorio</label><input className="input" value={form.certidaoCartorio} onChange={setField('certidaoCartorio')}/></div>
+              <div><label className="label">Data Emissão</label><input className="input" type="date" value={form.certidaoData} onChange={setField('certidaoData')}/></div>
+              <div className="col-span-3"><label className="label">Cartório</label><input className="input" value={form.certidaoCartorio} onChange={setField('certidaoCartorio')}/></div>
             </div></div>
           </div>)}
 
-          {/* ABA ENDERECO */}
+          {/* ABA ENDEREÇO */}
           {tab==='endereco'&&(<div className="space-y-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Endereco</p><div className="grid grid-cols-3 gap-3">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Endereço</p><div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="label">CEP</label>
                 <div className="flex gap-2">
@@ -597,7 +597,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                 </div>
               </div>
               <div className="col-span-2"><label className="label">Logradouro</label><input className="input" value={form.address} onChange={setField('address')}/></div>
-              <div><label className="label">Numero</label><input className="input" value={form.addressNumber} onChange={setField('addressNumber')}/></div>
+              <div><label className="label">Número</label><input className="input" value={form.addressNumber} onChange={setField('addressNumber')}/></div>
               <div><label className="label">Complemento</label><input className="input" value={form.addressComplement} onChange={setField('addressComplement')}/></div>
               <div><label className="label">Bairro</label><input className="input" value={form.neighborhood} onChange={setField('neighborhood')}/></div>
               <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={setField('city')}/></div>
@@ -608,39 +608,39 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             </div></div>
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Transporte Escolar</p><div className="grid grid-cols-3 gap-3">
               <div><label className="label">Necessita transporte?</label><select className="input" value={form.needsTransport?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,needsTransport:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
-              {form.needsTransport&&<><div><label className="label">Tipo</label><input className="input" value={form.transportType} onChange={setField('transportType')} placeholder="Onibus, Van..."/></div>
-              <div><label className="label">Distancia (km)</label><input className="input" value={form.transportDistance} onChange={setField('transportDistance')}/></div></>}
+              {form.needsTransport&&<><div><label className="label">Tipo</label><input className="input" value={form.transportType} onChange={setField('transportType')} placeholder="Ônibus, Van..."/></div>
+              <div><label className="label">Distância (km)</label><input className="input" value={form.transportDistance} onChange={setField('transportDistance')}/></div></>}
             </div></div>
           </div>)}
 
-          {/* ABA FILIACAO */}
+          {/* ABA FILIAÇÃO */}
           {tab==='filiacao'&&(<div className="space-y-4">
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Dados do Pai</p><div className="grid grid-cols-3 gap-3">
               <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.fatherName} onChange={setField('fatherName')}/></div>
               <div><label className="label">CPF</label><input className="input" value={form.fatherCpf} onChange={e=>setForm((f:any)=>({...f,fatherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
               <div><label className="label">RG</label><input className="input" value={form.fatherRg} onChange={setField('fatherRg')}/></div>
               <div><label className="label">Telefone</label><input className="input" value={form.fatherPhone} onChange={e=>setForm((f:any)=>({...f,fatherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
-              <div><label className="label">Profissao</label><input className="input" value={form.fatherProfession} onChange={setField('fatherProfession')}/></div>
+              <div><label className="label">Profissão</label><input className="input" value={form.fatherProfession} onChange={setField('fatherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.fatherWorkplace} onChange={setField('fatherWorkplace')}/></div>
               <div><label className="label">Escolaridade</label><select className="input" value={form.fatherEducation} onChange={setField('fatherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
               <div><label className="label">Naturalidade</label><input className="input" value={form.fatherNaturalness} onChange={setField('fatherNaturalness')}/></div>
               <div><label className="label">UF</label><input className="input" value={form.fatherNaturalnessUf} onChange={setField('fatherNaturalnessUf')} maxLength={2}/></div>
             </div></div>
-            <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-xl"><p className="text-xs font-semibold text-pink-700 mb-3 uppercase">Dados da Mae</p><div className="grid grid-cols-3 gap-3">
+            <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-xl"><p className="text-xs font-semibold text-pink-700 mb-3 uppercase">Dados da Mãe</p><div className="grid grid-cols-3 gap-3">
               <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.motherName} onChange={setField('motherName')}/></div>
               <div><label className="label">CPF</label><input className="input" value={form.motherCpf} onChange={e=>setForm((f:any)=>({...f,motherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
               <div><label className="label">RG</label><input className="input" value={form.motherRg} onChange={setField('motherRg')}/></div>
               <div><label className="label">Telefone</label><input className="input" value={form.motherPhone} onChange={e=>setForm((f:any)=>({...f,motherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
-              <div><label className="label">Profissao</label><input className="input" value={form.motherProfession} onChange={setField('motherProfession')}/></div>
+              <div><label className="label">Profissão</label><input className="input" value={form.motherProfession} onChange={setField('motherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.motherWorkplace} onChange={setField('motherWorkplace')}/></div>
               <div><label className="label">Escolaridade</label><select className="input" value={form.motherEducation} onChange={setField('motherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
               <div><label className="label">Naturalidade</label><input className="input" value={form.motherNaturalness} onChange={setField('motherNaturalness')}/></div>
               <div><label className="label">UF</label><input className="input" value={form.motherNaturalnessUf} onChange={setField('motherNaturalnessUf')} maxLength={2}/></div>
             </div></div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Renda e Contatos</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Renda Familiar</label><input className="input" value={form.familyIncome} onChange={setField('familyIncome')} placeholder="Ex: 1 salario minimo"/></div>
+              <div><label className="label">Renda Familiar</label><input className="input" value={form.familyIncome} onChange={setField('familyIncome')} placeholder="Ex: 1 salário mínimo"/></div>
               <div></div>
-              <div className="col-span-2"><p className="text-xs text-gray-400 mb-2">Contatos de emergencia</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-400 mb-2">Contatos de emergência</p></div>
               <div><label className="label">Contato 1 - Nome</label><input className="input" value={form.emergencyContact1Name} onChange={setField('emergencyContact1Name')}/></div>
               <div><label className="label">Telefone</label><input className="input" value={form.emergencyContact1Phone} onChange={e=>setForm((f:any)=>({...f,emergencyContact1Phone:maskPhone(e.target.value)}))} maxLength={15}/></div>
               <div><label className="label">Contato 2 - Nome</label><input className="input" value={form.emergencyContact2Name} onChange={setField('emergencyContact2Name')}/></div>
@@ -650,18 +650,18 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
           {/* ABA SAUDE */}
           {tab==='saude'&&(<div className="space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl"><p className="text-xs font-semibold text-red-700 mb-3 uppercase">Saude</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Tipo Sanguineo</label><select className="input" value={form.bloodType} onChange={setField('bloodType')}><option value="">Selecione</option>{BLOOD_TYPES.map(bt=><option key={bt} value={bt}>{bt}</option>)}</select></div>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl"><p className="text-xs font-semibold text-red-700 mb-3 uppercase">Saúde</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Tipo Sanguíneo</label><select className="input" value={form.bloodType} onChange={setField('bloodType')}><option value="">Selecione</option>{BLOOD_TYPES.map(bt=><option key={bt} value={bt}>{bt}</option>)}</select></div>
               <div><label className="label">Alergias</label><input className="input" value={form.allergies} onChange={setField('allergies')} placeholder="Amendoim, Lactose..."/></div>
               <div><label className="label">Medicamentos em uso</label><input className="input" value={form.medications} onChange={setField('medications')}/></div>
-              <div className="col-span-2"><label className="label">Observacoes de saude</label><textarea className="input" rows={2} value={form.healthNotes} onChange={setField('healthNotes')}/></div>
+              <div className="col-span-2"><label className="label">Observações de saúde</label><textarea className="input" rows={2} value={form.healthNotes} onChange={setField('healthNotes')}/></div>
             </div></div>
-            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl"><p className="text-xs font-semibold text-purple-700 mb-3 uppercase">Necessidades Especiais / Deficiencia</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Possui deficiencia?</label><select className="input" value={form.hasSpecialNeeds?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,hasSpecialNeeds:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl"><p className="text-xs font-semibold text-purple-700 mb-3 uppercase">Necessidades Especiais / Deficiência</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Possui deficiência?</label><select className="input" value={form.hasSpecialNeeds?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,hasSpecialNeeds:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
               {form.hasSpecialNeeds&&<>
-              <div><label className="label">Tipo de deficiencia</label><input className="input" value={form.deficiencyType} onChange={setField('deficiencyType')} placeholder="Surdez, Auditiva, Mental, Fisica, Multipla, Cegueira, Baixa Visao"/></div>
+              <div><label className="label">Tipo de deficiência</label><input className="input" value={form.deficiencyType} onChange={setField('deficiencyType')} placeholder="Surdez, Auditiva, Mental, Física, Múltipla, Cegueira, Baixa Visão"/></div>
               <div><label className="label">TGD</label><input className="input" value={form.tgd} onChange={setField('tgd')} placeholder="Autismo, Asperger, Rett..."/></div>
-              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.superdotacao} onChange={setField('superdotacao')}/> Altas Habilidades / Superdotacao</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.superdotacao} onChange={setField('superdotacao')}/> Altas Habilidades / Superdotação</label></div>
               <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.salaRecursos} onChange={setField('salaRecursos')}/> Frequenta Sala de Recursos</label></div>
               <div><label className="label">Acompanhamento</label><input className="input" value={form.acompanhamento} onChange={setField('acompanhamento')} placeholder="Psicologia, Fono, Fisioterapia..."/></div>
               <div><label className="label">Encaminhamento</label><input className="input" value={form.encaminhamento} onChange={setField('encaminhamento')} placeholder="CAPS, CRAS, CREAS..."/></div>
@@ -673,27 +673,27 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
           {/* ABA SOCIAL */}
           {tab==='social'&&(<div className="space-y-4">
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Programas Sociais</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bolsaFamilia} onChange={setField('bolsaFamilia')}/> Bolsa Familia</label></div>
-              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bpc} onChange={setField('bpc')}/> BPC (Beneficio Prestacao Continuada)</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bolsaFamilia} onChange={setField('bolsaFamilia')}/> Bolsa Família</label></div>
+              <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.bpc} onChange={setField('bpc')}/> BPC (Benefício Prestação Continuada)</label></div>
               <div><label className="label flex items-center gap-2"><input type="checkbox" checked={form.peti} onChange={setField('peti')}/> PETI</label></div>
-              <div><label className="label">Outros programas</label><input className="input" value={form.otherPrograms} onChange={setField('otherPrograms')} placeholder="Auxilio gas, Pioneiros Mirins..."/></div>
+              <div><label className="label">Outros programas</label><input className="input" value={form.otherPrograms} onChange={setField('otherPrograms')} placeholder="Auxílio gás, Pioneiros Mirins..."/></div>
             </div></div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Observacoes Gerais</p>
-              <textarea className="input" rows={3} value={form.observations} onChange={setField('observations')} placeholder="Informacoes adicionais sobre o aluno..."/>
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Observações Gerais</p>
+              <textarea className="input" rows={3} value={form.observations} onChange={setField('observations')} placeholder="Informações adicionais sobre o aluno..."/>
             </div>
           </div>)}
 
-          {/* ABA PROCEDENCIA */}
+          {/* ABA PROCEDÊNCIA */}
           {tab==='procedencia'&&(<div className="space-y-4">
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Escola Anterior / Procedencia</p><div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl"><p className="text-xs font-semibold text-amber-700 mb-3 uppercase">Escola Anterior / Procedência</p><div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><label className="label">Nome da escola anterior</label><input className="input" value={form.previousSchool} onChange={setField('previousSchool')}/></div>
               <div><label className="label">Rede</label><select className="input" value={form.previousSchoolType} onChange={setField('previousSchoolType')}><option value="">Selecione</option><option value="municipal">Municipal</option><option value="estadual">Estadual</option><option value="federal">Federal</option><option value="particular">Particular</option></select></div>
               <div><label className="label">Zona</label><select className="input" value={form.previousSchoolZone} onChange={setField('previousSchoolZone')}><option value="">Selecione</option><option value="urbana">Urbana</option><option value="rural">Rural</option></select></div>
               <div><label className="label">Cidade</label><input className="input" value={form.previousCity} onChange={setField('previousCity')}/></div>
               <div><label className="label">UF</label><input className="input" value={form.previousState} onChange={setField('previousState')} maxLength={2}/></div>
             </div></div>
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Situacao do Aluno</p><div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Situacao</label><select className="input" value={form.studentStatus} onChange={setField('studentStatus')}><option value="">Selecione</option><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="remanejado">Remanejado</option><option value="transferido">Transferido</option><option value="abandono">Abandono</option></select></div>
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Situação do Aluno</p><div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Situação</label><select className="input" value={form.studentStatus} onChange={setField('studentStatus')}><option value="">Selecione</option><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="remanejado">Remanejado</option><option value="transferido">Transferido</option><option value="abandono">Abandono</option></select></div>
             </div></div>
           </div>)}
         </div>
@@ -713,7 +713,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">{csvData.length} aluno(s) encontrado(s):</p>
               <div className="max-h-48 overflow-y-auto border rounded-lg">
-                <table className="w-full text-xs"><thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left">Nome</th><th className="px-3 py-2 text-left">Matricula</th><th className="px-3 py-2 text-left">Serie</th><th className="px-3 py-2 text-left">Turma</th><th className="px-3 py-2 text-left">Turno</th></tr></thead>
+                <table className="w-full text-xs"><thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left">Nome</th><th className="px-3 py-2 text-left">Matrícula</th><th className="px-3 py-2 text-left">Serie</th><th className="px-3 py-2 text-left">Turma</th><th className="px-3 py-2 text-left">Turno</th></tr></thead>
                 <tbody className="divide-y">{csvData.map(function(r,i){return <tr key={i}><td className="px-3 py-1.5">{r.name}</td><td className="px-3 py-1.5">{r.enrollment||'—'}</td><td className="px-3 py-1.5">{r.grade||'—'}</td><td className="px-3 py-1.5">{r.className||'—'}</td><td className="px-3 py-1.5">{r.shift==='afternoon'?'Tarde':r.shift==='evening'?'Noite':'Manha'}</td></tr>;})}</tbody></table>
               </div>
             </div>

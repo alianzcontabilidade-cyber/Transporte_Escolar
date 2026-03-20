@@ -90,6 +90,10 @@ export default function StudentsPage() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 25;
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
+  const { municipios: natMunicipios, loading: natMunLoading } = useMunicipios(form.naturalnessUf);
+  const { municipios: fatherMunicipios, loading: fatherMunLoading } = useMunicipios(form.fatherNaturalnessUf);
+  const { municipios: motherMunicipios, loading: motherMunLoading } = useMunicipios(form.motherNaturalnessUf);
+  const { municipios: prevMunicipios, loading: prevMunLoading } = useMunicipios(form.previousState);
   const { data: students, refetch } = useQuery(function() { return api.students.list({ municipalityId }); }, [municipalityId]);
   const { data: routes } = useQuery(function() { return api.routes.list({ municipalityId }); }, [municipalityId]);
   const { data: schoolsData, refetch: refetchSchools } = useQuery(function() { return api.schools.list({ municipalityId }); }, [municipalityId]);
@@ -537,9 +541,9 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       {confirmDelete&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-red-500"/></div><h3 className="font-bold mb-2">Excluir {confirmDelete.name}?</h3><p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita.</p><div className="flex gap-3"><button onClick={function(){setConfirmDelete(null);}} className="btn-secondary flex-1">Cancelar</button><button onClick={function(){remove({id:confirmDelete.id},{onSuccess:function(){refetch();setConfirmDelete(null);}});}} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
 
       {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
-        <div className="flex gap-1 px-5 pt-3 overflow-x-auto pb-1 scrollbar-thin">
-          {([['dados','Dados'],['documentos','Documentos'],['endereco','Endereço'],['filiacao','Filiação'],['saude','Saúde'],['social','Social'],['procedencia','Procedência']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-50 text-primary-600':'text-gray-500 hover:text-gray-700')}>{t[1]}</button>);})}
+        <div className="flex items-center justify-between p-4 pb-2 border-b border-gray-100 flex-shrink-0"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+        <div className="flex gap-1 px-4 py-2 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 flex-shrink-0 overflow-x-auto">
+          {([['dados','Dados'],['documentos','Docs'],['endereco','Endereço'],['filiacao','Filiação'],['saude','Saúde'],['social','Social'],['procedencia','Procedência']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-500 text-white shadow-sm':'text-gray-500 hover:text-gray-700 hover:bg-gray-100')}>{t[1]}</button>);})}
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
@@ -551,8 +555,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div><label className="label">Sexo</label><select className="input" value={form.sex} onChange={setField('sex')}><option value="">Selecione</option><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
             <div><label className="label">Cor/Raça</label><select className="input" value={form.race} onChange={setField('race')}><option value="">Selecione</option>{RACES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
             <div><label className="label">Nacionalidade</label><input className="input" value={form.nationality} onChange={setField('nationality')}/></div>
-            <div><label className="label">Naturalidade (cidade)</label><input className="input" value={form.naturalness} onChange={setField('naturalness')}/></div>
-            <div><label className="label">UF nasc.</label><input className="input" value={form.naturalnessUf} onChange={setField('naturalnessUf')} maxLength={2} placeholder="TO"/></div>
+            <div><label className="label">UF nasc.</label><select className="input" value={form.naturalnessUf} onChange={e=>{setForm((f:any)=>({...f,naturalnessUf:e.target.value,naturalness:''}));}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+            <div><label className="label">Naturalidade {natMunLoading&&<Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.naturalness} onChange={setField('naturalness')} disabled={!form.naturalnessUf||natMunLoading}><option value="">Selecione</option>{natMunicipios.map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             <div><label className="label">Matrícula</label><input className="input" value={form.enrollment} onChange={setField('enrollment')}/></div>
             <div><label className="label">Série/Ano</label><input className="input" value={form.grade} onChange={setField('grade')} placeholder="5 Ano"/></div>
             <div><label className="label">Turma</label><input className="input" value={form.className} onChange={setField('className')} placeholder="A"/></div>
@@ -628,8 +632,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div><label className="label">Profissão</label><input className="input" value={form.fatherProfession} onChange={setField('fatherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.fatherWorkplace} onChange={setField('fatherWorkplace')}/></div>
               <div><label className="label">Escolaridade</label><select className="input" value={form.fatherEducation} onChange={setField('fatherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
-              <div><label className="label">Naturalidade</label><input className="input" value={form.fatherNaturalness} onChange={setField('fatherNaturalness')}/></div>
-              <div><label className="label">UF</label><input className="input" value={form.fatherNaturalnessUf} onChange={setField('fatherNaturalnessUf')} maxLength={2}/></div>
+              <div><label className="label">UF</label><select className="input" value={form.fatherNaturalnessUf} onChange={e=>{setForm((f:any)=>({...f,fatherNaturalnessUf:e.target.value,fatherNaturalness:''}));}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+              <div className="col-span-2"><label className="label">Naturalidade {fatherMunLoading&&<Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.fatherNaturalness} onChange={setField('fatherNaturalness')} disabled={!form.fatherNaturalnessUf||fatherMunLoading}><option value="">Selecione</option>{fatherMunicipios.map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             </div></div>
             <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-xl"><p className="text-xs font-semibold text-pink-700 mb-3 uppercase">Dados da Mãe</p><div className="grid grid-cols-3 gap-3">
               <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.motherName} onChange={setField('motherName')}/></div>
@@ -639,8 +643,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div><label className="label">Profissão</label><input className="input" value={form.motherProfession} onChange={setField('motherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.motherWorkplace} onChange={setField('motherWorkplace')}/></div>
               <div><label className="label">Escolaridade</label><select className="input" value={form.motherEducation} onChange={setField('motherEducation')}><option value="">Selecione</option>{EDUCATION_LEVELS.map(e=><option key={e} value={e}>{e}</option>)}</select></div>
-              <div><label className="label">Naturalidade</label><input className="input" value={form.motherNaturalness} onChange={setField('motherNaturalness')}/></div>
-              <div><label className="label">UF</label><input className="input" value={form.motherNaturalnessUf} onChange={setField('motherNaturalnessUf')} maxLength={2}/></div>
+              <div><label className="label">UF</label><select className="input" value={form.motherNaturalnessUf} onChange={e=>{setForm((f:any)=>({...f,motherNaturalnessUf:e.target.value,motherNaturalness:''}));}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+              <div className="col-span-2"><label className="label">Naturalidade {motherMunLoading&&<Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.motherNaturalness} onChange={setField('motherNaturalness')} disabled={!form.motherNaturalnessUf||motherMunLoading}><option value="">Selecione</option>{motherMunicipios.map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             </div></div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"><p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Renda e Contatos</p><div className="grid grid-cols-2 gap-3">
               <div><label className="label">Renda Familiar</label><input className="input" value={form.familyIncome} onChange={setField('familyIncome')} placeholder="Ex: 1 salário mínimo"/></div>
@@ -694,8 +698,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div className="col-span-2"><label className="label">Nome da escola anterior</label><input className="input" value={form.previousSchool} onChange={setField('previousSchool')}/></div>
               <div><label className="label">Rede</label><select className="input" value={form.previousSchoolType} onChange={setField('previousSchoolType')}><option value="">Selecione</option><option value="municipal">Municipal</option><option value="estadual">Estadual</option><option value="federal">Federal</option><option value="particular">Particular</option></select></div>
               <div><label className="label">Zona</label><select className="input" value={form.previousSchoolZone} onChange={setField('previousSchoolZone')}><option value="">Selecione</option><option value="urbana">Urbana</option><option value="rural">Rural</option></select></div>
-              <div><label className="label">Cidade</label><input className="input" value={form.previousCity} onChange={setField('previousCity')}/></div>
-              <div><label className="label">UF</label><input className="input" value={form.previousState} onChange={setField('previousState')} maxLength={2}/></div>
+              <div><label className="label">UF</label><select className="input" value={form.previousState} onChange={e=>{setForm((f:any)=>({...f,previousState:e.target.value,previousCity:''}));}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+              <div><label className="label">Cidade {prevMunLoading&&<Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.previousCity} onChange={setField('previousCity')} disabled={!form.previousState||prevMunLoading}><option value="">Selecione</option>{prevMunicipios.map(m=><option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             </div></div>
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Situação do Aluno</p><div className="grid grid-cols-2 gap-3">
               <div><label className="label">Situação</label><select className="input" value={form.studentStatus} onChange={setField('studentStatus')}><option value="">Selecione</option><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="remanejado">Remanejado</option><option value="transferido">Transferido</option><option value="abandono">Abandono</option></select></div>

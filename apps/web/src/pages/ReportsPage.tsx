@@ -1,30 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Calendar, CheckCircle, XCircle, Download, Filter, BarChart2, TrendingUp, Users, MapPin } from 'lucide-react';
+import { FileText, Calendar, CheckCircle, XCircle, Download, Filter, BarChart2, TrendingUp, Users, MapPin, Bus, FileDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
+import { loadMunicipalityData, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
 
-const COLORS = ['#f97316','#3b82f6','#10b981','#ef4444','#8b5cf6'];
+const COLORS = ['#10b981','#ef4444','#f97316','#3b82f6','#8b5cf6'];
 
 function exportCSV(data: any[], filename: string) {
   if (!data?.length) { alert('Sem dados para exportar'); return; }
   const keys = Object.keys(data[0]);
-  const csv = [keys.join(','), ...data.map(row => keys.map(k => `"${row[k]??''}"`).join(','))].join('\n');
+  const csv = [keys.join(';'), ...data.map(row => keys.map(k => `"${row[k]??''}"`).join(';'))].join('\n');
   const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
 }
 
-function exportPDF(title: string, data: any[], cols: string[]) {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-  <style>body{font-family:Arial,sans-serif;padding:20px;color:#333}h1{color:#f97316;border-bottom:2px solid #f97316;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#f97316;color:white;padding:10px;text-align:left}td{padding:8px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#fafafa}.header{display:flex;justify-content:space-between}.date{color:#666;font-size:14px}</style>
-  </head><body><div class="header"><h1>${title}</h1><span class="date">Gerado em ${new Date().toLocaleDateString('pt-BR')}</span></div>
-  <table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${data.map(row => `<tr>${Object.values(row).map(v => `<td>${v??''}</td>`).join('')}</tr>`).join('')}</tbody></table>
-  <p style="margin-top:20px;color:#999;font-size:12px">Total: ${data.length} registros</p></body></html>`;
-  const blob = new Blob([html], { type:'text/html' });
-  const win = window.open(URL.createObjectURL(blob), '_blank');
-  setTimeout(() => win?.print(), 500);
+function generatePDFReport(title: string, data: any[], cols: string[], munReport: any) {
+  if (!data?.length) { alert('Sem dados para exportar'); return; }
+  const rows = data.map(row => '<tr>' + Object.values(row).map(v => `<td>${v??''}</td>`).join('') + '</tr>').join('');
+  const content = `<table><thead><tr>${cols.map(c => `<th style="text-align:left">${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: ${data.length} registro(s)</p>`;
+  if (munReport) {
+    const html = generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: title.toUpperCase(), subtitle: data.length + ' registro(s)', content, fontFamily: 'sans-serif', fontSize: 11 });
+    openReportAsPDF(html, title.replace(/\s+/g, '_'));
+  } else {
+    // Fallback simples
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}.footer{margin-top:20px;text-align:center;font-size:10px;color:#999}</style></head><body><h1>${title}</h1>${content}<div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
+  }
 }
 
 export default function ReportsPage() {
@@ -33,32 +38,65 @@ export default function ReportsPage() {
   const [tab, setTab] = useState<'overview'|'trips'|'students'|'vehicles'>('overview');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const { data: history } = useQuery(() => api.trips.history({ municipalityId, limit:100 }), [municipalityId]);
+  const [munReport, setMunReport] = useState<any>(null);
+  const { data: history } = useQuery(() => api.trips.history({ municipalityId, limit:200 }), [municipalityId]);
   const { data: students } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const { data: vehiclesData } = useQuery(() => api.vehicles.list({ municipalityId }), [municipalityId]);
-  const trips = (history as any)||[];
+  const { data: driversData } = useQuery(() => api.drivers.list({ municipalityId }), [municipalityId]);
+
+  useEffect(() => { if (municipalityId) loadMunicipalityData(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
+
+  const allTrips = (history as any)||[];
+
+  // Filtro de data funcional
+  const trips = allTrips.filter((h: any) => {
+    const d = h.trip?.tripDate ? new Date(h.trip.tripDate) : null;
+    if (!d) return true;
+    if (dateFrom && d < new Date(dateFrom)) return false;
+    if (dateTo && d > new Date(dateTo + 'T23:59:59')) return false;
+    return true;
+  });
+
   const completed = trips.filter((h: any) => h.trip?.status==='completed');
   const cancelled = trips.filter((h: any) => h.trip?.status==='cancelled');
   const rate = trips.length ? Math.round((completed.length/trips.length)*100) : 0;
-  const pieData = [{ name:'Concluídas', value:completed.length },{ name:'Canceladas', value:cancelled.length },{ name:'Em andamento', value:trips.filter((h: any) => h.trip?.status==='started').length }].filter(d => d.value>0);
+  const pieData = [{ name:'Concluidas', value:completed.length },{ name:'Canceladas', value:cancelled.length },{ name:'Em andamento', value:trips.filter((h: any) => h.trip?.status==='started').length }].filter(d => d.value>0);
   const byRoute: any = {};
   trips.forEach((h: any) => { const name=h.route?.name||'Sem rota'; if(!byRoute[name]) byRoute[name]={name,total:0,completed:0}; byRoute[name].total++; if(h.trip?.status==='completed') byRoute[name].completed++; });
   const routeData = Object.values(byRoute).slice(0,8);
-  const weekData = [{ week:'Sem 1', viagens:12, km:180 },{ week:'Sem 2', viagens:15, km:220 },{ week:'Sem 3', viagens:11, km:165 },{ week:'Sem 4', viagens:14, km:210 }];
-  const sl = (s: string) => ({ started:'Em andamento', completed:'Concluída', cancelled:'Cancelada', scheduled:'Agendada' }[s]||s);
-  const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'—', data:new Date(h.trip?.tripDate).toLocaleDateString('pt-BR'), inicio:h.trip?.startedAt?new Date(h.trip?.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', fim:h.trip?.endedAt?new Date(h.trip?.endedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—', status:sl(h.trip?.status) }));
-  const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matricula:s.enrollment||'—', serie:s.grade||'—', turma:s.classRoom||'—', turno:{ morning:'Manhã', afternoon:'Tarde', evening:'Noite' }[s.shift as string]||'—' }));
-  const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' }[s]||s);
-  const vehicleRows = ((vehiclesData as any)||[]).map((v: any) => ({ placa:v.plate||'—', apelido:v.nickname||'—', marca_modelo:[v.brand,v.model,v.year].filter(Boolean).join(' ')||'—', capacidade:v.capacity?`${v.capacity} lugares`:'—', km_atual:v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'—', status:statusLabel(v.status) }));
+
+  // Tendencia semanal com dados REAIS (ultimas 4 semanas)
+  const weekData = (function() {
+    const weeks: any[] = [];
+    const now = new Date();
+    for (let w = 3; w >= 0; w--) {
+      const weekStart = new Date(now.getTime() - (w * 7 + now.getDay()) * 86400000);
+      const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
+      const weekTrips = allTrips.filter((h: any) => {
+        const d = h.trip?.tripDate ? new Date(h.trip.tripDate) : null;
+        return d && d >= weekStart && d <= weekEnd;
+      });
+      weeks.push({ week: 'Sem ' + (4 - w), viagens: weekTrips.length, concluidas: weekTrips.filter((h: any) => h.trip?.status === 'completed').length });
+    }
+    return weeks;
+  })();
+
+  const sl = (s: string) => ({ started:'Em andamento', completed:'Concluida', cancelled:'Cancelada', scheduled:'Agendada' }[s]||s);
+  const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'--', data:h.trip?.tripDate?new Date(h.trip.tripDate).toLocaleDateString('pt-BR'):'--', inicio:h.trip?.startedAt?new Date(h.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--', fim:h.trip?.completedAt?new Date(h.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--', status:sl(h.trip?.status) }));
+  const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matricula:s.enrollment||'--', serie:s.grade||'--', turma:s.classRoom||s.className||'--', turno:{ morning:'Manha', afternoon:'Tarde', evening:'Noite' }[s.shift as string]||'--', escola:s.school||'--' }));
+  const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutencao', inactive:'Inativo' }[s]||s);
+  const vehicleRows = ((vehiclesData as any)||[]).map((v: any) => ({ placa:v.plate||'--', apelido:v.nickname||'--', marca_modelo:[v.brand,v.model,v.year].filter(Boolean).join(' ')||'--', capacidade:v.capacity?`${v.capacity} lugares`:'--', km_atual:v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'--', status:statusLabel(v.status) }));
+  const clearFilter = () => { setDateFrom(''); setDateTo(''); };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold text-gray-900">Relatórios</h1><p className="text-gray-500">Análise e exportação de dados</p></div>
-        <div className="flex gap-2">
-          <input type="date" className="input text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          <input type="date" className="input text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-          <button className="btn-secondary flex items-center gap-2 text-sm"><Filter size={14}/> Filtrar</button>
+        <div><h1 className="text-2xl font-bold text-gray-900">Relatorios</h1><p className="text-gray-500">Analise e exportacao de dados {dateFrom || dateTo ? '(filtrado)' : ''}</p></div>
+        <div className="flex gap-2 items-center">
+          <input type="date" className="input text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="Data inicial" />
+          <span className="text-gray-400">a</span>
+          <input type="date" className="input text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} title="Data final" />
+          {(dateFrom || dateTo) && <button onClick={clearFilter} className="text-xs text-red-500 hover:underline">Limpar</button>}
         </div>
       </div>
 
@@ -79,7 +117,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-2 gap-6">
           <div className="card"><div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-gray-800">Viagens por rota</h3></div>{routeData.length?(<ResponsiveContainer width="100%" height={220}><BarChart data={routeData}><XAxis dataKey="name" tick={{fontSize:11}}/><YAxis tick={{fontSize:11}}/><Tooltip/><Bar dataKey="total" fill="#f97316" radius={[4,4,0,0]} name="Total"/><Bar dataKey="completed" fill="#10b981" radius={[4,4,0,0]} name="Concluídas"/></BarChart></ResponsiveContainer>):<div className="h-52 flex items-center justify-center text-gray-400 text-sm">Sem dados de viagens ainda</div>}</div>
           <div className="card"><h3 className="font-semibold text-gray-800 mb-4">Status das viagens</h3>{pieData.length?(<ResponsiveContainer width="100%" height={220}><PieChart><Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name,percent}) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>{pieData.map((_,i) => <Cell key={i} fill={COLORS[i]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>):<div className="h-52 flex items-center justify-center text-gray-400 text-sm">Sem dados de viagens ainda</div>}</div>
-          <div className="card col-span-2"><h3 className="font-semibold text-gray-800 mb-4">Tendência semanal</h3><ResponsiveContainer width="100%" height={180}><LineChart data={weekData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="week"/><YAxis yAxisId="left"/><YAxis yAxisId="right" orientation="right"/><Tooltip/><Legend/><Line yAxisId="left" type="monotone" dataKey="viagens" stroke="#f97316" strokeWidth={2} name="Viagens"/><Line yAxisId="right" type="monotone" dataKey="km" stroke="#3b82f6" strokeWidth={2} name="Km rodados"/></LineChart></ResponsiveContainer></div>
+          <div className="card col-span-2"><h3 className="font-semibold text-gray-800 mb-4">Tendencia semanal (ultimas 4 semanas)</h3>{weekData.some((w: any) => w.viagens > 0) ? (<ResponsiveContainer width="100%" height={180}><BarChart data={weekData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="week"/><YAxis/><Tooltip/><Legend/><Bar dataKey="viagens" fill="#f97316" radius={[4,4,0,0]} name="Total"/><Bar dataKey="concluidas" fill="#10b981" radius={[4,4,0,0]} name="Concluidas"/></BarChart></ResponsiveContainer>) : <div className="h-44 flex items-center justify-center text-gray-400 text-sm">Sem viagens nas ultimas 4 semanas</div>}</div>
         </div>
       )}
 
@@ -89,7 +127,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-2"><FileText size={18} className="text-gray-500"/><h3 className="font-semibold">Histórico de Viagens</h3><span className="text-sm text-gray-400">({tripRows.length} registros)</span></div>
             <div className="flex gap-2">
               <button onClick={() => exportCSV(tripRows,'viagens_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => exportPDF('Relatório de Viagens',tripRows,['Rota','Data','Início','Fim','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
+              <button onClick={() => generatePDFReport('Relatorio de Viagens',tripRows,['Rota','Data','Inicio','Fim','Status'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Rota','Data','Início','Fim','Status'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{tripRows.map((r: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium text-gray-800">{r.rota}</td><td className="px-5 py-3 text-gray-500">{r.data}</td><td className="px-5 py-3 text-gray-500">{r.inicio}</td><td className="px-5 py-3 text-gray-500">{r.fim}</td><td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status==='Concluída'?'bg-green-100 text-green-700':r.status==='Cancelada'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{r.status}</span></td></tr>))}{!tripRows.length && <tr><td colSpan={5} className="px-5 py-12 text-center text-gray-400">Nenhuma viagem registrada</td></tr>}</tbody></table></div>
@@ -102,10 +140,10 @@ export default function ReportsPage() {
             <div className="flex items-center gap-2"><Users size={18} className="text-gray-500"/><h3 className="font-semibold">Lista de Alunos</h3><span className="text-sm text-gray-400">({studentRows.length} alunos)</span></div>
             <div className="flex gap-2">
               <button onClick={() => exportCSV(studentRows,'alunos_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => exportPDF('Lista de Alunos',studentRows,['Nome','Matrícula','Série','Turma','Turno'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
+              <button onClick={() => generatePDFReport('Lista de Alunos',studentRows,['Nome','Matricula','Serie','Turma','Turno','Escola'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
             </div>
           </div>
-          <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Nome','Matrícula','Série','Turma','Turno'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{studentRows.map((s: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium">{s.nome}</td><td className="px-5 py-3 text-gray-500">{s.matricula}</td><td className="px-5 py-3 text-gray-500">{s.serie}</td><td className="px-5 py-3 text-gray-500">{s.turma}</td><td className="px-5 py-3 text-gray-500">{s.turno}</td></tr>))}{!studentRows.length && <tr><td colSpan={5} className="px-5 py-12 text-center text-gray-400">Nenhum aluno cadastrado</td></tr>}</tbody></table></div>
+          <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Nome','Matricula','Serie','Turma','Turno','Escola'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{studentRows.map((s: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium">{s.nome}</td><td className="px-5 py-3 text-gray-500">{s.matricula}</td><td className="px-5 py-3 text-gray-500">{s.serie}</td><td className="px-5 py-3 text-gray-500">{s.turma}</td><td className="px-5 py-3 text-gray-500">{s.turno}</td><td className="px-5 py-3 text-gray-500">{s.escola}</td></tr>))}{!studentRows.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Nenhum aluno cadastrado</td></tr>}</tbody></table></div>
         </div>
       )}
 
@@ -115,7 +153,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-500"/><h3 className="font-semibold">Relatório de Frota</h3><span className="text-sm text-gray-400">({vehicleRows.length} veículos)</span></div>
             <div className="flex gap-2">
               <button onClick={() => exportCSV(vehicleRows,'frota_netescol.csv')} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> CSV</button>
-              <button onClick={() => exportPDF('Relatório de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'])} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><Download size={14}/> PDF</button>
+              <button onClick={() => generatePDFReport('Relatorio de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'],munReport)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg"><FileDown size={14}/> PDF</button>
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'].map(h => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{vehicleRows.map((v: any,i: number) => (<tr key={i} className="hover:bg-gray-50"><td className="px-5 py-3 font-medium text-gray-800">{v.placa}</td><td className="px-5 py-3 text-gray-500">{v.apelido}</td><td className="px-5 py-3 text-gray-500">{v.marca_modelo}</td><td className="px-5 py-3 text-gray-500">{v.capacidade}</td><td className="px-5 py-3 text-gray-500">{v.km_atual}</td><td className="px-5 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${v.status==='Ativo'?'bg-green-100 text-green-700':v.status==='Manutenção'?'bg-yellow-100 text-yellow-700':'bg-red-100 text-red-700'}`}>{v.status}</span></td></tr>))}{!vehicleRows.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Nenhum veículo cadastrado</td></tr>}</tbody></table></div>

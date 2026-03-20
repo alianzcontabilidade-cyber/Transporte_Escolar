@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { DollarSign, Plus, X, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Search, Download } from 'lucide-react';
+import { DollarSign, Plus, X, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Search, Download, FileDown, Printer } from 'lucide-react';
+import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import { getBanks } from '../lib/cnpjCep';
 
 const TYPES: any = { pdde: 'PDDE', proprio: 'Próprio', estadual: 'Estadual', federal: 'Federal', outro: 'Outro' };
@@ -26,7 +28,11 @@ export default function FinancialPage() {
   const { mutate: deleteTxn } = useMutation(api.financialTransactions.delete);
 
   const [banks, setBanks] = useState<any[]>([]);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [munReport, setMunReport] = useState<any>(null);
+  const [showReport, setShowReport] = useState(false);
   useEffect(() => { getBanks().then(b => setBanks(b)).catch(() => {}); }, []);
+  useEffect(() => { if (mid) loadMunicipalityData(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
   const allAccts = (accts as any) || [];
   const allTxns = (txns as any) || [];
@@ -36,6 +42,25 @@ export default function FinancialPage() {
 
   const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
   const fmtMoney = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const generateFinancialReport = () => {
+    if (!munReport) return '';
+    const acctRows = allAccts.map((a: any) => `<tr><td style="text-align:left">${a.name}</td><td>${a.type || '--'}</td><td>${a.bankName || '--'}</td><td style="text-align:right;font-weight:bold">${fmtMoney(parseFloat(a.balance) || 0)}</td></tr>`).join('');
+    const txnRows = allTxns.slice(0, 50).map((t: any) => `<tr><td>${t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '--'}</td><td style="text-align:left">${t.description || '--'}</td><td>${t.category || '--'}</td><td>${t.supplier || '--'}</td><td style="text-align:right;color:${t.type === 'receita' ? '#059669' : '#dc2626'};font-weight:bold">${t.type === 'receita' ? '+' : '-'}${fmtMoney(parseFloat(t.value) || 0)}</td></tr>`).join('');
+    const content = `
+      <div class="section-title">RESUMO FINANCEIRO</div>
+      <div style="display:flex;gap:20px;margin:15px 0">
+        <div style="flex:1;text-align:center;padding:15px;background:#f0f9ff;border-radius:8px"><p style="font-size:10px;color:#888">SALDO TOTAL</p><p style="font-size:18px;font-weight:bold;color:#1B3A5C">${fmtMoney(totalBalance)}</p></div>
+        <div style="flex:1;text-align:center;padding:15px;background:#f0fdf4;border-radius:8px"><p style="font-size:10px;color:#888">RECEITAS</p><p style="font-size:18px;font-weight:bold;color:#059669">${fmtMoney(totalReceita)}</p></div>
+        <div style="flex:1;text-align:center;padding:15px;background:#fef2f2;border-radius:8px"><p style="font-size:10px;color:#888">DESPESAS</p><p style="font-size:18px;font-weight:bold;color:#dc2626">${fmtMoney(totalDespesa)}</p></div>
+      </div>
+      <div class="section-title">CONTAS BANCÁRIAS</div>
+      <table><thead><tr><th style="text-align:left">CONTA</th><th>TIPO</th><th>BANCO</th><th style="text-align:right">SALDO</th></tr></thead><tbody>${acctRows || '<tr><td colspan="4" style="color:#999;text-align:center">Nenhuma conta cadastrada</td></tr>'}</tbody></table>
+      <div class="section-title">MOVIMENTAÇÕES</div>
+      <table><thead><tr><th>DATA</th><th style="text-align:left">DESCRIÇÃO</th><th>CATEGORIA</th><th>FORNECEDOR</th><th style="text-align:right">VALOR</th></tr></thead><tbody>${txnRows || '<tr><td colspan="5" style="color:#999;text-align:center">Nenhuma movimentação</td></tr>'}</tbody></table>
+    `;
+    return generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: 'RELATÓRIO FINANCEIRO', subtitle: 'Período: ' + new Date().getFullYear(), content, signatories: selectedSigs, fontFamily: 'sans-serif', fontSize: 11 });
+  };
 
   const openNewAcct = () => { setForm({ name: '', type: 'proprio', bankName: '', agency: '', accountNumber: '', balance: '' }); setEditId(null); setFormErr(''); setShowModal(true); };
   const openNewTxn = () => { setForm({ accountId: '', type: 'despesa', category: '', description: '', value: '', date: new Date().toISOString().split('T')[0], documentNumber: '', supplier: '' }); setEditId(null); setFormErr(''); setShowModal(true); };
@@ -63,7 +88,10 @@ export default function FinancialPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><DollarSign size={20} className="text-green-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Financeiro</h1><p className="text-gray-500">Contas e movimentacoes</p></div></div>
-        <button onClick={() => tab === 'accounts' ? openNewAcct() : openNewTxn()} className="btn-primary flex items-center gap-2"><Plus size={16} /> {tab === 'accounts' ? 'Nova Conta' : 'Nova Transacao'}</button>
+        <div className="flex gap-2">
+          <button onClick={async () => { const h = generateFinancialReport(); if (h) await openReportAsPDF(h, 'Relatorio_Financeiro'); }} className="btn-secondary flex items-center gap-2"><FileDown size={16} /> Relatório</button>
+          <button onClick={() => tab === 'accounts' ? openNewAcct() : openNewTxn()} className="btn-primary flex items-center gap-2"><Plus size={16} /> {tab === 'accounts' ? 'Nova Conta' : 'Nova Transação'}</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-5">

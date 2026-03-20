@@ -1,14 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
+import { loadMunicipalityData } from '../lib/reportTemplate';
 
 export default function SchoolReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
+  const [municipalityName, setMunicipalityName] = useState('');
+
+  useEffect(() => {
+    if (!mid) return;
+    loadMunicipalityData(mid, api).then(({ municipality }) => {
+      setMunicipalityName(municipality.name || '');
+    }).catch(() => {});
+  }, [mid]);
 
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
@@ -71,7 +80,7 @@ export default function SchoolReportPage() {
             <p className="text-blue-200 mt-1">{school.address || ''} {school.directorName ? '· Diretor(a): ' + school.directorName : ''}</p>
           </div>
 
-          <ReportExportBar title={`Relatório - ${school.name}`} subtitle={school.address || ''} municipality={school.name}
+          <ReportExportBar title={`Relatório - ${school.name}`} subtitle={school.address || ''} municipality={municipalityName} school={school.name}
             fullData={allStudents.map((s: any) => ({ nome: s.name, matricula: s.enrollment||'', serie: s.grade||'', turma: s.classRoom||'', turno: s.shift==='afternoon'?'Tarde':s.shift==='evening'?'Noite':'Manhã' }))}
             fullDataColumns={[{key:'nome',label:'Nome'},{key:'matricula',label:'Matrícula'},{key:'serie',label:'Série'},{key:'turma',label:'Turma'},{key:'turno',label:'Turno'}]}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

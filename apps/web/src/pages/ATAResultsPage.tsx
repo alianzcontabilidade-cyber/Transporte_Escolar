@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileSpreadsheet, Printer, Users } from 'lucide-react';
+import { FileSpreadsheet, Printer, Users, FileDown } from 'lucide-react';
+import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML, ReportMunicipality, ReportSecretaria } from '../lib/reportTemplate';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function ATAResultsPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [munReport, setMunReport] = useState<{ municipality: ReportMunicipality; secretaria: ReportSecretaria } | null>(null);
+
+  useEffect(() => { if (mid) loadMunicipalityData(mid, api).then(setMunReport); }, [mid]);
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selClass ? api.enrollments.list({ municipalityId: mid, classId: parseInt(selClass) }) : Promise.resolve([]), [mid, selClass]);
@@ -17,36 +23,36 @@ export default function ATAResultsPage() {
 
   const STATUS_LABELS: any = { active:'Cursando', graduated:'Aprovado', retained:'Retido', transferred:'Transferido', evaded:'Evadido', cancelled:'Cancelado' };
 
-  const printATA = () => {
+  const buildATAHtml = () => {
     const cls = allClasses.find((c: any) => String(c.id) === selClass);
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ATA de Resultados Finais</title>
-    <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}
-    h1{color:#1B3A5C;text-align:center;font-size:18px;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
-    h2{text-align:center;font-size:14px;color:#666;margin-top:5px}
-    table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}
-    th{background:#1B3A5C;color:white;padding:8px;text-align:left}
-    td{padding:6px 8px;border:1px solid #ddd}
-    tr:nth-child(even){background:#f8f9fa}
-    .approved{color:#16a34a;font-weight:bold}
-    .retained{color:#dc2626;font-weight:bold}
-    .signatures{display:flex;justify-content:space-between;margin-top:60px;padding-top:20px}
-    .sig-line{text-align:center;width:200px;border-top:1px solid #333;padding-top:5px;font-size:11px}
-    .footer{text-align:center;margin-top:30px;font-size:10px;color:#999}
-    @media print{body{padding:15px}}</style></head><body>
-    <h1>ATA DE RESULTADOS FINAIS</h1>
-    <h2>${cls?.fullName || cls?.name || ''} - ${cls?.schoolName || ''}</h2>
-    <p style="text-align:center;font-size:12px;color:#888">Ano Letivo: ${new Date().getFullYear()}</p>
-    <table><thead><tr><th>N\u00ba</th><th>Nome do Aluno</th><th>Matr\u00edcula</th><th>Situa\u00e7\u00e3o</th></tr></thead>
-    <tbody>${allEnrollments.map((e: any, i: number) => {
+    const contentHTML = `
+    <h3 style="text-align:center;font-size:14px;color:#666;margin:5px 0">${cls?.fullName || cls?.name || ''} - ${cls?.schoolName || ''}</h3>
+    <p style="text-align:center;font-size:12px;color:#888;margin-bottom:10px">Ano Letivo: ${new Date().getFullYear()}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>
+    <th style="background:#1B3A5C;color:white;padding:8px;text-align:left">N\u00ba</th>
+    <th style="background:#1B3A5C;color:white;padding:8px;text-align:left">Nome do Aluno</th>
+    <th style="background:#1B3A5C;color:white;padding:8px;text-align:left">Matr\u00edcula</th>
+    <th style="background:#1B3A5C;color:white;padding:8px;text-align:left">Situa\u00e7\u00e3o</th>
+    </tr></thead><tbody>${allEnrollments.map((e: any, i: number) => {
       const isApproved = e.status === 'graduated';
       const isRetained = e.status === 'retained';
-      return '<tr><td>' + (i+1) + '</td><td>' + e.studentName + '</td><td>' + (e.studentEnrollment || e.enrollmentNumber || '\u2014') + '</td><td class="' + (isApproved ? 'approved' : isRetained ? 'retained' : '') + '">' + (STATUS_LABELS[e.status] || e.status) + '</td></tr>';
+      return '<tr style="' + (i % 2 === 0 ? '' : 'background:#f8f9fa') + '"><td style="padding:6px 8px;border:1px solid #ddd">' + (i+1) + '</td><td style="padding:6px 8px;border:1px solid #ddd">' + e.studentName + '</td><td style="padding:6px 8px;border:1px solid #ddd">' + (e.studentEnrollment || e.enrollmentNumber || '\u2014') + '</td><td style="padding:6px 8px;border:1px solid #ddd;' + (isApproved ? 'color:#16a34a;font-weight:bold' : isRetained ? 'color:#dc2626;font-weight:bold' : '') + '">' + (STATUS_LABELS[e.status] || e.status) + '</td></tr>';
     }).join('')}</tbody></table>
-    <p style="margin-top:15px;font-size:12px"><b>Total de alunos:</b> ${allEnrollments.length} | <b>Aprovados:</b> ${allEnrollments.filter((e: any) => e.status === 'graduated').length} | <b>Retidos:</b> ${allEnrollments.filter((e: any) => e.status === 'retained').length} | <b>Transferidos:</b> ${allEnrollments.filter((e: any) => e.status === 'transferred').length}</p>
-    <div class="signatures"><div class="sig-line">Diretor(a)</div><div class="sig-line">Secret\u00e1rio(a)</div><div class="sig-line">Coordenador(a)</div></div>
-    <div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
+    <p style="margin-top:15px;font-size:12px"><b>Total de alunos:</b> ${allEnrollments.length} | <b>Aprovados:</b> ${allEnrollments.filter((e: any) => e.status === 'graduated').length} | <b>Retidos:</b> ${allEnrollments.filter((e: any) => e.status === 'retained').length} | <b>Transferidos:</b> ${allEnrollments.filter((e: any) => e.status === 'transferred').length}</p>`;
+    return generateReportHTML({
+      municipality: munReport?.municipality || { name: '' },
+      secretaria: munReport?.secretaria,
+      title: 'ATA DE RESULTADOS FINAIS',
+      content: contentHTML,
+      signatories: selectedSigs.length > 0 ? selectedSigs : undefined,
+      showDate: true,
+    });
+  };
+
+  const handlePrint = () => { printReportHTML(buildATAHtml()); };
+  const handlePDF = () => {
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    openReportAsPDF(buildATAHtml(), `ATA_Resultados_${cls?.name || 'turma'}`);
   };
 
   const counts = { total: allEnrollments.length, approved: allEnrollments.filter((e: any) => e.status === 'graduated').length, retained: allEnrollments.filter((e: any) => e.status === 'retained').length, active: allEnrollments.filter((e: any) => e.status === 'active').length };
@@ -55,13 +61,19 @@ export default function ATAResultsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><FileSpreadsheet size={20} className="text-emerald-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">ATA de Resultados Finais</h1><p className="text-gray-500">Documento oficial de resultados</p></div></div>
-        {allEnrollments.length > 0 && <button onClick={printATA} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button>}
+        {allEnrollments.length > 0 && <div className="flex gap-2">
+          <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> Gerar PDF</button>
+          <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+        </div>}
       </div>
 
       <select className="input w-72 mb-5" value={selClass} onChange={e => setSelClass(e.target.value)}><option value="">Selecione a turma</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select>
 
       {selClass && allEnrollments.length > 0 && (
         <>
+          <div className="mb-5">
+            <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
+          </div>
           <div className="grid grid-cols-4 gap-4 mb-5">
             <div className="card text-center bg-blue-50 border-0"><p className="text-2xl font-bold text-blue-600">{counts.total}</p><p className="text-xs text-gray-500">Total</p></div>
             <div className="card text-center bg-green-50 border-0"><p className="text-2xl font-bold text-green-600">{counts.approved}</p><p className="text-xs text-gray-500">Aprovados</p></div>

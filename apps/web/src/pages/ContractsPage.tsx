@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2, Eye, Printer } from 'lucide-react';
+import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2, Eye, Printer, FileDown } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../lib/utils';
 import CNPJField from '../components/CNPJField';
+import { loadMunicipalityData, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
+import { Signatory } from '../components/ReportSignatureSelector';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', expired:'bg-red-100 text-red-700', pending:'bg-yellow-100 text-yellow-700', cancelled:'bg-gray-100 text-gray-600' };
 const STATUS_LABELS: any = { active:'Vigente', expired:'Vencido', pending:'A vencer', cancelled:'Cancelado' };
@@ -32,7 +34,21 @@ export default function ContractsPage() {
     const [confirmDelete, setConfirmDelete] = useState<any>(null);
     const [cnpjError, setCnpjError] = useState('');
     const municipalityId = user?.municipalityId;
-  
+    const [munReport, setMunReport] = useState<any>(null);
+    useEffect(() => { if (municipalityId) loadMunicipalityData(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
+
+    const generateContractsReport = () => {
+      if (!munReport) return '';
+      const fmtMoney = (v: string) => parseFloat(v || '0').toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const rows = contracts.map((c: any) => {
+        const st = getStatus(c);
+        return `<tr><td>${c.number || '--'}</td><td style="text-align:left">${c.supplier || '--'}</td><td>${c.type || '--'}</td><td style="text-align:right;font-weight:bold">${fmtMoney(c.value)}</td><td>${c.startDate ? new Date(c.startDate).toLocaleDateString('pt-BR') : '--'}</td><td>${c.endDate ? new Date(c.endDate).toLocaleDateString('pt-BR') : '--'}</td><td style="font-weight:bold;color:${st === 'active' ? '#059669' : st === 'expired' ? '#dc2626' : '#d97706'}">${STATUS_LABELS[st]}</td></tr>`;
+      }).join('');
+      const totalValue = contracts.reduce((s: number, c: any) => s + (parseFloat(c.value) || 0), 0);
+      const content = `<table><thead><tr><th>Nº</th><th style="text-align:left">FORNECEDOR</th><th>TIPO</th><th style="text-align:right">VALOR</th><th>INÍCIO</th><th>TÉRMINO</th><th>STATUS</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f0f4f8;font-weight:bold"><td colspan="3" style="text-align:right">TOTAL</td><td style="text-align:right">${fmtMoney(String(totalValue))}</td><td colspan="3"></td></tr></tfoot></table>`;
+      return generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: 'RELATÓRIO DE CONTRATOS', subtitle: contracts.length + ' contrato(s)', content, fontFamily: 'sans-serif', fontSize: 11 });
+    };
+
     const loadContracts = async () => {
           if (!municipalityId) return;
           try {
@@ -131,6 +147,7 @@ export default function ContractsPage() {
                         <div><h1 className="text-2xl font-bold text-gray-900">Contratos</h1><p className="text-gray-500">Gestão de contratos e fornecedores</p></div>
                         <div className="flex gap-2">
                                   <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14}/> Exportar CSV</button>
+                                  <button onClick={async () => { const h = generateContractsReport(); if (h) await openReportAsPDF(h, 'Relatorio_Contratos'); }} className="btn-secondary flex items-center gap-2"><FileDown size={16}/> Relatório</button>
                                   <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Contrato</button>
                         </div>
                 </div>

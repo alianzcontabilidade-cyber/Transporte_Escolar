@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileEdit, Save, CheckCircle, Users, BookOpen } from 'lucide-react';
+import { FileEdit, Save, CheckCircle, Users, BookOpen, FileDown, Printer } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, generateReportHTML, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const BIMESTERS = [{ v:'1', l:'1° Bimestre' },{ v:'2', l:'2° Bimestre' },{ v:'3', l:'3° Bimestre' },{ v:'4', l:'4° Bimestre' }];
 
@@ -15,6 +17,12 @@ export default function DescriptiveReportPage() {
   const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [munReport, setMunReport] = useState<any>(null);
+
+  useEffect(() => {
+    if (mid) loadMunicipalityData(mid, api).then(setMunReport).catch(() => {});
+  }, [mid]);
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selClass ? api.enrollments.list({ municipalityId: mid, classId: parseInt(selClass), status: 'active' }) : Promise.resolve([]), [mid, selClass]);
@@ -67,6 +75,47 @@ export default function DescriptiveReportPage() {
     if (w) { w.document.write(html); w.document.close(); w.print(); }
   };
 
+  const generateStudentReport = (enrollment: any) => {
+    if (!munReport) return '';
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    const school = cls ? loadSchoolData(cls.schoolId, allClasses.map((c: any) => ({ id: c.schoolId, name: c.schoolName }))) : undefined;
+    const studentReports = BIMESTERS.map(b => {
+      const r = allReports.find((rep: any) => rep.studentId === enrollment.studentId && rep.bimester === b.v)
+        || (b.v === selBimester ? getReport(enrollment.studentId) : null);
+      return { label: b.l, content: r?.content || '' };
+    });
+    const content = `
+      <div class="student-info">
+        <div class="si-name">${enrollment.studentName}</div>
+        ${enrollment.studentEnrollment ? `<div class="si-detail">Matrícula: ${enrollment.studentEnrollment}</div>` : ''}
+        <div class="si-detail">Turma: ${cls?.fullName || cls?.name || ''} | Escola: ${cls?.schoolName || ''}</div>
+      </div>
+      ${studentReports.map(sr => `
+        <div class="section-title">${sr.label}</div>
+        <p>${sr.content || '<em style="color:#999">Sem parecer registrado.</em>'}</p>
+      `).join('')}
+    `;
+    return generateReportHTML({
+      municipality: munReport.municipality,
+      secretaria: munReport.secretaria,
+      school,
+      title: 'PARECER DESCRITIVO',
+      subtitle: cls?.fullName || '',
+      content,
+      signatories: selectedSigs,
+    });
+  };
+
+  const handleStudentPDF = async (enrollment: any) => {
+    const html = generateStudentReport(enrollment);
+    if (html) await openReportAsPDF(html, 'Parecer_' + (enrollment.studentName || 'Aluno'));
+  };
+
+  const handleStudentPrint = (enrollment: any) => {
+    const html = generateStudentReport(enrollment);
+    if (html) printReportHTML(html);
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -101,6 +150,10 @@ export default function DescriptiveReportPage() {
                   <div className="flex items-center gap-2">
                     {report?.status === 'published' && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Publicado</span>}
                     {report?.status === 'draft' && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Rascunho</span>}
+                    {report?.content && munReport && <>
+                      <button onClick={() => handleStudentPDF(e)} className="text-xs text-red-500 hover:underline flex items-center gap-1" title="Gerar PDF"><FileDown size={12} /> PDF</button>
+                      <button onClick={() => handleStudentPrint(e)} className="text-xs text-blue-500 hover:underline flex items-center gap-1" title="Imprimir"><Printer size={12} /> Imprimir</button>
+                    </>}
                     {!isEditing && <button onClick={() => { setEditingId(e.studentId); setEditContent(report?.content || ''); }} className="text-xs text-accent-500 hover:underline">{report ? 'Editar' : 'Escrever'}</button>}
                   </div>
                 </div>
@@ -123,6 +176,8 @@ export default function DescriptiveReportPage() {
       ) : (
         <div className="card text-center py-16"><FileEdit size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para registrar pareceres</p></div>
       )}
+
+      {selClass && <div className="mt-6"><ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} /></div>}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../li
 import CNPJField from '../components/CNPJField';
 import { loadMunicipalityData, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
 import { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', expired:'bg-red-100 text-red-700', pending:'bg-yellow-100 text-yellow-700', cancelled:'bg-gray-100 text-gray-600' };
 const STATUS_LABELS: any = { active:'Vigente', expired:'Vencido', pending:'A vencer', cancelled:'Cancelado' };
@@ -36,6 +37,15 @@ export default function ContractsPage() {
     const municipalityId = user?.municipalityId;
     const [munReport, setMunReport] = useState<any>(null);
     useEffect(() => { if (municipalityId) loadMunicipalityData(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
+    const [contractExportModal, setContractExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
+    function buildContractHTML(title: string, data: any[], cols: string[]) {
+      const rows = data.map(r => '<tr>' + Object.values(r).map(v => '<td>'+(v||'')+'</td>').join('') + '</tr>').join('');
+      return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
+    }
+    const doContractExport = (format: ExportFormat) => {
+      if (!contractExportModal) return;
+      handleExport(format, contractExportModal.data, buildContractHTML(contractExportModal.title, contractExportModal.data, contractExportModal.cols), contractExportModal.filename);
+    };
 
     const generateContractsReport = () => {
       if (!munReport) return '';
@@ -146,8 +156,8 @@ export default function ContractsPage() {
                 <div className="flex items-center justify-between mb-6">
                         <div><h1 className="text-2xl font-bold text-gray-900">Contratos</h1><p className="text-gray-500">Gestão de contratos e fornecedores</p></div>
                         <div className="flex gap-2">
-                                  <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14}/> Exportar CSV</button>
-                                  <button onClick={async () => { const h = generateContractsReport(); if (h) await openReportAsPDF(h, 'Relatorio_Contratos'); }} className="btn-secondary flex items-center gap-2"><FileDown size={16}/> Relatório</button>
+                                  <button onClick={() => { const h = generateContractsReport(); if (h) { const w=window.open('','_blank'); if(w){w.document.write(h);w.document.close();w.onload=()=>w.print();} } }} className="btn-secondary flex items-center gap-2 text-sm"><Printer size={14}/> Imprimir</button>
+                                  <button onClick={() => { const fmtMoney = (v: string) => parseFloat(v||'0').toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); const rows = contracts.map((c:any) => ({numero:c.number||'',fornecedor:c.supplier||'',tipo:c.type||'',valor:fmtMoney(c.value),inicio:c.startDate?new Date(c.startDate).toLocaleDateString('pt-BR'):'',termino:c.endDate?new Date(c.endDate).toLocaleDateString('pt-BR'):'',status:STATUS_LABELS[getStatus(c)]})); setContractExportModal({title:'Relatorio de Contratos',data:rows,cols:['Numero','Fornecedor','Tipo','Valor','Inicio','Termino','Status'],filename:'contratos_netescol'}); }} className="btn-secondary flex items-center gap-2"><FileDown size={16}/> Exportar</button>
                                   <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Contrato</button>
                         </div>
                 </div>
@@ -205,6 +215,8 @@ export default function ContractsPage() {
                         </div>
                 </div>
         )}
+
+        <ExportModal open={!!contractExportModal} onClose={() => setContractExportModal(null)} onExport={doContractExport} title={contractExportModal?'Exportar: '+contractExportModal.title:undefined}/>
 
         {confirmDelete && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

@@ -3,9 +3,10 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2, Eye, Download } from 'lucide-react';
+import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2, Eye, Download, Printer } from 'lucide-react';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import QuickAddModal from '../components/QuickAddModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);
@@ -86,12 +87,17 @@ export default function DriversPage() {
           else{create(p,{onSuccess:function(){refetch();setShow(false);},onError:function(e:any){setErr(e?.message||'Erro');}});}
     };
   
-    const exportDriversCSV = function() {
-      if (!all.length) return;
-      const rows = all.map(function(d: any) { return { nome: d.name||'', cpf: d.cpf||'', telefone: d.phone||'', email: d.email||'', cnh: d.cnhNumber||'', categoria: d.cnhCategory||'', validade_cnh: d.cnhExpiry ? new Date(d.cnhExpiry).toLocaleDateString('pt-BR') : '', rota: d.routeName||'' }; });
-      const keys = Object.keys(rows[0]);
-      const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"'+(r[k]||'')+'"'; }).join(';'); })].join('\n');
-      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'motoristas_netescol.csv'; a.click();
+    const [drvExportModal, setDrvExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
+    const drvExportRows = all.map(function(d: any) { return { nome: d.name||'', cpf: d.cpf||'', telefone: d.phone||'', email: d.email||'', cnh: d.cnhNumber||'', categoria: d.cnhCategory||'', validade_cnh: d.cnhExpiry ? new Date(d.cnhExpiry).toLocaleDateString('pt-BR') : '', rota: d.routeName||'' }; });
+    const drvExportCols = ['Nome','CPF','Telefone','Email','CNH','Categoria','Validade CNH','Rota'];
+    function buildDriversHTML(title: string, data: any[], cols: string[]) {
+      const rows = data.map(function(r: any) { return '<tr>' + Object.values(r).map(function(v: any) { return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>'; }).join('');
+      return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(function(c) { return '<th>'+c+'</th>'; }).join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
+    }
+    const doDrvExport = function(format: ExportFormat) {
+      if (!drvExportModal) return;
+      const html = buildDriversHTML(drvExportModal.title, drvExportModal.data, drvExportModal.cols);
+      handleExport(format, drvExportModal.data, html, drvExportModal.filename);
     };
 
     const printDriver = function(d: any) {
@@ -109,7 +115,7 @@ export default function DriversPage() {
   
     return (
           <div className="p-6">
-                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><div className="flex gap-2"><button onClick={exportDriversCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div></div>
+                <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><div className="flex gap-2"><button onClick={function(){const html=buildDriversHTML('Lista de Motoristas',drvExportRows,drvExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=function(){w.print();}}}}} className="btn-secondary flex items-center gap-2"><Printer size={16}/> Imprimir</button><button onClick={function(){setDrvExportModal({title:'Lista de Motoristas',data:drvExportRows,cols:drvExportCols,filename:'motoristas_netescol'})}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div></div>
                 <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
                 <div className="grid gap-3">
                   {paginated.map(function(d:any){return(
@@ -175,6 +181,8 @@ export default function DriversPage() {
                     </div>
                     <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShow(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Motorista'}</button></div>
             </div></div>)}
+
+          <ExportModal open={!!drvExportModal} onClose={function(){setDrvExportModal(null)}} onExport={doDrvExport} title={drvExportModal?'Exportar: '+drvExportModal.title:undefined}/>
 
           {/* Quick Add Modal */}
           {quickAdd && (

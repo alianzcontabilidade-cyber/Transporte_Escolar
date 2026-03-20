@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -75,12 +76,16 @@ export default function MonitoresPage() {
   const toggleStatus = async (m: any) => { try { await api.monitorStaff.update({ id: m.id, status: m.status === 'active' ? 'inactive' : 'active' }); await loadMonitores(); } catch (err) { console.error(err); } };
   const doDelete = async (id: number) => { try { await api.monitorStaff.delete({ id }); setConfirmDelete(null); await loadMonitores(); } catch (err) { console.error(err); } };
 
-  const exportMonitoresCSV = () => {
-    if (!monitores.length) return;
-    const rows = monitores.map((m: any) => ({ nome: m.name||'', cpf: m.cpf||'', telefone: m.phone||'', email: m.email||'', turno: shiftLabel(m.shift), rota: m.routeName||'', cidade: m.city||'', status: m.status==='active'?'Ativo':'Inativo' }));
-    const keys = Object.keys(rows[0]);
-    const csv = [keys.join(';'), ...rows.map((r: any) => keys.map(k => '"'+(r[k]||'')+'"').join(';'))].join('\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'monitores_netescol.csv'; a.click();
+  const [monExportModal, setMonExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
+  const monExportRows = monitores.map((m: any) => ({ nome: m.name||'', cpf: m.cpf||'', telefone: m.phone||'', email: m.email||'', turno: shiftLabel(m.shift), rota: m.routeName||'', cidade: m.city||'', status: m.status==='active'?'Ativo':'Inativo' }));
+  const monExportCols = ['Nome','CPF','Telefone','Email','Turno','Rota','Cidade','Status'];
+  function buildMonHTML(title: string, data: any[], cols: string[]) {
+    const rows = data.map(r => '<tr>' + Object.values(r).map(v => '<td>'+(v||'')+'</td>').join('') + '</tr>').join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
+  }
+  const doMonExport = (format: ExportFormat) => {
+    if (!monExportModal) return;
+    handleExport(format, monExportModal.data, buildMonHTML(monExportModal.title, monExportModal.data, monExportModal.cols), monExportModal.filename);
   };
 
   if (loading) return <div className="p-6 flex items-center justify-center h-64"><Loader2 className="animate-spin text-primary-500" size={32}/></div>;
@@ -92,7 +97,7 @@ export default function MonitoresPage() {
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><UserCheck size={20} className="text-teal-600"/></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Monitores</h1><p className="text-gray-500">Auxiliares que acompanham o motorista no transporte dos alunos</p></div>
         </div>
-        <div className="flex gap-2"><button onClick={exportMonitoresCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button></div>
+        <div className="flex gap-2"><button onClick={() => {const html=buildMonHTML('Lista de Monitores',monExportRows,monExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();}}}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Imprimir</button><button onClick={() => setMonExportModal({title:'Lista de Monitores',data:monExportRows,cols:monExportCols,filename:'monitores_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button></div>
       </div>
       <div className="grid grid-cols-3 gap-4 mb-5">
         <div className="card text-center bg-teal-50 border-0"><Users size={22} className="text-teal-500 mx-auto mb-1"/><p className="text-2xl font-bold">{monitores.length}</p><p className="text-xs text-gray-500">Total</p></div>
@@ -151,6 +156,8 @@ export default function MonitoresPage() {
           </div>
         </div>
       )}
+
+      <ExportModal open={!!monExportModal} onClose={() => setMonExportModal(null)} onExport={doMonExport} title={monExportModal?'Exportar: '+monExportModal.title:undefined}/>
 
       {confirmDelete !== null && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

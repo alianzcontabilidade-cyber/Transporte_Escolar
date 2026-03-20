@@ -9,6 +9,7 @@ import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText } from 'lucide-react';
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { StudentMiniCard, ClassMiniCard, QuickActionButton } from '../components/EntitySummaries';
 
 const emptyForm = {
@@ -237,18 +238,16 @@ export default function SchoolsPage() {
     }
   };
 
-  const exportSchoolsCSV = () => {
-    if (!all.length) return;
-    const rows = all.map((s: any) => ({
-      nome: s.name || '', tipo: s.type || '', codigo_inep: s.code || '',
-      diretor: s.directorName || '', telefone: s.phone || '', email: s.email || '', endereco: s.address || '',
-    }));
-    const keys = Object.keys(rows[0]);
-    const csv = [keys.join(';'), ...rows.map((r: any) => keys.map(k => '"' + (r[k] || '') + '"').join(';'))].join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
-    a.download = 'escolas_netescol.csv';
-    a.click();
+  const [schExportModal, setSchExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
+  const schExportRows = all.map((s: any) => ({ nome: s.name||'', tipo: s.type||'', codigo_inep: s.code||'', diretor: s.directorName||'', telefone: s.phone||'', email: s.email||'', endereco: s.address||'' }));
+  const schExportCols = ['Nome','Tipo','Codigo INEP','Diretor(a)','Telefone','Email','Endereco'];
+  function buildSchHTML(title: string, data: any[], cols: string[]) {
+    const rows = data.map(r => '<tr>' + Object.values(r).map(v => '<td>'+(v||'')+'</td>').join('') + '</tr>').join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
+  }
+  const doSchExport = (format: ExportFormat) => {
+    if (!schExportModal) return;
+    handleExport(format, schExportModal.data, buildSchHTML(schExportModal.title, schExportModal.data, schExportModal.cols), schExportModal.filename);
   };
 
   const getSchoolLogo = (s: any) => getSchoolExtra(s.id)?.logoUrl;
@@ -259,7 +258,8 @@ export default function SchoolsPage() {
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
         <div className="flex gap-2">
           <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(munCityName); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
-          <button onClick={exportSchoolsCSV} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+          <button onClick={() => {const html=buildSchHTML('Lista de Escolas',schExportRows,schExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();}}}} className="btn-secondary flex items-center gap-2"><Download size={16} /> Imprimir</button>
+          <button onClick={() => setSchExportModal({title:'Lista de Escolas',data:schExportRows,cols:schExportCols,filename:'escolas_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Escola</button>
         </div>
       </div>
@@ -297,6 +297,8 @@ export default function SchoolsPage() {
         {!filtered.length && !search && <div className="col-span-3 card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500 mb-4">Nenhuma escola cadastrada</p><button className="btn-primary" onClick={openNew}>Adicionar escola</button></div>}
         {!filtered.length && search && <div className="col-span-3 card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
+
+      <ExportModal open={!!schExportModal} onClose={() => setSchExportModal(null)} onExport={doSchExport} title={schExportModal?'Exportar: '+schExportModal.title:undefined}/>
 
       {/* View details modal */}
       {viewSchool && (

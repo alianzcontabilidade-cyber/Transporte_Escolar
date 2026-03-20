@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel, Pencil, Trash2, Search, Eye, Download } from 'lucide-react';
+import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel, Pencil, Trash2, Search, Eye, Download, Printer } from 'lucide-react';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', maintenance:'bg-yellow-100 text-yellow-700', inactive:'bg-red-100 text-red-700' };
 const STATUS_LABELS: any = { active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' };
@@ -76,19 +77,23 @@ export default function VehiclesPage() {
     }
   };
 
-  const exportVehiclesCSV = function() {
-    if (!all.length) return;
-    const rows = all.map(function(v: any) { return { placa: v.plate||'', apelido: v.nickname||'', marca: v.brand||'', modelo: v.model||'', ano: v.year||'', capacidade: v.capacity||'', cor: v.color||'', combustivel: v.fuelType||v.fuel||'', status: v.status||'', km: v.currentKm||'' }; });
-    const keys = Object.keys(rows[0]);
-    const csv = [keys.join(';'), ...rows.map(function(r: any) { return keys.map(function(k) { return '"'+(r[k]||'')+'"'; }).join(';'); })].join('\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'veiculos_netescol.csv'; a.click();
+  const [vehExportModal, setVehExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
+  const vehExportRows = all.map(function(v: any) { return { placa: v.plate||'', apelido: v.nickname||'', marca_modelo: [v.brand,v.model,v.year].filter(Boolean).join(' ')||'', capacidade: v.capacity?v.capacity+' lugares':'', combustivel: v.fuelType||v.fuel||'', km: v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'', status: v.status==='active'?'Ativo':v.status==='maintenance'?'Manutencao':'Inativo' }; });
+  const vehExportCols = ['Placa','Apelido','Marca/Modelo','Capacidade','Combustivel','Km Atual','Status'];
+  function buildVehiclesHTML(title: string, data: any[], cols: string[]) {
+    const rows = data.map(function(r: any) { return '<tr>' + Object.values(r).map(function(v: any) { return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>'; }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
+  }
+  const doVehExport = function(format: ExportFormat) {
+    if (!vehExportModal) return;
+    handleExport(format, vehExportModal.data, buildVehiclesHTML(vehExportModal.title, vehExportModal.data, vehExportModal.cols), vehExportModal.filename);
   };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Veículos</h1><p className="text-gray-500">{all.length} veículo(s) na frota</p></div>
-        <div className="flex gap-2"><button onClick={exportVehiclesCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button></div>
+        <div className="flex gap-2"><button onClick={function(){const html=buildVehiclesHTML('Relatorio de Frota',vehExportRows,vehExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=function(){w.print();}}}}} className="btn-secondary flex items-center gap-2"><Printer size={16}/> Imprimir</button><button onClick={function(){setVehExportModal({title:'Relatorio de Frota',data:vehExportRows,cols:vehExportCols,filename:'veiculos_netescol'})}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button></div>
       </div>
 
       <div className="grid grid-cols-4 gap-3 mb-4">
@@ -146,6 +151,8 @@ export default function VehiclesPage() {
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setViewVehicle(null);}} className="btn-secondary flex-1">Fechar</button><button onClick={function(){setViewVehicle(null);openEdit(viewVehicle);}} className="btn-primary flex-1">Editar</button></div>
       </div></div>)}
+
+      <ExportModal open={!!vehExportModal} onClose={function(){setVehExportModal(null)}} onExport={doVehExport} title={vehExportModal?'Exportar: '+vehExportModal.title:undefined}/>
 
       {confirmDelete&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle, Pencil, Eye } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
@@ -58,7 +58,9 @@ export default function RoutesPage() {
   const { data: activeTrips, refetch: refetchTrips } = useQuery(function(){return api.trips.listActive({municipalityId});}, [municipalityId]);
   const { data: drivers, refetch: refetchDrivers } = useQuery(function(){return api.drivers.list({municipalityId});}, [municipalityId]);
   const { data: vehicles, refetch: refetchVehicles } = useQuery(function(){return api.vehicles.list({municipalityId});}, [municipalityId]);
+  const [editId, setEditId] = useState<number|null>(null);
   const { mutate: create, loading } = useMutation(api.routes.create);
+  const { mutate: updateRoute, loading: updating } = useMutation(api.routes.update);
   const { mutate: removeRoute } = useMutation(api.routes.delete);
   const { mutate: startTrip, loading: starting } = useMutation(api.trips.start);
   const { mutate: endTrip } = useMutation(api.trips.complete);
@@ -87,7 +89,14 @@ export default function RoutesPage() {
     const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     return 'R' + String(next).padStart(3, '0');
   };
-  const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setShow(true); };
+  const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setEditId(null); setShow(true); };
+  const openEdit = (r:any) => {
+    const route = r.route || r;
+    setForm({ name:route.name||'', code:route.code||'', description:route.description||'', type:route.type||'both', shift:route.shift||'morning', scheduledStartTime:route.scheduledStartTime||'06:30', scheduledEndTime:route.scheduledEndTime||'07:30' });
+    setStops((r.stops||[]).map((s:any)=>({name:s.name,lat:s.latitude||'',lng:s.longitude||''})));
+    setEditId(route.id);
+    setShow(true);
+  };
 
   const getActiveTrip = (routeId:number) => allTrips.find((t:any)=>t.trip?.routeId===routeId&&t.trip?.status==='started');
 
@@ -141,13 +150,15 @@ export default function RoutesPage() {
                     <div className="flex gap-3 mt-0.5"><span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10}/>{route.scheduledStartTime} - {route.scheduledEndTime}</span><span className="text-xs text-gray-500">{sl(route.shift)}</span><span className="text-xs text-gray-500">{tl(route.type)}</span><span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={10}/>{routeStops.length} paradas</span></div>
                     {isActive&&activeTrip?.driverName&&<p className="text-xs text-green-700 mt-0.5 flex items-center gap-1"><User size={10}/>{activeTrip.driverName} · <Bus size={10}/>{activeTrip.vehicle?.plate}</p>}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     {isActive ? (
                       <button onClick={()=>handleEndTrip(activeTrip.trip.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors font-medium"><Square size={13}/> Encerrar</button>
                     ) : (
                       <button onClick={()=>openTripModal(r)} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors font-medium"><Play size={13}/> Iniciar</button>
                     )}
-                    <button onClick={e=>{e.stopPropagation();if(confirm('Excluir rota?'))removeRoute({id:routeId},{onSuccess:refetch});}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15}/></button>
+                    <button onClick={e=>{e.stopPropagation();setViewRoute(viewRoute?.route?.id===routeId||viewRoute?.id===routeId?null:r);}} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg" title="Visualizar"><Eye size={15}/></button>
+                    <button onClick={e=>{e.stopPropagation();openEdit(r);}} className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={15}/></button>
+                    <button onClick={e=>{e.stopPropagation();if(confirm('Excluir rota '+route.name+'?'))removeRoute({id:routeId},{onSuccess:refetch});}} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={15}/></button>
                   </div>
                 </div>
                 {(viewRoute?.route?.id===routeId||viewRoute?.id===routeId)&&(
@@ -180,7 +191,7 @@ export default function RoutesPage() {
 
       {/* Modal Nova Rota */}
       {show&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">Nova Rota</h3><button onClick={()=>setShow(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold">{editId ? 'Editar Rota' : 'Nova Rota'}</h3><button onClick={()=>setShow(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="label">Nome da rota *</label><input className="input" value={form.name} onChange={setField('name')} placeholder="Ex: Rota Centro – Escola Municipal"/></div>
@@ -196,7 +207,13 @@ export default function RoutesPage() {
             <div className="flex gap-2 mt-2"><input className="input flex-1" placeholder="Nome da parada" value={newStop.name} onChange={e=>setNewStop(s=>({...s,name:e.target.value}))}/><input className="input w-24" placeholder="Lat" value={newStop.lat} onChange={e=>setNewStop(s=>({...s,lat:e.target.value}))}/><input className="input w-24" placeholder="Lng" value={newStop.lng} onChange={e=>setNewStop(s=>({...s,lng:e.target.value}))}/><button onClick={()=>addStop()} className="btn-secondary px-3">+</button></div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setShow(false)} className="btn-secondary flex-1">Cancelar</button><button disabled={loading} onClick={()=>create({municipalityId,...form,stops},{onSuccess:()=>{refetch();setShow(false);}})} className="btn-primary flex-1">{loading?'Salvando...':'Salvar Rota'}</button></div>
+        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setShow(false)} className="btn-secondary flex-1">Cancelar</button><button disabled={loading||updating} onClick={()=>{
+          if(editId) {
+            updateRoute({id:editId, name:form.name, code:form.code, description:form.description, type:form.type, shift:form.shift, scheduledStartTime:form.scheduledStartTime, scheduledEndTime:form.scheduledEndTime},{onSuccess:()=>{refetch();setShow(false);}});
+          } else {
+            create({municipalityId,...form,stops},{onSuccess:()=>{refetch();setShow(false);}});
+          }
+        }} className="btn-primary flex-1">{loading||updating?'Salvando...':editId?'Salvar Alterações':'Salvar Rota'}</button></div>
       </div></div>)}
 
       {/* QuickAddModal */}

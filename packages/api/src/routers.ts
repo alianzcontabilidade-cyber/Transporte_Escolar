@@ -1037,10 +1037,14 @@ export const tripsRouter = t.router({
   completeAll: adminProcedure
     .input(z.object({ municipalityId: z.number() }))
     .mutation(async ({ input }) => {
-      const activeTrips = await db.select({ tripId: trips.id })
+      // Finalizar TODAS as viagens que não estão completed/cancelled
+      const activeTrips = await db.select({ tripId: trips.id, status: trips.status })
         .from(trips)
         .innerJoin(routes, eq(trips.routeId, routes.id))
-        .where(and(eq(trips.status, 'started'), eq(routes.municipalityId, input.municipalityId)));
+        .where(and(
+          or(eq(trips.status, 'started'), eq(trips.status, 'scheduled')),
+          eq(routes.municipalityId, input.municipalityId)
+        ));
 
       let count = 0;
       for (const t of activeTrips) {

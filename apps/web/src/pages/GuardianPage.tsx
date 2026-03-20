@@ -22,7 +22,10 @@ function LiveMap({ driverLocation, stops }: any) {
       const defaultCenter = driverLocation?.lat && driverLocation?.lng
         ? [driverLocation.lat, driverLocation.lng] : [-15.78, -47.93];
       const map = L.map(mapRef.current!).setView(defaultCenter, 14);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 }).addTo(map);
+      const streets = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OSM', maxZoom: 20 });
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
+      streets.addTo(map);
+      L.control.layers({ 'Ruas': streets, 'Satélite': satellite }, {}, { position: 'topright', collapsed: true }).addTo(map);
       mapInstanceRef.current = map;
 
       // Adicionar paradas ao mapa

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported, requestGPSPermission } from '../lib/gps';
+import { useSocket } from '../lib/socket';
 import { useWakeLock } from '../lib/pwa';
 import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square, Bus, Maximize2, Minimize2 } from 'lucide-react';
 
@@ -77,6 +78,7 @@ function TrackingMap({ position, stops, fullscreen }: { position: any; stops?: a
 
 export default function TrackingPage() {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [driverId, setDriverId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,9 +90,17 @@ export default function TrackingPage() {
   const { position, error: gpsError, isTracking, startTracking, stopTracking } = useGPSTracking({
     tripId: activeTrip?.trip?.id || activeTrip?.id,
     driverId: driverId || undefined,
+    municipalityId: user?.municipalityId || undefined,
     intervalMs: 10000,
     enabled: !!activeTrip && !!driverId,
   });
+
+  // Join municipality room for real-time updates
+  useEffect(() => {
+    if (socket && user?.municipalityId) {
+      socket.emit('join:municipality', user.municipalityId);
+    }
+  }, [socket, user?.municipalityId]);
 
   useEffect(() => {
     checkGPSPermission();

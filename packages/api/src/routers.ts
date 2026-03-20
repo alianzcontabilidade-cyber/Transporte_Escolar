@@ -13,7 +13,7 @@ import {
   financialAccounts, financialTransactions,
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
-  municipalityResponsibles
+  municipalityResponsibles, formFieldConfigs
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -3731,6 +3731,40 @@ export const studentDocumentsRouter = t.router({
 });
 
 // ============================================
+// FORM FIELD CONFIG ROUTER
+// ============================================
+export const formConfigRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), formType: z.string().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(formFieldConfigs.municipalityId, input.municipalityId)];
+      if (input.formType) conditions.push(eq(formFieldConfigs.formType, input.formType));
+      return db.select().from(formFieldConfigs).where(and(...conditions));
+    }),
+
+  save: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      formType: z.string(),
+      fields: z.array(z.object({ fieldName: z.string(), isRequired: z.boolean() })),
+    }))
+    .mutation(async ({ input }) => {
+      // Delete existing configs for this form type
+      await db.delete(formFieldConfigs).where(
+        and(eq(formFieldConfigs.municipalityId, input.municipalityId), eq(formFieldConfigs.formType, input.formType))
+      );
+      // Insert new configs (only required ones)
+      const required = input.fields.filter(f => f.isRequired);
+      if (required.length > 0) {
+        await db.insert(formFieldConfigs).values(
+          required.map(f => ({ municipalityId: input.municipalityId, formType: input.formType, fieldName: f.fieldName, isRequired: true }))
+        );
+      }
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -3788,6 +3822,8 @@ export const appRouter = t.router({
   messages: messagesRouter,
   waitingList: waitingListRouter,
   studentDocuments: studentDocumentsRouter,
+  // Configuração de Formulários
+  formConfig: formConfigRouter,
 });
 
 export type AppRouter = typeof appRouter;

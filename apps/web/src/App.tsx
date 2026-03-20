@@ -70,6 +70,7 @@ import DailyBulletinPage from './pages/DailyBulletinPage';
 import ReportCenterPage from './pages/ReportCenterPage';
 import EnrollmentFormPage from './pages/EnrollmentFormPage';
 import MunicipalitySettingsPage from './pages/MunicipalitySettingsPage';
+import FormConfigPage from './pages/FormConfigPage';
 import FloatingChat from './components/FloatingChat';
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -177,6 +178,7 @@ export default function App() {
         <Route path="central-relatorios" element={<Guard roles={ADMIN_SEC}><ReportCenterPage /></Guard>} />
         <Route path="ficha-matricula" element={<Guard roles={ADMIN_SEC}><EnrollmentFormPage /></Guard>} />
         <Route path="cadastro-prefeitura" element={<Guard roles={ADMIN}><MunicipalitySettingsPage /></Guard>} />
+        <Route path="config-formularios" element={<Guard roles={['super_admin']}><FormConfigPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

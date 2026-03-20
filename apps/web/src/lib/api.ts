@@ -372,5 +372,9 @@ export const api = {
     create: (input: any) => call('studentDocuments.create', input, 'mutation'),
     delete: (input: any) => call('studentDocuments.delete', input, 'mutation'),
   },
+  formConfig: {
+    list: (input: any) => call('formConfig.list', input, 'query'),
+    save: (input: any) => call('formConfig.save', input, 'mutation'),
+  },
 
 };

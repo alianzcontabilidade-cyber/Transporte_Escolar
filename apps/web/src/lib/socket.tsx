@@ -9,8 +9,16 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const s = io(apiUrl, { transports: ['websocket', 'polling'] });
+    // Use same origin in production (empty string), or VITE_API_URL for development
+    const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const s = io(apiUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      autoConnect: true,
+    });
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
     setSocket(s);

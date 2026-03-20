@@ -1,18 +1,74 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth';
 import { useVehicleLocations } from '../lib/gps';
+import { useSocket } from '../lib/socket';
 import { Bus, MapPin, RefreshCw, Smartphone, Clock, Wifi, Maximize2, Minimize2 } from 'lucide-react';
 
 export default function TrackMapPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId || null;
-  const { vehicles, loading, refresh } = useVehicleLocations(municipalityId, true, 10000);
+  const { vehicles, loading, refresh } = useVehicleLocations(municipalityId, true, 15000);
+  const { socket, connected: socketConnected } = useSocket();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<Map<number, any>>(new Map());
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Join municipality room and listen for real-time bus:location events
+  useEffect(() => {
+    if (!socket || !municipalityId) return;
+
+    socket.emit('join:municipality', municipalityId);
+
+    const handleBusLocation = (data: any) => {
+      if (!mapInstanceRef.current || !mapLoaded) return;
+      const L = (window as any).L;
+      if (!L) return;
+
+      const lat = parseFloat(data.lat);
+      const lng = parseFloat(data.lng);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      // Update existing marker or create a temporary one
+      // Try to find by tripId in the current markers (vehicleId may differ)
+      // For now, update position if marker exists, it will be reconciled on next REST poll
+      const existingMarkers = markersRef.current;
+      let found = false;
+      existingMarkers.forEach((marker, vehicleId) => {
+        // Update closest marker within ~500m or matching tripId
+        const markerLatLng = marker.getLatLng();
+        const dist = Math.abs(markerLatLng.lat - lat) + Math.abs(markerLatLng.lng - lng);
+        if (dist < 0.05) { // roughly within range
+          marker.setLatLng([lat, lng]);
+          found = true;
+        }
+      });
+
+      // If data has vehicleId directly, use that
+      if (data.vehicleId && existingMarkers.has(data.vehicleId)) {
+        existingMarkers.get(data.vehicleId).setLatLng([lat, lng]);
+        found = true;
+      }
+
+      // If no existing marker matched, create a temporary one (will be reconciled on next poll)
+      if (!found && data.tripId) {
+        const busIcon = L.icon({ iconUrl: '/bus-marker.svg', iconSize: [48, 48], iconAnchor: [24, 44], popupAnchor: [0, -44] });
+        const marker = L.marker([lat, lng], { icon: busIcon })
+          .addTo(mapInstanceRef.current)
+          .bindPopup(`<div><b>Viagem #${data.tripId}</b><br><small>Velocidade: ${data.speed ? (data.speed * 3.6).toFixed(1) + ' km/h' : 'N/A'}</small></div>`);
+        // Use negative tripId as temp key so it doesn't collide with vehicleId keys
+        markersRef.current.set(-data.tripId, marker);
+      }
+    };
+
+    socket.on('bus:location', handleBusLocation);
+
+    return () => {
+      socket.off('bus:location', handleBusLocation);
+    };
+  }, [socket, municipalityId, mapLoaded]);
 
   // Load Leaflet CSS and JS dynamically
   useEffect(() => {
@@ -135,8 +191,8 @@ export default function TrackMapPage() {
               <Wifi size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-600">GPS</p>
-              <p className="text-xs text-gray-500">Rastreamento ativo</p>
+              <p className="text-2xl font-bold text-blue-600">{socketConnected ? 'WS' : 'GPS'}</p>
+              <p className="text-xs text-gray-500">{socketConnected ? 'Tempo real ativo' : 'Rastreamento ativo'}</p>
             </div>
           </div>
         </div>
@@ -146,8 +202,8 @@ export default function TrackMapPage() {
               <Clock size={20} className="text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-orange-600">10s</p>
-              <p className="text-xs text-gray-500">Intervalo de atualizacao</p>
+              <p className="text-2xl font-bold text-orange-600">{socketConnected ? '~1s' : '15s'}</p>
+              <p className="text-xs text-gray-500">{socketConnected ? 'Tempo real (Socket.IO)' : 'Intervalo de atualizacao'}</p>
             </div>
           </div>
         </div>

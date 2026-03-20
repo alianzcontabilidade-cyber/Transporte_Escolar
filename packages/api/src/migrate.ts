@@ -253,6 +253,14 @@ async function migrate() {
         isActive BOOLEAN NOT NULL DEFAULT TRUE,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (municipalityId) REFERENCES municipalities(id), FOREIGN KEY (senderUserId) REFERENCES users(id))`,
+      `CREATE TABLE IF NOT EXISTS form_field_configs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        municipalityId INT NOT NULL,
+        formType VARCHAR(50) NOT NULL,
+        fieldName VARCHAR(100) NOT NULL,
+        isRequired BOOLEAN NOT NULL DEFAULT FALSE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
       `CREATE TABLE IF NOT EXISTS waiting_list (
         id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL, schoolId INT NOT NULL,
         studentName VARCHAR(255) NOT NULL, birthDate TIMESTAMP NULL,

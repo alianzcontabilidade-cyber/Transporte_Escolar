@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api';
+import { useSocket } from './socket';
 
 export interface GPSPosition {
   latitude: number;
@@ -13,17 +14,19 @@ export interface GPSPosition {
 interface UseGPSTrackingOptions {
   tripId?: number;
   driverId?: number;
+  municipalityId?: number;
   intervalMs?: number;
   enabled?: boolean;
 }
 
-export function useGPSTracking({ tripId, driverId, intervalMs = 10000, enabled = false }: UseGPSTrackingOptions) {
+export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 10000, enabled = false }: UseGPSTrackingOptions) {
   const [position, setPosition] = useState<GPSPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPositionRef = useRef<GPSPosition | null>(null);
+  const { socket } = useSocket();
 
   // Fila offline: armazena posições quando sem conexão e envia quando volta
   const offlineQueueRef = useRef<GPSPosition[]>([]);
@@ -61,6 +64,17 @@ export function useGPSTracking({ tripId, driverId, intervalMs = 10000, enabled =
         speed: pos.speed || 0,
         heading: pos.heading || 0,
       });
+      // Emit via Socket.IO for real-time updates
+      if (socket?.connected && municipalityId) {
+        socket.emit('bus:location', {
+          tripId,
+          lat: pos.latitude,
+          lng: pos.longitude,
+          speed: pos.speed || 0,
+          heading: pos.heading || 0,
+          municipalityId,
+        });
+      }
       // Enviar posições acumuladas offline
       if (offlineQueueRef.current.length > 0) flushOfflineQueue();
     } catch (err) {
@@ -70,7 +84,7 @@ export function useGPSTracking({ tripId, driverId, intervalMs = 10000, enabled =
       }
       console.error('Erro ao enviar localizacao (armazenado offline):', err);
     }
-  }, [tripId, driverId, flushOfflineQueue]);
+  }, [tripId, driverId, municipalityId, socket, flushOfflineQueue]);
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {

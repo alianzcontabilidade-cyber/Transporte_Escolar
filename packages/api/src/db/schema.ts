@@ -1436,3 +1436,17 @@ export type SchoolCalendarEvent = typeof schoolCalendar.$inferSelect;
 export type StudentDocument = typeof studentDocuments.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type WaitingListEntry = typeof waitingList.$inferSelect;
+
+// ============================================
+// TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS
+// ============================================
+export const formFieldConfigs = mysqlTable("form_field_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  formType: varchar("formType", { length: 50 }).notNull(), // student, school, driver, vehicle, route, teacher
+  fieldName: varchar("fieldName", { length: 100 }).notNull(), // cpf, rg, fatherName, etc
+  isRequired: boolean("isRequired").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FormFieldConfig = typeof formFieldConfigs.$inferSelect;

@@ -537,6 +537,14 @@ export const schoolsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasStudents] = await db.select({ c: sql`count(*)`.as('c') }).from(students).where(and(eq(students.schoolId, input.id), eq(students.isActive, true)));
+      const [hasClasses] = await db.select({ c: sql`count(*)`.as('c') }).from(classes).where(and(eq(classes.schoolId, input.id), eq(classes.isActive, true)));
+      const [hasRoutes] = await db.select({ c: sql`count(*)`.as('c') }).from(routes).where(and(eq(routes.schoolId, input.id), eq(routes.isActive, true)));
+      const deps: string[] = [];
+      if (Number(hasStudents.c) > 0) deps.push(`${hasStudents.c} aluno(s)`);
+      if (Number(hasClasses.c) > 0) deps.push(`${hasClasses.c} turma(s)`);
+      if (Number(hasRoutes.c) > 0) deps.push(`${hasRoutes.c} rota(s)`);
+      if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Escola possui: ${deps.join(', ')}` });
       await db.update(schools).set({ isActive: false }).where(eq(schools.id, input.id));
       return { success: true };
     }),
@@ -602,6 +610,12 @@ export const routesRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasStops] = await db.select({ c: sql`count(*)`.as('c') }).from(stops).where(eq(stops.routeId, input.id));
+      const [hasTrips] = await db.select({ c: sql`count(*)`.as('c') }).from(trips).where(eq(trips.routeId, input.id));
+      const deps: string[] = [];
+      if (Number(hasStops.c) > 0) deps.push(`${hasStops.c} parada(s)`);
+      if (Number(hasTrips.c) > 0) deps.push(`${hasTrips.c} viagem(ns)`);
+      if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Rota possui: ${deps.join(', ')}` });
       await db.update(routes).set({ isActive: false }).where(eq(routes.id, input.id));
       return { success: true };
     }),
@@ -1046,6 +1060,8 @@ export const studentsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasEnrollments] = await db.select({ c: sql`count(*)`.as('c') }).from(enrollments).where(and(eq(enrollments.studentId, input.id), eq(enrollments.isActive, true)));
+      if (Number(hasEnrollments.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Aluno possui ${hasEnrollments.c} matrícula(s) ativa(s)` });
       await db.update(students).set({ isActive: false }).where(eq(students.id, input.id));
       return { success: true };
     }),
@@ -1370,7 +1386,15 @@ export const vehiclesRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await db.delete(vehicles).where(eq(vehicles.id, input.id));
+      const [hasTrips] = await db.select({ c: sql`count(*)`.as('c') }).from(trips).where(eq(trips.vehicleId, input.id));
+      const [hasMaint] = await db.select({ c: sql`count(*)`.as('c') }).from(maintenanceRecords).where(eq(maintenanceRecords.vehicleId, input.id));
+      const [hasFuel] = await db.select({ c: sql`count(*)`.as('c') }).from(fuelRecords).where(eq(fuelRecords.vehicleId, input.id));
+      const deps: string[] = [];
+      if (Number(hasTrips.c) > 0) deps.push(`${hasTrips.c} viagem(ns)`);
+      if (Number(hasMaint.c) > 0) deps.push(`${hasMaint.c} manutenção(ões)`);
+      if (Number(hasFuel.c) > 0) deps.push(`${hasFuel.c} abastecimento(s)`);
+      if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Veículo possui: ${deps.join(', ')}` });
+      await db.update(vehicles).set({ status: 'inactive' }).where(eq(vehicles.id, input.id));
       return { success: true };
     }),
 });
@@ -1503,11 +1527,9 @@ export const driversRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const [driver] = await db.select().from(drivers).where(eq(drivers.id, input.id)).limit(1);
-      if (driver) {
-        await db.delete(drivers).where(eq(drivers.id, input.id));
-        await db.delete(users).where(eq(users.id, driver.userId));
-      }
+      const [hasTrips] = await db.select({ c: sql`count(*)`.as('c') }).from(trips).where(eq(trips.driverId, input.id));
+      if (Number(hasTrips.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Motorista possui ${hasTrips.c} viagem(ns) registrada(s)` });
+      await db.update(drivers).set({ isAvailable: false }).where(eq(drivers.id, input.id));
       return { success: true };
     }),
 });
@@ -1636,7 +1658,15 @@ export const usersRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await db.delete(users).where(eq(users.id, input.id));
+      const [isDriver] = await db.select({ c: sql`count(*)`.as('c') }).from(drivers).where(eq(drivers.userId, input.id));
+      const [isTeacher] = await db.select({ c: sql`count(*)`.as('c') }).from(teachers).where(eq(teachers.userId, input.id));
+      const [isGuardian] = await db.select({ c: sql`count(*)`.as('c') }).from(guardians).where(eq(guardians.userId, input.id));
+      const deps: string[] = [];
+      if (Number(isDriver.c) > 0) deps.push('motorista');
+      if (Number(isTeacher.c) > 0) deps.push('professor');
+      if (Number(isGuardian.c) > 0) deps.push('responsável de aluno');
+      if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Usuário vinculado como: ${deps.join(', ')}` });
+      await db.update(users).set({ isActive: false }).where(eq(users.id, input.id));
       return { success: true };
     }),
 });
@@ -2451,6 +2481,12 @@ export const academicYearsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasClasses] = await db.select({ c: sql`count(*)`.as('c') }).from(classes).where(and(eq(classes.academicYearId, input.id), eq(classes.isActive, true)));
+      const [hasEnrollments] = await db.select({ c: sql`count(*)`.as('c') }).from(enrollments).where(and(eq(enrollments.academicYearId, input.id), eq(enrollments.isActive, true)));
+      const deps: string[] = [];
+      if (Number(hasClasses.c) > 0) deps.push(`${hasClasses.c} turma(s)`);
+      if (Number(hasEnrollments.c) > 0) deps.push(`${hasEnrollments.c} matrícula(s)`);
+      if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Ano letivo possui: ${deps.join(', ')}` });
       await db.update(academicYears).set({ isActive: false }).where(eq(academicYears.id, input.id));
       return { success: true };
     }),
@@ -2500,6 +2536,8 @@ export const classGradesRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasClasses] = await db.select({ c: sql`count(*)`.as('c') }).from(classes).where(and(eq(classes.classGradeId, input.id), eq(classes.isActive, true)));
+      if (Number(hasClasses.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Série vinculada a ${hasClasses.c} turma(s)` });
       await db.update(classGrades).set({ isActive: false }).where(eq(classGrades.id, input.id));
       return { success: true };
     }),
@@ -2547,6 +2585,8 @@ export const subjectsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasAssigned] = await db.select({ c: sql`count(*)`.as('c') }).from(classSubjects).where(eq(classSubjects.subjectId, input.id));
+      if (Number(hasAssigned.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Disciplina vinculada a ${hasAssigned.c} turma(s)` });
       await db.update(subjects).set({ isActive: false }).where(eq(subjects.id, input.id));
       return { success: true };
     }),
@@ -2638,6 +2678,8 @@ export const classesRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const [hasEnrollments] = await db.select({ c: sql`count(*)`.as('c') }).from(enrollments).where(and(eq(enrollments.classId, input.id), eq(enrollments.isActive, true)));
+      if (Number(hasEnrollments.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Turma possui ${hasEnrollments.c} matrícula(s) ativa(s)` });
       await db.update(classes).set({ isActive: false }).where(eq(classes.id, input.id));
       return { success: true };
     }),
@@ -3310,7 +3352,11 @@ export const positionsRouter = t.router({
     }),
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => { await db.update(positions).set({ isActive: false }).where(eq(positions.id, input.id)); return { success: true }; }),
+    .mutation(async ({ input }) => {
+      const [hasStaff] = await db.select({ c: sql`count(*)`.as('c') }).from(staffAllocations).where(and(eq(staffAllocations.positionId, input.id), eq(staffAllocations.isActive, true)));
+      if (Number(hasStaff.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Cargo vinculado a ${hasStaff.c} servidor(es)` });
+      await db.update(positions).set({ isActive: false }).where(eq(positions.id, input.id)); return { success: true };
+    }),
 });
 
 export const departmentsRouter = t.router({
@@ -3331,7 +3377,11 @@ export const departmentsRouter = t.router({
     .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(departments).set(ud).where(eq(departments.id, id)); return { success: true }; }),
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => { await db.update(departments).set({ isActive: false }).where(eq(departments.id, input.id)); return { success: true }; }),
+    .mutation(async ({ input }) => {
+      const [hasStaff] = await db.select({ c: sql`count(*)`.as('c') }).from(staffAllocations).where(and(eq(staffAllocations.departmentId, input.id), eq(staffAllocations.isActive, true)));
+      if (Number(hasStaff.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Departamento vinculado a ${hasStaff.c} servidor(es)` });
+      await db.update(departments).set({ isActive: false }).where(eq(departments.id, input.id)); return { success: true };
+    }),
 });
 
 export const staffAllocationsRouter = t.router({
@@ -3416,7 +3466,11 @@ export const financialAccountsRouter = t.router({
     .mutation(async ({ input }) => { const { balance, ...rest } = input; const [r] = await db.insert(financialAccounts).values({ ...rest, balance: balance?.toString() }).$returningId(); return { success: true, id: r.id }; }),
   update: adminProcedure.input(z.object({ id: z.number(), name: z.string().optional(), type: z.enum(['pdde', 'proprio', 'estadual', 'federal', 'outro']).optional(), bankName: z.string().optional(), agency: z.string().optional(), accountNumber: z.string().optional(), balance: z.number().optional() }))
     .mutation(async ({ input }) => { const { id, balance, ...data } = input; const ud: any = { ...data }; if (balance !== undefined) ud.balance = balance.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0) await db.update(financialAccounts).set(ud).where(eq(financialAccounts.id, id)); return { success: true }; }),
-  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(financialAccounts).set({ isActive: false }).where(eq(financialAccounts.id, input.id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    const [hasTx] = await db.select({ c: sql`count(*)`.as('c') }).from(financialTransactions).where(and(eq(financialTransactions.accountId, input.id), eq(financialTransactions.isActive, true)));
+    if (Number(hasTx.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Conta possui ${hasTx.c} transação(ões)` });
+    await db.update(financialAccounts).set({ isActive: false }).where(eq(financialAccounts.id, input.id)); return { success: true };
+  }),
 });
 
 export const financialTransactionsRouter = t.router({
@@ -3465,7 +3519,11 @@ export const libraryBooksRouter = t.router({
     .mutation(async ({ input }) => { const [r] = await db.insert(libraryBooks).values({ ...input, available: input.quantity || 1 }).$returningId(); return { success: true, id: r.id }; }),
   update: adminProcedure.input(z.object({ id: z.number(), title: z.string().optional(), author: z.string().optional(), isbn: z.string().optional(), category: z.string().optional(), publisher: z.string().optional(), year: z.number().optional(), quantity: z.number().optional(), location: z.string().optional() }))
     .mutation(async ({ input }) => { const { id, ...data } = input; const ud: any = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; }); if (Object.keys(ud).length > 0) await db.update(libraryBooks).set(ud).where(eq(libraryBooks.id, id)); return { success: true }; }),
-  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(libraryBooks).set({ isActive: false }).where(eq(libraryBooks.id, input.id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    const [hasLoans] = await db.select({ c: sql`count(*)`.as('c') }).from(libraryLoans).where(eq(libraryLoans.bookId, input.id));
+    if (Number(hasLoans.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Livro possui ${hasLoans.c} empréstimo(s)` });
+    await db.update(libraryBooks).set({ isActive: false }).where(eq(libraryBooks.id, input.id)); return { success: true };
+  }),
 });
 
 export const libraryLoansRouter = t.router({
@@ -3518,7 +3576,11 @@ export const inventoryRouter = t.router({
       if (delta !== 0) await db.update(inventoryItems).set({ currentStock: sql`currentStock + ${delta}` }).where(eq(inventoryItems.id, input.itemId));
       return { success: true };
     }),
-  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(inventoryItems).set({ isActive: false }).where(eq(inventoryItems.id, input.id)); return { success: true }; }),
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    const [hasMov] = await db.select({ c: sql`count(*)`.as('c') }).from(inventoryMovements).where(eq(inventoryMovements.itemId, input.id));
+    if (Number(hasMov.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Item possui ${hasMov.c} movimentação(ões)` });
+    await db.update(inventoryItems).set({ isActive: false }).where(eq(inventoryItems.id, input.id)); return { success: true };
+  }),
 });
 
 // ============================================

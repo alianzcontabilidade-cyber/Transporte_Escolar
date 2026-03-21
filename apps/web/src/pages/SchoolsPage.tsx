@@ -10,6 +10,7 @@ import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
 import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText } from 'lucide-react';
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import { StudentMiniCard, ClassMiniCard, QuickActionButton } from '../components/EntitySummaries';
 
 const emptyForm = {
@@ -238,6 +239,8 @@ export default function SchoolsPage() {
     }
   };
 
+  const [munReport, setMunReport] = useState<any>(null);
+  useEffect(() => { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
   const [schExportModal, setSchExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const schExportRows = all.map((s: any) => ({ nome: s.name||'', tipo: s.type||'', codigo_inep: s.code||'', diretor: s.directorName||'', telefone: s.phone||'', email: s.email||'', endereco: s.address||'' }));
   const schExportCols = ['Nome','Tipo','Codigo INEP','Diretor(a)','Telefone','Email','Endereco'];
@@ -247,7 +250,7 @@ export default function SchoolsPage() {
   }
   const doSchExport = (format: ExportFormat) => {
     if (!schExportModal) return;
-    handleExport(format, schExportModal.data, buildSchHTML(schExportModal.title, schExportModal.data, schExportModal.cols), schExportModal.filename);
+    handleExport(format, schExportModal.data, buildTableReportHTML(schExportModal.title, schExportModal.data, schExportModal.cols, munReport, { orientation: "landscape" }), schExportModal.filename);
   };
 
   const getSchoolLogo = (s: any) => getSchoolExtra(s.id)?.logoUrl;

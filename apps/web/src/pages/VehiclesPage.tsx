@@ -4,6 +4,8 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel, Pencil, Trash2, Search, Eye, Download, Printer } from 'lucide-react';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { useState as useState2, useEffect as useEffect2 } from 'react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', maintenance:'bg-yellow-100 text-yellow-700', inactive:'bg-red-100 text-red-700' };
 const STATUS_LABELS: any = { active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' };
@@ -77,6 +79,8 @@ export default function VehiclesPage() {
     }
   };
 
+  const [munReport, setMunReport] = useState<any>(null);
+  (typeof useEffect2 === "function" ? useEffect2 : require("react").useEffect)(function() { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(function(){}); }, [municipalityId]);
   const [vehExportModal, setVehExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const vehExportRows = all.map(function(v: any) { return { placa: v.plate||'', apelido: v.nickname||'', marca_modelo: [v.brand,v.model,v.year].filter(Boolean).join(' ')||'', capacidade: v.capacity?v.capacity+' lugares':'', combustivel: v.fuelType||v.fuel||'', km: v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'', status: v.status==='active'?'Ativo':v.status==='maintenance'?'Manutencao':'Inativo' }; });
   const vehExportCols = ['Placa','Apelido','Marca/Modelo','Capacidade','Combustivel','Km Atual','Status'];
@@ -86,7 +90,7 @@ export default function VehiclesPage() {
   }
   const doVehExport = function(format: ExportFormat) {
     if (!vehExportModal) return;
-    handleExport(format, vehExportModal.data, buildVehiclesHTML(vehExportModal.title, vehExportModal.data, vehExportModal.cols), vehExportModal.filename);
+    handleExport(format, vehExportModal.data, buildTableReportHTML(vehExportModal.title, vehExportModal.data, vehExportModal.cols, munReport, { orientation: "landscape" }), vehExportModal.filename);
   };
 
   return (

@@ -6,6 +6,7 @@ import { useQuery } from '../lib/hooks';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -76,6 +77,8 @@ export default function MonitoresPage() {
   const toggleStatus = async (m: any) => { try { await api.monitorStaff.update({ id: m.id, status: m.status === 'active' ? 'inactive' : 'active' }); await loadMonitores(); } catch (err) { console.error(err); } };
   const doDelete = async (id: number) => { try { await api.monitorStaff.delete({ id }); setConfirmDelete(null); await loadMonitores(); } catch (err) { console.error(err); } };
 
+  const [munReport, setMunReport] = useState<any>(null);
+  useEffect(() => { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
   const [monExportModal, setMonExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const monExportRows = monitores.map((m: any) => ({ nome: m.name||'', cpf: m.cpf||'', telefone: m.phone||'', email: m.email||'', turno: shiftLabel(m.shift), rota: m.routeName||'', cidade: m.city||'', status: m.status==='active'?'Ativo':'Inativo' }));
   const monExportCols = ['Nome','CPF','Telefone','Email','Turno','Rota','Cidade','Status'];
@@ -85,7 +88,7 @@ export default function MonitoresPage() {
   }
   const doMonExport = (format: ExportFormat) => {
     if (!monExportModal) return;
-    handleExport(format, monExportModal.data, buildMonHTML(monExportModal.title, monExportModal.data, monExportModal.cols), monExportModal.filename);
+    handleExport(format, monExportModal.data, buildTableReportHTML(monExportModal.title, monExportModal.data, monExportModal.cols, munReport, { orientation: "landscape" }), monExportModal.filename);
   };
 
   if (loading) return <div className="p-6 flex items-center justify-center h-64"><Loader2 className="animate-spin text-primary-500" size={32}/></div>;

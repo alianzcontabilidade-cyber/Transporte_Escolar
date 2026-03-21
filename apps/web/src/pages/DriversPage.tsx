@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
@@ -7,6 +7,7 @@ import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Sea
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import QuickAddModal from '../components/QuickAddModal';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);
@@ -87,16 +88,15 @@ export default function DriversPage() {
           else{create(p,{onSuccess:function(){refetch();setShow(false);},onError:function(e:any){setErr(e?.message||'Erro');}});}
     };
   
+    const [munReport, setMunReport] = useState<any>(null);
+    useEffect(function() { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(function(){}); }, [municipalityId]);
+
     const [drvExportModal, setDrvExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
     const drvExportRows = all.map(function(d: any) { return { nome: d.name||'', cpf: d.cpf||'', telefone: d.phone||'', email: d.email||'', cnh: d.cnhNumber||'', categoria: d.cnhCategory||'', validade_cnh: d.cnhExpiry ? new Date(d.cnhExpiry).toLocaleDateString('pt-BR') : '', rota: d.routeName||'' }; });
     const drvExportCols = ['Nome','CPF','Telefone','Email','CNH','Categoria','Validade CNH','Rota'];
-    function buildDriversHTML(title: string, data: any[], cols: string[]) {
-      const rows = data.map(function(r: any) { return '<tr>' + Object.values(r).map(function(v: any) { return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>'; }).join('');
-      return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(function(c) { return '<th>'+c+'</th>'; }).join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
-    }
     const doDrvExport = function(format: ExportFormat) {
       if (!drvExportModal) return;
-      const html = buildDriversHTML(drvExportModal.title, drvExportModal.data, drvExportModal.cols);
+      const html = buildTableReportHTML(drvExportModal.title, drvExportModal.data, drvExportModal.cols, munReport, { orientation: 'landscape' });
       handleExport(format, drvExportModal.data, html, drvExportModal.filename);
     };
 

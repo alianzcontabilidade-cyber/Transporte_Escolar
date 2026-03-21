@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const CHECKLIST = [
   { id: 'pneus', label: 'Pneus em bom estado', category: 'Segurança' },
@@ -76,11 +76,16 @@ export default function VehicleInspectionPage() {
 
   const categories = [...new Set(CHECKLIST.map(c => c.category))];
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "VehicleInspection" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><ClipboardCheck size={20} className="text-orange-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Vistoria de Veículos</h1><p className="text-gray-500">Checklist de inspeção veicular</p></div></div>
-        {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={() => setPgExportModal({html:'',filename:'VehicleInspection_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+        {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <div className="flex gap-3 mb-5">
@@ -133,6 +138,8 @@ export default function VehicleInspectionPage() {
       ) : (
         <div className="card text-center py-16"><ClipboardCheck size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione um veículo para realizar a vistoria</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

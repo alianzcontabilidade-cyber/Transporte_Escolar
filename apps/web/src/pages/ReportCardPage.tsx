@@ -6,7 +6,7 @@ import { FileText, Printer, Search, Download, Users } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
 import { generateBoletimEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function ReportCardPage() {
   const { user } = useAuth();
@@ -88,11 +88,16 @@ export default function ReportCardPage() {
     return scores.length ? (scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : null;
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "ReportCard" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Boletim Escolar</h1><p className="text-gray-500">Consulta e impressão de boletins</p></div></div>
-        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReport} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ReportCard_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></div>}
+        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReport} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></div>}
       </div>
 
       <div className="flex gap-3 mb-6">
@@ -131,6 +136,8 @@ export default function ReportCardPage() {
       ) : (
         <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma e um aluno para ver o boletim</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { FileSpreadsheet, Printer, Users, FileDown , Download } from 'lucide-react';
 import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML, ReportMunicipality, ReportSecretaria } from '../lib/reportTemplate';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function ATAResultsPage() {
   const { user } = useAuth();
@@ -59,13 +59,18 @@ export default function ATAResultsPage() {
 
   const counts = { total: allEnrollments.length, approved: allEnrollments.filter((e: any) => e.status === 'graduated').length, retained: allEnrollments.filter((e: any) => e.status === 'retained').length, active: allEnrollments.filter((e: any) => e.status === 'active').length };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "ATAResults" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><FileSpreadsheet size={20} className="text-emerald-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">ATA de Resultados Finais</h1><p className="text-gray-500">Documento oficial de resultados</p></div></div>
         {allEnrollments.length > 0 && <div className="flex gap-2">
           <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> Gerar PDF</button>
-          <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ATAResults_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+          <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
         </div>}
       </div>
 
@@ -98,6 +103,8 @@ export default function ATAResultsPage() {
       )}
       {selClass && !allEnrollments.length && <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhuma matr\u00edcula encontrada</p></div>}
       {!selClass && <div className="card text-center py-16"><FileSpreadsheet size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para gerar a ATA</p></div>}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

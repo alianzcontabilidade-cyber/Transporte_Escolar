@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { Newspaper, Plus, X, Trash2, Pin, Printer , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 interface Bulletin {
   id: number;
@@ -59,12 +59,17 @@ export default function DailyBulletinPage() {
     const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "DailyBulletin" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><Newspaper size={20} className="text-emerald-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Mural Informativo</h1><p className="text-gray-500">{bulletins.length} publicação(ões)</p></div></div>
         <div className="flex gap-2">
-          {bulletins.length > 0 && <><button onClick={printBulletin} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir Mural</button><button onClick={() => setPgExportModal({html:'',filename:'DailyBulletin_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+          {bulletins.length > 0 && <><button onClick={printBulletin} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir Mural</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Publicar</button>
         </div>
       </div>
@@ -95,6 +100,8 @@ export default function DailyBulletinPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={add} className="btn-primary flex-1">Publicar</button></div>
       </div></div>)}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

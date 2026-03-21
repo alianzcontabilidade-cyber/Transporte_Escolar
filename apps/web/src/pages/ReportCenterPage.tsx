@@ -151,25 +151,30 @@ export default function ReportCenterPage() {
         <div className="card text-center py-16"><Search size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum relatório encontrado para "{search}"</p></div>
       )}
 
-      {/* Modal de Exportacao */}
-      <ExportModal
-        open={!!exportReport}
-        onClose={() => setExportReport(null)}
-        onExport={(format: ExportFormat) => {
-          if (!exportReport) return;
-          // Para o export da Central, redireciona para a pagina do relatorio
-          // pois os dados sao gerados na pagina especifica
-          if (format === 'print') {
-            navigate(exportReport.to);
-          } else {
-            // Gerar HTML basico com titulo do relatorio
-            const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + exportReport.title + '</title><style>body{font-family:Arial,sans-serif;padding:40px;text-align:center;color:#333}h1{color:#1B3A5C;margin-bottom:10px}p{color:#666;font-size:14px}.info{margin-top:30px;padding:20px;background:#f0f4f8;border-radius:12px;display:inline-block}@media print{@page{margin:10mm;size:A4}}</style></head><body><h1>' + exportReport.title + '</h1><p>' + exportReport.desc + '</p><p style="margin-top:10px;font-size:12px;color:#999">Codigo: ' + exportReport.code + ' | Modulo: ' + exportReport.module + '</p><div class="info"><p>Para gerar este relatorio com dados completos,<br>acesse a pagina do relatorio e utilize o botao Exportar.</p><p style="margin-top:10px"><a href="' + window.location.origin + exportReport.to + '" style="color:#2DB5B0;font-weight:bold">Acessar ' + exportReport.title + '</a></p></div><p style="margin-top:40px;font-size:11px;color:#ccc">NetEscol - ' + new Date().toLocaleDateString('pt-BR') + '</p></body></html>';
-            handleExport(format, [], html, exportReport.code + '_' + exportReport.title.replace(/\s+/g, '_'));
-          }
-          setExportReport(null);
-        }}
-        title={exportReport ? 'Exportar: ' + exportReport.title : undefined}
-      />
+      {/* Modal informativo - redireciona para a pagina do relatorio */}
+      {exportReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Download size={24} className="text-accent-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{exportReport.title}</h3>
+              <p className="text-sm text-gray-500 mt-1">{exportReport.desc}</p>
+              <p className="text-xs text-gray-400 mt-2">Codigo: {exportReport.code} | {exportReport.module}</p>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-5">
+              Para exportar este relatorio com dados completos, acesse a pagina do relatorio e utilize os botoes de impressao/exportacao.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setExportReport(null)} className="btn-secondary flex-1">Cancelar</button>
+              <button onClick={() => { navigate(exportReport.to); setExportReport(null); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                <ExternalLink size={16} /> Abrir Relatorio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

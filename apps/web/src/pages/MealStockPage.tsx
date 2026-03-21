@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function MealStockPage() {
   const { user } = useAuth();
@@ -57,12 +57,17 @@ export default function MealStockPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "MealStock" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Package size={20} className="text-amber-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Estoque da Merenda</h1><p className="text-gray-500">{allItems.length} item(ns) cadastrado(s)</p></div></div>
         <div className="flex gap-2">
-          {allItems.length > 0 && <><button onClick={printStock} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'MealStock_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+          {allItems.length > 0 && <><button onClick={printStock} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Item</button>
         </div>
       </div>
@@ -115,6 +120,8 @@ export default function MealStockPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={save} className="btn-primary flex-1">Salvar</button></div>
       </div></div>)}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

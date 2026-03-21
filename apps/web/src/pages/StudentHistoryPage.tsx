@@ -6,7 +6,7 @@ import { History, Search, Printer, Download, Users, BookOpen, CheckCircle, FileD
 import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
 import { generateHistoricoEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function StudentHistoryPage() {
   const { user } = useAuth();
@@ -77,6 +77,11 @@ export default function StudentHistoryPage() {
     printReportHTML(html);
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "StudentHistory" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -84,7 +89,7 @@ export default function StudentHistoryPage() {
         {selStudent && allEnrollments.length > 0 && (
           <div className="flex items-center gap-2">
             <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> PDF</button>
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'StudentHistory_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>
@@ -144,6 +149,8 @@ export default function StudentHistoryPage() {
           )}
         </div>
       </div>
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

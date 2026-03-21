@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { Bus, Printer, Download, MapPin, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function TransportReportPage() {
   const { user } = useAuth();
@@ -62,13 +62,18 @@ export default function TransportReportPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "TransportReport" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><Bus size={20} className="text-orange-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Relatorio de Transporte</h1><p className="text-gray-500">Visao geral do transporte escolar</p></div></div>
         <div className="flex gap-2">
           <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14} /> CSV</button>
-          <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'TransportReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+          <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
         </div>
       </div>
 
@@ -101,6 +106,8 @@ export default function TransportReportPage() {
         </div>
       </div>
       </ReportExportBar>
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { CreditCard, Printer, Search, Users , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function StudentCardPage() {
   const { user } = useAuth();
@@ -61,11 +61,16 @@ export default function StudentCardPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "StudentCard" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><CreditCard size={20} className="text-teal-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Carteirinha Estudantil</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div></div>
-        {allStudents.length > 0 && <><button onClick={() => printCards(allStudents)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Carteirinhas</button><button onClick={() => setPgExportModal({html:'',filename:'StudentCard_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+        {allStudents.length > 0 && <><button onClick={() => printCards(allStudents)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Carteirinhas</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <div className="flex gap-3 mb-5">
@@ -102,6 +107,8 @@ export default function StudentCardPage() {
         })}
         {!allStudents.length && <div className="col-span-3 card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum aluno encontrado</p></div>}
       </div>
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

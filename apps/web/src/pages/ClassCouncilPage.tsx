@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Users, Save, Printer, CheckCircle, AlertTriangle , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const BIMESTERS = [{ v: '1', l: '1° Bimestre' }, { v: '2', l: '2° Bimestre' }, { v: '3', l: '3° Bimestre' }, { v: '4', l: '4° Bimestre' }];
 
@@ -75,6 +75,11 @@ export default function ClassCouncilPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "ClassCouncil" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -82,7 +87,7 @@ export default function ClassCouncilPage() {
         {selClass && allEnrollments.length > 0 && (
           <div className="flex gap-2">
             <button onClick={saveCouncil} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
-            <button onClick={printCouncil} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button><button onClick={() => setPgExportModal({html:'',filename:'ClassCouncil_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+            <button onClick={printCouncil} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>
@@ -131,6 +136,8 @@ export default function ClassCouncilPage() {
       ) : (
         <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para registrar o conselho de classe</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

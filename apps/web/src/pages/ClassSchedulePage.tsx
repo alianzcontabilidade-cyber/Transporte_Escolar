@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Clock, Printer, Save , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 const PERIODS = ['1º Horário', '2º Horário', '3º Horário', '4º Horário', '5º Horário', '6º Horário'];
@@ -67,6 +67,11 @@ export default function ClassSchedulePage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "ClassSchedule" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -74,7 +79,7 @@ export default function ClassSchedulePage() {
         {selClass && (
           <div className="flex gap-2">
             <button onClick={saveSchedule} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
-            <button onClick={printSchedule} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ClassSchedule_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+            <button onClick={printSchedule} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>
@@ -116,6 +121,8 @@ export default function ClassSchedulePage() {
       ) : (
         <div className="card text-center py-16"><Clock size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para configurar a grade horária</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

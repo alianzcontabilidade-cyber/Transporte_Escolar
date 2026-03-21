@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function SchoolReportPage() {
   const { user } = useAuth();
@@ -66,11 +66,16 @@ export default function SchoolReportPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "SchoolReport" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><School size={20} className="text-blue-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Relatório por Escola</h1><p className="text-gray-500">Visão completa de uma unidade escolar</p></div></div>
-        {school && <><button onClick={printReport} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'SchoolReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+        {school && <><button onClick={printReport} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <select className="input w-72 mb-5" value={selSchool} onChange={e => setSelSchool(e.target.value)}><option value="">Selecione a escola</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
@@ -115,6 +120,8 @@ export default function SchoolReportPage() {
       ) : (
         <div className="card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma escola para ver o relatório</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

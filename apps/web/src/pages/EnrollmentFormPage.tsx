@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Search, Printer, Users , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function EnrollmentFormPage() {
   const { user } = useAuth();
@@ -147,12 +147,17 @@ export default function EnrollmentFormPage() {
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "EnrollmentForm" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Ficha de Matr\u00edcula</h1><p className="text-gray-500">Formul\u00e1rio oficial para impress\u00e3o</p></div></div>
         <div className="flex gap-2">
-          <button onClick={() => printForm()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir em Branco</button><button onClick={() => setPgExportModal({html:'',filename:'EnrollmentForm_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+          <button onClick={() => printForm()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir em Branco</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           {selStudent && <button onClick={() => printForm(selStudent)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Gerar PDF</button>}
         </div>
       </div>
@@ -188,6 +193,8 @@ export default function EnrollmentFormPage() {
           )}
         </div>
       </div>
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

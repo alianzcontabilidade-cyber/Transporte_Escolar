@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function AttendanceReportPage() {
   const { user } = useAuth();
@@ -61,6 +61,11 @@ export default function AttendanceReportPage() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'frequencia_netescol.csv'; a.click();
   };
 
+  const handleExportClick = () => {
+    alert("Use o botao Imprimir para gerar o documento"); return;
+    setPgExportModal({ html, filename: "AttendanceReport" });
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -68,7 +73,7 @@ export default function AttendanceReportPage() {
         {summary.length > 0 && (
           <div className="flex gap-2">
             <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14} /> CSV</button>
-            <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'AttendanceReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+            <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>
@@ -124,6 +129,8 @@ export default function AttendanceReportPage() {
       ) : (
         <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para ver o relatório</p></div>
       )}
+    
+      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );
 }

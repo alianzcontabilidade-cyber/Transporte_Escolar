@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { BarChart3, Search, FileText, School, GraduationCap, Bus, Briefcase, Star } from 'lucide-react';
+import { BarChart3, Search, FileText, School, GraduationCap, Bus, Briefcase, Star, Download, ExternalLink, Printer } from 'lucide-react';
+import ExportModal, { handleExport, ExportFormat, exportToCSV, exportToPDF, printHTML } from '../components/ExportModal';
 
 const REPORTS = [
   // Gestão Escolar
@@ -39,8 +40,10 @@ const REPORTS = [
 ];
 
 export default function ReportCenterPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filterModule, setFilterModule] = useState('');
+  const [exportReport, setExportReport] = useState<any>(null);
   const [favorites, setFavorites] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('netescol_report_favorites') || '[]'); } catch { return []; }
   });
@@ -81,11 +84,18 @@ export default function ReportCenterPage() {
           <h2 className="text-sm font-bold text-yellow-600 uppercase tracking-wide mb-3 flex items-center gap-1"><Star size={14} fill="currentColor" /> Favoritos</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {favReports.map(r => (
-              <Link key={r.code} to={r.to} className="flex items-center gap-3 p-4 rounded-xl border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all group">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
-                <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{r.title}</p><p className="text-xs text-gray-500 truncate">{r.desc}</p></div>
-                <button onClick={e => { e.preventDefault(); toggleFav(r.code); }} className="text-yellow-400"><Star size={16} fill="currentColor" /></button>
-              </Link>
+              <div key={r.code} className="rounded-xl border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all group">
+                <div className="flex items-center gap-3 p-4">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
+                  <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{r.title}</p><p className="text-xs text-gray-500 truncate">{r.desc}</p></div>
+                  <button onClick={() => toggleFav(r.code)} className="text-yellow-400"><Star size={16} fill="currentColor" /></button>
+                </div>
+                <div className="flex border-t border-yellow-200">
+                  <Link to={r.to} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-accent-600 hover:bg-yellow-100 rounded-bl-xl"><ExternalLink size={12} /> Abrir</Link>
+                  <div className="w-px bg-yellow-200" />
+                  <button onClick={() => setExportReport(r)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-green-600 hover:bg-yellow-100 rounded-br-xl"><Download size={12} /> Exportar</button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -106,14 +116,30 @@ export default function ReportCenterPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {modReports.map(r => (
-                <div key={r.code} className="relative group">
-                  <Link to={r.to} className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-gray-300 transition-all">
+                <div key={r.code} className="relative group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-gray-300 transition-all">
+                  <div className="flex items-center gap-3 p-4">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
-                    <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 dark:text-gray-200 text-sm truncate">{r.title}</p><p className="text-xs text-gray-500 truncate">{r.desc}</p></div>
-                  </Link>
-                  <button onClick={() => toggleFav(r.code)} className={`absolute top-3 right-3 p-1 rounded transition-colors ${favorites.includes(r.code) ? 'text-yellow-400' : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-yellow-400'}`}>
-                    <Star size={14} fill={favorites.includes(r.code) ? 'currentColor' : 'none'} />
-                  </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm truncate">{r.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{r.desc}</p>
+                    </div>
+                    <button onClick={() => toggleFav(r.code)} className={`p-1 rounded transition-colors flex-shrink-0 ${favorites.includes(r.code) ? 'text-yellow-400' : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-yellow-400'}`}>
+                      <Star size={14} fill={favorites.includes(r.code) ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
+                  <div className="flex border-t border-gray-100 dark:border-gray-700">
+                    <Link to={r.to} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors rounded-bl-xl">
+                      <ExternalLink size={13} /> Abrir
+                    </Link>
+                    <div className="w-px bg-gray-100 dark:bg-gray-700" />
+                    <button onClick={() => setExportReport(r)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                      <Download size={13} /> Exportar
+                    </button>
+                    <div className="w-px bg-gray-100 dark:bg-gray-700" />
+                    <button onClick={() => navigate(r.to)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-br-xl">
+                      <Printer size={13} /> Imprimir
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -124,6 +150,26 @@ export default function ReportCenterPage() {
       {filtered.length === 0 && (
         <div className="card text-center py-16"><Search size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum relatório encontrado para "{search}"</p></div>
       )}
+
+      {/* Modal de Exportacao */}
+      <ExportModal
+        open={!!exportReport}
+        onClose={() => setExportReport(null)}
+        onExport={(format: ExportFormat) => {
+          if (!exportReport) return;
+          // Para o export da Central, redireciona para a pagina do relatorio
+          // pois os dados sao gerados na pagina especifica
+          if (format === 'print') {
+            navigate(exportReport.to);
+          } else {
+            // Gerar HTML basico com titulo do relatorio
+            const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + exportReport.title + '</title><style>body{font-family:Arial,sans-serif;padding:40px;text-align:center;color:#333}h1{color:#1B3A5C;margin-bottom:10px}p{color:#666;font-size:14px}.info{margin-top:30px;padding:20px;background:#f0f4f8;border-radius:12px;display:inline-block}@media print{@page{margin:10mm;size:A4}}</style></head><body><h1>' + exportReport.title + '</h1><p>' + exportReport.desc + '</p><p style="margin-top:10px;font-size:12px;color:#999">Codigo: ' + exportReport.code + ' | Modulo: ' + exportReport.module + '</p><div class="info"><p>Para gerar este relatorio com dados completos,<br>acesse a pagina do relatorio e utilize o botao Exportar.</p><p style="margin-top:10px"><a href="' + window.location.origin + exportReport.to + '" style="color:#2DB5B0;font-weight:bold">Acessar ' + exportReport.title + '</a></p></div><p style="margin-top:40px;font-size:11px;color:#ccc">NetEscol - ' + new Date().toLocaleDateString('pt-BR') + '</p></body></html>';
+            handleExport(format, [], html, exportReport.code + '_' + exportReport.title.replace(/\s+/g, '_'));
+          }
+          setExportReport(null);
+        }}
+        title={exportReport ? 'Exportar: ' + exportReport.title : undefined}
+      />
     </div>
   );
 }

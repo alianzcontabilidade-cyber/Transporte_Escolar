@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { DollarSign, Plus, X, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Search, Download, FileDown, Printer } from 'lucide-react';
 import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import { getBanks } from '../lib/cnpjCep';
 
@@ -89,7 +90,8 @@ export default function FinancialPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><DollarSign size={20} className="text-green-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Financeiro</h1><p className="text-gray-500">Contas e movimentacoes</p></div></div>
         <div className="flex gap-2">
-          <button onClick={async () => { const h = generateFinancialReport(); if (h) await openReportAsPDF(h, 'Relatorio_Financeiro'); }} className="btn-secondary flex items-center gap-2"><FileDown size={16} /> Relatório</button>
+          <button onClick={async () => { const h = generateFinancialReport(); if (h) { const w = window.open('', '_blank'); if (w) { w.document.write(h); w.document.close(); w.onload = () => w.print(); } } }} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+          <button onClick={async () => { const h = generateFinancialReport(); if (h) await openReportAsPDF(h, 'Relatorio_Financeiro'); }} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={() => tab === 'accounts' ? openNewAcct() : openNewTxn()} className="btn-primary flex items-center gap-2"><Plus size={16} /> {tab === 'accounts' ? 'Nova Conta' : 'Nova Transação'}</button>
         </div>
       </div>

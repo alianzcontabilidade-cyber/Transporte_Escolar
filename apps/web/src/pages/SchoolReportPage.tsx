@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
-import ReportExportBar from '../components/ReportExportBar';
+
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -108,9 +108,7 @@ export default function SchoolReportPage() {
             <p className="text-blue-200 mt-1">{school.address || ''} {school.directorName ? '· Diretor(a): ' + school.directorName : ''}</p>
           </div>
 
-          <ReportExportBar title={`Relatório - ${school.name}`} subtitle={school.address || ''} municipality={municipalityName} school={school.name}
-            fullData={allStudents.map((s: any) => ({ nome: s.name, matricula: s.enrollment||'', serie: s.grade||'', turma: s.classRoom||'', turno: s.shift==='afternoon'?'Tarde':s.shift==='evening'?'Noite':'Manhã' }))}
-            fullDataColumns={[{key:'nome',label:'Nome'},{key:'matricula',label:'Matrícula'},{key:'serie',label:'Série'},{key:'turma',label:'Turma'},{key:'turno',label:'Turno'}]}>
+          <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="card text-center bg-indigo-50 border-0"><Users size={22} className="text-indigo-500 mx-auto mb-1" /><p className="text-2xl font-bold">{allStudents.length}</p><p className="text-xs text-gray-500">Alunos</p></div>
             <div className="card text-center bg-violet-50 border-0"><GraduationCap size={22} className="text-violet-500 mx-auto mb-1" /><p className="text-2xl font-bold">{allClasses.length}</p><p className="text-xs text-gray-500">Turmas</p></div>
@@ -136,7 +134,7 @@ export default function SchoolReportPage() {
               ))}</tbody></table>
             </div>
           </div>
-          </ReportExportBar>
+          </>
         </div>
       ) : (
         <div className="card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma escola para ver o relatório</p></div>

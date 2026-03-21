@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Bus, Printer, Download, MapPin, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
-import ReportExportBar from '../components/ReportExportBar';
+
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -93,9 +93,7 @@ export default function TransportReportPage() {
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
-      <ReportExportBar title="Relatório de Transporte" subtitle={`${allRoutes.length} rotas · ${completed.length} viagens concluídas`} municipality={municipalityName}
-        fullData={allTrips.map((t: any) => ({ rota: t.route?.name||'', data: t.trip?.tripDate?new Date(t.trip.tripDate).toLocaleDateString('pt-BR'):'', status: t.trip?.status==='completed'?'Concluída':t.trip?.status||'', inicio: t.trip?.startedAt?new Date(t.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'', fim: t.trip?.completedAt?new Date(t.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'' }))}
-        fullDataColumns={[{key:'rota',label:'Rota'},{key:'data',label:'Data'},{key:'status',label:'Status'},{key:'inicio',label:'Início'},{key:'fim',label:'Fim'}]}>
+      <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card text-center bg-blue-50 border-0"><MapPin size={22} className="text-blue-500 mx-auto mb-1" /><p className="text-2xl font-bold">{allRoutes.length}</p><p className="text-xs text-gray-500">Rotas</p></div>
         <div className="card text-center bg-orange-50 border-0"><Bus size={22} className="text-orange-500 mx-auto mb-1" /><p className="text-2xl font-bold">{activeVehicles.length}</p><p className="text-xs text-gray-500">Veiculos ativos</p></div>
@@ -121,7 +119,7 @@ export default function TransportReportPage() {
           ))}{!allTrips.length && <p className="text-gray-400 text-sm text-center py-4">Nenhuma viagem</p>}</div>
         </div>
       </div>
-      </ReportExportBar>
+      </>
     
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>

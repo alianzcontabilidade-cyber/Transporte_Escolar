@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
-import ReportExportBar from '../components/ReportExportBar';
+
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -110,11 +110,6 @@ export default function AttendanceReportPage() {
       </div>
 
       {summary.length > 0 ? (
-        <ReportExportBar title="Relatório de Frequência" subtitle={`Turma: ${allClasses.find((c: any) => String(c.id) === selClass)?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`}
-          municipality={municipalityName}
-          school={allClasses.find((c: any) => String(c.id) === selClass)?.schoolName || ''}
-          fullData={summary.map((s: any) => ({ aluno: s.studentName, presencas: s.present, faltas: s.absent||0, justificadas: s.justified||0, atrasos: s.late||0, total: s.total, percentual: s.total > 0 ? Math.round(((s.present+(s.justified||0))/s.total)*100)+'%' : '0%' }))}
-          fullDataColumns={[{key:'aluno',label:'Aluno'},{key:'presencas',label:'Presenças'},{key:'faltas',label:'Faltas'},{key:'justificadas',label:'Justificadas'},{key:'atrasos',label:'Atrasos'},{key:'total',label:'Total'},{key:'percentual',label:'% Presença'}]}>
         <>
           {/* Summary KPIs */}
           <div className="grid grid-cols-4 gap-4 mb-5">
@@ -147,7 +142,6 @@ export default function AttendanceReportPage() {
             })}</tbody></table>
           </div>
         </>
-        </ReportExportBar>
       ) : selClass ? (
         <div className="card text-center py-16"><BarChart3 size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum registro de frequência encontrado para este período</p></div>
       ) : (

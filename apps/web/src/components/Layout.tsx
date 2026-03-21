@@ -213,6 +213,10 @@ export default function Layout() {
     { code: '414', to: '/eventos', text: 'Gestão de Eventos', module: 'Gestão e Recursos', desc: 'Festas, feiras, formaturas, excursões', tags: 'evento festa feira formatura excursao jogos palestra', color: '#0ea5e9' },
     { code: '415', to: '/mural', text: 'Mural Informativo', module: 'Gestão e Recursos', desc: 'Avisos, comunicados e informativos', tags: 'mural aviso comunicado informativo diario boletim', color: '#0ea5e9' },
     { code: '416', to: '/central-relatorios', text: 'Central de Relatórios', module: 'Gestão e Recursos', desc: 'Todos os relatórios do sistema organizados por módulo', tags: 'central relatorio todos modulo ficha declaracao lista', color: '#0ea5e9' },
+    { code: '212', to: '/relatorio-individual', text: 'Relatório Individual', module: 'Ensino e Aprendizagem', desc: 'Relatório individual do aluno conforme BNCC', tags: 'relatorio individual aluno bncc competencia desempenho', color: '#8b5cf6' },
+    { code: '213', to: '/quadro-rendimento', text: 'Quadro de Rendimento', module: 'Ensino e Aprendizagem', desc: 'Aprovados, retidos e transferidos por turma', tags: 'quadro rendimento aprovado retido transferido escola turma', color: '#8b5cf6' },
+    { code: '214', to: '/ata-resultados-finais', text: 'Ata de Resultados Finais', module: 'Ensino e Aprendizagem', desc: 'Documento oficial com resultados finais por turma', tags: 'ata resultado final oficial turma aprovado retido', color: '#8b5cf6' },
+    { code: '312', to: '/alunos-transportados', text: 'Alunos Transportados', module: 'Frota e Rotas', desc: 'Relatório FNDE de alunos do transporte escolar', tags: 'aluno transportado fnde transporte escolar rural urbano rota', color: '#f97316' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -253,6 +257,9 @@ export default function Layout() {
       { to: '/educacenso', icon: Database, text: 'EDUCACENSO' },
       { to: '/grade-horaria', icon: Calendar, text: 'Grade Horária' },
       { to: '/conselho-classe', icon: Users, text: 'Conselho de Classe' },
+      { to: '/relatorio-individual', icon: BookOpen, text: 'Rel. Individual' },
+      { to: '/quadro-rendimento', icon: BarChart3, text: 'Quadro Rendimento' },
+      { to: '/ata-resultados-finais', icon: FileText, text: 'Ata Resultados Finais' },
     ]},
     { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#f97316', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
@@ -261,6 +268,7 @@ export default function Layout() {
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' }, { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
       { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' }, { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório' },
       { to: '/vistoria-veiculos', icon: ClipboardList, text: 'Vistoria Veículos' },
+      { to: '/alunos-transportados', icon: Users, text: 'Alunos Transportados' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },

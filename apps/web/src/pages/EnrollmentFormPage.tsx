@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { FileText, Search, Printer, Users , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function EnrollmentFormPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function EnrollmentFormPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [selStudent, setSelStudent] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
@@ -161,7 +163,7 @@ export default function EnrollmentFormPage() {
       escola: getSchool(s.schoolId)?.name || '--',
     }));
     const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Escola'];
-    const html = buildTableReportHTML('LISTA DE ALUNOS MATRICULADOS', rows, cols, munReport, { orientation: 'landscape' });
+    const html = buildTableReportHTML('LISTA DE ALUNOS MATRICULADOS', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'ficha_matricula' });
   };
@@ -175,6 +177,8 @@ export default function EnrollmentFormPage() {
           {selStudent && <button onClick={() => printForm(selStudent)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Gerar PDF</button>}
         </div>
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="grid grid-cols-3 gap-6">
         <div>

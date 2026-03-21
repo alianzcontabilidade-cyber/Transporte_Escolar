@@ -6,6 +6,7 @@ import { FileText, Calendar, CheckCircle, XCircle, Download, BarChart2, Trending
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 import { loadMunicipalityData, generateReportHTML } from '../lib/reportTemplate';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const COLORS = ['#10b981','#ef4444','#f97316','#3b82f6','#8b5cf6'];
 
@@ -26,6 +27,7 @@ export default function ReportsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const { data: history } = useQuery(() => api.trips.history({ municipalityId, limit:200 }), [municipalityId]);
   const { data: students } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const { data: vehiclesData } = useQuery(() => api.vehicles.list({ municipalityId }), [municipalityId]);
@@ -94,6 +96,8 @@ export default function ReportsPage() {
           {(dateFrom || dateTo) && <button onClick={clearFilter} className="text-xs text-red-500 hover:underline">Limpar</button>}
         </div>
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="card text-center"><CheckCircle size={28} className="text-green-500 mx-auto mb-2"/><p className="text-2xl font-bold">{completed.length}</p><p className="text-sm text-gray-500">Concluídas</p></div>

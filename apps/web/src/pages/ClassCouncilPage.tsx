@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { Users, Save, Printer, CheckCircle, AlertTriangle , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const BIMESTERS = [{ v: '1', l: '1° Bimestre' }, { v: '2', l: '2° Bimestre' }, { v: '3', l: '3° Bimestre' }, { v: '4', l: '4° Bimestre' }];
 
@@ -15,6 +16,7 @@ export default function ClassCouncilPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [selBimester, setSelBimester] = useState('1');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [notes, setNotes] = useState<Record<number, { decision: string; observations: string }>>({});
@@ -95,6 +97,7 @@ export default function ClassCouncilPage() {
     const html = buildTableReportHTML('ATA DO CONSELHO DE CLASSE', rows, cols, munReport, {
       subtitle: `${cls?.fullName || ''} - ${cls?.schoolName || ''} | ${bimLabel}`,
       orientation: 'landscape',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'conselho_classe' });
@@ -113,6 +116,8 @@ export default function ClassCouncilPage() {
       </div>
 
       {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle size={16} /> Conselho de classe salvo!</div>}
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="flex gap-3 mb-5">
         <select className="input w-64" value={selClass} onChange={e => { setSelClass(e.target.value); loadCouncil(e.target.value, selBimester); }}><option value="">Selecione a turma</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select>

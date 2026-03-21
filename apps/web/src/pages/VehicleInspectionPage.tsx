@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const CHECKLIST = [
   { id: 'pneus', label: 'Pneus em bom estado', category: 'Segurança' },
@@ -34,6 +35,7 @@ export default function VehicleInspectionPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [checks, setChecks] = useState<Record<string, 'ok' | 'nok' | ''>>({});
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [observations, setObservations] = useState('');
@@ -90,6 +92,7 @@ export default function VehicleInspectionPage() {
     const html = buildTableReportHTML('RELATORIO DE VISTORIA VEICULAR - ' + (vehicle?.plate || ''), rows, cols, munReport, {
       subtitle: `Placa: ${vehicle?.plate || ''} | ${vehicle?.brand || ''} ${vehicle?.model || ''} | Inspetor: ${inspector} | ${pct}% aprovado`,
       orientation: 'portrait',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'vistoria_veicular' });
@@ -101,6 +104,8 @@ export default function VehicleInspectionPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><ClipboardCheck size={20} className="text-orange-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Vistoria de Veículos</h1><p className="text-gray-500">Checklist de inspeção veicular</p></div></div>
         {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="flex gap-3 mb-5">
         <select className="input w-72" value={selVehicle} onChange={e => { setSelVehicle(e.target.value); setChecks({}); setObservations(''); }}><option value="">Selecione o veículo</option>{allVehicles.map((v: any) => <option key={v.id} value={v.id}>{v.plate} {v.nickname ? '- ' + v.nickname : ''} {v.brand ? '(' + v.brand + ')' : ''}</option>)}</select>

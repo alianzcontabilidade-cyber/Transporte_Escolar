@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { AlertTriangle, Plus, Search, Printer, Trash2, X , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 interface Occurrence {
   id: number;
@@ -32,6 +33,7 @@ export default function StudentOccurrencePage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [form, setForm] = useState({ studentId: '', date: new Date().toISOString().split('T')[0], type: 'indisciplina', description: '', action: '' });
@@ -86,7 +88,7 @@ export default function StudentOccurrencePage() {
       providencia: o.action || '--',
     }));
     const cols = ['Data', 'Aluno', 'Tipo', 'Descricao', 'Providencia'];
-    const html = buildTableReportHTML('REGISTRO DE OCORRENCIAS', rows, cols, munReport, { orientation: 'landscape' });
+    const html = buildTableReportHTML('REGISTRO DE OCORRENCIAS', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'ocorrencias' });
   };
@@ -100,6 +102,8 @@ export default function StudentOccurrencePage() {
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Ocorrência</button>
         </div>
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar por aluno ou descrição..." value={search} onChange={e => setSearch(e.target.value)} /></div>
 

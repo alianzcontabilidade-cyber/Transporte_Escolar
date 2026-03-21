@@ -8,6 +8,7 @@ import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import QuickAddModal from '../components/QuickAddModal';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 function PhotoUpload({ value, onChange }: any) {
     const ref = useRef<HTMLInputElement>(null);
@@ -89,6 +90,7 @@ export default function DriversPage() {
     };
   
     const [munReport, setMunReport] = useState<any>(null);
+    const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
     useEffect(function() { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(function(){}); }, [municipalityId]);
 
     const [drvExportModal, setDrvExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
@@ -96,7 +98,7 @@ export default function DriversPage() {
     const drvExportCols = ['Nome','CPF','Telefone','Email','CNH','Categoria','Validade CNH','Rota'];
     const doDrvExport = function(format: ExportFormat) {
       if (!drvExportModal) return;
-      const html = buildTableReportHTML(drvExportModal.title, drvExportModal.data, drvExportModal.cols, munReport, { orientation: 'landscape' });
+      const html = buildTableReportHTML(drvExportModal.title, drvExportModal.data, drvExportModal.cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
       handleExport(format, drvExportModal.data, html, drvExportModal.filename);
     };
 
@@ -116,6 +118,7 @@ export default function DriversPage() {
     return (
           <div className="p-6">
                 <div className="flex items-center justify-between mb-6"><div><h1 className="text-2xl font-bold text-gray-900">Motoristas</h1><p className="text-gray-500">{all.length} motorista(s)</p></div><div className="flex gap-2"><button onClick={function(){setDrvExportModal({title:'Lista de Motoristas',data:drvExportRows,cols:drvExportCols,filename:'motoristas_netescol'})}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Motorista</button></div></div>
+                <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
                 <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar nome, telefone ou CNH..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
                 <div className="grid gap-3">
                   {paginated.map(function(d:any){return(

@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 interface QuotationItem {
   id: number;
@@ -22,6 +23,7 @@ export default function PurchaseQuotationPage() {
   const [suppliers, setSuppliers] = useState(['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3']);
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [title, setTitle] = useState('Cotação de Preços - ' + new Date().toLocaleDateString('pt-BR'));
@@ -136,6 +138,7 @@ export default function PurchaseQuotationPage() {
     const html = buildTableReportHTML(title, rows, cols, munReport, {
       summary: `Menor preco global: ${suppliers[winner]} - R$ ${[getTotal('supplier1Price'), getTotal('supplier2Price'), getTotal('supplier3Price')][winner]?.toFixed(2)}`,
       orientation: 'landscape',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'cotacao_compras' });
@@ -147,6 +150,8 @@ export default function PurchaseQuotationPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center"><ShoppingCart size={20} className="text-sky-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Cotação de Compras</h1><p className="text-gray-500">Compare preços de até 3 fornecedores</p></div></div>
         {items.length > 0 && <><button onClick={printQuotation} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Cotação</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       {/* Title and Suppliers */}
       <div className="card mb-4">

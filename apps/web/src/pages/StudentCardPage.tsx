@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { CreditCard, Printer, Search, Users , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function StudentCardPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function StudentCardPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [search, setSearch] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
@@ -75,7 +77,7 @@ export default function StudentCardPage() {
       nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '--',
     }));
     const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Nascimento'];
-    const html = buildTableReportHTML('LISTA DE ALUNOS - CARTEIRINHA ESTUDANTIL', rows, cols, munReport, { orientation: 'landscape' });
+    const html = buildTableReportHTML('LISTA DE ALUNOS - CARTEIRINHA ESTUDANTIL', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'carteirinha_estudantil' });
   };
@@ -86,6 +88,8 @@ export default function StudentCardPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><CreditCard size={20} className="text-teal-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Carteirinha Estudantil</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div></div>
         {allStudents.length > 0 && <><button onClick={() => printCards(allStudents)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Carteirinhas</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="flex gap-3 mb-5">
         <select className="input w-56" value={selSchool} onChange={e => setSelSchool(e.target.value)}><option value="">Todas as escolas</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>

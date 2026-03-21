@@ -7,6 +7,7 @@ import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function TransportReportPage() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function TransportReportPage() {
   const [municipalityName, setMunicipalityName] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => {
     if (!mid) return;
@@ -74,7 +76,7 @@ export default function TransportReportPage() {
       status: t.trip?.status === 'completed' ? 'Concluida' : t.trip?.status || '--',
     }));
     const cols = ['Rota', 'Data', 'Inicio', 'Fim', 'Status'];
-    const html = buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape' });
+    const html = buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_transporte' });
   };
@@ -88,6 +90,8 @@ export default function TransportReportPage() {
           <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
         </div>
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <ReportExportBar title="Relatório de Transporte" subtitle={`${allRoutes.length} rotas · ${completed.length} viagens concluídas`} municipality={municipalityName}
         fullData={allTrips.map((t: any) => ({ rota: t.route?.name||'', data: t.trip?.tripDate?new Date(t.trip.tripDate).toLocaleDateString('pt-BR'):'', status: t.trip?.status==='completed'?'Concluída':t.trip?.status||'', inicio: t.trip?.startedAt?new Date(t.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'', fim: t.trip?.completedAt?new Date(t.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'' }))}

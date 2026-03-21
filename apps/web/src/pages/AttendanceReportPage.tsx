@@ -7,6 +7,7 @@ import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function AttendanceReportPage() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function AttendanceReportPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [selClass, setSelClass] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => {
     if (!mid) return;
@@ -80,6 +82,7 @@ export default function AttendanceReportPage() {
     const html = buildTableReportHTML('RELATORIO DE FREQUENCIA', rows, cols, munReport, {
       subtitle: `Turma: ${cls?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
       orientation: 'landscape',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_frequencia' });
@@ -96,6 +99,8 @@ export default function AttendanceReportPage() {
           </div>
         )}
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="flex gap-3 mb-5 flex-wrap">
         <select className="input w-64" value={selClass} onChange={e => setSelClass(e.target.value)}><option value="">Selecione a turma</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select>

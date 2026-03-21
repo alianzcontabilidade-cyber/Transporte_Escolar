@@ -6,6 +6,7 @@ import { Bus, Plus, X, Wrench, FileText, AlertTriangle, CheckCircle, Clock, Fuel
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { useState as useState2, useEffect as useEffect2 } from 'react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const STATUS_COLORS: any = { active:'bg-green-100 text-green-700', maintenance:'bg-yellow-100 text-yellow-700', inactive:'bg-red-100 text-red-700' };
 const STATUS_LABELS: any = { active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' };
@@ -80,6 +81,7 @@ export default function VehiclesPage() {
   };
 
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   (typeof useEffect2 === "function" ? useEffect2 : require("react").useEffect)(function() { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(function(){}); }, [municipalityId]);
   const [vehExportModal, setVehExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const vehExportRows = all.map(function(v: any) { return { placa: v.plate||'', apelido: v.nickname||'', marca_modelo: [v.brand,v.model,v.year].filter(Boolean).join(' ')||'', capacidade: v.capacity?v.capacity+' lugares':'', combustivel: v.fuelType||v.fuel||'', km: v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'', status: v.status==='active'?'Ativo':v.status==='maintenance'?'Manutencao':'Inativo' }; });
@@ -90,7 +92,7 @@ export default function VehiclesPage() {
   }
   const doVehExport = function(format: ExportFormat) {
     if (!vehExportModal) return;
-    handleExport(format, vehExportModal.data, buildTableReportHTML(vehExportModal.title, vehExportModal.data, vehExportModal.cols, munReport, { orientation: "landscape" }), vehExportModal.filename);
+    handleExport(format, vehExportModal.data, buildTableReportHTML(vehExportModal.title, vehExportModal.data, vehExportModal.cols, munReport, { orientation: "landscape", signatories: selectedSigs }), vehExportModal.filename);
   };
 
   return (
@@ -108,6 +110,7 @@ export default function VehiclesPage() {
         );}) }
       </div>
 
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por placa, apelido, marca ou modelo..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

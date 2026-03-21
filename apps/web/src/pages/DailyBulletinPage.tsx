@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { Newspaper, Plus, X, Trash2, Pin, Printer , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 interface Bulletin {
   id: number;
@@ -30,6 +31,7 @@ export default function DailyBulletinPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [form, setForm] = useState({ title: '', content: '', category: 'aviso' });
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [bulletins, setBulletins] = useState<Bulletin[]>(() => { try { return JSON.parse(localStorage.getItem('netescol_bulletins_' + mid) || '[]'); } catch { return []; } });
@@ -74,7 +76,7 @@ export default function DailyBulletinPage() {
       fixado: b.pinned ? 'Sim' : 'Nao',
     }));
     const cols = ['Data', 'Titulo', 'Categoria', 'Conteudo', 'Autor', 'Fixado'];
-    const html = buildTableReportHTML('MURAL INFORMATIVO', rows, cols, munReport, { orientation: 'landscape' });
+    const html = buildTableReportHTML('MURAL INFORMATIVO', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'mural_informativo' });
   };
@@ -88,6 +90,8 @@ export default function DailyBulletinPage() {
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Publicar</button>
         </div>
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="space-y-3">
         {sorted.map(b => {

@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { Clock, Printer, Save , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 const PERIODS = ['1º Horário', '2º Horário', '3º Horário', '4º Horário', '5º Horário', '6º Horário'];
@@ -16,6 +17,7 @@ export default function ClassSchedulePage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [schedule, setSchedule] = useState<Record<string, string>>({});
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [saved, setSaved] = useState(false);
@@ -86,6 +88,7 @@ export default function ClassSchedulePage() {
     const html = buildTableReportHTML('GRADE HORARIA - ' + (cls?.fullName || ''), rows, cols, munReport, {
       subtitle: `${cls?.fullName || ''} - ${cls?.schoolName || ''}`,
       orientation: 'landscape',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'grade_horaria' });
@@ -104,6 +107,8 @@ export default function ClassSchedulePage() {
       </div>
 
       {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">Grade horária salva com sucesso!</div>}
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <select className="input w-72 mb-5" value={selClass} onChange={e => loadSchedule(e.target.value)}>
         <option value="">Selecione a turma</option>

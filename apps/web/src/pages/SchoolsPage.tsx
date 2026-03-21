@@ -11,6 +11,7 @@ import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Cl
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import { StudentMiniCard, ClassMiniCard, QuickActionButton } from '../components/EntitySummaries';
 
 const emptyForm = {
@@ -240,6 +241,7 @@ export default function SchoolsPage() {
   };
 
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   useEffect(() => { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
   const [schExportModal, setSchExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const schExportRows = all.map((s: any) => ({ nome: s.name||'', tipo: s.type||'', codigo_inep: s.code||'', diretor: s.directorName||'', telefone: s.phone||'', email: s.email||'', endereco: s.address||'' }));
@@ -250,7 +252,7 @@ export default function SchoolsPage() {
   }
   const doSchExport = (format: ExportFormat) => {
     if (!schExportModal) return;
-    handleExport(format, schExportModal.data, buildTableReportHTML(schExportModal.title, schExportModal.data, schExportModal.cols, munReport, { orientation: "landscape" }), schExportModal.filename);
+    handleExport(format, schExportModal.data, buildTableReportHTML(schExportModal.title, schExportModal.data, schExportModal.cols, munReport, { orientation: "landscape", signatories: selectedSigs }), schExportModal.filename);
   };
 
   const getSchoolLogo = (s: any) => getSchoolExtra(s.id)?.logoUrl;
@@ -266,6 +268,7 @@ export default function SchoolsPage() {
         </div>
       </div>
 
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar por nome, endereco ou diretor..." value={search} onChange={e => setSearch(e.target.value)} /></div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

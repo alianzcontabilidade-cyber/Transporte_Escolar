@@ -7,6 +7,7 @@ import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function SchoolReportPage() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function SchoolReportPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [municipalityName, setMunicipalityName] = useState('');
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => {
     if (!mid) return;
@@ -82,6 +84,7 @@ export default function SchoolReportPage() {
     const html = buildTableReportHTML('RELATORIO POR ESCOLA - ' + (school?.name || ''), rows, cols, munReport, {
       subtitle: school?.name || '',
       orientation: 'landscape',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_escola' });
@@ -93,6 +96,8 @@ export default function SchoolReportPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><School size={20} className="text-blue-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Relatório por Escola</h1><p className="text-gray-500">Visão completa de uma unidade escolar</p></div></div>
         {school && <><button onClick={printReport} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <select className="input w-72 mb-5" value={selSchool} onChange={e => setSelSchool(e.target.value)}><option value="">Selecione a escola</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
 

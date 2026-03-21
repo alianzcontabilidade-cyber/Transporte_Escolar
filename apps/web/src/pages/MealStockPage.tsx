@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 export default function MealStockPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function MealStockPage() {
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [form, setForm] = useState({ name: '', category: 'Alimento', unit: 'kg', currentStock: '0', minStock: '10', location: '' });
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [search, setSearch] = useState('');
@@ -74,6 +76,7 @@ export default function MealStockPage() {
     const html = buildTableReportHTML('CONTROLE DE ESTOQUE - MERENDA ESCOLAR', rows, cols, munReport, {
       summary: lowStock.length + ' item(ns) com estoque baixo',
       orientation: 'portrait',
+      signatories: selectedSigs,
     });
     if (!html) { alert('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'estoque_merenda' });
@@ -95,6 +98,8 @@ export default function MealStockPage() {
           <div><p className="font-semibold text-red-800">{lowStock.length} item(ns) com estoque baixo!</p><p className="text-xs text-red-600">{lowStock.map((i: any) => i.name).join(', ')}</p></div>
         </div>
       )}
+
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar item..." value={search} onChange={e => setSearch(e.target.value)} /></div>
 

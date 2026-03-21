@@ -7,6 +7,7 @@ import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
+import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -78,6 +79,7 @@ export default function MonitoresPage() {
   const doDelete = async (id: number) => { try { await api.monitorStaff.delete({ id }); setConfirmDelete(null); await loadMonitores(); } catch (err) { console.error(err); } };
 
   const [munReport, setMunReport] = useState<any>(null);
+  const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   useEffect(() => { if (municipalityId) getMunicipalityReport(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
   const [monExportModal, setMonExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const monExportRows = monitores.map((m: any) => ({ nome: m.name||'', cpf: m.cpf||'', telefone: m.phone||'', email: m.email||'', turno: shiftLabel(m.shift), rota: m.routeName||'', cidade: m.city||'', status: m.status==='active'?'Ativo':'Inativo' }));
@@ -88,7 +90,7 @@ export default function MonitoresPage() {
   }
   const doMonExport = (format: ExportFormat) => {
     if (!monExportModal) return;
-    handleExport(format, monExportModal.data, buildTableReportHTML(monExportModal.title, monExportModal.data, monExportModal.cols, munReport, { orientation: "landscape" }), monExportModal.filename);
+    handleExport(format, monExportModal.data, buildTableReportHTML(monExportModal.title, monExportModal.data, monExportModal.cols, munReport, { orientation: "landscape", signatories: selectedSigs }), monExportModal.filename);
   };
 
   if (loading) return <div className="p-6 flex items-center justify-center h-64"><Loader2 className="animate-spin text-primary-500" size={32}/></div>;
@@ -107,6 +109,7 @@ export default function MonitoresPage() {
         <div className="card text-center bg-green-50 border-0"><CheckCircle size={22} className="text-green-500 mx-auto mb-1"/><p className="text-2xl font-bold">{monitores.filter(m => m.status==='active').length}</p><p className="text-xs text-gray-500">Ativos</p></div>
         <div className="card text-center bg-red-50 border-0"><AlertTriangle size={22} className="text-red-400 mx-auto mb-1"/><p className="text-2xl font-bold">{monitores.filter(m => m.status!=='active').length}</p><p className="text-xs text-gray-500">Inativos</p></div>
       </div>
+      <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, telefone ou rota..." value={search} onChange={e => setSearch(e.target.value)}/></div>
       <div className="grid gap-3">
         {filtered.map(m => (

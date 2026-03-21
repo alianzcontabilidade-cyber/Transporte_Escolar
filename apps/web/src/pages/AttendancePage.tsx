@@ -79,18 +79,33 @@ export default function AttendancePage() {
     setScanResult({ ...record, student });
     setTimeout(() => setScanResult(null), 3000);
 
-    // Tentar persistir no backend se houver viagem ativa
+    // Persistir no backend se houver viagem ativa
     if (allTrips.length > 0) {
       const trip = allTrips[0];
       try {
+        // Buscar stopId do aluno na rota da viagem
+        const routeId = trip.trip?.routeId || trip.route?.id;
+        let stopId = 1; // fallback
+        if (routeId) {
+          try {
+            const stopsData = await api.stops.listByRoute({ routeId });
+            if (Array.isArray(stopsData)) {
+              // Encontrar a parada onde o aluno esta vinculado
+              const studentStop = stopsData.find((s: any) =>
+                s.students?.some((st: any) => st.id === studentId)
+              );
+              if (studentStop) stopId = studentStop.id;
+              else if (stopsData.length > 0) stopId = stopsData[0].id;
+            }
+          } catch { /* usar stopId padrao */ }
+        }
         if (type === 'boarding') {
-          await api.monitors.boardStudent({ tripId: trip.trip.id, studentId, stopId: 0 });
+          await api.monitors.boardStudent({ tripId: trip.trip?.id, studentId, stopId });
         } else {
-          await api.monitors.dropStudent({ tripId: trip.trip.id, studentId, stopId: 0 });
+          await api.monitors.dropStudent({ tripId: trip.trip?.id, studentId, stopId });
         }
       } catch (e) {
-        // Silenciar erro se nao houver parada vinculada
-        console.log('Registro local apenas - sem viagem ativa vinculada');
+        console.log('Registro local - erro ao persistir:', (e as any)?.message);
       }
     }
   };

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileEdit, Save, CheckCircle, Users, BookOpen, FileDown, Printer , Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, generateReportHTML, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
+import { buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
@@ -119,7 +120,15 @@ export default function DescriptiveReportPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "DescriptiveReport" });
+    const rows = allReports.map((r: any, i: number) => ({
+      num: i + 1,
+      aluno: r.studentName || '--',
+      parecer: (r.report || '--').substring(0, 100) + ((r.report || '').length > 100 ? '...' : ''),
+    }));
+    const cols = ['#', 'Aluno', 'Parecer'];
+    const html = buildTableReportHTML('PARECER DESCRITIVO', rows, cols, munReport, { signatories: selectedSigs });
+    if (!html) { alert('Nenhum parecer para exportar'); return; }
+    setPgExportModal({ html, filename: 'Parecer_Descritivo' });
   };
 
   return (

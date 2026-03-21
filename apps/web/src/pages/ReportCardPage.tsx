@@ -89,7 +89,9 @@ export default function ReportCardPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "ReportCard" });
+    const html = buildReportHTML();
+    if (!html) { alert('Selecione um aluno para exportar o boletim'); return; }
+    setPgExportModal({ html, filename: 'Boletim_' + (student?.studentName || 'aluno') });
   };
 
   return (

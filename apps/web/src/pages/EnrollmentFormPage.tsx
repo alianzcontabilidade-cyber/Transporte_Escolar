@@ -173,8 +173,9 @@ export default function EnrollmentFormPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Ficha de Matr\u00edcula</h1><p className="text-gray-500">Formul\u00e1rio oficial para impress\u00e3o</p></div></div>
         <div className="flex gap-2">
-          <button onClick={() => printForm()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir em Branco</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
-          {selStudent && <button onClick={() => printForm(selStudent)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Gerar PDF</button>}
+          <button onClick={() => printForm()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir em Branco</button>
+          {selStudent && <button onClick={() => printForm(selStudent)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Preenchida</button>}
+          <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
         </div>
       </div>
 
@@ -199,7 +200,7 @@ export default function EnrollmentFormPage() {
                 <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-700">{selStudent.name?.[0]}</div>
                 <div><h2 className="text-lg font-bold text-gray-900">{selStudent.name}</h2><p className="text-sm text-gray-500">{selStudent.enrollment ? 'Mat. ' + selStudent.enrollment : ''} · {selStudent.grade || ''} · {getSchool(selStudent.schoolId)?.name || ''}</p></div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Clique em <b>"Gerar PDF"</b> para gerar a ficha de matr\u00edcula preenchida com os dados deste aluno, ou <b>"Imprimir em Branco"</b> para um formul\u00e1rio vazio.</p>
+              <p className="text-sm text-gray-600 mb-4">Clique em <b>"Imprimir Preenchida"</b> para imprimir a ficha com os dados deste aluno, ou <b>"Imprimir em Branco"</b> para um formul\u00e1rio vazio. Use <b>"Exportar"</b> para outros formatos.</p>
               <div className="grid grid-cols-2 gap-3">
                 {[['Nome', selStudent.name],['Matr\u00edcula', selStudent.enrollment||'--'],['S\u00e9rie', selStudent.grade||'--'],['Turma', selStudent.classRoom||'--'],['Nascimento', selStudent.birthDate ? new Date(selStudent.birthDate).toLocaleDateString('pt-BR') : '--'],['Escola', getSchool(selStudent.schoolId)?.name||'--'],['Contato 1', (selStudent.emergencyContact1Name||'--')+' - '+(selStudent.emergencyContact1Phone||'')],['Tipo Sangu\u00edneo', selStudent.bloodType||'--']].map(([l,v]) => (
                   <div key={l as string} className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">{l}</p><p className="text-sm font-medium">{v}</p></div>

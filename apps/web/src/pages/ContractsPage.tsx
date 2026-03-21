@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { maskPhone, maskCNPJ, validateCNPJ, maskMoney, unMaskMoney } from '../lib/utils';
 import CNPJField from '../components/CNPJField';
-import { loadMunicipalityData, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
+import { loadMunicipalityData, generateReportHTML } from '../lib/reportTemplate';
 import { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileEdit, Save, CheckCircle, Users, BookOpen, FileDown, Printer , Download } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, generateReportHTML, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
+import { FileEdit, Save, CheckCircle, Users, BookOpen, Printer, Download } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, generateReportHTML, printReportHTML } from '../lib/reportTemplate';
 import { buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -109,11 +109,6 @@ export default function DescriptiveReportPage() {
     });
   };
 
-  const handleStudentPDF = async (enrollment: any) => {
-    const html = generateStudentReport(enrollment);
-    if (html) await openReportAsPDF(html, 'Parecer_' + (enrollment.studentName || 'Aluno'));
-  };
-
   const handleStudentPrint = (enrollment: any) => {
     const html = generateStudentReport(enrollment);
     if (html) printReportHTML(html);
@@ -165,10 +160,9 @@ export default function DescriptiveReportPage() {
                   <div className="flex items-center gap-2">
                     {report?.status === 'published' && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10} /> Publicado</span>}
                     {report?.status === 'draft' && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Rascunho</span>}
-                    {report?.content && munReport && <>
-                      <button onClick={() => handleStudentPDF(e)} className="text-xs text-red-500 hover:underline flex items-center gap-1" title="Gerar PDF"><FileDown size={12} /> PDF</button>
+                    {report?.content && munReport &&
                       <button onClick={() => handleStudentPrint(e)} className="text-xs text-blue-500 hover:underline flex items-center gap-1" title="Imprimir"><Printer size={12} /> Imprimir</button>
-                    </>}
+                    }
                     {!isEditing && <button onClick={() => { setEditingId(e.studentId); setEditContent(report?.content || ''); }} className="text-xs text-accent-500 hover:underline">{report ? 'Editar' : 'Escrever'}</button>}
                   </div>
                 </div>

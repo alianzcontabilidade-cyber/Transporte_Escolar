@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { DollarSign, Plus, X, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Search, Download, FileDown, Printer } from 'lucide-react';
-import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
+import { loadMunicipalityData, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import { getBanks } from '../lib/cnpjCep';

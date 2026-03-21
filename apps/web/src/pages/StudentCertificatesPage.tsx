@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, FileDown, Loader2, Download } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, Download } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { generateDeclaracaoEscolaridade, generateDeclaracaoTransferencia, generateDeclaracaoFrequencia, generateFichaMatricula } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -35,7 +35,6 @@ export default function StudentCertificatesPage() {
     loadMunicipalityData(mid, api).then(setMunReport).catch(() => {});
   }, [mid]);
 
-  const [generating, setGenerating] = useState('');
   const [certExportModal, setCertExportModal] = useState<{html:string;filename:string}|null>(null);
 
   const buildHTML = (type: string): string => {
@@ -52,53 +51,9 @@ export default function StudentCertificatesPage() {
     }
   };
 
-  const handlePDF = async (type: string) => {
-    const html = buildHTML(type);
-    if (!html) return;
-    setGenerating(type);
-    try {
-      await openReportAsPDF(html, CERT_TYPES.find(c => c.id === type)?.label || 'relatorio');
-    } catch { printReportHTML(html); }
-    finally { setGenerating(''); }
-  };
-
   const handlePrint = (type: string) => {
     const html = buildHTML(type);
     if (html) printReportHTML(html);
-  };
-
-  const handleWord = (type: string) => {
-    const html = buildHTML(type);
-    if (!html) return;
-    const bodyContent = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
-    const rawCSS = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '';
-    const cleanCSS = rawCSS
-      .replace(/@media\s+screen\{[^}]+\}/g, '').replace(/@media\s+print\{[^}]+\}/g, '')
-      .replace(/display:\s*flex[^;}]*/g, '').replace(/flex[^:]*:[^;}]*/g, '')
-      .replace(/gap:[^;}]*/g, '').replace(/border-radius:[^;}]*/g, '')
-      .replace(/background:\s*linear-gradient[^;}]*/g, 'background:#1B3A5C');
-    const wordHTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><meta name="ProgId" content="Word.Document">
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-<style>
-@page{size:A4;margin:2cm 2cm 2.5cm 2cm}
-body{font-family:'Calibri',Arial,sans-serif;font-size:12pt;color:#333}
-table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:5px 8px}
-th{background-color:#1B3A5C;color:white;font-size:9pt}
-.header-line{height:3px;background:#1B3A5C;margin-top:10px}
-.mun-name{font-size:14pt;font-weight:bold;color:#1B3A5C;text-align:center}
-.sec-name{font-size:11pt;font-weight:bold;color:#2DB5B0;text-align:center}
-.report-footer-bar{text-align:center;font-size:7pt;color:#999;border-top:2px solid #ddd;padding-top:8px;margin-top:30px}
-.footer-brand{color:#2DB5B0;font-weight:bold}
-${cleanCSS}
-</style>
-</head><body>${bodyContent}</body></html>`;
-    const blob = new Blob(['\uFEFF' + wordHTML], { type: 'application/msword;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (CERT_TYPES.find(c => c.id === type)?.label || 'documento').replace(/[^a-zA-Z0-9]/g, '_') + '.doc';
-    a.click();
-    URL.revokeObjectURL(a.href);
   };
 
   const iconColors: any = {
@@ -167,21 +122,13 @@ ${cleanCSS}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => handlePDF(cert.id)} disabled={isGenerating}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 font-medium">
-                          {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
-                        </button>
-                        <button onClick={() => handleWord(cert.id)}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-[#2B579A]/10 text-[#2B579A] hover:bg-[#2B579A]/20 rounded-lg transition-colors">
-                          <FileText size={14} /> Word
-                        </button>
                         <button onClick={() => handlePrint(cert.id)}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors">
-                          <Printer size={14} />
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors font-medium">
+                          <Printer size={14} /> Imprimir
                         </button>
                         <button onClick={() => { const html = buildHTML(cert.id); if (html) setCertExportModal({ html, filename: (cert.label || 'documento').replace(/[^a-zA-Z0-9]/g, '_') }); }}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors" title="Exportar">
-                          <Download size={14} />
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors font-medium" title="Exportar">
+                          <Download size={14} /> Exportar
                         </button>
                       </div>
                     </div>

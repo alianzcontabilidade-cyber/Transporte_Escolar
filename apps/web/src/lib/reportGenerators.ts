@@ -32,24 +32,29 @@ export function generateDeclaracaoEscolaridade(
   student: any, school: ReportSchool | undefined,
   mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
 ) {
+  const schoolName = school?.name || 'desta Unidade Escolar';
   const content = `
     <p class="declaration-text">
-      Declaramos, para os devidos fins, que <b>${student.name || 'ALUNO'}</b>,
+      Declaramos, para os devidos fins e efeitos legais, que <b>${student.name || 'ALUNO(A)'}</b>,
       ${student.motherName ? 'filho(a) de <b>' + student.motherName + '</b>' : ''}
       ${student.fatherName ? ' e de <b>' + student.fatherName + '</b>' : ''},
       nascido(a) em <b>${formatDateFull(student.birthDate)}</b>,
-      ${student.naturalness ? 'natural de <b>' + student.naturalness + (student.naturalnessUf ? '/' + student.naturalnessUf : '') + '</b>,' : ''}
-      e aluno(a) deste Estabelecimento de Ensino, esta cursando o(a) <b>${student.grade || '--'}</b>
-      do turno <b>${shiftLabel(student.shift)}</b>,
-      no ano letivo de <b>${new Date().getFullYear()}</b>,
-      com Matrícula N. <b>${student.enrollment || '--'}</b>.
+      ${student.naturalness ? 'natural de <b>' + student.naturalness + (student.naturalnessUf ? ' – ' + student.naturalnessUf : '') + '</b>,' : ''}
+      portador(a) do CPF nº <b>${student.cpf || '___.___.___-__'}</b>,
+      encontra-se devidamente matriculado(a) neste Estabelecimento de Ensino, cursando o(a) <b>${student.grade || '--'}</b>,
+      no turno <b>${shiftLabel(student.shift)}</b>,
+      no corrente ano letivo de <b>${new Date().getFullYear()}</b>,
+      sob a Matrícula nº <b>${student.enrollment || '--'}</b>.
     </p>
     <p class="declaration-text">
-      Declaramos ainda que o(a) referido(a) aluno(a) encontra-se com a situação acadêmica regular
-      nesta instituição de ensino, nada constando que o(a) desabone.
+      Declaramos, outrossim, que o(a) referido(a) aluno(a) encontra-se com a situação acadêmica
+      regular perante esta instituição de ensino, nada constando em seus registros que o(a) desabone.
     </p>
-    ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#666"><b>NIS:</b> ${student.nis}</div>` : ''}
-    ${student.code || school?.code ? `<div style="font-size:11px;color:#666"><b>INEP:</b> ${school?.code || ''}</div>` : ''}
+    <p class="declaration-text">
+      Por ser expressão da verdade, firmamos a presente declaração para que produza os efeitos legais que se fizerem necessários.
+    </p>
+    ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#555"><b>NIS:</b> ${student.nis}</div>` : ''}
+    ${school?.code ? `<div style="font-size:11px;color:#555"><b>Código INEP:</b> ${school.code}</div>` : ''}
   `;
 
   return generateReportHTML({
@@ -69,17 +74,21 @@ export function generateDeclaracaoTransferencia(
 ) {
   const content = `
     <p class="declaration-text">
-      Declaramos, para os devidos fins, que <b>${student.name || 'ALUNO'}</b>,
+      Declaramos, para os devidos fins e efeitos legais, que <b>${student.name || 'ALUNO(A)'}</b>,
       nascido(a) em <b>${formatDateFull(student.birthDate)}</b>,
-      ${student.naturalness ? 'em <b>' + student.naturalness + (student.naturalnessUf ? '/' + student.naturalnessUf : '') + '</b>,' : ''}
+      ${student.naturalness ? 'natural de <b>' + student.naturalness + (student.naturalnessUf ? ' – ' + student.naturalnessUf : '') + '</b>,' : ''}
       ${student.motherName ? 'filho(a) de <b>' + student.motherName + '</b>' : ''}
       ${student.fatherName ? ' e de <b>' + student.fatherName + '</b>' : ''},
-      cursou neste Estabelecimento de Ensino, no ano letivo de <b>${new Date().getFullYear()}</b>,
-      o(a) <b>${student.grade || '--'}</b>, no turno <b>${shiftLabel(student.shift)}</b>,
-      tendo sido considerado(a): <b>${student.studentStatus ? student.studentStatus.toUpperCase() : 'APTO(A) PARA TRANSFERENCIA'}</b>.
+      esteve regularmente matriculado(a) neste Estabelecimento de Ensino durante o ano letivo de <b>${new Date().getFullYear()}</b>,
+      cursando o(a) <b>${student.grade || '--'}</b>, no turno <b>${shiftLabel(student.shift)}</b>,
+      tendo obtido o seguinte resultado: <b>${student.studentStatus ? student.studentStatus.toUpperCase() : 'APTO(A) PARA TRANSFERÊNCIA'}</b>.
     </p>
-    ${destSchool ? `<p class="declaration-text" style="text-indent:0"><b>TRANSFERIR PARA:</b> ${destSchool}</p>` : ''}
-    ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#666"><b>NIS:</b> ${student.nis} &nbsp;&nbsp; <b>Matricula:</b> ${student.enrollment || '--'}</div>` : ''}
+    <p class="declaration-text">
+      O(A) aluno(a) acima qualificado(a) encontra-se em condições regulares para efetuar transferência
+      para outra unidade de ensino, nada constando que impeça a referida movimentação escolar.
+    </p>
+    ${destSchool ? `<p class="declaration-text" style="text-indent:0"><b>Escola de destino:</b> ${destSchool}</p>` : ''}
+    ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#555"><b>NIS:</b> ${student.nis} &nbsp;&nbsp; <b>Matrícula:</b> ${student.enrollment || '--'}</div>` : ''}
   `;
 
   return generateReportHTML({
@@ -99,13 +108,17 @@ export function generateDeclaracaoFrequencia(
 ) {
   const content = `
     <p class="declaration-text">
-      Declaramos, para os devidos fins, que <b>${student.name || 'ALUNO'}</b>,
-      matrícula <b>${student.enrollment || '--'}</b>,
-      é aluno(a) regularmente matriculado(a) neste Estabelecimento de Ensino,
-      no(a) <b>${student.grade || '--'}</b>, turno <b>${shiftLabel(student.shift)}</b>,
-      e que frequenta regularmente as aulas no corrente ano letivo de <b>${new Date().getFullYear()}</b>.
+      Declaramos, para os devidos fins e efeitos legais, que <b>${student.name || 'ALUNO(A)'}</b>,
+      portador(a) da Matrícula nº <b>${student.enrollment || '--'}</b>,
+      encontra-se devidamente matriculado(a) e frequentando regularmente as atividades escolares
+      neste Estabelecimento de Ensino, no(a) <b>${student.grade || '--'}</b>,
+      turno <b>${shiftLabel(student.shift)}</b>,
+      durante o corrente ano letivo de <b>${new Date().getFullYear()}</b>.
     </p>
-    ${percentual !== undefined ? `<p class="declaration-text">Percentual de frequência: <b>${percentual.toFixed(1)}%</b>.</p>` : ''}
+    ${percentual !== undefined ? `<p class="declaration-text">O(A) referido(a) aluno(a) apresenta, até a presente data, o percentual de frequência de <b>${percentual.toFixed(1)}%</b> das aulas ministradas.</p>` : ''}
+    <p class="declaration-text">
+      Por ser expressão da verdade, firmamos a presente declaração para que produza os efeitos legais que se fizerem necessários.
+    </p>
   `;
 
   return generateReportHTML({
@@ -127,9 +140,9 @@ export function generateBoletimEscolar(
 
   // Student info box
   let info = `<div class="student-info">
-    <div class="si-name">${student.name || 'ALUNO'}</div>
-    <div class="si-detail">Matricula: ${student.enrollment || '--'} | Serie: ${student.grade || '--'} | Turma: ${student.classRoom || student.className || '--'} | Turno: ${shiftLabel(student.shift)}</div>
-    <div class="si-detail">Ano Letivo: ${year}${student.birthDate ? ' | Nascimento: ' + formatDate(student.birthDate) : ''}</div>
+    <div class="si-name">${student.name || 'ALUNO(A)'}</div>
+    <div class="si-detail">Matrícula: ${student.enrollment || '--'} | Série/Ano: ${student.grade || '--'} | Turma: ${student.classRoom || student.className || '--'} | Turno: ${shiftLabel(student.shift)}</div>
+    <div class="si-detail">Ano Letivo: ${year}${student.birthDate ? ' | Data de Nascimento: ' + formatDate(student.birthDate) : ''}</div>
   </div>`;
 
   // Grades table
@@ -168,26 +181,26 @@ export function generateBoletimEscolar(
   const table = `
     <table class="grade-table">
       <thead><tr>
-        <th style="text-align:left;min-width:160px">DISCIPLINAS / ATIVIDADES</th>
-        <th>1 BIM</th><th>2 BIM</th><th>3 BIM</th><th>4 BIM</th>
-        <th style="background:#15304d">MEDIA</th>
+        <th style="text-align:left;min-width:160px">COMPONENTE CURRICULAR</th>
+        <th>1º BIM</th><th>2º BIM</th><th>3º BIM</th><th>4º BIM</th>
+        <th style="background:#15304d">MÉDIA</th>
         <th>FALTAS</th>
         <th>SITUAÇÃO</th>
       </tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr class="total-row">
-        <td style="text-align:right" colspan="5"><b>MEDIA GERAL</b></td>
+        <td style="text-align:right" colspan="5"><b>MÉDIA GERAL</b></td>
         <td style="font-weight:bold;background:#e0f2fe">${mediaGeral}</td>
         <td></td>
         <td style="font-weight:bold">${resultadoFinal}</td>
       </tr></tfoot>
     </table>
     <div style="margin-top:15px;font-size:10px;color:#888">
-      <b>Legenda:</b> BIM = Bimestre | MEDIA = Media Aritmetica dos Bimestres | FALTAS = Total de faltas no ano<br>
-      Aluno(a) considerado(a) <b>APROVADO(A)</b> quando a média final for igual ou superior a <b>6,0</b> (seis) e frequência mínima de <b>75%</b>.
+      <b>Legenda:</b> BIM = Bimestre | MÉDIA = Média Aritmética dos Bimestres | FALTAS = Total de faltas no ano letivo.<br>
+      Conforme o Regimento Escolar, o(a) aluno(a) é considerado(a) <b>APROVADO(A)</b> quando obtiver média final igual ou superior a <b>6,0</b> (seis vírgula zero) e frequência mínima de <b>75%</b> (setenta e cinco por cento) das aulas ministradas.
     </div>
-    <div style="margin-top:10px;font-size:11px;color:#555;font-style:italic;text-align:center">
-      "Pais, a sua participação na escola é muito significativa, pois contribui para uma gestão democrática e qualidade no ensino."
+    <div style="margin-top:12px;font-size:11px;color:#555;font-style:italic;text-align:center;padding:8px;border-top:1px solid #e5e7eb">
+      "A participação da família na vida escolar é fundamental para o desenvolvimento integral do educando e para a construção de uma educação de qualidade."
     </div>
   `;
 
@@ -213,18 +226,18 @@ export function generateHistoricoEscolar(
     <div class="section-title">DADOS DO ALUNO</div>
     <div class="field-grid">
       ${field('Nome', student.name)}
-      ${field('Data Nascimento', formatDate(student.birthDate))}
+      ${field('Data de Nascimento', formatDate(student.birthDate))}
       ${field('Sexo', student.sex === 'M' ? 'Masculino' : student.sex === 'F' ? 'Feminino' : '--')}
       ${field('Nacionalidade', student.nationality)}
-      ${field('Naturalidade', (student.naturalness || '') + (student.naturalnessUf ? '/' + student.naturalnessUf : ''))}
+      ${field('Naturalidade', (student.naturalness || '') + (student.naturalnessUf ? ' – ' + student.naturalnessUf : ''))}
       ${field('CPF', student.cpf)}
-      ${field('RG', student.rg ? student.rg + (student.rgOrgao ? ' - ' + student.rgOrgao + '/' + (student.rgUf || '') : '') : '--')}
+      ${field('RG / Órgão Emissor', student.rg ? student.rg + (student.rgOrgao ? ' – ' + student.rgOrgao + '/' + (student.rgUf || '') : '') : '--')}
       ${field('NIS', student.nis)}
     </div>
     <div class="section-title">FILIAÇÃO</div>
     <div class="field-grid">
       ${field('Pai', student.fatherName)}
-      ${field('Mae', student.motherName)}
+      ${field('Mãe', student.motherName)}
     </div>
   `;
 
@@ -242,9 +255,9 @@ export function generateHistoricoEscolar(
   }
 
   const historyTable = `
-    <div class="section-title">HISTORICO DE ESCOLARIDADE</div>
+    <div class="section-title">HISTÓRICO DE ESCOLARIDADE</div>
     <table>
-      <thead><tr><th>ANO</th><th style="text-align:left">SERIE/ANO</th><th style="text-align:left">ESTABELECIMENTO</th><th>RESULTADO</th></tr></thead>
+      <thead><tr><th>ANO</th><th style="text-align:left">SÉRIE/ANO</th><th style="text-align:left">ESTABELECIMENTO DE ENSINO</th><th>RESULTADO</th></tr></thead>
       <tbody>${historyRows || '<tr><td colspan="4" style="color:#999">Nenhum registro encontrado</td></tr>'}</tbody>
     </table>
   `;
@@ -265,91 +278,91 @@ export function generateFichaMatricula(
   mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
 ) {
   const content = `
-    <div class="section-title">DADOS PESSOAIS</div>
+    <div class="section-title">DADOS PESSOAIS DO ALUNO</div>
     <div class="field-grid">
-      ${field('Nome', student.name)}
-      ${field('Matricula', student.enrollment)}
-      ${field('Data Nascimento', formatDate(student.birthDate))}
+      ${field('Nome Completo', student.name)}
+      ${field('Nº de Matrícula', student.enrollment)}
+      ${field('Data de Nascimento', formatDate(student.birthDate))}
       ${field('Sexo', student.sex === 'M' ? 'Masculino' : student.sex === 'F' ? 'Feminino' : '--')}
-      ${field('Cor/Raca', student.race)}
+      ${field('Cor/Raça', student.race)}
       ${field('Nacionalidade', student.nationality)}
-      ${field('Naturalidade', (student.naturalness || '') + (student.naturalnessUf ? '/' + student.naturalnessUf : ''))}
+      ${field('Naturalidade', (student.naturalness || '') + (student.naturalnessUf ? ' – ' + student.naturalnessUf : ''))}
       ${field('CPF', student.cpf)}
-      ${field('RG', student.rg ? student.rg + ' ' + (student.rgOrgao || '') + '/' + (student.rgUf || '') : '--')}
-      ${field('NIS', student.nis)}
-      ${field('Cartao SUS', student.cartaoSus)}
+      ${field('RG / Órgão Emissor', student.rg ? student.rg + ' – ' + (student.rgOrgao || '') + '/' + (student.rgUf || '') : '--')}
+      ${field('NIS (Número de Identificação Social)', student.nis)}
+      ${field('Cartão Nacional de Saúde (SUS)', student.cartaoSus)}
     </div>
 
     <div class="section-title">CERTIDÃO DE NASCIMENTO</div>
     <div class="field-grid">
       ${field('Tipo', student.certidaoTipo)}
-      ${field('Numero', student.certidaoNumero)}
+      ${field('Número', student.certidaoNumero)}
       ${field('Folha', student.certidaoFolha)}
       ${field('Livro', student.certidaoLivro)}
-      ${field('Data Emissão', student.certidaoData)}
+      ${field('Data de Emissão', student.certidaoData)}
       ${field('Cartório', student.certidaoCartorio)}
     </div>
 
     <div class="section-title">SITUAÇÃO ESCOLAR</div>
     <div class="field-grid">
-      ${field('Escola', school?.name || '--')}
-      ${field('Serie/Ano', student.grade)}
+      ${field('Unidade Escolar', school?.name || '--')}
+      ${field('Série/Ano', student.grade)}
       ${field('Turma', student.classRoom || student.className)}
       ${field('Turno', shiftLabel(student.shift))}
-      ${field('Tipo Matricula', student.enrollmentType === 'novato' ? 'Novato (Primeira Matrícula)' : student.enrollmentType === 'renovacao' ? 'Renovação' : student.enrollmentType === 'transferencia' ? 'Transferência' : '--')}
+      ${field('Tipo de Matrícula', student.enrollmentType === 'novato' ? 'Novato (Primeira Matrícula)' : student.enrollmentType === 'renovacao' ? 'Renovação' : student.enrollmentType === 'transferencia' ? 'Transferência' : '--')}
       ${field('Situação', student.studentStatus)}
     </div>
 
-    <div class="section-title">ENDERECO</div>
+    <div class="section-title">ENDEREÇO RESIDENCIAL</div>
     <div class="field-grid">
       ${field('Logradouro', student.address)}
-      ${field('Numero', student.addressNumber)}
+      ${field('Número', student.addressNumber)}
       ${field('Complemento', student.addressComplement)}
       ${field('Bairro', student.neighborhood)}
       ${field('CEP', student.cep)}
       ${field('Cidade/UF', (student.city || '') + (student.state ? '/' + student.state : ''))}
       ${field('Zona', student.zone === 'rural' ? 'Rural' : 'Urbana')}
-      ${field('Telefone', student.phone)}
-      ${field('Celular', student.cellPhone)}
+      ${field('Telefone Fixo', student.phone)}
+      ${field('Telefone Celular', student.cellPhone)}
     </div>
 
-    <div class="section-title">FILIAÇÃO - PAI</div>
+    <div class="section-title">FILIAÇÃO – PAI</div>
     <div class="field-grid">
-      ${field('Nome', student.fatherName)}
+      ${field('Nome Completo', student.fatherName)}
       ${field('CPF', student.fatherCpf)}
       ${field('RG', student.fatherRg)}
       ${field('Telefone', student.fatherPhone)}
       ${field('Profissão', student.fatherProfession)}
-      ${field('Local Trabalho', student.fatherWorkplace)}
+      ${field('Local de Trabalho', student.fatherWorkplace)}
       ${field('Escolaridade', student.fatherEducation)}
-      ${field('Naturalidade', (student.fatherNaturalness || '') + (student.fatherNaturalnessUf ? '/' + student.fatherNaturalnessUf : ''))}
+      ${field('Naturalidade', (student.fatherNaturalness || '') + (student.fatherNaturalnessUf ? ' – ' + student.fatherNaturalnessUf : ''))}
     </div>
 
-    <div class="section-title">FILIAÇÃO - MAE</div>
+    <div class="section-title">FILIAÇÃO – MÃE</div>
     <div class="field-grid">
-      ${field('Nome', student.motherName)}
+      ${field('Nome Completo', student.motherName)}
       ${field('CPF', student.motherCpf)}
       ${field('RG', student.motherRg)}
       ${field('Telefone', student.motherPhone)}
       ${field('Profissão', student.motherProfession)}
-      ${field('Local Trabalho', student.motherWorkplace)}
+      ${field('Local de Trabalho', student.motherWorkplace)}
       ${field('Escolaridade', student.motherEducation)}
-      ${field('Naturalidade', (student.motherNaturalness || '') + (student.motherNaturalnessUf ? '/' + student.motherNaturalnessUf : ''))}
+      ${field('Naturalidade', (student.motherNaturalness || '') + (student.motherNaturalnessUf ? ' – ' + student.motherNaturalnessUf : ''))}
     </div>
 
     <div class="section-title">INFORMAÇÕES COMPLEMENTARES</div>
     <div class="field-grid">
       ${field('Renda Familiar', student.familyIncome)}
-      ${field('Tipo Sanguineo', student.bloodType)}
+      ${field('Tipo Sanguíneo', student.bloodType)}
       ${field('Alergias', student.allergies)}
-      ${field('Medicamentos', student.medications)}
-      ${field('Transporte Escolar', student.needsTransport ? 'Sim - ' + (student.transportType || '') + ' ' + (student.transportDistance ? student.transportDistance + ' km' : '') : 'Nao')}
-      ${field('Bolsa Familia', student.bolsaFamilia ? 'Sim' : 'Nao')}
-      ${field('BPC', student.bpc ? 'Sim' : 'Nao')}
-      ${field('Deficiência', student.hasSpecialNeeds ? (student.deficiencyType || 'Sim') : 'Nao')}
+      ${field('Medicamentos de Uso Contínuo', student.medications)}
+      ${field('Transporte Escolar', student.needsTransport ? 'Sim – ' + (student.transportType || '') + ' ' + (student.transportDistance ? '(' + student.transportDistance + ' km)' : '') : 'Não')}
+      ${field('Bolsa Família', student.bolsaFamilia ? 'Sim' : 'Não')}
+      ${field('BPC (Benefício de Prestação Continuada)', student.bpc ? 'Sim' : 'Não')}
+      ${field('Pessoa com Deficiência', student.hasSpecialNeeds ? (student.deficiencyType || 'Sim') : 'Não')}
     </div>
 
-    <div class="section-title">PROCEDÊNCIA</div>
+    <div class="section-title">PROCEDÊNCIA ESCOLAR</div>
     <div class="field-grid">
       ${field('Escola Anterior', student.previousSchool)}
       ${field('Rede', student.previousSchoolType)}
@@ -396,7 +409,7 @@ export function generateRelacaoAlunosTurma(
 
   const table = `
     <table>
-      <thead><tr><th style="width:40px">N</th><th style="text-align:left">NOME DO ALUNO</th><th>MATRICULA</th><th>NASCIMENTO</th><th>SEXO</th><th>SITUAÇÃO</th></tr></thead>
+      <thead><tr><th style="width:40px">Nº</th><th style="text-align:left">NOME DO ALUNO(A)</th><th>MATRÍCULA</th><th>NASCIMENTO</th><th>SEXO</th><th>SITUAÇÃO</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div style="margin-top:15px;font-size:11px;display:flex;gap:30px">

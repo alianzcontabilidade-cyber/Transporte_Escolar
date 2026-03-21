@@ -246,10 +246,6 @@ export default function SchoolsPage() {
   const [schExportModal, setSchExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
   const schExportRows = all.map((s: any) => ({ nome: s.name||'', tipo: s.type||'', codigo_inep: s.code||'', diretor: s.directorName||'', telefone: s.phone||'', email: s.email||'', endereco: s.address||'' }));
   const schExportCols = ['Nome','Tipo','Codigo INEP','Diretor(a)','Telefone','Email','Endereco'];
-  function buildSchHTML(title: string, data: any[], cols: string[]) {
-    const rows = data.map(r => '<tr>' + Object.values(r).map(v => '<td>'+(v||'')+'</td>').join('') + '</tr>').join('');
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:30px}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}@media print{@page{margin:10mm;size:A4 landscape}}</style></head><body><h1>'+title+'</h1><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: '+data.length+' registro(s) | NetEscol '+new Date().toLocaleDateString('pt-BR')+'</p></body></html>';
-  }
   const doSchExport = (format: ExportFormat) => {
     if (!schExportModal) return;
     handleExport(format, schExportModal.data, buildTableReportHTML(schExportModal.title, schExportModal.data, schExportModal.cols, munReport, { orientation: "landscape", signatories: selectedSigs }), schExportModal.filename);

@@ -143,7 +143,7 @@ export default function TrackingPage() {
           }
         }
       }
-    } catch (err) { console.log('Nenhuma viagem ativa'); }
+    } catch (err) {  }
     finally { setLoading(false); }
   }
 

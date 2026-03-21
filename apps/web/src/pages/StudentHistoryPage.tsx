@@ -6,11 +6,13 @@ import { History, Search, Printer, Download, Users, BookOpen, CheckCircle, FileD
 import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
 import { generateHistoricoEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function StudentHistoryPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selStudent, setSelStudent] = useState('');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
@@ -82,7 +84,7 @@ export default function StudentHistoryPage() {
         {selStudent && allEnrollments.length > 0 && (
           <div className="flex items-center gap-2">
             <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> PDF</button>
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'StudentHistory_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>

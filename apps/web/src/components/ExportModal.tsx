@@ -134,36 +134,67 @@ export function printHTML(html: string) {
   }
 }
 
-export function exportToPDF(html: string, filename: string, download: boolean = false) {
-  // Adicionar CSS @media print para gerar PDF limpo
-  const pdfHTML = html.replace('</head>', `
-    <style>
-      @media print {
-        body { margin: 0; padding: 15px; }
-        @page { margin: 10mm; size: A4; }
-        .no-print { display: none !important; }
-      }
-    </style>
-  </head>`);
+// Carregar html2pdf.js via CDN (uma vez)
+let html2pdfLoaded = false;
+function loadHtml2Pdf(): Promise<void> {
+  if (html2pdfLoaded && (window as any).html2pdf) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js';
+    script.onload = () => { html2pdfLoaded = true; resolve(); };
+    script.onerror = () => reject(new Error('Falha ao carregar biblioteca PDF'));
+    document.head.appendChild(script);
+  });
+}
 
-  if (download) {
-    // Para download: abre em nova aba e dispara print (usuario salva como PDF)
+export async function exportToPDF(html: string, filename: string, download: boolean = false) {
+  try {
+    await loadHtml2Pdf();
+    const html2pdf = (window as any).html2pdf;
+    if (!html2pdf) throw new Error('html2pdf nao disponivel');
+
+    // Criar container temporario oculto para renderizar o HTML
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '210mm'; // A4 width
+    container.innerHTML = html.replace(/<!DOCTYPE[^>]*>/i, '').replace(/<html[^>]*>/i, '').replace(/<\/html>/i, '').replace(/<head>[\s\S]*<\/head>/i, '').replace(/<\/?body[^>]*>/gi, '');
+    document.body.appendChild(container);
+
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: (filename.endsWith('.pdf') ? filename : filename + '.pdf'),
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+    };
+
+    if (download) {
+      // Download direto do PDF
+      await html2pdf().set(opt).from(container).save();
+    } else {
+      // Gerar Blob PDF e abrir no visualizador do navegador
+      const pdfBlob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+    }
+
+    document.body.removeChild(container);
+  } catch (err) {
+    console.error('Erro ao gerar PDF:', err);
+    // Fallback: abrir HTML em nova aba
     const w = window.open('', '_blank');
     if (w) {
-      w.document.write(pdfHTML);
+      w.document.write(html);
       w.document.close();
-      setTimeout(() => w.print(), 300);
+      if (download) setTimeout(() => w.print(), 300);
     }
-  } else {
-    // Para visualizacao: abre o HTML em nova aba (usuario pode imprimir/salvar)
-    const blob = new Blob([pdfHTML], { type: 'text/html;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
   }
 }
 
 // Handler unificado que processa o formato selecionado
-export function handleExport(
+export async function handleExport(
   format: ExportFormat,
   data: any[],
   html: string,
@@ -174,10 +205,10 @@ export function handleExport(
       printHTML(html);
       break;
     case 'pdf':
-      exportToPDF(html, filename, false);
+      await exportToPDF(html, filename, false);
       break;
     case 'pdf-download':
-      exportToPDF(html, filename, true);
+      await exportToPDF(html, filename, true);
       break;
     case 'csv':
       exportToCSV(data, filename);

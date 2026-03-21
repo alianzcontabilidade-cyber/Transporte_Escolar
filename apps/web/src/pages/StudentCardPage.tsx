@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { CreditCard, Printer, Search, Users } from 'lucide-react';
+import { CreditCard, Printer, Search, Users , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function StudentCardPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [search, setSearch] = useState('');
 
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
@@ -63,7 +65,7 @@ export default function StudentCardPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><CreditCard size={20} className="text-teal-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Carteirinha Estudantil</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div></div>
-        {allStudents.length > 0 && <button onClick={() => printCards(allStudents)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Carteirinhas</button>}
+        {allStudents.length > 0 && <><button onClick={() => printCards(allStudents)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Carteirinhas</button><button onClick={() => setPgExportModal({html:'',filename:'StudentCard_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <div className="flex gap-3 mb-5">

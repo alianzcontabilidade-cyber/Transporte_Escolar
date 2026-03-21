@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileSpreadsheet, Printer, Users, FileDown } from 'lucide-react';
+import { FileSpreadsheet, Printer, Users, FileDown , Download } from 'lucide-react';
 import { loadMunicipalityData, openReportAsPDF, printReportHTML, generateReportHTML, ReportMunicipality, ReportSecretaria } from '../lib/reportTemplate';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function ATAResultsPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<{ municipality: ReportMunicipality; secretaria: ReportSecretaria } | null>(null);
 
@@ -63,7 +65,7 @@ export default function ATAResultsPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><FileSpreadsheet size={20} className="text-emerald-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">ATA de Resultados Finais</h1><p className="text-gray-500">Documento oficial de resultados</p></div></div>
         {allEnrollments.length > 0 && <div className="flex gap-2">
           <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> Gerar PDF</button>
-          <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+          <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ATAResults_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
         </div>}
       </div>
 

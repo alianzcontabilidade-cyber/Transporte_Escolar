@@ -6,11 +6,13 @@ import { FileText, Printer, Search, Download, Users } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
 import { generateBoletimEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function ReportCardPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selStudent, setSelStudent] = useState('');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
@@ -90,7 +92,7 @@ export default function ReportCardPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Boletim Escolar</h1><p className="text-gray-500">Consulta e impressão de boletins</p></div></div>
-        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReport} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button></div>}
+        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReport} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ReportCard_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></div>}
       </div>
 
       <div className="flex gap-3 mb-6">

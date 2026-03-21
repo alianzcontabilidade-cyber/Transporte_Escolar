@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Users, Search, FileDown, Printer, GraduationCap, School, Loader2 } from 'lucide-react';
+import { Users, Search, FileDown, Printer, GraduationCap, School, Loader2 , Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
 import { generateRelacaoAlunosTurma } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 const SHIFTS: Record<string, string> = { morning: 'Manhã', afternoon: 'Tarde', evening: 'Noite' };
 
@@ -13,6 +14,7 @@ export default function ClassRosterPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selClass, setSelClass] = useState('');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
@@ -89,7 +91,7 @@ export default function ClassRosterPage() {
         {selectedClass && classStudents.length > 0 && (
           <div className="flex gap-2">
             <button onClick={handlePDF} className="btn-primary flex items-center gap-2 bg-red-600 hover:bg-red-700"><FileDown size={16} /> PDF</button>
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ClassRoster_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>

@@ -7,7 +7,7 @@ import { maskPhone } from '../lib/utils';
 import { searchSchoolsByMunicipality } from '../lib/inepData';
 import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText, Printer } from 'lucide-react';
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -332,10 +332,17 @@ export default function SchoolsPage() {
             <div className="flex gap-3 p-5 border-t">
               <button onClick={() => setViewSchool(null)} className="btn-secondary flex-1">Fechar</button>
               <button onClick={() => {
-                const s = viewSchool; const logo = getSchoolLogo(s);
-                const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${s.name} - NetEscol</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.header{display:flex;align-items:center;gap:15px;margin-bottom:20px}.logo{width:60px;height:60px;object-fit:contain}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.field{padding:10px;background:#f8f9fa;border-radius:8px}.field-label{font-size:11px;color:#999;margin-bottom:3px}.field-value{font-size:14px;font-weight:500}.footer{margin-top:30px;text-align:center;font-size:11px;color:#999}@media print{body{padding:15px}}</style></head><body><div class="header">${logo ? '<img src="' + logo + '" class="logo"/>' : ''}<h1>${s.name}</h1></div><div class="grid"><div class="field"><div class="field-label">Tipo</div><div class="field-value">${s.type || '--'}</div></div><div class="field"><div class="field-label">Codigo INEP</div><div class="field-value">${s.code || '--'}</div></div><div class="field"><div class="field-label">Diretor(a)</div><div class="field-value">${s.directorName || '--'}</div></div><div class="field"><div class="field-label">Telefone</div><div class="field-value">${s.phone || '--'}</div></div><div class="field"><div class="field-label">Email</div><div class="field-value">${s.email || '--'}</div></div><div class="field"><div class="field-label">Endereco</div><div class="field-value">${s.address || '--'}</div></div><div class="field"><div class="field-label">Manha</div><div class="field-value">${s.morningStart || '--'} - ${s.morningEnd || '--'}</div></div><div class="field"><div class="field-label">Tarde</div><div class="field-value">${s.afternoonStart || '--'} - ${s.afternoonEnd || '--'}</div></div></div><div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
-                const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); w.print(); }
-              }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Download size={14} /> Imprimir</button>
+                const s = viewSchool;
+                const rows = [{ nome: s.name||'--', tipo: s.type||'--', inep: s.code||'--', diretor: s.directorName||'--', telefone: s.phone||'--', email: s.email||'--', endereco: s.address||'--', manha: (s.morningStart||'--')+' - '+(s.morningEnd||'--'), tarde: (s.afternoonStart||'--')+' - '+(s.afternoonEnd||'--') }];
+                const html = buildTableReportHTML('FICHA DA ESCOLA', rows, ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], munReport, { orientation: 'landscape', signatories: selectedSigs });
+                if (html) { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); w.print(); } }
+              }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Printer size={14} /> Imprimir</button>
+              <button onClick={() => {
+                const s = viewSchool;
+                const rows = [{ nome: s.name||'--', tipo: s.type||'--', inep: s.code||'--', diretor: s.directorName||'--', telefone: s.phone||'--', email: s.email||'--', endereco: s.address||'--', manha: (s.morningStart||'--')+' - '+(s.morningEnd||'--'), tarde: (s.afternoonStart||'--')+' - '+(s.afternoonEnd||'--') }];
+                const html = buildTableReportHTML('FICHA DA ESCOLA', rows, ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], munReport, { orientation: 'landscape', signatories: selectedSigs });
+                if (html) setSchExportModal({ title: 'Ficha da Escola', data: [s], cols: ['Nome','Tipo','INEP','Diretor','Telefone','Email','Endereco','Manha','Tarde'], filename: 'Ficha_Escola_' + (s.name || '') });
+              }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Download size={14} /> Exportar</button>
               <button onClick={() => { setViewSchool(null); openEdit(viewSchool); }} className="btn-primary flex-1">Editar</button>
             </div>
           </div>

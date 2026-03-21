@@ -78,8 +78,9 @@ export default function StudentHistoryPage() {
   };
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
-    setPgExportModal({ html, filename: "StudentHistory" });
+    const html = buildHistoricoHTML();
+    if (!html) { alert('Selecione um aluno com matriculas para exportar'); return; }
+    setPgExportModal({ html, filename: 'Historico_' + (student?.name || 'aluno') });
   };
 
   return (

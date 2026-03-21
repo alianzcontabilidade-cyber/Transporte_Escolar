@@ -77,7 +77,6 @@ export default function VehicleInspectionPage() {
   const categories = [...new Set(CHECKLIST.map(c => c.category))];
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
     setPgExportModal({ html, filename: "VehicleInspection" });
   };
 

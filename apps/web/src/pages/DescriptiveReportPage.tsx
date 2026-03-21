@@ -119,7 +119,6 @@ export default function DescriptiveReportPage() {
   };
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
     setPgExportModal({ html, filename: "DescriptiveReport" });
   };
 

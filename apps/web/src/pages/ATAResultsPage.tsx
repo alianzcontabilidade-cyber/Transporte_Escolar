@@ -60,7 +60,6 @@ export default function ATAResultsPage() {
   const counts = { total: allEnrollments.length, approved: allEnrollments.filter((e: any) => e.status === 'graduated').length, retained: allEnrollments.filter((e: any) => e.status === 'retained').length, active: allEnrollments.filter((e: any) => e.status === 'active').length };
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
     setPgExportModal({ html, filename: "ATAResults" });
   };
 

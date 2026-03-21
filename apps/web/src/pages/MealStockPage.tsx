@@ -58,7 +58,6 @@ export default function MealStockPage() {
   };
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
     setPgExportModal({ html, filename: "MealStock" });
   };
 

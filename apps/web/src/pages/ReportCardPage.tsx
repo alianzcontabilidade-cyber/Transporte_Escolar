@@ -89,7 +89,6 @@ export default function ReportCardPage() {
   };
 
   const handleExportClick = () => {
-    alert("Use o botao Imprimir para gerar o documento"); return;
     setPgExportModal({ html, filename: "ReportCard" });
   };
 

@@ -731,6 +731,17 @@ export const studentsRouter = t.router({
         address: students.address,
         latitude: students.latitude,
         longitude: students.longitude,
+        needsTransport: students.needsTransport,
+        transportType: students.transportType,
+        transportDistance: students.transportDistance,
+        zone: students.zone,
+        routeName: students.routeName,
+        cpf: students.cpf,
+        sex: students.sex,
+        nis: students.nis,
+        bolsaFamilia: students.bolsaFamilia,
+        studentStatus: students.studentStatus,
+        enrollmentType: students.enrollmentType,
         isActive: students.isActive,
         createdAt: students.createdAt,
         updatedAt: students.updatedAt,
@@ -979,6 +990,15 @@ export const studentsRouter = t.router({
       if (fields.schoolId) ud.schoolId = fields.schoolId;
       if (latitude !== undefined) ud.latitude = latitude.toFixed(8);
       if (longitude !== undefined) ud.longitude = longitude.toFixed(8);
+      if (observations !== undefined) ud.observations = observations;
+
+      // Se routeId foi fornecido, buscar nome da rota e salvar
+      if (routeId) {
+        try {
+          const [route] = await db.select({ name: routes.name }).from(routes).where(eq(routes.id, routeId)).limit(1);
+          if (route) ud.routeName = route.name;
+        } catch { /* ignore */ }
+      }
 
       // All string/boolean fields - copy if defined
       const stringFields = [
@@ -2648,9 +2668,16 @@ export const enrollmentsRouter = t.router({
         studentName: students.name,
         studentEnrollment: students.enrollment,
         studentGrade: students.grade,
+        birthDate: students.birthDate,
+        // Dados da turma
+        className: classes.name,
+        classGrade: classes.grade,
+        classShift: classes.shift,
+        schoolId: classes.schoolId,
       })
       .from(enrollments)
       .leftJoin(students, eq(enrollments.studentId, students.id))
+      .leftJoin(classes, eq(enrollments.classId, classes.id))
       .where(and(...conditions))
       .orderBy(students.name);
     }),

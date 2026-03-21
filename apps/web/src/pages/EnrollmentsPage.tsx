@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School, ArrowLeft } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
 const STATUS_LABELS: any = { active: 'Ativo', transferred: 'Transferido', cancelled: 'Cancelado', graduated: 'Aprovado', retained: 'Retido', evaded: 'Evadido' };
@@ -10,6 +11,7 @@ const STATUS_COLORS: any = { active: 'bg-green-100 text-green-700', transferred:
 
 export default function EnrollmentsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const mid = user?.municipalityId || 0;
   const [filterClass, setFilterClass] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -29,13 +31,23 @@ export default function EnrollmentsPage() {
   const { data: classesData, refetch: refetchClasses } = useQuery(() => api.classes.list({ municipalityId: mid, academicYearId: filterYear ? parseInt(filterYear) : undefined }), [mid, filterYear]);
   const { data: yearsData, refetch: refetchYears } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
   const { data: studentsData, refetch: refetchStudents } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
+  const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
   const { mutate: updateStatus } = useMutation(api.enrollments.updateStatus);
 
   const all = (enrollmentsList as any) || [];
   const allClasses = (classesData as any) || [];
   const allYears = (yearsData as any) || [];
   const allStudents = (studentsData as any) || [];
-  const filtered = all.filter((e: any) => { const q = search.toLowerCase(); return (e.studentName || '').toLowerCase().includes(q) || (e.studentEnrollment || '').includes(q); });
+  const allSchools = (schoolsData as any) || [];
+  const getSchoolName = (schoolId: number) => allSchools.find((s: any) => s.id === schoolId)?.name || '--';
+  const shiftLabel = (s: string) => s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : '--';
+  const getClassFullName = (e: any) => {
+    if (e.classGrade && e.className) return `${e.classGrade} - ${e.className}`;
+    if (e.className) return e.className;
+    const cls = allClasses.find((c: any) => c.id === e.classId);
+    return cls?.fullName || cls?.name || '--';
+  };
+  const filtered = all.filter((e: any) => { const q = search.toLowerCase(); return (e.studentName || '').toLowerCase().includes(q) || (e.studentEnrollment || '').includes(q) || (getClassFullName(e) || '').toLowerCase().includes(q); });
 
   // Students not enrolled in selected year/class for bulk enrollment
   const enrolledStudentIds = new Set(all.map((e: any) => e.studentId));
@@ -67,6 +79,7 @@ export default function EnrollmentsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Voltar"><ArrowLeft size={20} /></button>
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><ClipboardList size={20} className="text-teal-600" /></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Matrículas</h1><p className="text-gray-500">{counts.active} ativa(s) de {counts.total} total</p></div>
         </div>
@@ -80,20 +93,27 @@ export default function EnrollmentsPage() {
         <div className="relative flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar aluno..." value={search} onChange={e => setSearch(e.target.value)} /></div>
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      <div className="card p-0 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b"><tr>{['Aluno', 'Matricula', 'Data', 'Status', 'Acoes'].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead>
+          <thead className="bg-gray-50 border-b"><tr>{['Aluno', 'Matrícula', 'Turma', 'Escola', 'Turno', 'Status', 'Ações'].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.map((e: any) => (
               <tr key={e.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-800">{e.studentName}</td>
-                <td className="px-4 py-3 text-gray-500">{e.studentEnrollment || e.enrollmentNumber || '\u2014'}</td>
-                <td className="px-4 py-3 text-gray-500">{e.enrollmentDate ? new Date(e.enrollmentDate).toLocaleDateString('pt-BR') : '\u2014'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-xs font-bold text-teal-700 flex-shrink-0">{e.studentName?.[0]}</div>
+                    <div><p className="font-medium text-gray-800 text-xs">{e.studentName}</p>{e.birthDate && <p className="text-[10px] text-gray-400">{new Date(e.birthDate).toLocaleDateString('pt-BR')}</p>}</div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{e.studentEnrollment || e.enrollmentNumber || '—'}</td>
+                <td className="px-4 py-3"><span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-full">{getClassFullName(e)}</span></td>
+                <td className="px-4 py-3 text-xs text-gray-600">{e.schoolId ? getSchoolName(e.schoolId) : '--'}</td>
+                <td className="px-4 py-3 text-xs text-gray-500">{e.classShift ? shiftLabel(e.classShift) : '--'}</td>
                 <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[e.status] || ''}`}>{STATUS_LABELS[e.status] || e.status}</span></td>
                 <td className="px-4 py-3"><button onClick={() => { setStatusModal(e); setNewStatus(e.status); setStatusNotes(''); }} className="text-xs text-primary-500 hover:underline">Alterar status</button></td>
               </tr>
             ))}
-            {!filtered.length && <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-400">Nenhuma matricula encontrada</td></tr>}
+            {!filtered.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">Nenhuma matrícula encontrada</td></tr>}
           </tbody>
         </table>
       </div>

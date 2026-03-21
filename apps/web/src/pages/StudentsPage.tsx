@@ -176,12 +176,19 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
   const openNew = function() { setForm(emptyForm); setEditId(null); setTab('dados'); setFormErr(''); setShowModal(true); };
   const openEdit = function(s: any) {
+    // Find routeId by matching routeName
+    let foundRouteId = '';
+    if (s.routeName) {
+      const matchRoute = allRoutes.find(function(r: any) { return (r.route?.name || r.name) === s.routeName; });
+      if (matchRoute) foundRouteId = String(matchRoute.route?.id || matchRoute.id);
+    }
     setForm({
       ...emptyForm,
       ...s,
       photo: s.photoUrl || s.photo || '',
       className: s.classRoom || s.className || '',
       school: s.schoolId ? String(s.schoolId) : '',
+      routeId: foundRouteId,
       guardian1Name: s.emergencyContact1Name || s.guardian1Name || '',
       guardian1Phone: s.emergencyContact1Phone || s.guardian1Phone || '',
       guardian1Relation: s.emergencyContact1Relation || s.guardian1Relation || '',

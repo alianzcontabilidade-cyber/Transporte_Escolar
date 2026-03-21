@@ -294,112 +294,100 @@ export async function openReportAsPDF(html: string, filename?: string) {
   const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_');
   const safeNameClean = safeName.replace(/_+/g, '_');
 
-  // Build a standalone viewer page that embeds the report HTML inside an iframe-like container
-  const viewerHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeNameClean} - NetEscol</title>
+  // Extract body content and styles from report HTML
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+  const bodyContent = bodyMatch ? bodyMatch[1] : html;
+  let reportCSS = '';
+  if (styleMatches) {
+    for (const m of styleMatches) {
+      const inner = m.replace(/<\/?style[^>]*>/gi, '');
+      reportCSS += inner + '\n';
+    }
+  }
+  // Remove @media screen rules and body max-width that conflict with viewer
+  reportCSS = reportCSS
+    .replace(/@media\s+screen\s*\{[^{}]*\{[^}]*\}[^}]*\}/g, '')
+    .replace(/@media\s+screen\s*\{[^}]*\}/g, '');
+
+  // Escape backticks and backslashes in content for safe embedding
+  const safeBody = bodyContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+
+  const finalHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeNameClean} - NetEscol</title>
 <style>
+/* VIEWER STYLES */
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;background:#525659;font-family:Arial,sans-serif;overflow-x:hidden}
-#toolbar{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
-#toolbar .title{color:white;font-size:14px;font-weight:bold;margin-right:auto}
-#toolbar button{border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s}
-#toolbar button:hover{opacity:0.9}
-#toolbar button:disabled{opacity:0.5;cursor:wait}
-.b-pdf{background:#e53e3e;color:white}
-.b-print{background:#3182ce;color:white}
-.b-word{background:#2B579A;color:white}
-.b-zoom{background:rgba(255,255,255,0.15);color:white;padding:7px 10px!important;min-width:32px;justify-content:center}
-.b-zoom:hover{background:rgba(255,255,255,0.25)!important}
-.divider{width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px}
-#zlabel{color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;min-width:40px;text-align:center}
-#viewer{padding:56px 0 20px;display:flex;justify-content:center}
-#page{background:white;width:794px;padding:30px 40px;box-shadow:0 2px 20px rgba(0,0,0,0.3);transform-origin:top center;transition:transform 0.1s ease}
-@media print{#toolbar{display:none!important}#viewer{padding:0!important}#page{width:auto!important;max-width:none!important;box-shadow:none!important;transform:none!important;padding:0!important;margin:0!important}}
-</style></head><body>
-<div id="toolbar">
-<span class="title">NetEscol</span>
-<button class="b-zoom" onclick="zoomOut()" title="Diminuir">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-</button>
-<span id="zlabel">100%</span>
-<button class="b-zoom" onclick="zoomIn()" title="Aumentar">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-</button>
-<button class="b-zoom" onclick="zoomReset()">100%</button>
-<button class="b-zoom" onclick="zoomFit()" title="Ajustar">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-</button>
-<div class="divider"></div>
-<button id="btn-pdf" class="b-pdf" onclick="downloadPDF()">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-Baixar PDF</button>
-<button class="b-print" onclick="imprimirDoc()">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-Imprimir</button>
-<button class="b-word" onclick="downloadWord()">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg>
-Word</button>
+html{background:#525659!important}
+body{background:#525659!important;font-family:Arial,sans-serif;overflow-x:hidden;margin:0;padding:0}
+#ne-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
+#ne-toolbar .ne-title{color:white;font-size:14px;font-weight:bold;margin-right:auto}
+#ne-toolbar button{border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+#ne-toolbar button:hover{opacity:0.85}
+#ne-toolbar button:disabled{opacity:0.5;cursor:wait}
+.ne-bpdf{background:#e53e3e;color:white}
+.ne-bprint{background:#3182ce;color:white}
+.ne-bword{background:#2B579A;color:white}
+.ne-bzoom{background:rgba(255,255,255,0.15);color:white;padding:7px 10px!important;min-width:32px;justify-content:center}
+.ne-bzoom:hover{background:rgba(255,255,255,0.25)!important}
+.ne-div{width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px}
+#ne-zlabel{color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;min-width:40px;text-align:center}
+#ne-viewer{padding-top:56px;padding-bottom:20px;display:flex;justify-content:center}
+#ne-page{background:white;width:794px;min-height:500px;padding:30px 40px;box-shadow:0 2px 20px rgba(0,0,0,0.3);transform-origin:top center}
+@media print{#ne-toolbar{display:none!important}body{background:white!important}#ne-viewer{padding:0!important}#ne-page{width:100%!important;box-shadow:none!important;transform:none!important;padding:0!important}}
+</style>
+<style>
+/* REPORT STYLES */
+${reportCSS}
+</style>
+</head><body>
+<div id="ne-toolbar">
+<span class="ne-title">NetEscol</span>
+<button class="ne-bzoom" onclick="nZout()" title="Diminuir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<span id="ne-zlabel">100%</span>
+<button class="ne-bzoom" onclick="nZin()" title="Aumentar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<button class="ne-bzoom" onclick="nZreset()">100%</button>
+<button class="ne-bzoom" onclick="nZfit()" title="Ajustar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+<div class="ne-div"></div>
+<button id="ne-btnpdf" class="ne-bpdf" onclick="nDpdf()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF</button>
+<button class="ne-bprint" onclick="nPrint()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir</button>
+<button class="ne-bword" onclick="nWord()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg> Word</button>
 </div>
-<div id="viewer"><div id="page"></div></div>
+<div id="ne-viewer"><div id="ne-page">${bodyContent}</div></div>
 <script>
-var zoom=100;
-var reportHTML='';
-function setZoom(v){zoom=Math.max(25,Math.min(300,v));document.getElementById('page').style.transform='scale('+(zoom/100)+')';document.getElementById('zlabel').textContent=zoom+'%'}
-function zoomIn(){setZoom(zoom+10)}
-function zoomOut(){setZoom(zoom-10)}
-function zoomReset(){setZoom(100)}
-function zoomFit(){var w=window.innerWidth-80;setZoom(Math.min(Math.floor(w/794*100),150))}
-function getCleanHTML(){return reportHTML}
-function downloadWord(){
-var h=getCleanHTML();
-var wrap='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif}</style></head><body>'+h+'</body></html>';
-var b=new Blob(['\\uFEFF'+wrap],{type:'application/msword'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='${safeNameClean}.doc';document.body.appendChild(a);a.click();document.body.removeChild(a)}
-function downloadPDF(){
-var btn=document.getElementById('btn-pdf');btn.innerHTML='Gerando...';btn.disabled=true;
+var _z=100;
+function _sz(v){_z=Math.max(25,Math.min(300,v));document.getElementById('ne-page').style.transform='scale('+(_z/100)+')';document.getElementById('ne-zlabel').textContent=_z+'%';}
+function nZin(){_sz(_z+10);}
+function nZout(){_sz(_z-10);}
+function nZreset(){_sz(100);}
+function nZfit(){var w=window.innerWidth-80;_sz(Math.min(Math.floor(w/794*100),150));}
+function nWord(){
+var c=document.getElementById('ne-page').innerHTML;
+var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif}</style></head><body>'+c+'</body></html>';
+var b=new Blob(['\\uFEFF'+h],{type:'application/msword'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='${safeNameClean}.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function nDpdf(){
+var btn=document.getElementById('ne-btnpdf');btn.innerHTML='Gerando...';btn.disabled=true;
 var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 s.onload=function(){
-var pg=document.getElementById('page');pg.style.transform='none';
-document.getElementById('toolbar').style.display='none';
+var pg=document.getElementById('ne-page');pg.style.transform='none';
+document.getElementById('ne-toolbar').style.display='none';
 html2pdf().set({margin:[10,10,10,10],filename:'${safeNameClean}.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(pg).save().then(function(){
-document.getElementById('toolbar').style.display='flex';setZoom(zoom);
-btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF';btn.disabled=false})};
-document.head.appendChild(s)}
-function imprimirDoc(){
-var pg=document.getElementById('page');pg.style.transform='none';
-document.getElementById('toolbar').style.display='none';
-setTimeout(function(){window.print();setTimeout(function(){document.getElementById('toolbar').style.display='flex';setZoom(zoom)},500)},100)}
-window.addEventListener('load',function(){zoomFit()});
-</script></body></html>`;
-
-  // Extract just the body content and styles from the report HTML
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-  const bodyContent = bodyMatch ? bodyMatch[1] : html;
-  const reportCSS = styleMatch ? styleMatch[1] : '';
-
-  // Clean the CSS: remove @media screen rules that would conflict
-  const cleanCSS = reportCSS
-    .replace(/@media\s+screen\s*\{[\s\S]*?\}\s*\}/g, '')
-    .replace(/body\s*\{[^}]*max-width[^}]*\}/g, '');
+document.getElementById('ne-toolbar').style.display='flex';_sz(_z);
+btn.innerHTML='Baixar PDF';btn.disabled=false;
+});};document.head.appendChild(s);
+}
+function nPrint(){
+var pg=document.getElementById('ne-page');pg.style.transform='none';
+document.getElementById('ne-toolbar').style.display='none';
+setTimeout(function(){window.print();setTimeout(function(){document.getElementById('ne-toolbar').style.display='flex';_sz(_z);},500);},100);
+}
+nZfit();
+<\/script>
+</body></html>`;
 
   const w = window.open('', '_blank');
   if (w) {
-    w.document.write(viewerHTML);
+    w.document.write(finalHTML);
     w.document.close();
-    // Inject the report content + styles into the #page div after the viewer loads
-    const page = w.document.getElementById('page');
-    if (page) {
-      // Add report styles
-      const styleEl = w.document.createElement('style');
-      styleEl.textContent = cleanCSS;
-      w.document.head.appendChild(styleEl);
-      // Set content
-      page.innerHTML = bodyContent;
-      // Store for Word export
-      (w as any).reportHTML = bodyContent;
-      // Override getCleanHTML
-      const script = w.document.createElement('script');
-      script.textContent = 'reportHTML = document.getElementById("page").innerHTML;';
-      w.document.body.appendChild(script);
-    }
   }
 }

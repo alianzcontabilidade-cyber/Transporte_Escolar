@@ -1,77 +1,87 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
+import FloatingChat from './components/FloatingChat';
+
+// Paginas criticas (carregamento imediato)
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import RecoverPasswordPage from './pages/RecoverPasswordPage';
-import DashboardPage from './pages/DashboardPage';
-import RoutesPage from './pages/RoutesPage';
-import StudentsPage from './pages/StudentsPage';
-import DriversPage from './pages/DriversPage';
-import MonitoresPage from './pages/MonitoresPage';
-import VehiclesPage from './pages/VehiclesPage';
-import SchoolsPage from './pages/SchoolsPage';
-import MonitorPage from './pages/MonitorPage';
-import ReportsPage from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
-import ContractsPage from './pages/ContractsPage';
-import AttendancePage from './pages/AttendancePage';
-import GuardianPage from './pages/GuardianPage';
-import SuperAdminPage from './pages/SuperAdminPage';
-import AIRoutesPage from './pages/AIRoutesPage';
-import PredictivePage from './pages/PredictivePage';
-import TrackingPage from './pages/TrackingPage';
-import TrackMapPage from './pages/TrackMapPage';
-import AcademicYearsPage from './pages/AcademicYearsPage';
-import ClassGradesPage from './pages/ClassGradesPage';
-import SubjectsPage from './pages/SubjectsPage';
-import ClassesPage from './pages/ClassesPage';
-import TeachersPage from './pages/TeachersPage';
-import EnrollmentsPage from './pages/EnrollmentsPage';
-import DiaryPage from './pages/DiaryPage';
-import HRPage from './pages/HRPage';
-import FinancialPage from './pages/FinancialPage';
-import MerendaPage from './pages/MerendaPage';
-import LibraryPage from './pages/LibraryPage';
-import AssetsPage from './pages/AssetsPage';
-import EducacensoPage from './pages/EducacensoPage';
-import TransparencyPage from './pages/TransparencyPage';
-import CalendarPage from './pages/CalendarPage';
-import MessagesPage from './pages/MessagesPage';
-import WaitingListPage from './pages/WaitingListPage';
-import ReportCardPage from './pages/ReportCardPage';
-import DescriptiveReportPage from './pages/DescriptiveReportPage';
-import StudentTransferPage from './pages/StudentTransferPage';
-import StudentCardPage from './pages/StudentCardPage';
-import ATAResultsPage from './pages/ATAResultsPage';
-import GradeEntryPage from './pages/GradeEntryPage';
-import PromotionPage from './pages/PromotionPage';
-import AttendanceReportPage from './pages/AttendanceReportPage';
-import StudentHistoryPage from './pages/StudentHistoryPage';
-import TransportReportPage from './pages/TransportReportPage';
-import StudentCertificatesPage from './pages/StudentCertificatesPage';
-import UserActivityPage from './pages/UserActivityPage';
 import ModulesPage from './pages/ModulesPage';
-import BulkNotifyPage from './pages/BulkNotifyPage';
-import PurchaseQuotationPage from './pages/PurchaseQuotationPage';
-import ClassSchedulePage from './pages/ClassSchedulePage';
-import SystemInfoPage from './pages/SystemInfoPage';
-import StudentReportPage from './pages/StudentReportPage';
-import SchoolReportPage from './pages/SchoolReportPage';
-import ClassRosterPage from './pages/ClassRosterPage';
-import DataBackupPage from './pages/DataBackupPage';
-import ClassCouncilPage from './pages/ClassCouncilPage';
-import StudentOccurrencePage from './pages/StudentOccurrencePage';
-import MealStockPage from './pages/MealStockPage';
-import VehicleInspectionPage from './pages/VehicleInspectionPage';
-import ProtocolPage from './pages/ProtocolPage';
-import EventManagementPage from './pages/EventManagementPage';
-import DailyBulletinPage from './pages/DailyBulletinPage';
-import ReportCenterPage from './pages/ReportCenterPage';
-import EnrollmentFormPage from './pages/EnrollmentFormPage';
-import MunicipalitySettingsPage from './pages/MunicipalitySettingsPage';
-import FormConfigPage from './pages/FormConfigPage';
-import FloatingChat from './components/FloatingChat';
+
+// Lazy loading - carrega sob demanda quando o usuario navega
+const RecoverPasswordPage = lazy(() => import('./pages/RecoverPasswordPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const RoutesPage = lazy(() => import('./pages/RoutesPage'));
+const StudentsPage = lazy(() => import('./pages/StudentsPage'));
+const DriversPage = lazy(() => import('./pages/DriversPage'));
+const MonitoresPage = lazy(() => import('./pages/MonitoresPage'));
+const VehiclesPage = lazy(() => import('./pages/VehiclesPage'));
+const SchoolsPage = lazy(() => import('./pages/SchoolsPage'));
+const MonitorPage = lazy(() => import('./pages/MonitorPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ContractsPage = lazy(() => import('./pages/ContractsPage'));
+const AttendancePage = lazy(() => import('./pages/AttendancePage'));
+const GuardianPage = lazy(() => import('./pages/GuardianPage'));
+const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
+const AIRoutesPage = lazy(() => import('./pages/AIRoutesPage'));
+const PredictivePage = lazy(() => import('./pages/PredictivePage'));
+const TrackingPage = lazy(() => import('./pages/TrackingPage'));
+const TrackMapPage = lazy(() => import('./pages/TrackMapPage'));
+const AcademicYearsPage = lazy(() => import('./pages/AcademicYearsPage'));
+const ClassGradesPage = lazy(() => import('./pages/ClassGradesPage'));
+const SubjectsPage = lazy(() => import('./pages/SubjectsPage'));
+const ClassesPage = lazy(() => import('./pages/ClassesPage'));
+const TeachersPage = lazy(() => import('./pages/TeachersPage'));
+const EnrollmentsPage = lazy(() => import('./pages/EnrollmentsPage'));
+const DiaryPage = lazy(() => import('./pages/DiaryPage'));
+const HRPage = lazy(() => import('./pages/HRPage'));
+const FinancialPage = lazy(() => import('./pages/FinancialPage'));
+const MerendaPage = lazy(() => import('./pages/MerendaPage'));
+const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+const AssetsPage = lazy(() => import('./pages/AssetsPage'));
+const EducacensoPage = lazy(() => import('./pages/EducacensoPage'));
+const TransparencyPage = lazy(() => import('./pages/TransparencyPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const WaitingListPage = lazy(() => import('./pages/WaitingListPage'));
+const ReportCardPage = lazy(() => import('./pages/ReportCardPage'));
+const DescriptiveReportPage = lazy(() => import('./pages/DescriptiveReportPage'));
+const StudentTransferPage = lazy(() => import('./pages/StudentTransferPage'));
+const StudentCardPage = lazy(() => import('./pages/StudentCardPage'));
+const ATAResultsPage = lazy(() => import('./pages/ATAResultsPage'));
+const GradeEntryPage = lazy(() => import('./pages/GradeEntryPage'));
+const PromotionPage = lazy(() => import('./pages/PromotionPage'));
+const AttendanceReportPage = lazy(() => import('./pages/AttendanceReportPage'));
+const StudentHistoryPage = lazy(() => import('./pages/StudentHistoryPage'));
+const TransportReportPage = lazy(() => import('./pages/TransportReportPage'));
+const StudentCertificatesPage = lazy(() => import('./pages/StudentCertificatesPage'));
+const UserActivityPage = lazy(() => import('./pages/UserActivityPage'));
+const BulkNotifyPage = lazy(() => import('./pages/BulkNotifyPage'));
+const PurchaseQuotationPage = lazy(() => import('./pages/PurchaseQuotationPage'));
+const ClassSchedulePage = lazy(() => import('./pages/ClassSchedulePage'));
+const SystemInfoPage = lazy(() => import('./pages/SystemInfoPage'));
+const StudentReportPage = lazy(() => import('./pages/StudentReportPage'));
+const SchoolReportPage = lazy(() => import('./pages/SchoolReportPage'));
+const ClassRosterPage = lazy(() => import('./pages/ClassRosterPage'));
+const DataBackupPage = lazy(() => import('./pages/DataBackupPage'));
+const ClassCouncilPage = lazy(() => import('./pages/ClassCouncilPage'));
+const StudentOccurrencePage = lazy(() => import('./pages/StudentOccurrencePage'));
+const MealStockPage = lazy(() => import('./pages/MealStockPage'));
+const VehicleInspectionPage = lazy(() => import('./pages/VehicleInspectionPage'));
+const ProtocolPage = lazy(() => import('./pages/ProtocolPage'));
+const EventManagementPage = lazy(() => import('./pages/EventManagementPage'));
+const DailyBulletinPage = lazy(() => import('./pages/DailyBulletinPage'));
+const ReportCenterPage = lazy(() => import('./pages/ReportCenterPage'));
+const EnrollmentFormPage = lazy(() => import('./pages/EnrollmentFormPage'));
+const MunicipalitySettingsPage = lazy(() => import('./pages/MunicipalitySettingsPage'));
+const FormConfigPage = lazy(() => import('./pages/FormConfigPage'));
+
+// Loading fallback
+function PageLoader() {
+  return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-accent-500" /></div>;
+}
 
 function Guard({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user } = useAuth();
@@ -100,6 +110,7 @@ export default function App() {
 
   return (
     <>
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
@@ -193,6 +204,7 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
     {user && <FloatingChat />}
   </>
   );

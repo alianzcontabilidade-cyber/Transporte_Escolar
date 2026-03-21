@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function AttendanceReportPage() {
@@ -12,6 +13,7 @@ export default function AttendanceReportPage() {
   const mid = user?.municipalityId || 0;
   const [municipalityName, setMunicipalityName] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [selClass, setSelClass] = useState('');
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export default function AttendanceReportPage() {
     loadMunicipalityData(mid, api).then(({ municipality }) => {
       setMunicipalityName(municipality.name || '');
     });
+    getMunicipalityReport(mid, api).then(setMunReport).catch(() => {});
   }, [mid]);
   const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -62,7 +65,24 @@ export default function AttendanceReportPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "AttendanceReport" });
+    const rows = summary.map((s: any, i: number) => ({
+      num: i + 1,
+      aluno: s.studentName || '--',
+      presencas: s.present || 0,
+      faltas: s.absent || 0,
+      justificadas: s.justified || 0,
+      atrasos: s.late || 0,
+      total: s.total || 0,
+      percentual: s.total > 0 ? Math.round(((s.present + (s.justified || 0)) / s.total) * 100) + '%' : '0%',
+    }));
+    const cols = ['N', 'Aluno', 'Presencas', 'Faltas', 'Justificadas', 'Atrasos', 'Total', '% Presenca'];
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    const html = buildTableReportHTML('RELATORIO DE FREQUENCIA', rows, cols, munReport, {
+      subtitle: `Turma: ${cls?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
+      orientation: 'landscape',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'relatorio_frequencia' });
   };
 
   return (

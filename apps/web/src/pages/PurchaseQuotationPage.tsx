@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 interface QuotationItem {
@@ -14,9 +16,14 @@ interface QuotationItem {
 }
 
 export default function PurchaseQuotationPage() {
+  const { user } = useAuth();
+  const mid = user?.municipalityId || 0;
   const [items, setItems] = useState<QuotationItem[]>([]);
   const [suppliers, setSuppliers] = useState(['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3']);
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [title, setTitle] = useState('Cotação de Preços - ' + new Date().toLocaleDateString('pt-BR'));
   const [newItem, setNewItem] = useState({ description: '', unit: 'un', quantity: 1 });
   const [importMsg, setImportMsg] = useState('');
@@ -115,7 +122,23 @@ export default function PurchaseQuotationPage() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "PurchaseQuotation" });
+    const winner = getWinner();
+    const rows = items.map((item: any, i: number) => ({
+      num: i + 1,
+      descricao: item.description || '--',
+      unidade: item.unit || 'un',
+      quantidade: item.quantity,
+      forn1: 'R$ ' + (item.supplier1Price * item.quantity).toFixed(2),
+      forn2: 'R$ ' + (item.supplier2Price * item.quantity).toFixed(2),
+      forn3: 'R$ ' + (item.supplier3Price * item.quantity).toFixed(2),
+    }));
+    const cols = ['#', 'Descricao', 'Unid.', 'Qtd.', suppliers[0], suppliers[1], suppliers[2]];
+    const html = buildTableReportHTML(title, rows, cols, munReport, {
+      summary: `Menor preco global: ${suppliers[winner]} - R$ ${[getTotal('supplier1Price'), getTotal('supplier2Price'), getTotal('supplier3Price')][winner]?.toFixed(2)}`,
+      orientation: 'landscape',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'cotacao_compras' });
   };
 
   return (

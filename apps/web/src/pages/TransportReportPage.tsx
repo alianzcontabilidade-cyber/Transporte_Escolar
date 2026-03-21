@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { Bus, Printer, Download, MapPin, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function TransportReportPage() {
@@ -12,12 +13,14 @@ export default function TransportReportPage() {
   const mid = user?.municipalityId || 0;
   const [municipalityName, setMunicipalityName] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
 
   useEffect(() => {
     if (!mid) return;
     loadMunicipalityData(mid, api).then(({ municipality }) => {
       setMunicipalityName(municipality.name || '');
     });
+    getMunicipalityReport(mid, api).then(setMunReport).catch(() => {});
   }, [mid]);
 
   const { data: routesData } = useQuery(() => api.routes.list({ municipalityId: mid }), [mid]);
@@ -63,7 +66,17 @@ export default function TransportReportPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "TransportReport" });
+    const rows = allTrips.map((t: any) => ({
+      rota: t.route?.name || '--',
+      data: t.trip?.tripDate ? new Date(t.trip.tripDate).toLocaleDateString('pt-BR') : '--',
+      inicio: t.trip?.startedAt ? new Date(t.trip.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--',
+      fim: t.trip?.completedAt ? new Date(t.trip.completedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--',
+      status: t.trip?.status === 'completed' ? 'Concluida' : t.trip?.status || '--',
+    }));
+    const cols = ['Rota', 'Data', 'Inicio', 'Fim', 'Status'];
+    const html = buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape' });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'relatorio_transporte' });
   };
 
   return (

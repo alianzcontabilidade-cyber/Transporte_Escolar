@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { AlertTriangle, Plus, Search, Printer, Trash2, X , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 interface Occurrence {
@@ -29,7 +30,10 @@ export default function StudentOccurrencePage() {
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [form, setForm] = useState({ studentId: '', date: new Date().toISOString().split('T')[0], type: 'indisciplina', description: '', action: '' });
   const [occurrences, setOccurrences] = useState<Occurrence[]>(() => {
     try { return JSON.parse(localStorage.getItem('netescol_occurrences_' + mid) || '[]'); } catch { return []; }
@@ -74,7 +78,17 @@ export default function StudentOccurrencePage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "StudentOccurrence" });
+    const rows = filtered.map((o: any) => ({
+      data: new Date(o.date).toLocaleDateString('pt-BR'),
+      aluno: o.studentName || '--',
+      tipo: OCC_TYPES.find(t => t.v === o.type)?.l || o.type,
+      descricao: o.description || '--',
+      providencia: o.action || '--',
+    }));
+    const cols = ['Data', 'Aluno', 'Tipo', 'Descricao', 'Providencia'];
+    const html = buildTableReportHTML('REGISTRO DE OCORRENCIAS', rows, cols, munReport, { orientation: 'landscape' });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'ocorrencias' });
   };
 
   return (

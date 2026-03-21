@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { Newspaper, Plus, X, Trash2, Pin, Printer , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 interface Bulletin {
@@ -26,7 +28,10 @@ export default function DailyBulletinPage() {
   const mid = user?.municipalityId || 0;
   const [showModal, setShowModal] = useState(false);
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [form, setForm] = useState({ title: '', content: '', category: 'aviso' });
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [bulletins, setBulletins] = useState<Bulletin[]>(() => { try { return JSON.parse(localStorage.getItem('netescol_bulletins_' + mid) || '[]'); } catch { return []; } });
 
   const saveBulletins = (b: Bulletin[]) => { setBulletins(b); localStorage.setItem('netescol_bulletins_' + mid, JSON.stringify(b)); };
@@ -60,7 +65,18 @@ export default function DailyBulletinPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "DailyBulletin" });
+    const rows = sorted.map((b: any) => ({
+      data: new Date(b.date).toLocaleDateString('pt-BR'),
+      titulo: b.title || '--',
+      categoria: CATEGORIES.find(c => c.v === b.category)?.l || b.category,
+      conteudo: b.content || '--',
+      autor: b.author || '--',
+      fixado: b.pinned ? 'Sim' : 'Nao',
+    }));
+    const cols = ['Data', 'Titulo', 'Categoria', 'Conteudo', 'Autor', 'Fixado'];
+    const html = buildTableReportHTML('MURAL INFORMATIVO', rows, cols, munReport, { orientation: 'landscape' });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'mural_informativo' });
   };
 
   return (

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Search, Printer, Users , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function EnrollmentFormPage() {
@@ -10,7 +11,10 @@ export default function EnrollmentFormPage() {
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [selStudent, setSelStudent] = useState<any>(null);
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
@@ -148,7 +152,18 @@ export default function EnrollmentFormPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "EnrollmentForm" });
+    const rows = allStudents.map((s: any) => ({
+      nome: s.name || '--',
+      matricula: s.enrollment || '--',
+      serie: s.grade || '--',
+      turma: s.classRoom || '--',
+      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+      escola: getSchool(s.schoolId)?.name || '--',
+    }));
+    const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Escola'];
+    const html = buildTableReportHTML('LISTA DE ALUNOS MATRICULADOS', rows, cols, munReport, { orientation: 'landscape' });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'ficha_matricula' });
   };
 
   return (

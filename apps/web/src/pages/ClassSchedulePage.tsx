@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Clock, Printer, Save , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
@@ -13,7 +14,10 @@ export default function ClassSchedulePage() {
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [schedule, setSchedule] = useState<Record<string, string>>({});
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [saved, setSaved] = useState(false);
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
@@ -68,7 +72,23 @@ export default function ClassSchedulePage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "ClassSchedule" });
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    const rows = PERIODS.map((p, pi) => {
+      const row: any = { horario: p };
+      DAYS.forEach((d, di) => {
+        const subId = getSubject(di, pi);
+        const sub = allSubjects.find((s: any) => String(s.id) === subId);
+        row[d.toLowerCase()] = sub?.name || '--';
+      });
+      return row;
+    });
+    const cols = ['Horario', ...DAYS];
+    const html = buildTableReportHTML('GRADE HORARIA - ' + (cls?.fullName || ''), rows, cols, munReport, {
+      subtitle: `${cls?.fullName || ''} - ${cls?.schoolName || ''}`,
+      orientation: 'landscape',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'grade_horaria' });
   };
 
   return (

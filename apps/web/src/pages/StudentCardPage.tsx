@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { CreditCard, Printer, Search, Users , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function StudentCardPage() {
@@ -10,7 +11,10 @@ export default function StudentCardPage() {
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [search, setSearch] = useState('');
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
@@ -62,7 +66,18 @@ export default function StudentCardPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "StudentCard" });
+    const rows = allStudents.map((s: any) => ({
+      nome: s.name || '--',
+      matricula: s.enrollment || '--',
+      serie: s.grade || '--',
+      turma: s.classRoom || '--',
+      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+      nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '--',
+    }));
+    const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Nascimento'];
+    const html = buildTableReportHTML('LISTA DE ALUNOS - CARTEIRINHA ESTUDANTIL', rows, cols, munReport, { orientation: 'landscape' });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'carteirinha_estudantil' });
   };
 
   return (

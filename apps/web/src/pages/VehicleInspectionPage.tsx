@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const CHECKLIST = [
@@ -31,7 +32,10 @@ export default function VehicleInspectionPage() {
   const mid = user?.municipalityId || 0;
   const [selVehicle, setSelVehicle] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [checks, setChecks] = useState<Record<string, 'ok' | 'nok' | ''>>({});
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [observations, setObservations] = useState('');
   const [inspector, setInspector] = useState(user?.name || '');
 
@@ -77,7 +81,18 @@ export default function VehicleInspectionPage() {
   const categories = [...new Set(CHECKLIST.map(c => c.category))];
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "VehicleInspection" });
+    const rows = CHECKLIST.map((c: any) => ({
+      categoria: c.category,
+      item: c.label,
+      status: checks[c.id] === 'ok' ? 'Aprovado' : checks[c.id] === 'nok' ? 'Reprovado' : 'Pendente',
+    }));
+    const cols = ['Categoria', 'Item', 'Status'];
+    const html = buildTableReportHTML('RELATORIO DE VISTORIA VEICULAR - ' + (vehicle?.plate || ''), rows, cols, munReport, {
+      subtitle: `Placa: ${vehicle?.plate || ''} | ${vehicle?.brand || ''} ${vehicle?.model || ''} | Inspetor: ${inspector} | ${pct}% aprovado`,
+      orientation: 'portrait',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'vistoria_veicular' });
   };
 
   return (

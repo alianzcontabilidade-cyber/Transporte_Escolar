@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function MealStockPage() {
@@ -10,7 +11,10 @@ export default function MealStockPage() {
   const mid = user?.municipalityId || 0;
   const [showModal, setShowModal] = useState(false);
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [form, setForm] = useState({ name: '', category: 'Alimento', unit: 'kg', currentStock: '0', minStock: '10', location: '' });
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [search, setSearch] = useState('');
 
   const { data: itemsData, refetch } = useQuery(() => api.inventory.list({ municipalityId: mid }), [mid]);
@@ -58,7 +62,21 @@ export default function MealStockPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "MealStock" });
+    const rows = allItems.map((i: any) => ({
+      item: i.name || '--',
+      categoria: i.category || '--',
+      unidade: i.unit || 'un',
+      estoque: i.currentStock || 0,
+      minimo: i.minStock || 5,
+      status: (i.currentStock || 0) <= (i.minStock || 5) ? 'BAIXO' : 'OK',
+    }));
+    const cols = ['Item', 'Categoria', 'Unidade', 'Estoque Atual', 'Minimo', 'Status'];
+    const html = buildTableReportHTML('CONTROLE DE ESTOQUE - MERENDA ESCOLAR', rows, cols, munReport, {
+      summary: lowStock.length + ' item(ns) com estoque baixo',
+      orientation: 'portrait',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'estoque_merenda' });
   };
 
   return (

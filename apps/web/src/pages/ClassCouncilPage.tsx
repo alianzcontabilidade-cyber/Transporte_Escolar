@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Users, Save, Printer, CheckCircle, AlertTriangle , Download } from 'lucide-react';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 const BIMESTERS = [{ v: '1', l: '1° Bimestre' }, { v: '2', l: '2° Bimestre' }, { v: '3', l: '3° Bimestre' }, { v: '4', l: '4° Bimestre' }];
@@ -12,7 +13,10 @@ export default function ClassCouncilPage() {
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [selBimester, setSelBimester] = useState('1');
+
+  useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [notes, setNotes] = useState<Record<number, { decision: string; observations: string }>>({});
   const [generalNotes, setGeneralNotes] = useState('');
   const [saved, setSaved] = useState(false);
@@ -76,7 +80,24 @@ export default function ClassCouncilPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "ClassCouncil" });
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    const bimLabel = BIMESTERS.find(b => b.v === selBimester)?.l || '';
+    const rows = allEnrollments.map((e: any, i: number) => {
+      const n = getNote(e.studentId);
+      return {
+        num: i + 1,
+        aluno: e.studentName || '--',
+        decisao: n.decision === 'aprovado' ? 'Aprovado' : n.decision === 'retido' ? 'Retido' : 'Recuperacao',
+        observacoes: n.observations || '--',
+      };
+    });
+    const cols = ['N', 'Aluno', 'Decisao', 'Observacoes'];
+    const html = buildTableReportHTML('ATA DO CONSELHO DE CLASSE', rows, cols, munReport, {
+      subtitle: `${cls?.fullName || ''} - ${cls?.schoolName || ''} | ${bimLabel}`,
+      orientation: 'landscape',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'conselho_classe' });
   };
 
   return (

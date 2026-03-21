@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
+import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 export default function SchoolReportPage() {
@@ -12,6 +13,7 @@ export default function SchoolReportPage() {
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
+  const [munReport, setMunReport] = useState<any>(null);
   const [municipalityName, setMunicipalityName] = useState('');
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export default function SchoolReportPage() {
     loadMunicipalityData(mid, api).then(({ municipality }) => {
       setMunicipalityName(municipality.name || '');
     }).catch(() => {});
+    getMunicipalityReport(mid, api).then(setMunReport).catch(() => {});
   }, [mid]);
 
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
@@ -67,7 +70,21 @@ export default function SchoolReportPage() {
   };
 
   const handleExportClick = () => {
-    setPgExportModal({ html, filename: "SchoolReport" });
+    const rows = allStudents.map((s: any, i: number) => ({
+      num: i + 1,
+      nome: s.name || '--',
+      matricula: s.enrollment || '--',
+      serie: s.grade || '--',
+      turma: s.classRoom || '--',
+      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+    }));
+    const cols = ['N', 'Nome', 'Matricula', 'Serie', 'Turma', 'Turno'];
+    const html = buildTableReportHTML('RELATORIO POR ESCOLA - ' + (school?.name || ''), rows, cols, munReport, {
+      subtitle: school?.name || '',
+      orientation: 'landscape',
+    });
+    if (!html) { alert('Nenhum dado para exportar'); return; }
+    setPgExportModal({ html, filename: 'relatorio_escola' });
   };
 
   return (

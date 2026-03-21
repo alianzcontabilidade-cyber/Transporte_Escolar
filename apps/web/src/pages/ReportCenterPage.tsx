@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import {
   BarChart3, Search, FileText, School, GraduationCap, Bus, Briefcase,
-  Star, Download, ExternalLink, Printer, Clock, Filter, ChevronRight,
+  Star, ExternalLink, Clock, Filter, ChevronRight,
   TrendingUp, Users, Truck, BookOpen, Hash, X
 } from 'lucide-react';
 
@@ -295,20 +295,10 @@ export default function ReportCenterPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex border-t border-gray-100 dark:border-gray-700">
+                      <div className="border-t border-gray-100 dark:border-gray-700">
                         <button onClick={() => openReport(r)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
-                          <ExternalLink size={13} /> Abrir
-                        </button>
-                        <div className="w-px bg-gray-100 dark:bg-gray-700" />
-                        <button onClick={() => { trackAccess(r.code); navigate(r.to); }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                          <Download size={13} /> Exportar
-                        </button>
-                        <div className="w-px bg-gray-100 dark:bg-gray-700" />
-                        <button onClick={() => { trackAccess(r.code); navigate(r.to); }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-                          <Printer size={13} /> Imprimir
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
+                          <ExternalLink size={13} /> Abrir Relatório
                         </button>
                       </div>
                     </div>

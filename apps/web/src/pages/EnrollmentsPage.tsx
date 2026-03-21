@@ -25,6 +25,8 @@ export default function EnrollmentsPage() {
   const [statusModal, setStatusModal] = useState<any>(null);
   const [newStatus, setNewStatus] = useState('');
   const [statusNotes, setStatusNotes] = useState('');
+  const [classModal, setClassModal] = useState<any>(null);
+  const [newClassId, setNewClassId] = useState('');
   const [quickAdd, setQuickAdd] = useState<string | null>(null);
 
   const { data: enrollmentsList, refetch } = useQuery(() => api.enrollments.list({ municipalityId: mid, classId: filterClass ? parseInt(filterClass) : undefined, academicYearId: filterYear ? parseInt(filterYear) : undefined, status: filterStatus || undefined }), [mid, filterClass, filterYear, filterStatus]);
@@ -72,6 +74,16 @@ export default function EnrollmentsPage() {
     updateStatus({ id: statusModal.id, status: newStatus as any, statusNotes: statusNotes || undefined }, { onSuccess: () => { refetch(); setStatusModal(null); setNewStatus(''); setStatusNotes(''); } });
   };
 
+  const handleClassChange = async () => {
+    if (!classModal || !newClassId) return;
+    try {
+      await api.enrollments.updateClass({ id: classModal.id, classId: parseInt(newClassId) });
+      refetch();
+      setClassModal(null);
+      setNewClassId('');
+    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao alterar turma')); }
+  };
+
   const activeYear = allYears.find((y: any) => y.status === 'active');
   const counts = { active: all.filter((e: any) => e.status === 'active').length, total: all.length };
 
@@ -110,7 +122,12 @@ export default function EnrollmentsPage() {
                 <td className="px-4 py-3 text-xs text-gray-600">{e.schoolId ? getSchoolName(e.schoolId) : '--'}</td>
                 <td className="px-4 py-3 text-xs text-gray-500">{e.classShift ? shiftLabel(e.classShift) : '--'}</td>
                 <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[e.status] || ''}`}>{STATUS_LABELS[e.status] || e.status}</span></td>
-                <td className="px-4 py-3"><button onClick={() => { setStatusModal(e); setNewStatus(e.status); setStatusNotes(''); }} className="text-xs text-primary-500 hover:underline">Alterar status</button></td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-2">
+                    <button onClick={() => { setClassModal(e); setNewClassId(String(e.classId || '')); }} className="text-xs text-indigo-500 hover:underline">Alterar turma</button>
+                    <button onClick={() => { setStatusModal(e); setNewStatus(e.status); setStatusNotes(''); }} className="text-xs text-primary-500 hover:underline">Alterar status</button>
+                  </div>
+                </td>
               </tr>
             ))}
             {!filtered.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">Nenhuma matrícula encontrada</td></tr>}
@@ -126,6 +143,16 @@ export default function EnrollmentsPage() {
           <div><label className="label">Observacoes</label><textarea className="input" rows={2} value={statusNotes} onChange={e => setStatusNotes(e.target.value)} placeholder="Motivo da alteracao..." /></div>
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setStatusModal(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={handleStatusChange} className="btn-primary flex-1">Salvar</button></div>
+      </div></div>)}
+
+      {/* Modal alterar turma */}
+      {classModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="p-5 border-b"><h3 className="font-semibold">Alterar Turma da Matrícula</h3><p className="text-sm text-gray-500 mt-1">{classModal.studentName}</p><p className="text-xs text-gray-400">Turma atual: <b>{getClassFullName(classModal)}</b></p></div>
+        <div className="p-5 space-y-3">
+          <div><label className="label">Nova turma</label><select className="input" value={newClassId} onChange={e => setNewClassId(e.target.value)}><option value="">Selecione a turma</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select></div>
+          <p className="text-xs text-gray-400">Ao alterar a turma, a série, turno e escola do aluno serão atualizados automaticamente.</p>
+        </div>
+        <div className="flex gap-3 p-5 border-t"><button onClick={() => setClassModal(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={handleClassChange} disabled={!newClassId || newClassId === String(classModal.classId)} className="btn-primary flex-1">Salvar</button></div>
       </div></div>)}
 
       {/* Modal matricula em lote */}

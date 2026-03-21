@@ -2730,7 +2730,81 @@ export const enrollmentsRouter = t.router({
         });
         created++;
       }
+
+      // Sincronizar: atualizar grade, classRoom e shift nos alunos matriculados
+      if (created > 0) {
+        try {
+          const [cls] = await db.select({
+            name: classes.name, fullName: classes.fullName, shift: classes.shift, schoolId: classes.schoolId, gradeId: classes.classGradeId,
+          }).from(classes).where(eq(classes.id, input.classId)).limit(1);
+          if (cls) {
+            let gradeName = '';
+            if (cls.gradeId) {
+              const [cg] = await db.select({ name: classGrades.name }).from(classGrades).where(eq(classGrades.id, cls.gradeId)).limit(1);
+              if (cg) gradeName = cg.name;
+            }
+            const su: any = {};
+            if (cls.name) su.classRoom = cls.name;
+            if (gradeName) su.grade = gradeName;
+            if (cls.shift) su.shift = cls.shift;
+            if (Object.keys(su).length > 0) {
+              for (const sid of input.studentIds) {
+                if (!existing.length || !existing.some((e: any) => e.studentId === sid)) {
+                  await db.update(students).set(su).where(eq(students.id, sid));
+                }
+              }
+            }
+          }
+        } catch { /* sync best effort */ }
+      }
+
       return { success: true, created, skipped };
+    }),
+
+  // Alterar turma da matrícula + sincronizar com aluno
+  updateClass: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      classId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      // Buscar enrollment atual
+      const [enr] = await db.select().from(enrollments).where(eq(enrollments.id, input.id)).limit(1);
+      if (!enr) throw new TRPCError({ code: 'NOT_FOUND', message: 'Matrícula não encontrada' });
+
+      // Atualizar enrollment
+      await db.update(enrollments).set({ classId: input.classId }).where(eq(enrollments.id, input.id));
+
+      // Buscar dados da nova turma para sincronizar com aluno
+      const [cls] = await db.select({
+        name: classes.name,
+        fullName: classes.fullName,
+        shift: classes.shift,
+        schoolId: classes.schoolId,
+        gradeId: classes.classGradeId,
+      }).from(classes).where(eq(classes.id, input.classId)).limit(1);
+
+      if (cls) {
+        // Buscar nome da série
+        let gradeName = '';
+        if (cls.gradeId) {
+          const [cg] = await db.select({ name: classGrades.name }).from(classGrades).where(eq(classGrades.id, cls.gradeId)).limit(1);
+          if (cg) gradeName = cg.name;
+        }
+
+        // Sincronizar: atualizar grade, classRoom, shift e schoolId no aluno
+        const studentUpdate: any = {};
+        if (cls.name) studentUpdate.classRoom = cls.name;
+        if (gradeName) studentUpdate.grade = gradeName;
+        if (cls.shift) studentUpdate.shift = cls.shift;
+        if (cls.schoolId) studentUpdate.schoolId = cls.schoolId;
+
+        if (Object.keys(studentUpdate).length > 0) {
+          await db.update(students).set(studentUpdate).where(eq(students.id, enr.studentId));
+        }
+      }
+
+      return { success: true };
     }),
 
   updateStatus: adminProcedure

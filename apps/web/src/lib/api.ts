@@ -239,6 +239,7 @@ export const api = {
     create: (input: any) => call('enrollments.create', input, 'mutation'),
     bulkCreate: (input: any) => call('enrollments.bulkCreate', input, 'mutation'),
     updateStatus: (input: any) => call('enrollments.updateStatus', input, 'mutation'),
+    updateClass: (input: any) => call('enrollments.updateClass', input, 'mutation'),
     delete: (input: any) => call('enrollments.delete', input, 'mutation'),
   },
   teachers: {

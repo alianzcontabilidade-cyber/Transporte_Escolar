@@ -340,8 +340,8 @@ export default function SchoolsPage() {
               <button onClick={() => {
                 const s = viewSchool;
                 const rows = [{ nome: s.name||'--', tipo: s.type||'--', inep: s.code||'--', diretor: s.directorName||'--', telefone: s.phone||'--', email: s.email||'--', endereco: s.address||'--', manha: (s.morningStart||'--')+' - '+(s.morningEnd||'--'), tarde: (s.afternoonStart||'--')+' - '+(s.afternoonEnd||'--') }];
-                const html = buildTableReportHTML('FICHA DA ESCOLA', rows, ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], munReport, { orientation: 'landscape', signatories: selectedSigs });
-                if (html) setSchExportModal({ title: 'Ficha da Escola', data: [s], cols: ['Nome','Tipo','INEP','Diretor','Telefone','Email','Endereco','Manha','Tarde'], filename: 'Ficha_Escola_' + (s.name || '') });
+                setViewSchool(null);
+                setTimeout(() => { setSchExportModal({ title: 'Ficha da Escola', data: rows, cols: ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], filename: 'Ficha_Escola_' + (s.name || '') }); }, 100);
               }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Download size={14} /> Exportar</button>
               <button onClick={() => { setViewSchool(null); openEdit(viewSchool); }} className="btn-primary flex-1">Editar</button>
             </div>

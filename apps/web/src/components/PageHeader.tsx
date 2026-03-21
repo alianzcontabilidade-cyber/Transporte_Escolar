@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Star, Printer, Download, FileText, FileSpreadsheet, Search, Clock, X, ArrowLeft } from 'lucide-react';
+import { Home, Star, ArrowLeft } from 'lucide-react';
 
 const PAGE_CODES: Record<string, { code: string; title: string; module: string; color: string }> = {
   '/dashboard': { code: '001', title: 'Dashboard', module: 'Painel Central', color: '#2DB5B0' },
@@ -68,6 +68,20 @@ const PAGE_CODES: Record<string, { code: string; title: string; module: string; 
   '/cadastro-prefeitura': { code: '507', title: 'Cadastro da Prefeitura', module: 'Central de Controle', color: '#64748b' },
   '/config-formularios': { code: '508', title: 'Configuração de Formulários', module: 'Central de Controle', color: '#64748b' },
   '/relacao-alunos-turma': { code: '118', title: 'Relação de Alunos por Turma', module: 'Gestão Escolar', color: '#6366f1' },
+  '/relatorio-individual': { code: '212', title: 'Relatório Individual', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/quadro-rendimento': { code: '213', title: 'Quadro de Rendimento', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/ata-resultados-finais': { code: '214', title: 'Ata Resultados Finais', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/baixo-rendimento': { code: '215', title: 'Baixo Rendimento', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/diario-classe': { code: '216', title: 'Diário de Classe', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/quadro-curricular': { code: '217', title: 'Quadro Curricular', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/desempenho-disciplina': { code: '218', title: 'Desempenho por Disciplina', module: 'Ensino e Aprendizagem', color: '#8b5cf6' },
+  '/alunos-transportados': { code: '312', title: 'Alunos Transportados', module: 'Frota e Rotas', color: '#f97316' },
+  '/quilometragem': { code: '313', title: 'Quilometragem', module: 'Frota e Rotas', color: '#f97316' },
+  '/abastecimento': { code: '314', title: 'Abastecimento', module: 'Frota e Rotas', color: '#f97316' },
+  '/relatorio-manutencoes': { code: '315', title: 'Manutenções', module: 'Frota e Rotas', color: '#f97316' },
+  '/relatorio-rh': { code: '417', title: 'Relatório RH', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/relatorio-patrimonio': { code: '418', title: 'Relatório Patrimônio', module: 'Gestão e Recursos', color: '#0ea5e9' },
+  '/relatorio-educacenso': { code: '419', title: 'Relatório EDUCACENSO', module: 'Gestão e Recursos', color: '#0ea5e9' },
 };
 
 // Favorites management
@@ -179,7 +193,6 @@ export default function PageHeader() {
   const path = location.pathname;
   const page = PAGE_CODES[path];
   const [isFavorite, setIsFavorite] = useState(false);
-  const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
     if (page) {
@@ -213,23 +226,8 @@ export default function PageHeader() {
           <button onClick={handleFavorite} className={`p-2 rounded-lg transition-all ${isFavorite ? 'text-yellow-300 bg-white/10' : 'text-white/50 hover:text-yellow-300 hover:bg-white/10'}`} title={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
             <Star size={16} fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
-          <button onClick={() => setShowExport(!showExport)} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all" title="Exportar / Imprimir">
-            <Download size={16} />
-          </button>
         </div>
       </div>
-
-      {/* Export dropdown */}
-      {showExport && (
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500 mr-2">Exportar como:</span>
-          <button onClick={() => { exportPage('print', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"><Printer size={14} /> Impressão Direta</button>
-          <button onClick={() => { exportPage('pdf', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors"><FileText size={14} /> PDF (Salvar)</button>
-          <button onClick={() => { exportPage('excel', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"><FileSpreadsheet size={14} /> Excel (CSV)</button>
-          <button onClick={() => { exportPage('html', page.title); setShowExport(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-orange-50 text-orange-700 hover:bg-orange-100 rounded-lg transition-colors"><Download size={14} /> HTML</button>
-          <button onClick={() => setShowExport(false)} className="ml-auto p-1 text-gray-400 hover:text-gray-600"><X size={14} /></button>
-        </div>
-      )}
     </>
   );
 }

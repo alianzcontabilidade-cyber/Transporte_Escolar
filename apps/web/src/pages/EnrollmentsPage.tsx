@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School, ArrowLeft } from 'lucide-react';
+import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
 const STATUS_LABELS: any = { active: 'Ativo', transferred: 'Transferido', cancelled: 'Cancelado', graduated: 'Aprovado', retained: 'Retido', evaded: 'Evadido' };
@@ -11,7 +10,6 @@ const STATUS_COLORS: any = { active: 'bg-green-100 text-green-700', transferred:
 
 export default function EnrollmentsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const mid = user?.municipalityId || 0;
   const [filterClass, setFilterClass] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -91,7 +89,6 @@ export default function EnrollmentsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Voltar"><ArrowLeft size={20} /></button>
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><ClipboardList size={20} className="text-teal-600" /></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Matrículas</h1><p className="text-gray-500">{counts.active} ativa(s) de {counts.total} total</p></div>
         </div>

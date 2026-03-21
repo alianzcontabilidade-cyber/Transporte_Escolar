@@ -120,17 +120,29 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
 
   const sigHTML = opts.signatories?.length ? generateSignaturesHTML(opts.signatories) : '';
 
-  // Header: municipality info | logo | school info
+  // Estado por extenso
+  const estadoNomes: Record<string, string> = {
+    AC:'Acre',AL:'Alagoas',AP:'Amapa',AM:'Amazonas',BA:'Bahia',CE:'Ceara',DF:'Distrito Federal',
+    ES:'Espirito Santo',GO:'Goias',MA:'Maranhao',MT:'Mato Grosso',MS:'Mato Grosso do Sul',
+    MG:'Minas Gerais',PA:'Para',PB:'Paraiba',PR:'Parana',PE:'Pernambuco',PI:'Piaui',
+    RJ:'Rio de Janeiro',RN:'Rio Grande do Norte',RS:'Rio Grande do Sul',RO:'Rondonia',
+    RR:'Roraima',SC:'Santa Catarina',SP:'Sao Paulo',SE:'Sergipe',TO:'Tocantins'
+  };
+  const estadoNome = m.state ? (estadoNomes[m.state.toUpperCase()] || m.state) : '';
+
+  // Header: brasao | estado + municipio + secretaria | escola
   const headerHTML = `
     <div class="report-institutional-header">
       <table class="header-table">
         <tr>
-          ${m.logoUrl ? `<td class="logo-cell"><img src="${m.logoUrl}" class="inst-logo" alt=""/></td>` : ''}
+          ${m.logoUrl ? `<td class="logo-cell"><img src="${m.logoUrl}" class="inst-logo" alt="Brasao"/></td>` : ''}
           <td class="info-cell">
-            <div class="mun-name">${m.name || 'PREFEITURA MUNICIPAL'}</div>
+            ${estadoNome ? `<div class="estado-name">ESTADO ${estadoNome.toUpperCase().startsWith('D') ? 'DO ' : 'DE '}${estadoNome.toUpperCase()}</div>` : ''}
+            <div class="mun-name">${(m.name || 'PREFEITURA MUNICIPAL').toUpperCase()}</div>
             ${m.cnpj ? `<div class="mun-detail">CNPJ: ${m.cnpj}</div>` : ''}
-            ${sec?.name ? `<div class="sec-name">${sec.name}</div>` : ''}
+            ${sec?.name ? `<div class="sec-name">${sec.name.toUpperCase()}</div>` : ''}
             ${sec?.cnpj ? `<div class="mun-detail">CNPJ: ${sec.cnpj}</div>` : ''}
+            ${sec?.secretarioName ? `<div class="mun-detail">${sec.secretarioCargo || 'Secretario(a)'}: ${sec.secretarioName}</div>` : ''}
           </td>
           ${sch ? `
             <td class="school-cell">
@@ -178,6 +190,7 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   .logo-cell{width:80px;text-align:center}
   .inst-logo{max-width:70px;max-height:70px;object-fit:contain}
   .info-cell{text-align:center}
+  .estado-name{font-size:12px;font-weight:bold;color:#333;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px}
   .mun-name{font-size:16px;font-weight:bold;color:#1B3A5C;text-transform:uppercase;letter-spacing:1px}
   .mun-detail{font-size:10px;color:#666;margin-top:1px}
   .sec-name{font-size:13px;font-weight:600;color:#2DB5B0;margin-top:4px;text-transform:uppercase}

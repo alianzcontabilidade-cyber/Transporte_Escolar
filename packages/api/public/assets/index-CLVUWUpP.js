@@ -858,16 +858,18 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,ue=new Blob(["\uFEFF"+H],{type:"t
         ${s.decree?'<p style="font-size:9px;color:#999;margin:1px 0 0">'+s.decree+"</p>":""}
       </div>
     </div>
-  `).join("");return`<div style="${n};margin-top:40px;page-break-inside:avoid">${a}</div>`}const Ese=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];function Ase(){const e=new Date;return`${e.getDate()} de ${Ese[e.getMonth()]} de ${e.getFullYear()}`}async function Xr(e,t){const n={name:"",city:"",state:""},a={};try{const s=await t.municipalities.getById({id:e});s&&(n.name=s.name||"",n.city=s.city||"",n.state=s.state||"",n.phone=s.phone||"",n.email=s.email||"",n.logoUrl=s.logoUrl||"",n.cnpj=s.cnpj||"",s.logradouro?n.address=[s.logradouro,s.numero,s.bairro,s.city,s.state].filter(Boolean).join(", "):n.address=s.address||"",a.name=s.secretariaName||"",a.cnpj=s.secretariaCnpj||"",a.secretarioName=s.secretarioName||"",a.secretarioCargo=s.secretarioCargo||"Secretário(a) de Educação",a.phone=s.secretariaPhone||"",a.email=s.secretariaEmail||"",a.address=s.secretariaLogradouro||"")}catch{}return{municipality:n,secretaria:a}}function dl(e,t){const n=t.find(s=>s.id===e);if(!n)return;let a="";try{a=JSON.parse(localStorage.getItem("netescol_school_extra_"+e)||"{}").logoUrl||""}catch{}return{name:n.name||"",code:n.code||"",address:n.address||"",phone:n.phone||"",directorName:n.directorName||"",logoUrl:a}}function xn(e){var p;const t=e.municipality,n=e.secretaria,a=e.school,s=e.fontFamily==="serif"?"'Times New Roman', 'Georgia', serif":"'Segoe UI', Arial, sans-serif",i=e.fontSize||12,o=e.orientation||"portrait",c=e.showDate!==!1,l=e.dateText||`${t.city||""}${t.state?"/"+t.state:""}, ${Ase()}.`,d=(p=e.signatories)!=null&&p.length?C4(e.signatories):"",m=`
+  `).join("");return`<div style="${n};margin-top:40px;page-break-inside:avoid">${a}</div>`}const Ese=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];function Ase(){const e=new Date;return`${e.getDate()} de ${Ese[e.getMonth()]} de ${e.getFullYear()}`}async function Xr(e,t){const n={name:"",city:"",state:""},a={};try{const s=await t.municipalities.getById({id:e});s&&(n.name=s.name||"",n.city=s.city||"",n.state=s.state||"",n.phone=s.phone||"",n.email=s.email||"",n.logoUrl=s.logoUrl||"",n.cnpj=s.cnpj||"",s.logradouro?n.address=[s.logradouro,s.numero,s.bairro,s.city,s.state].filter(Boolean).join(", "):n.address=s.address||"",a.name=s.secretariaName||"",a.cnpj=s.secretariaCnpj||"",a.secretarioName=s.secretarioName||"",a.secretarioCargo=s.secretarioCargo||"Secretário(a) de Educação",a.phone=s.secretariaPhone||"",a.email=s.secretariaEmail||"",a.address=s.secretariaLogradouro||"")}catch{}return{municipality:n,secretaria:a}}function dl(e,t){const n=t.find(s=>s.id===e);if(!n)return;let a="";try{a=JSON.parse(localStorage.getItem("netescol_school_extra_"+e)||"{}").logoUrl||""}catch{}return{name:n.name||"",code:n.code||"",address:n.address||"",phone:n.phone||"",directorName:n.directorName||"",logoUrl:a}}function xn(e){var g;const t=e.municipality,n=e.secretaria,a=e.school,s=e.fontFamily==="serif"?"'Times New Roman', 'Georgia', serif":"'Segoe UI', Arial, sans-serif",i=e.fontSize||12,o=e.orientation||"portrait",c=e.showDate!==!1,l=e.dateText||`${t.city||""}${t.state?"/"+t.state:""}, ${Ase()}.`,d=(g=e.signatories)!=null&&g.length?C4(e.signatories):"",m={AC:"Acre",AL:"Alagoas",AP:"Amapa",AM:"Amazonas",BA:"Bahia",CE:"Ceara",DF:"Distrito Federal",ES:"Espirito Santo",GO:"Goias",MA:"Maranhao",MT:"Mato Grosso",MS:"Mato Grosso do Sul",MG:"Minas Gerais",PA:"Para",PB:"Paraiba",PR:"Parana",PE:"Pernambuco",PI:"Piaui",RJ:"Rio de Janeiro",RN:"Rio Grande do Norte",RS:"Rio Grande do Sul",RO:"Rondonia",RR:"Roraima",SC:"Santa Catarina",SP:"Sao Paulo",SE:"Sergipe",TO:"Tocantins"},u=t.state?m[t.state.toUpperCase()]||t.state:"",p=`
     <div class="report-institutional-header">
       <table class="header-table">
         <tr>
-          ${t.logoUrl?`<td class="logo-cell"><img src="${t.logoUrl}" class="inst-logo" alt=""/></td>`:""}
+          ${t.logoUrl?`<td class="logo-cell"><img src="${t.logoUrl}" class="inst-logo" alt="Brasao"/></td>`:""}
           <td class="info-cell">
-            <div class="mun-name">${t.name||"PREFEITURA MUNICIPAL"}</div>
+            ${u?`<div class="estado-name">ESTADO ${u.toUpperCase().startsWith("D")?"DO ":"DE "}${u.toUpperCase()}</div>`:""}
+            <div class="mun-name">${(t.name||"PREFEITURA MUNICIPAL").toUpperCase()}</div>
             ${t.cnpj?`<div class="mun-detail">CNPJ: ${t.cnpj}</div>`:""}
-            ${n!=null&&n.name?`<div class="sec-name">${n.name}</div>`:""}
+            ${n!=null&&n.name?`<div class="sec-name">${n.name.toUpperCase()}</div>`:""}
             ${n!=null&&n.cnpj?`<div class="mun-detail">CNPJ: ${n.cnpj}</div>`:""}
+            ${n!=null&&n.secretarioName?`<div class="mun-detail">${n.secretarioCargo||"Secretario(a)"}: ${n.secretarioName}</div>`:""}
           </td>
           ${a?`
             <td class="school-cell">
@@ -882,7 +884,7 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,ue=new Blob(["\uFEFF"+H],{type:"t
       </table>
       <div class="header-line"></div>
     </div>
-  `,u=[];if(t.name&&t.address?u.push(`${t.name} - ${t.address}`):t.name&&u.push(t.name),n!=null&&n.name){let h=n.name;n.address&&(h+=" - "+n.address),n.phone&&(h+=" | Fone: "+n.phone),u.push(h)}if(t.phone||t.email){const h=[];t.phone&&h.push("Fone: "+t.phone),t.email&&h.push(t.email),u.push(h.join(" | "))}return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e.title} - NetEscol</title>
+  `,h=[];if(t.name&&t.address?h.push(`${t.name} - ${t.address}`):t.name&&h.push(t.name),n!=null&&n.name){let b=n.name;n.address&&(b+=" - "+n.address),n.phone&&(b+=" | Fone: "+n.phone),h.push(b)}if(t.phone||t.email){const b=[];t.phone&&b.push("Fone: "+t.phone),t.email&&b.push(t.email),h.push(b.join(" | "))}return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e.title} - NetEscol</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   @page{size:${o==="landscape"?"A4 landscape":"A4"};margin:15mm 20mm 15mm 20mm}
@@ -896,6 +898,7 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,ue=new Blob(["\uFEFF"+H],{type:"t
   .logo-cell{width:80px;text-align:center}
   .inst-logo{max-width:70px;max-height:70px;object-fit:contain}
   .info-cell{text-align:center}
+  .estado-name{font-size:12px;font-weight:bold;color:#333;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px}
   .mun-name{font-size:16px;font-weight:bold;color:#1B3A5C;text-transform:uppercase;letter-spacing:1px}
   .mun-detail{font-size:10px;color:#666;margin-top:1px}
   .sec-name{font-size:13px;font-weight:600;color:#2DB5B0;margin-top:4px;text-transform:uppercase}
@@ -966,7 +969,7 @@ Maria Santos;2024002;3 Ano;B;Tarde;2016-07-22`,ue=new Blob(["\uFEFF"+H],{type:"t
   }
 </style></head><body>
 <table class="page-table"><tr><td class="td-content">
-${m}
+${p}
 <div class="report-title">
   <h1>${e.title}</h1>
   ${e.subtitle?`<div class="subtitle">${e.subtitle}</div>`:""}
@@ -978,7 +981,7 @@ ${c?`<div class="report-date">${l}</div>`:""}
 ${d}
 </td></tr><tr><td class="td-footer">
 <div class="report-footer-bar">
-  ${u.map(h=>`<div class="footer-line">${h}</div>`).join("")}
+  ${h.map(b=>`<div class="footer-line">${b}</div>`).join("")}
   <div class="footer-line footer-brand">NetEscol - Sistema de Gestão Escolar Municipal | Documento gerado em ${new Date().toLocaleString("pt-BR")}</div>
 </div>
 </td></tr></table>

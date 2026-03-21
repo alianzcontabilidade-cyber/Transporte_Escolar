@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 interface QuotationItem {
   id: number;
@@ -15,6 +16,7 @@ interface QuotationItem {
 export default function PurchaseQuotationPage() {
   const [items, setItems] = useState<QuotationItem[]>([]);
   const [suppliers, setSuppliers] = useState(['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3']);
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [title, setTitle] = useState('Cotação de Preços - ' + new Date().toLocaleDateString('pt-BR'));
   const [newItem, setNewItem] = useState({ description: '', unit: 'un', quantity: 1 });
   const [importMsg, setImportMsg] = useState('');
@@ -116,7 +118,7 @@ export default function PurchaseQuotationPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center"><ShoppingCart size={20} className="text-sky-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Cotação de Compras</h1><p className="text-gray-500">Compare preços de até 3 fornecedores</p></div></div>
-        {items.length > 0 && <button onClick={printQuotation} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Cotação</button>}
+        {items.length > 0 && <><button onClick={printQuotation} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Cotação</button><button onClick={() => setPgExportModal({html:'',filename:'PurchaseQuotation_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       {/* Title and Suppliers */}

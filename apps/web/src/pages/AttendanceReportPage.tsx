@@ -5,11 +5,13 @@ import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function AttendanceReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [municipalityName, setMunicipalityName] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selClass, setSelClass] = useState('');
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function AttendanceReportPage() {
         {summary.length > 0 && (
           <div className="flex gap-2">
             <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14} /> CSV</button>
-            <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button>
+            <button onClick={printReport} className="btn-primary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'AttendanceReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>

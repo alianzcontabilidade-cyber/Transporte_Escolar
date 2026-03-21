@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Clock, Printer, Save } from 'lucide-react';
+import { Clock, Printer, Save , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 const PERIODS = ['1º Horário', '2º Horário', '3º Horário', '4º Horário', '5º Horário', '6º Horário'];
@@ -11,6 +12,7 @@ export default function ClassSchedulePage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [schedule, setSchedule] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
@@ -72,7 +74,7 @@ export default function ClassSchedulePage() {
         {selClass && (
           <div className="flex gap-2">
             <button onClick={saveSchedule} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
-            <button onClick={printSchedule} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
+            <button onClick={printSchedule} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'ClassSchedule_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>

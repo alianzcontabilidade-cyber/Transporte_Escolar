@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { Ticket, Plus, X, Search, Clock, CheckCircle, AlertTriangle, Printer } from 'lucide-react';
+import { Ticket, Plus, X, Search, Clock, CheckCircle, AlertTriangle, Printer , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 interface Protocol {
   id: number;

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { AlertTriangle, Plus, Search, Printer, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Printer, Trash2, X , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 interface Occurrence {
   id: number;
@@ -27,6 +28,7 @@ export default function StudentOccurrencePage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ studentId: '', date: new Date().toISOString().split('T')[0], type: 'indisciplina', description: '', action: '' });
   const [occurrences, setOccurrences] = useState<Occurrence[]>(() => {
@@ -76,7 +78,7 @@ export default function StudentOccurrencePage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><AlertTriangle size={20} className="text-red-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Ocorrências</h1><p className="text-gray-500">{occurrences.length} registro(s)</p></div></div>
         <div className="flex gap-2">
-          {filtered.length > 0 && <button onClick={() => printOccurrences()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>}
+          {filtered.length > 0 && <><button onClick={() => printOccurrences()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'StudentOccurrence_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Ocorrência</button>
         </div>
       </div>

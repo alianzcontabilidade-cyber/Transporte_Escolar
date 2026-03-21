@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileEdit, Save, CheckCircle, Users, BookOpen, FileDown, Printer } from 'lucide-react';
+import { FileEdit, Save, CheckCircle, Users, BookOpen, FileDown, Printer , Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, generateReportHTML, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 const BIMESTERS = [{ v:'1', l:'1° Bimestre' },{ v:'2', l:'2° Bimestre' },{ v:'3', l:'3° Bimestre' },{ v:'4', l:'4° Bimestre' }];
 
@@ -12,6 +13,7 @@ export default function DescriptiveReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selBimester, setSelBimester] = useState('1');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -121,7 +123,7 @@ export default function DescriptiveReportPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><FileEdit size={20} className="text-purple-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Parecer Descritivo</h1><p className="text-gray-500">Avaliação qualitativa por aluno</p></div></div>
         <div className="flex gap-2">
-          {allReports.length > 0 && <button onClick={printAll} className="btn-secondary flex items-center gap-2 text-sm"><BookOpen size={14} /> Imprimir Todos</button>}
+          {allReports.length > 0 && <><button onClick={printAll} className="btn-secondary flex items-center gap-2 text-sm"><BookOpen size={14} /> Imprimir Todos</button><button onClick={() => setPgExportModal({html:'',filename:'DescriptiveReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           {allReports.some((r: any) => r.status === 'draft') && <button onClick={publishAll} className="btn-primary flex items-center gap-2 text-sm"><CheckCircle size={14} /> Publicar Todos</button>}
         </div>
       </div>

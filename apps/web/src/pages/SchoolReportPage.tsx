@@ -5,11 +5,13 @@ import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
 import ReportExportBar from '../components/ReportExportBar';
 import { loadMunicipalityData } from '../lib/reportTemplate';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function SchoolReportPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [municipalityName, setMunicipalityName] = useState('');
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function SchoolReportPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><School size={20} className="text-blue-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Relatório por Escola</h1><p className="text-gray-500">Visão completa de uma unidade escolar</p></div></div>
-        {school && <button onClick={printReport} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button>}
+        {school && <><button onClick={printReport} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'SchoolReport_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <select className="input w-72 mb-5" value={selSchool} onChange={e => setSelSchool(e.target.value)}><option value="">Selecione a escola</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>

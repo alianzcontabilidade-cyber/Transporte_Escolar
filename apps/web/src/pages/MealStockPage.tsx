@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search } from 'lucide-react';
+import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 export default function MealStockPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [showModal, setShowModal] = useState(false);
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [form, setForm] = useState({ name: '', category: 'Alimento', unit: 'kg', currentStock: '0', minStock: '10', location: '' });
   const [search, setSearch] = useState('');
 
@@ -60,7 +62,7 @@ export default function MealStockPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Package size={20} className="text-amber-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Estoque da Merenda</h1><p className="text-gray-500">{allItems.length} item(ns) cadastrado(s)</p></div></div>
         <div className="flex gap-2">
-          {allItems.length > 0 && <button onClick={printStock} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>}
+          {allItems.length > 0 && <><button onClick={printStock} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={() => setPgExportModal({html:'',filename:'MealStock_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Item</button>
         </div>
       </div>

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Users, Save, Printer, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Users, Save, Printer, CheckCircle, AlertTriangle , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 const BIMESTERS = [{ v: '1', l: '1° Bimestre' }, { v: '2', l: '2° Bimestre' }, { v: '3', l: '3° Bimestre' }, { v: '4', l: '4° Bimestre' }];
 
@@ -10,6 +11,7 @@ export default function ClassCouncilPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selClass, setSelClass] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [selBimester, setSelBimester] = useState('1');
   const [notes, setNotes] = useState<Record<number, { decision: string; observations: string }>>({});
   const [generalNotes, setGeneralNotes] = useState('');
@@ -80,7 +82,7 @@ export default function ClassCouncilPage() {
         {selClass && allEnrollments.length > 0 && (
           <div className="flex gap-2">
             <button onClick={saveCouncil} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
-            <button onClick={printCouncil} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button>
+            <button onClick={printCouncil} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button><button onClick={() => setPgExportModal({html:'',filename:'ClassCouncil_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>

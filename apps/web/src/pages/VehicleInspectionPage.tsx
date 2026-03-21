@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus } from 'lucide-react';
+import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 const CHECKLIST = [
   { id: 'pneus', label: 'Pneus em bom estado', category: 'Segurança' },
@@ -29,6 +30,7 @@ export default function VehicleInspectionPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selVehicle, setSelVehicle] = useState('');
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [checks, setChecks] = useState<Record<string, 'ok' | 'nok' | ''>>({});
   const [observations, setObservations] = useState('');
   const [inspector, setInspector] = useState(user?.name || '');
@@ -78,7 +80,7 @@ export default function VehicleInspectionPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><ClipboardCheck size={20} className="text-orange-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Vistoria de Veículos</h1><p className="text-gray-500">Checklist de inspeção veicular</p></div></div>
-        {vehicle && okCount + nokCount > 0 && <button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button>}
+        {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={() => setPgExportModal({html:'',filename:'VehicleInspection_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
       </div>
 
       <div className="flex gap-3 mb-5">

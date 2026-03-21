@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { Newspaper, Plus, X, Trash2, Pin, Printer } from 'lucide-react';
+import { Newspaper, Plus, X, Trash2, Pin, Printer , Download } from 'lucide-react';
+import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
 
 interface Bulletin {
   id: number;
@@ -24,6 +25,7 @@ export default function DailyBulletinPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [showModal, setShowModal] = useState(false);
+  const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [form, setForm] = useState({ title: '', content: '', category: 'aviso' });
   const [bulletins, setBulletins] = useState<Bulletin[]>(() => { try { return JSON.parse(localStorage.getItem('netescol_bulletins_' + mid) || '[]'); } catch { return []; } });
 
@@ -62,7 +64,7 @@ export default function DailyBulletinPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><Newspaper size={20} className="text-emerald-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Mural Informativo</h1><p className="text-gray-500">{bulletins.length} publicação(ões)</p></div></div>
         <div className="flex gap-2">
-          {bulletins.length > 0 && <button onClick={printBulletin} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir Mural</button>}
+          {bulletins.length > 0 && <><button onClick={printBulletin} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir Mural</button><button onClick={() => setPgExportModal({html:'',filename:'DailyBulletin_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Publicar</button>
         </div>
       </div>

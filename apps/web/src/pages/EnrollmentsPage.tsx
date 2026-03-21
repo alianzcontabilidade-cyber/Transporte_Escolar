@@ -42,7 +42,7 @@ export default function EnrollmentsPage() {
   const getSchoolName = (schoolId: number) => allSchools.find((s: any) => s.id === schoolId)?.name || '--';
   const shiftLabel = (s: string) => s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : '--';
   const getClassFullName = (e: any) => {
-    if (e.classGrade && e.className) return `${e.classGrade} - ${e.className}`;
+    if (e.classFullName) return e.classFullName;
     if (e.className) return e.className;
     const cls = allClasses.find((c: any) => c.id === e.classId);
     return cls?.fullName || cls?.name || '--';

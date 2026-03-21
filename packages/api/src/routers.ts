@@ -2671,7 +2671,7 @@ export const enrollmentsRouter = t.router({
         birthDate: students.birthDate,
         // Dados da turma
         className: classes.name,
-        classGrade: classes.grade,
+        classFullName: classes.fullName,
         classShift: classes.shift,
         schoolId: classes.schoolId,
       })

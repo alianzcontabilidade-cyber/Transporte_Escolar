@@ -89,9 +89,12 @@ export default function ReportCardPage() {
   };
 
   const handleExportClick = () => {
+    if (!selStudent) { alert('Selecione um aluno para exportar o boletim'); return; }
+    if (!munReport) { alert('Aguarde o carregamento dos dados do municipio'); return; }
     const html = buildReportHTML();
-    if (!html) { alert('Selecione um aluno para exportar o boletim'); return; }
-    setPgExportModal({ html, filename: 'Boletim_' + (student?.studentName || 'aluno') });
+    if (!html) { alert('Erro ao gerar o boletim. Verifique se o aluno tem notas lancadas.'); return; }
+    const studentName = allEnrollments.find((e: any) => String(e.studentId) === selStudent)?.studentName || 'aluno';
+    setPgExportModal({ html, filename: 'Boletim_' + studentName });
   };
 
   return (

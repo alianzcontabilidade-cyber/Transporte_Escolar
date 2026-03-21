@@ -85,6 +85,12 @@ const LowPerformancePage = lazy(() => import('./pages/LowPerformancePage'));
 const ClassDiaryReportPage = lazy(() => import('./pages/ClassDiaryReportPage'));
 const MileageReportPage = lazy(() => import('./pages/MileageReportPage'));
 const FuelReportPage = lazy(() => import('./pages/FuelReportPage'));
+const CurriculumReportPage = lazy(() => import('./pages/CurriculumReportPage'));
+const SubjectPerformancePage = lazy(() => import('./pages/SubjectPerformancePage'));
+const MaintenanceReportPage = lazy(() => import('./pages/MaintenanceReportPage'));
+const HRReportPage = lazy(() => import('./pages/HRReportPage'));
+const AssetReportPage = lazy(() => import('./pages/AssetReportPage'));
+const EducacensoReportPage = lazy(() => import('./pages/EducacensoReportPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -204,6 +210,12 @@ export default function App() {
         <Route path="diario-classe" element={<Guard roles={ADMIN_SEC}><ClassDiaryReportPage /></Guard>} />
         <Route path="quilometragem" element={<Guard roles={ADMIN_SEC}><MileageReportPage /></Guard>} />
         <Route path="abastecimento" element={<Guard roles={ADMIN_SEC}><FuelReportPage /></Guard>} />
+        <Route path="quadro-curricular" element={<Guard roles={ADMIN_SEC}><CurriculumReportPage /></Guard>} />
+        <Route path="desempenho-disciplina" element={<Guard roles={ADMIN_SEC}><SubjectPerformancePage /></Guard>} />
+        <Route path="relatorio-manutencoes" element={<Guard roles={ADMIN_SEC}><MaintenanceReportPage /></Guard>} />
+        <Route path="relatorio-rh" element={<Guard roles={ADMIN_SEC}><HRReportPage /></Guard>} />
+        <Route path="relatorio-patrimonio" element={<Guard roles={ADMIN_SEC}><AssetReportPage /></Guard>} />
+        <Route path="relatorio-educacenso" element={<Guard roles={ADMIN_SEC}><EducacensoReportPage /></Guard>} />
         <Route path="cadastro-prefeitura" element={<Guard roles={ADMIN}><MunicipalitySettingsPage /></Guard>} />
         <Route path="config-formularios" element={<Guard roles={['super_admin']}><FormConfigPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />

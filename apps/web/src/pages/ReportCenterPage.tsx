@@ -55,7 +55,9 @@ const REPORTS: Report[] = [
   { code: 'R210', title: 'Ata de Resultados Finais', desc: 'Documento oficial de resultados do ano letivo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados-finais', icon: FileText, tags: ['ata', 'resultado', 'final', 'oficial'] },
   { code: 'R211', title: 'Alunos com Baixo Rendimento', desc: 'Alunos com media abaixo do minimo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/baixo-rendimento', icon: TrendingUp, tags: ['baixo', 'rendimento', 'recuperacao', 'nota'] },
   { code: 'R212', title: 'Diario de Classe', desc: 'Frequencia diaria por turma e mes', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/diario-classe', icon: BookOpen, tags: ['diario', 'classe', 'frequencia', 'presenca'] },
-  // Frota e Rotas (8)
+  { code: 'R213', title: 'Quadro Curricular', desc: 'Disciplinas e carga horaria por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/quadro-curricular', icon: BookOpen, tags: ['quadro', 'curricular', 'disciplina', 'horaria'] },
+  { code: 'R214', title: 'Desempenho por Disciplina', desc: 'Media e aprovacao por componente curricular', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/desempenho-disciplina', icon: TrendingUp, tags: ['desempenho', 'disciplina', 'media', 'aprovacao'] },
+  // Frota e Rotas (9)
   { code: 'R301', title: 'Relatorio de Viagens', desc: 'Historico de viagens concluidas', module: 'Frota e Rotas', color: '#f97316', to: '/relatorio-transporte', icon: Bus, tags: ['viagem', 'transporte'] },
   { code: 'R302', title: 'Relatorio da Frota', desc: 'Veiculos, status e documentos', module: 'Frota e Rotas', color: '#f97316', to: '/relatorios', icon: Truck, tags: ['veiculo', 'frota', 'documento'] },
   { code: 'R303', title: 'Vistoria de Veiculos', desc: 'Checklist de inspecao veicular', module: 'Frota e Rotas', color: '#f97316', to: '/vistoria-veiculos', icon: FileText, tags: ['vistoria', 'inspecao'] },
@@ -64,13 +66,17 @@ const REPORTS: Report[] = [
   { code: 'R308', title: 'Alunos Transportados (FNDE)', desc: 'Relatorio FNDE com todos os alunos do transporte', module: 'Frota e Rotas', color: '#f97316', to: '/alunos-transportados', icon: Bus, tags: ['aluno', 'transportado', 'fnde', 'rota', 'rural'] },
   { code: 'R309', title: 'Quilometragem', desc: 'Km percorridos por veiculo e rota', module: 'Frota e Rotas', color: '#f97316', to: '/quilometragem', icon: Truck, tags: ['quilometragem', 'km', 'veiculo', 'distancia'] },
   { code: 'R310', title: 'Abastecimento', desc: 'Controle de combustivel da frota', module: 'Frota e Rotas', color: '#f97316', to: '/abastecimento', icon: Truck, tags: ['abastecimento', 'combustivel', 'diesel', 'litro'] },
-  // Gestao e Recursos (6)
+  { code: 'R311', title: 'Manutencoes', desc: 'Historico de manutencoes da frota', module: 'Frota e Rotas', color: '#f97316', to: '/relatorio-manutencoes', icon: Truck, tags: ['manutencao', 'preventiva', 'corretiva', 'custo'] },
+  // Gestao e Recursos (9)
   { code: 'R401', title: 'Relatorio Financeiro', desc: 'Receitas, despesas e saldo', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/financeiro', icon: TrendingUp, tags: ['financeiro', 'receita', 'despesa'] },
   { code: 'R402', title: 'Relatorio de Contratos', desc: 'Contratos vigentes e vencidos', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/contratos', icon: FileText, tags: ['contrato', 'fornecedor'] },
   { code: 'R403', title: 'Estoque da Merenda', desc: 'Itens, entradas e saidas', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/estoque-merenda', icon: Briefcase, tags: ['merenda', 'estoque'] },
   { code: 'R404', title: 'Cotacao de Compras', desc: 'Comparativo de fornecedores', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/cotacao-compras', icon: Briefcase, tags: ['cotacao', 'compra'] },
   { code: 'R405', title: 'Protocolo', desc: 'Requerimentos e solicitacoes', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/protocolo', icon: FileText, tags: ['protocolo', 'requerimento'] },
   { code: 'R406', title: 'Mural Informativo', desc: 'Comunicados e avisos', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/mural', icon: FileText, tags: ['mural', 'comunicado'] },
+  { code: 'R407', title: 'Relatorio de RH', desc: 'Quadro de pessoal por cargo e departamento', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/relatorio-rh', icon: Users, tags: ['rh', 'pessoal', 'servidor', 'cargo'] },
+  { code: 'R408', title: 'Relatorio de Patrimonio', desc: 'Inventario de bens patrimoniais', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/relatorio-patrimonio', icon: Briefcase, tags: ['patrimonio', 'bem', 'inventario', 'tombamento'] },
+  { code: 'R409', title: 'Relatorio EDUCACENSO', desc: 'Dados consolidados para o Censo Escolar', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/relatorio-educacenso', icon: TrendingUp, tags: ['educacenso', 'censo', 'inep', 'escolar'] },
 ];
 
 // ============================================

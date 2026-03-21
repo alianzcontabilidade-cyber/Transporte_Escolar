@@ -221,6 +221,12 @@ export default function Layout() {
     { code: '216', to: '/diario-classe', text: 'Diário de Classe', module: 'Ensino e Aprendizagem', desc: 'Frequência diária por turma e mês', tags: 'diario classe frequencia presenca falta mensal', color: '#8b5cf6' },
     { code: '313', to: '/quilometragem', text: 'Quilometragem', module: 'Frota e Rotas', desc: 'Km percorridos por veículo e rota', tags: 'quilometragem km veiculo rota viagem distancia', color: '#f97316' },
     { code: '314', to: '/abastecimento', text: 'Abastecimento', module: 'Frota e Rotas', desc: 'Controle de combustível da frota', tags: 'abastecimento combustivel diesel gasolina litro posto', color: '#f97316' },
+    { code: '217', to: '/quadro-curricular', text: 'Quadro Curricular', module: 'Ensino e Aprendizagem', desc: 'Disciplinas e carga horária por turma', tags: 'quadro curricular disciplina carga horaria professor turma', color: '#8b5cf6' },
+    { code: '218', to: '/desempenho-disciplina', text: 'Desempenho por Disciplina', module: 'Ensino e Aprendizagem', desc: 'Média e aprovação por componente curricular', tags: 'desempenho disciplina media aprovacao reprovacao componente', color: '#8b5cf6' },
+    { code: '315', to: '/relatorio-manutencoes', text: 'Manutenções', module: 'Frota e Rotas', desc: 'Histórico de manutenções da frota', tags: 'manutencao veiculo preventiva corretiva custo', color: '#f97316' },
+    { code: '417', to: '/relatorio-rh', text: 'Relatório RH', module: 'Gestão e Recursos', desc: 'Quadro de pessoal por cargo e departamento', tags: 'rh pessoal servidor cargo departamento vinculo', color: '#0ea5e9' },
+    { code: '418', to: '/relatorio-patrimonio', text: 'Relatório Patrimônio', module: 'Gestão e Recursos', desc: 'Inventário de bens patrimoniais', tags: 'patrimonio bem inventario tombamento valor ativo', color: '#0ea5e9' },
+    { code: '419', to: '/relatorio-educacenso', text: 'Relatório EDUCACENSO', module: 'Gestão e Recursos', desc: 'Dados consolidados para o Censo Escolar', tags: 'educacenso censo escolar inep aluno turma rural transporte', color: '#0ea5e9' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -266,6 +272,8 @@ export default function Layout() {
       { to: '/ata-resultados-finais', icon: FileText, text: 'Ata Resultados Finais' },
       { to: '/baixo-rendimento', icon: BarChart3, text: 'Baixo Rendimento' },
       { to: '/diario-classe', icon: BookOpen, text: 'Diário de Classe' },
+      { to: '/quadro-curricular', icon: BookOpen, text: 'Quadro Curricular' },
+      { to: '/desempenho-disciplina', icon: BarChart3, text: 'Desemp. Disciplina' },
     ]},
     { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#f97316', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
@@ -277,6 +285,7 @@ export default function Layout() {
       { to: '/alunos-transportados', icon: Users, text: 'Alunos Transportados' },
       { to: '/quilometragem', icon: BarChart3, text: 'Quilometragem' },
       { to: '/abastecimento', icon: BarChart3, text: 'Abastecimento' },
+      { to: '/relatorio-manutencoes', icon: ClipboardList, text: 'Manutenções' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },
@@ -290,6 +299,9 @@ export default function Layout() {
       { to: '/protocolo', icon: ClipboardList, text: 'Protocolo' },
       { to: '/eventos', icon: Calendar, text: 'Eventos' },
       { to: '/mural', icon: Bell, text: 'Mural Informativo' },
+      { to: '/relatorio-rh', icon: Briefcase, text: 'Rel. RH' },
+      { to: '/relatorio-patrimonio', icon: Package, text: 'Rel. Patrimônio' },
+      { to: '/relatorio-educacenso', icon: Database, text: 'Rel. EDUCACENSO' },
     ]},
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/cadastro-prefeitura', icon: School, text: 'Cadastro Prefeitura' },

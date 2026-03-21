@@ -1,51 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { BarChart3, Search, FileText, School, GraduationCap, Bus, Briefcase, Star, Download, ExternalLink, Printer } from 'lucide-react';
-import ExportModal, { handleExport, ExportFormat, exportToCSV, exportToPDF, printHTML } from '../components/ExportModal';
+import {
+  BarChart3, Search, FileText, School, GraduationCap, Bus, Briefcase,
+  Star, Download, ExternalLink, Printer, Clock, Filter, ChevronRight,
+  TrendingUp, Users, Truck, BookOpen, Hash, X
+} from 'lucide-react';
 
-const REPORTS = [
-  // Gestão Escolar
-  { code: 'R101', title: 'Ficha de Matrícula', desc: 'Formulário oficial de matrícula para impressão', module: 'Gestão Escolar', color: '#6366f1', to: '/matriculas', icon: FileText },
-  { code: 'R102', title: 'Requerimento de Matrícula', desc: 'Renovação ou nova matrícula', module: 'Gestão Escolar', color: '#6366f1', to: '/matriculas', icon: FileText },
-  { code: 'R103', title: 'Ficha Completa do Aluno', desc: 'Todos os dados do aluno para impressão', module: 'Gestão Escolar', color: '#6366f1', to: '/ficha-aluno', icon: FileText },
-  { code: 'R104', title: 'Declaração de Matrícula', desc: 'Comprova matrícula ativa', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText },
-  { code: 'R105', title: 'Declaração de Transferência', desc: 'Para transferência entre escolas', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText },
-  { code: 'R106', title: 'Declaração de Frequência', desc: 'Comprova frequência escolar', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText },
-  { code: 'R107', title: 'Histórico Escolar', desc: 'Trajetória acadêmica completa', module: 'Gestão Escolar', color: '#6366f1', to: '/historico-escolar', icon: FileText },
-  { code: 'R108', title: 'Relatório de Alunos por Turma', desc: 'Lista de alunos filtrada por turma', module: 'Gestão Escolar', color: '#6366f1', to: '/alunos', icon: FileText },
-  { code: 'R109', title: 'Relatório por Escola', desc: 'Visão completa de uma escola', module: 'Gestão Escolar', color: '#6366f1', to: '/relatorio-escola', icon: School },
-  { code: 'R110', title: 'Carteirinha Estudantil', desc: 'Carteira do aluno com QR Code', module: 'Gestão Escolar', color: '#6366f1', to: '/carteirinha', icon: FileText },
-  { code: 'R111', title: 'QR Codes dos Alunos', desc: 'QR Codes para frequência/embarque', module: 'Gestão Escolar', color: '#6366f1', to: '/alunos', icon: FileText },
-  { code: 'R112', title: 'Registro de Ocorrências', desc: 'Ocorrências disciplinares', module: 'Gestão Escolar', color: '#6366f1', to: '/ocorrencias', icon: FileText },
-  // Ensino e Aprendizagem
-  { code: 'R201', title: 'Lista de Notas Bimestral', desc: 'Notas por turma/disciplina/bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/lancamento-notas', icon: GraduationCap },
-  { code: 'R202', title: 'Mapa de Resultados Final', desc: 'Aprovados, retidos, transferidos', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados', icon: GraduationCap },
-  { code: 'R203', title: 'Boletim Escolar', desc: 'Notas por bimestre e média final', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/boletim', icon: GraduationCap },
-  { code: 'R204', title: 'Parecer Descritivo', desc: 'Avaliação qualitativa por aluno', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/parecer-descritivo', icon: GraduationCap },
-  { code: 'R205', title: 'Relatório de Frequência', desc: 'Presença por aluno e período', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-frequencia', icon: GraduationCap },
-  { code: 'R206', title: 'ATA do Conselho de Classe', desc: 'Decisões por aluno e bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/conselho-classe', icon: GraduationCap },
-  { code: 'R207', title: 'Grade Horária', desc: 'Horário de aulas por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/grade-horaria', icon: GraduationCap },
-  // Frota e Rotas
-  { code: 'R301', title: 'Relatório de Viagens', desc: 'Histórico de viagens concluídas', module: 'Frota e Rotas', color: '#f97316', to: '/relatorio-transporte', icon: Bus },
-  { code: 'R302', title: 'Relatório da Frota', desc: 'Veículos, status e documentos', module: 'Frota e Rotas', color: '#f97316', to: '/relatorios', icon: Bus },
-  { code: 'R303', title: 'Vistoria de Veículos', desc: 'Checklist de inspeção veicular', module: 'Frota e Rotas', color: '#f97316', to: '/vistoria-veiculos', icon: Bus },
-  { code: 'R304', title: 'Ficha do Motorista', desc: 'Dados completos do motorista', module: 'Frota e Rotas', color: '#f97316', to: '/motoristas', icon: Bus },
-  // Gestão e Recursos
-  { code: 'R401', title: 'Relatório Financeiro', desc: 'Receitas, despesas e saldo', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/financeiro', icon: Briefcase },
-  { code: 'R402', title: 'Relatório de Contratos', desc: 'Contratos vigentes e vencidos', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/contratos', icon: Briefcase },
-  { code: 'R403', title: 'Estoque da Merenda', desc: 'Itens, entradas e saídas', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/estoque-merenda', icon: Briefcase },
-  { code: 'R404', title: 'Cotação de Compras', desc: 'Comparativo de fornecedores', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/cotacao-compras', icon: Briefcase },
-  { code: 'R405', title: 'Protocolo', desc: 'Requerimentos e solicitações', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/protocolo', icon: Briefcase },
+// ============================================
+// CATALOGO DE RELATORIOS
+// ============================================
+interface Report {
+  code: string;
+  title: string;
+  desc: string;
+  module: string;
+  color: string;
+  to: string;
+  icon: any;
+  tags?: string[];
+}
+
+const MODULES = [
+  { key: 'Gestao Escolar', label: 'Gestao Escolar', color: '#6366f1', icon: School, desc: 'Alunos, matriculas e documentos' },
+  { key: 'Ensino e Aprendizagem', label: 'Ensino e Aprendizagem', color: '#8b5cf6', icon: GraduationCap, desc: 'Notas, frequencia e avaliacoes' },
+  { key: 'Frota e Rotas', label: 'Frota e Rotas', color: '#f97316', icon: Bus, desc: 'Transporte, veiculos e motoristas' },
+  { key: 'Gestao e Recursos', label: 'Gestao e Recursos', color: '#0ea5e9', icon: Briefcase, desc: 'Financeiro, contratos e operacional' },
 ];
 
+const REPORTS: Report[] = [
+  // Gestao Escolar (12)
+  { code: 'R101', title: 'Ficha de Matricula', desc: 'Formulario oficial de matricula para impressao', module: 'Gestao Escolar', color: '#6366f1', to: '/ficha-matricula', icon: FileText, tags: ['aluno', 'matricula', 'formulario'] },
+  { code: 'R102', title: 'Requerimento de Matricula', desc: 'Renovacao ou nova matricula', module: 'Gestao Escolar', color: '#6366f1', to: '/matriculas', icon: FileText, tags: ['aluno', 'matricula'] },
+  { code: 'R103', title: 'Ficha Completa do Aluno', desc: 'Todos os dados do aluno para impressao', module: 'Gestao Escolar', color: '#6366f1', to: '/ficha-aluno', icon: Users, tags: ['aluno', 'ficha', 'dados'] },
+  { code: 'R104', title: 'Declaracao de Matricula', desc: 'Comprova matricula ativa', module: 'Gestao Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'matricula'] },
+  { code: 'R105', title: 'Declaracao de Transferencia', desc: 'Para transferencia entre escolas', module: 'Gestao Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'transferencia'] },
+  { code: 'R106', title: 'Declaracao de Frequencia', desc: 'Comprova frequencia escolar', module: 'Gestao Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'frequencia'] },
+  { code: 'R107', title: 'Historico Escolar', desc: 'Trajetoria academica completa', module: 'Gestao Escolar', color: '#6366f1', to: '/historico-escolar', icon: BookOpen, tags: ['aluno', 'historico', 'academico'] },
+  { code: 'R108', title: 'Relacao de Alunos por Turma', desc: 'Lista de alunos filtrada por turma', module: 'Gestao Escolar', color: '#6366f1', to: '/relacao-alunos-turma', icon: Users, tags: ['aluno', 'turma', 'lista'] },
+  { code: 'R109', title: 'Relatorio por Escola', desc: 'Visao completa de uma escola', module: 'Gestao Escolar', color: '#6366f1', to: '/relatorio-escola', icon: School, tags: ['escola', 'relatorio'] },
+  { code: 'R110', title: 'Carteirinha Estudantil', desc: 'Carteira do aluno com QR Code', module: 'Gestao Escolar', color: '#6366f1', to: '/carteirinha', icon: Users, tags: ['aluno', 'carteirinha', 'qrcode'] },
+  { code: 'R111', title: 'Registro de Ocorrencias', desc: 'Ocorrencias disciplinares', module: 'Gestao Escolar', color: '#6366f1', to: '/ocorrencias', icon: FileText, tags: ['ocorrencia', 'disciplinar'] },
+  { code: 'R112', title: 'Lista de Escolas', desc: 'Todas as escolas do municipio', module: 'Gestao Escolar', color: '#6366f1', to: '/escolas', icon: School, tags: ['escola', 'lista'] },
+  // Ensino e Aprendizagem (7)
+  { code: 'R201', title: 'Lista de Notas Bimestral', desc: 'Notas por turma/disciplina/bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/lancamento-notas', icon: GraduationCap, tags: ['notas', 'bimestre'] },
+  { code: 'R202', title: 'Mapa de Resultados Final', desc: 'Aprovados, retidos, transferidos', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados', icon: TrendingUp, tags: ['resultados', 'ata', 'aprovacao'] },
+  { code: 'R203', title: 'Boletim Escolar', desc: 'Notas por bimestre e media final', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/boletim', icon: FileText, tags: ['boletim', 'notas', 'aluno'] },
+  { code: 'R204', title: 'Parecer Descritivo', desc: 'Avaliacao qualitativa por aluno', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/parecer-descritivo', icon: BookOpen, tags: ['parecer', 'avaliacao'] },
+  { code: 'R205', title: 'Relatorio de Frequencia', desc: 'Presenca por aluno e periodo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-frequencia', icon: Users, tags: ['frequencia', 'presenca'] },
+  { code: 'R206', title: 'ATA do Conselho de Classe', desc: 'Decisoes por aluno e bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/conselho-classe', icon: FileText, tags: ['conselho', 'ata'] },
+  { code: 'R207', title: 'Grade Horaria', desc: 'Horario de aulas por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/grade-horaria', icon: Clock, tags: ['horario', 'grade', 'turma'] },
+  // Frota e Rotas (5)
+  { code: 'R301', title: 'Relatorio de Viagens', desc: 'Historico de viagens concluidas', module: 'Frota e Rotas', color: '#f97316', to: '/relatorio-transporte', icon: Bus, tags: ['viagem', 'transporte'] },
+  { code: 'R302', title: 'Relatorio da Frota', desc: 'Veiculos, status e documentos', module: 'Frota e Rotas', color: '#f97316', to: '/relatorios', icon: Truck, tags: ['veiculo', 'frota', 'documento'] },
+  { code: 'R303', title: 'Vistoria de Veiculos', desc: 'Checklist de inspecao veicular', module: 'Frota e Rotas', color: '#f97316', to: '/vistoria-veiculos', icon: FileText, tags: ['vistoria', 'inspecao'] },
+  { code: 'R304', title: 'Ficha do Motorista', desc: 'Dados completos do motorista', module: 'Frota e Rotas', color: '#f97316', to: '/motoristas', icon: Users, tags: ['motorista', 'ficha'] },
+  { code: 'R305', title: 'Lista de Monitores', desc: 'Monitores do transporte escolar', module: 'Frota e Rotas', color: '#f97316', to: '/monitores', icon: Users, tags: ['monitor', 'lista'] },
+  // Gestao e Recursos (6)
+  { code: 'R401', title: 'Relatorio Financeiro', desc: 'Receitas, despesas e saldo', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/financeiro', icon: TrendingUp, tags: ['financeiro', 'receita', 'despesa'] },
+  { code: 'R402', title: 'Relatorio de Contratos', desc: 'Contratos vigentes e vencidos', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/contratos', icon: FileText, tags: ['contrato', 'fornecedor'] },
+  { code: 'R403', title: 'Estoque da Merenda', desc: 'Itens, entradas e saidas', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/estoque-merenda', icon: Briefcase, tags: ['merenda', 'estoque'] },
+  { code: 'R404', title: 'Cotacao de Compras', desc: 'Comparativo de fornecedores', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/cotacao-compras', icon: Briefcase, tags: ['cotacao', 'compra'] },
+  { code: 'R405', title: 'Protocolo', desc: 'Requerimentos e solicitacoes', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/protocolo', icon: FileText, tags: ['protocolo', 'requerimento'] },
+  { code: 'R406', title: 'Mural Informativo', desc: 'Comunicados e avisos', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/mural', icon: FileText, tags: ['mural', 'comunicado'] },
+];
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 export default function ReportCenterPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [filterModule, setFilterModule] = useState('');
-  const [exportReport, setExportReport] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Favoritos
   const [favorites, setFavorites] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('netescol_report_favorites') || '[]'); } catch { return []; }
+  });
+
+  // Ultimos acessados
+  const [recentReports, setRecentReports] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('netescol_report_recent') || '[]'); } catch { return []; }
   });
 
   const toggleFav = (code: string) => {
@@ -54,125 +91,272 @@ export default function ReportCenterPage() {
     localStorage.setItem('netescol_report_favorites', JSON.stringify(next));
   };
 
+  const trackAccess = (code: string) => {
+    const next = [code, ...recentReports.filter(c => c !== code)].slice(0, 5);
+    setRecentReports(next);
+    localStorage.setItem('netescol_report_recent', JSON.stringify(next));
+  };
+
+  const openReport = (r: Report) => {
+    trackAccess(r.code);
+    navigate(r.to);
+  };
+
+  // Filtros
   const filtered = REPORTS.filter(r => {
     if (filterModule && r.module !== filterModule) return false;
     if (search) {
       const q = search.toLowerCase();
-      return r.code.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q) || r.module.toLowerCase().includes(q);
+      return r.code.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q) || (r.tags || []).some(t => t.includes(q));
     }
     return true;
   });
 
-  const modules = [...new Set(REPORTS.map(r => r.module))];
   const favReports = REPORTS.filter(r => favorites.includes(r.code));
+  const recentList = recentReports.map(code => REPORTS.find(r => r.code === code)).filter(Boolean) as Report[];
+
+  // KPIs por modulo
+  const moduleCounts = MODULES.map(m => ({
+    ...m,
+    count: REPORTS.filter(r => r.module === m.key).length,
+  }));
+
+  // Atalho de teclado: / para buscar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && !(e.target as HTMLElement)?.closest('input,textarea,select')) {
+        e.preventDefault();
+        document.getElementById('report-search')?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-accent-100 flex items-center justify-center"><BarChart3 size={20} className="text-accent-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Central de Relatórios</h1><p className="text-gray-500">{REPORTS.length} relatório(s) disponível(is)</p></div></div>
+      {/* HEADER com KPIs */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center shadow-lg">
+              <BarChart3 size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Central de Relatorios</h1>
+              <p className="text-gray-500 text-sm">{REPORTS.length} relatorios disponiveis em {MODULES.length} modulos</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-accent-100 text-accent-600' : 'text-gray-400 hover:text-gray-600'}`} title="Grade">
+              <Hash size={18} />
+            </button>
+            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-accent-100 text-accent-600' : 'text-gray-400 hover:text-gray-600'}`} title="Lista">
+              <FileText size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards por modulo */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          {moduleCounts.map(m => {
+            const Icon = m.icon;
+            const isActive = filterModule === m.key;
+            return (
+              <button key={m.key} onClick={() => setFilterModule(isActive ? '' : m.key)}
+                className={`p-4 rounded-xl border-2 transition-all text-left ${isActive ? 'border-current shadow-md' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 hover:shadow-sm'}`}
+                style={isActive ? { borderColor: m.color, backgroundColor: m.color + '10' } : {}}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: m.color + '20' }}>
+                    <Icon size={18} style={{ color: m.color }} />
+                  </div>
+                  <span className="text-2xl font-bold" style={{ color: m.color }}>{m.count}</span>
+                </div>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{m.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{m.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Busca + Filtros */}
+        <div className="flex gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[250px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input id="report-search" className="input pl-9 pr-16" placeholder="Buscar relatorio... (pressione /)" value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
+          </div>
+          {filterModule && (
+            <button onClick={() => setFilterModule('')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: MODULES.find(m => m.key === filterModule)?.color, color: MODULES.find(m => m.key === filterModule)?.color, backgroundColor: (MODULES.find(m => m.key === filterModule)?.color || '') + '10' }}>
+              <Filter size={14} /> {filterModule} <X size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-5 flex-wrap">
-        <div className="relative flex-1 max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar por código, nome ou módulo..." value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <select className="input w-56" value={filterModule} onChange={e => setFilterModule(e.target.value)}><option value="">Todos os módulos</option>{modules.map(m => <option key={m} value={m}>{m}</option>)}</select>
-      </div>
-
-      {/* Favorites */}
+      {/* SECAO: Favoritos */}
       {favReports.length > 0 && !search && !filterModule && (
         <div className="mb-6">
-          <h2 className="text-sm font-bold text-yellow-600 uppercase tracking-wide mb-3 flex items-center gap-1"><Star size={14} fill="currentColor" /> Favoritos</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <h2 className="text-sm font-bold text-yellow-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Star size={14} fill="currentColor" /> Meus Favoritos ({favReports.length})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
             {favReports.map(r => (
-              <div key={r.code} className="rounded-xl border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all group">
-                <div className="flex items-center gap-3 p-4">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
-                  <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{r.title}</p><p className="text-xs text-gray-500 truncate">{r.desc}</p></div>
-                  <button onClick={() => toggleFav(r.code)} className="text-yellow-400"><Star size={16} fill="currentColor" /></button>
+              <button key={r.code} onClick={() => openReport(r)}
+                className="flex items-center gap-3 p-3 rounded-xl border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:border-yellow-800 transition-all text-left group">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: r.color }}>{r.code}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{r.title}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{r.desc}</p>
                 </div>
-                <div className="flex border-t border-yellow-200">
-                  <Link to={r.to} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-accent-600 hover:bg-yellow-100 rounded-bl-xl"><ExternalLink size={12} /> Abrir</Link>
-                  <div className="w-px bg-yellow-200" />
-                  <button onClick={() => setExportReport(r)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-green-600 hover:bg-yellow-100 rounded-br-xl"><Download size={12} /> Exportar</button>
-                </div>
-              </div>
+                <ChevronRight size={14} className="text-gray-300 group-hover:text-yellow-500 transition-colors flex-shrink-0" />
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Reports by module */}
-      {(filterModule ? [filterModule] : modules).map(mod => {
-        const modReports = filtered.filter(r => r.module === mod);
-        if (modReports.length === 0) return null;
-        const modColor = modReports[0]?.color || '#64748b';
+      {/* SECAO: Ultimos Acessados */}
+      {recentList.length > 0 && !search && !filterModule && (
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Clock size={14} /> Ultimos Acessados
+          </h2>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentList.map(r => (
+              <button key={r.code} onClick={() => openReport(r)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-all text-left flex-shrink-0">
+                <div className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{r.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SECAO: Relatorios por Modulo */}
+      {(filterModule ? [filterModule] : MODULES.map(m => m.key)).map(modKey => {
+        const mod = MODULES.find(m => m.key === modKey);
+        const modReports = filtered.filter(r => r.module === modKey);
+        if (modReports.length === 0 || !mod) return null;
+
         return (
-          <div key={mod} className="mb-6">
+          <div key={modKey} className="mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-6 rounded-full" style={{ backgroundColor: modColor }} />
-              <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: modColor }}>{mod}</h2>
-              <span className="text-xs text-gray-400">({modReports.length})</span>
-              <div className="flex-1 h-px bg-gray-200" />
+              <div className="w-1.5 h-7 rounded-full" style={{ backgroundColor: mod.color }} />
+              <mod.icon size={18} style={{ color: mod.color }} />
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: mod.color }}>{mod.label}</h2>
+              <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{modReports.length}</span>
+              <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800 ml-2" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {modReports.map(r => (
-                <div key={r.code} className="relative group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-gray-300 transition-all">
-                  <div className="flex items-center gap-3 p-4">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: r.color }}>{r.code}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm truncate">{r.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{r.desc}</p>
+
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {modReports.map(r => {
+                  const Icon = r.icon;
+                  return (
+                    <div key={r.code} className="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 transition-all overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm" style={{ backgroundColor: r.color + '15' }}>
+                            <Icon size={20} style={{ color: r.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: r.color }}>{r.code}</span>
+                              <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm truncate">{r.title}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{r.desc}</p>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); toggleFav(r.code); }}
+                            className={`p-1 rounded transition-all flex-shrink-0 ${favorites.includes(r.code) ? 'text-yellow-400' : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-yellow-400'}`}>
+                            <Star size={14} fill={favorites.includes(r.code) ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
+                        {r.tags && (
+                          <div className="flex gap-1 mt-2 flex-wrap">
+                            {r.tags.slice(0, 3).map(tag => (
+                              <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex border-t border-gray-100 dark:border-gray-700">
+                        <button onClick={() => openReport(r)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
+                          <ExternalLink size={13} /> Abrir
+                        </button>
+                        <div className="w-px bg-gray-100 dark:bg-gray-700" />
+                        <button onClick={() => { trackAccess(r.code); navigate(r.to); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                          <Download size={13} /> Exportar
+                        </button>
+                        <div className="w-px bg-gray-100 dark:bg-gray-700" />
+                        <button onClick={() => { trackAccess(r.code); navigate(r.to); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                          <Printer size={13} /> Imprimir
+                        </button>
+                      </div>
                     </div>
-                    <button onClick={() => toggleFav(r.code)} className={`p-1 rounded transition-colors flex-shrink-0 ${favorites.includes(r.code) ? 'text-yellow-400' : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-yellow-400'}`}>
-                      <Star size={14} fill={favorites.includes(r.code) ? 'currentColor' : 'none'} />
-                    </button>
-                  </div>
-                  <div className="flex border-t border-gray-100 dark:border-gray-700">
-                    <Link to={r.to} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors rounded-bl-xl">
-                      <ExternalLink size={13} /> Abrir
-                    </Link>
-                    <div className="w-px bg-gray-100 dark:bg-gray-700" />
-                    <button onClick={() => setExportReport(r)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                      <Download size={13} /> Exportar
-                    </button>
-                    <div className="w-px bg-gray-100 dark:bg-gray-700" />
-                    <button onClick={() => navigate(r.to)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-br-xl">
-                      <Printer size={13} /> Imprimir
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* MODO LISTA */
+              <div className="card p-0 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Codigo</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Relatorio</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Descricao</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {modReports.map(r => {
+                      const Icon = r.icon;
+                      return (
+                        <tr key={r.code} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <span className="text-[10px] font-bold px-2 py-1 rounded text-white" style={{ backgroundColor: r.color }}>{r.code}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <Icon size={16} style={{ color: r.color }} />
+                              <span className="font-medium text-gray-800 dark:text-gray-200">{r.title}</span>
+                              {favorites.includes(r.code) && <Star size={12} className="text-yellow-400" fill="currentColor" />}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{r.desc}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => openReport(r)} className="px-2.5 py-1 text-xs font-medium text-accent-600 hover:bg-accent-50 rounded-lg transition-colors">Abrir</button>
+                              <button onClick={() => toggleFav(r.code)} className={`p-1 rounded-lg transition-colors ${favorites.includes(r.code) ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}>
+                                <Star size={14} fill={favorites.includes(r.code) ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         );
       })}
 
+      {/* VAZIO */}
       {filtered.length === 0 && (
-        <div className="card text-center py-16"><Search size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum relatório encontrado para "{search}"</p></div>
-      )}
-
-      {/* Modal informativo - redireciona para a pagina do relatorio */}
-      {exportReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="text-center mb-5">
-              <div className="w-14 h-14 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Download size={24} className="text-accent-600" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{exportReport.title}</h3>
-              <p className="text-sm text-gray-500 mt-1">{exportReport.desc}</p>
-              <p className="text-xs text-gray-400 mt-2">Codigo: {exportReport.code} | {exportReport.module}</p>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-5">
-              Para exportar este relatorio com dados completos, acesse a pagina do relatorio e utilize os botoes de impressao/exportacao.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setExportReport(null)} className="btn-secondary flex-1">Cancelar</button>
-              <button onClick={() => { navigate(exportReport.to); setExportReport(null); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                <ExternalLink size={16} /> Abrir Relatorio
-              </button>
-            </div>
-          </div>
+        <div className="card text-center py-16">
+          <Search size={48} className="text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">Nenhum relatorio encontrado</p>
+          <p className="text-gray-400 text-sm mt-1">Tente outra busca ou limpe os filtros</p>
+          {(search || filterModule) && (
+            <button onClick={() => { setSearch(''); setFilterModule(''); }} className="btn-secondary mt-4">Limpar filtros</button>
+          )}
         </div>
       )}
     </div>

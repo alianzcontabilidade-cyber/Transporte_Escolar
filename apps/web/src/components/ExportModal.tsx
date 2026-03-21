@@ -12,13 +12,13 @@ interface ExportOption {
 }
 
 const EXPORT_OPTIONS: ExportOption[] = [
-  { value: 'print', label: 'Impressao Direta', icon: Printer, desc: 'Envia direto para a impressora', group: 'visualizar' },
-  { value: 'pdf', label: 'Abrir em PDF', icon: FileText, desc: 'Abre o documento para visualizacao', group: 'visualizar' },
+  { value: 'print', label: 'Impressão Direta', icon: Printer, desc: 'Envia direto para a impressora', group: 'visualizar' },
+  { value: 'pdf', label: 'Abrir em PDF', icon: FileText, desc: 'Abre o documento para visualização', group: 'visualizar' },
   { value: 'html', label: 'Abrir em HTML', icon: Globe, desc: 'Abre em nova aba no navegador', group: 'visualizar' },
   { value: 'pdf-download', label: 'Download PDF (.pdf)', icon: FileDown, desc: 'Salvar arquivo PDF no computador', group: 'download' },
   { value: 'docx', label: 'Download Word (.docx)', icon: FileDown, desc: 'Salvar como documento Word', group: 'download' },
-  { value: 'csv', label: 'Download CSV (.csv)', icon: FileSpreadsheet, desc: 'Planilha compativel com Excel', group: 'download' },
-  { value: 'html-download', label: 'Download HTML (.html)', icon: Download, desc: 'Salvar pagina HTML', group: 'download' },
+  { value: 'csv', label: 'Download CSV (.csv)', icon: FileSpreadsheet, desc: 'Planilha compatível com Excel', group: 'download' },
+  { value: 'html-download', label: 'Download HTML (.html)', icon: Download, desc: 'Salvar página HTML', group: 'download' },
 ];
 
 interface ExportModalProps {
@@ -147,18 +147,18 @@ export function printHTML(html: string) {
 }
 
 export function exportToPDF(html: string, filename: string, download: boolean = false) {
-  const pdfHTML = html.replace('</head>', '<style>@media print{@page{margin:10mm;size:A4}body{margin:0;padding:15px}.no-print{display:none!important}}</style></head>');
-  if (download) {
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.write(pdfHTML);
-      w.document.close();
-      setTimeout(() => w.print(), 500);
+  // Use openReportAsPDF for the viewer with zoom controls
+  import('../lib/reportTemplate').then(({ openReportAsPDF, printReportHTML }) => {
+    if (download) {
+      // Download = open and trigger print dialog (user can save as PDF from print)
+      const pdfHTML = html.replace('</head>', '<style>@media print{@page{margin:10mm;size:A4}body{margin:0;padding:15px}.no-print{display:none!important}}</style></head>');
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(pdfHTML); w.document.close(); setTimeout(() => w.print(), 500); }
+    } else {
+      // View = open in viewer with zoom, PDF download, print, Word buttons
+      openReportAsPDF(html, filename);
     }
-  } else {
-    const blob = new Blob([pdfHTML], { type: 'text/html;charset=utf-8' });
-    window.open(URL.createObjectURL(blob), '_blank');
-  }
+  });
 }
 
 export function exportToWord(html: string, filename: string) {

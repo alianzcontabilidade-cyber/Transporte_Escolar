@@ -78,7 +78,7 @@ export default function StudentHistoryPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><History size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Historico Escolar</h1><p className="text-gray-500">Trajetoria academica do aluno</p></div></div>
+        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><History size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Histórico Escolar</h1><p className="text-gray-500">Trajetória acadêmica do aluno</p></div></div>
         {selStudent && allEnrollments.length > 0 && (
           <div className="flex items-center gap-2">
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>

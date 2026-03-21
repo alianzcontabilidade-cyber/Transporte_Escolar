@@ -46,7 +46,7 @@ export default function EducacensoPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><Database size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">EDUCACENSO</h1><p className="text-gray-500">Exportacao de dados para o Censo Escolar</p></div></div>
+        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><Database size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">EDUCACENSO</h1><p className="text-gray-500">Exportação de dados para o Censo Escolar</p></div></div>
       </div>
 
       {/* Status de prontidão */}

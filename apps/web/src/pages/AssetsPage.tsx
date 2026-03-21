@@ -64,7 +64,7 @@ export default function AssetsPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><Package size={20} className="text-slate-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Patrimonio e Estoque</h1><p className="text-gray-500">{allAssets.length} bens · {allInv.length} itens em estoque</p></div></div>
+        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><Package size={20} className="text-slate-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Patrimônio e Estoque</h1><p className="text-gray-500">{allAssets.length} bens · {allInv.length} itens em estoque</p></div></div>
         <button onClick={() => tab === 'assets' ? openNewAsset() : openNewItem()} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo</button>
       </div>
 

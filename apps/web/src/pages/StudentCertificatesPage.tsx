@@ -68,7 +68,7 @@ export default function StudentCertificatesPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div>
-          <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Declaracoes e Certidoes</h1><p className="text-gray-500">Gere documentos oficiais para alunos</p></div>
+          <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Declarações e Certidões</h1><p className="text-gray-500">Gere documentos oficiais para alunos</p></div>
         </div>
       </div>
 
@@ -109,7 +109,6 @@ export default function StudentCertificatesPage() {
               <div className="grid grid-cols-2 gap-3">
                 {CERT_TYPES.map(cert => {
                   const Icon = cert.icon;
-                  const isGenerating = generating === cert.id;
                   return (
                     <div key={cert.id} className="card hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600 transition-all group">
                       <div className="flex items-start gap-3 mb-3">

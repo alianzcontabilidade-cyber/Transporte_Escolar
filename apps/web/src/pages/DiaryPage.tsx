@@ -66,7 +66,7 @@ export default function DiaryPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><BookOpen size={20} className="text-emerald-600" /></div>
-          <div><h1 className="text-2xl font-bold text-gray-900">Diario Escolar</h1><p className="text-gray-500">Frequencia, notas e planejamento</p></div>
+          <div><h1 className="text-2xl font-bold text-gray-900">Diário Escolar</h1><p className="text-gray-500">Frequência, notas e planejamento</p></div>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function DiaryPage() {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="card text-center bg-green-50 border-0"><p className="text-2xl font-bold text-green-600">{presentCount}</p><p className="text-xs text-gray-500">Presentes</p></div>
                 <div className="card text-center bg-red-50 border-0"><p className="text-2xl font-bold text-red-600">{absentCount}</p><p className="text-xs text-gray-500">Ausentes</p></div>
-                <div className="card text-center bg-blue-50 border-0"><p className="text-2xl font-bold text-blue-600">{allEnrollments.length > 0 ? Math.round((presentCount / allEnrollments.length) * 100) : 0}%</p><p className="text-xs text-gray-500">Presenca</p></div>
+                <div className="card text-center bg-blue-50 border-0"><p className="text-2xl font-bold text-blue-600">{allEnrollments.length > 0 ? Math.round((presentCount / allEnrollments.length) * 100) : 0}%</p><p className="text-xs text-gray-500">Presença</p></div>
               </div>
 
               <div className="card p-0 overflow-hidden">

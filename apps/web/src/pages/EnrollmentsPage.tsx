@@ -68,7 +68,7 @@ export default function EnrollmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><ClipboardList size={20} className="text-teal-600" /></div>
-          <div><h1 className="text-2xl font-bold text-gray-900">Matriculas</h1><p className="text-gray-500">{counts.active} ativa(s) de {counts.total} total</p></div>
+          <div><h1 className="text-2xl font-bold text-gray-900">Matrículas</h1><p className="text-gray-500">{counts.active} ativa(s) de {counts.total} total</p></div>
         </div>
         <button onClick={() => { setShowBulk(true); setImportResult(''); setSelectedStudents([]); setBulkClassId(''); }} className="btn-primary flex items-center gap-2"><UserPlus size={16} /> Matricular Alunos</button>
       </div>

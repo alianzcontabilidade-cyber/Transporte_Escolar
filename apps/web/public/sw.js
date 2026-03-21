@@ -1,4 +1,4 @@
-const CACHE_NAME = 'netescol-v6';
+const CACHE_NAME = 'netescol-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -139,6 +139,36 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Receber mensagens da pagina principal
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_PERSISTENT_NOTIFICATION') {
+    // Notificacao persistente para manter o SW ativo durante rastreamento GPS
+    self.registration.showNotification(event.data.title || 'GPS Ativo', {
+      body: event.data.body || 'Rastreamento em tempo real ativo',
+      icon: '/bus.svg',
+      badge: '/bus.svg',
+      tag: 'gps-tracking',
+      requireInteraction: true,
+      silent: true,
+      data: { url: '/rastreamento', type: 'gps_tracking' },
+    });
+  }
+  if (event.data && event.data.type === 'HIDE_PERSISTENT_NOTIFICATION') {
+    // Fechar notificacao quando parar rastreamento
+    self.registration.getNotifications({ tag: 'gps-tracking' }).then(notifications => {
+      notifications.forEach(n => n.close());
+    });
+  }
+  if (event.data && event.data.type === 'SYNC_LOCATIONS') {
+    // Repassar para clientes
+    clients.matchAll().then(clientList => {
+      clientList.forEach(client => {
+        client.postMessage({ type: 'SYNC_LOCATIONS' });
+      });
+    });
+  }
 });
 
 // Background sync (para enviar posições GPS acumuladas offline)

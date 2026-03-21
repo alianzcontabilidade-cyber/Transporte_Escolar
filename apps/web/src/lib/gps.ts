@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api';
 import { useSocket } from './socket';
+import { enableNoSleep, disableNoSleep } from './noSleep';
 
 export interface GPSPosition {
   latitude: number;
@@ -86,6 +87,28 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
     }
   }, [tripId, driverId, municipalityId, socket, flushOfflineQueue]);
 
+  const workerRef = useRef<Worker | null>(null);
+  const notifRef = useRef<boolean>(false);
+
+  // Mostrar notificacao persistente (mantém browser ativo no Android)
+  const showPersistentNotification = useCallback(() => {
+    if (notifRef.current) return;
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_PERSISTENT_NOTIFICATION',
+            title: 'GPS Ativo - NetEscol',
+            body: 'Rastreamento em tempo real ativo. Nao feche o navegador.',
+          });
+        }
+        notifRef.current = true;
+      } catch {}
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setError('GPS nao disponivel neste dispositivo');
@@ -95,6 +118,34 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
     setError(null);
     setIsTracking(true);
 
+    // 1. Ativar NoSleep (Wake Lock + Video) para manter tela ativa
+    enableNoSleep().then(ok => {
+      if (ok) console.log('NoSleep ativado - tela permanecera ativa');
+    });
+
+    // 2. Mostrar notificacao persistente (Android)
+    showPersistentNotification();
+
+    // 3. Iniciar Web Worker para manter tracking em background
+    try {
+      if (!workerRef.current) {
+        workerRef.current = new Worker('/gps-worker.js');
+        workerRef.current.addEventListener('message', (e) => {
+          if (e.data.type === 'TICK' && lastPositionRef.current) {
+            // Worker tick - enviar posicao mesmo em background
+            sendLocation(lastPositionRef.current);
+          }
+        });
+      }
+      workerRef.current.postMessage({
+        type: 'START',
+        data: { intervalMs, tripId, driverId },
+      });
+    } catch (err) {
+      console.log('Web Worker nao disponivel, usando fallback');
+    }
+
+    // 4. GPS watchPosition (thread principal)
     watchIdRef.current = navigator.geolocation.watchPosition(
       (geoPos) => {
         const newPos: GPSPosition = {
@@ -130,13 +181,13 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
       }
     );
 
-    // Periodic send to backend
+    // 5. Fallback: envio periodico pela thread principal (backup do Worker)
     sendIntervalRef.current = setInterval(() => {
       if (lastPositionRef.current) {
         sendLocation(lastPositionRef.current);
       }
     }, intervalMs);
-  }, [intervalMs, sendLocation]);
+  }, [intervalMs, sendLocation, showPersistentNotification, tripId, driverId]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
@@ -147,6 +198,13 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
       clearInterval(sendIntervalRef.current);
       sendIntervalRef.current = null;
     }
+    // Parar Web Worker
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'STOP' });
+    }
+    // Desativar NoSleep
+    disableNoSleep();
+    notifRef.current = false;
     setIsTracking(false);
   }, []);
 

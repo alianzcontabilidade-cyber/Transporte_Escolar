@@ -2749,9 +2749,7 @@ export const enrollmentsRouter = t.router({
             if (cls.shift) su.shift = cls.shift;
             if (Object.keys(su).length > 0) {
               for (const sid of input.studentIds) {
-                if (!existing.length || !existing.some((e: any) => e.studentId === sid)) {
-                  await db.update(students).set(su).where(eq(students.id, sid));
-                }
+                try { await db.update(students).set(su).where(eq(students.id, sid)); } catch { /* skip */ }
               }
             }
           }

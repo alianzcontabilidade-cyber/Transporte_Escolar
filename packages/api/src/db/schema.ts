@@ -356,6 +356,10 @@ export const students = mysqlTable("students", {
   // Situacao do aluno na serie
   studentStatus: varchar("studentStatus", { length: 30 }),        // aprovado, reprovado, remanejado, transferido, abandono
 
+  // Rota e observações
+  routeName: varchar("routeName", { length: 255 }),               // Nome da rota vinculada
+  observations: text("observations"),                              // Observações gerais
+
   // Status
   isActive: boolean("isActive").default(true).notNull(),
 

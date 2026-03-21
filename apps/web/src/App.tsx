@@ -81,6 +81,10 @@ const IndividualReportPage = lazy(() => import('./pages/IndividualReportPage'));
 const SchoolPerformancePage = lazy(() => import('./pages/SchoolPerformancePage'));
 const FinalResultsPage = lazy(() => import('./pages/FinalResultsPage'));
 const TransportedStudentsPage = lazy(() => import('./pages/TransportedStudentsPage'));
+const LowPerformancePage = lazy(() => import('./pages/LowPerformancePage'));
+const ClassDiaryReportPage = lazy(() => import('./pages/ClassDiaryReportPage'));
+const MileageReportPage = lazy(() => import('./pages/MileageReportPage'));
+const FuelReportPage = lazy(() => import('./pages/FuelReportPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -196,6 +200,10 @@ export default function App() {
         <Route path="quadro-rendimento" element={<Guard roles={ADMIN_SEC}><SchoolPerformancePage /></Guard>} />
         <Route path="ata-resultados-finais" element={<Guard roles={ADMIN_SEC}><FinalResultsPage /></Guard>} />
         <Route path="alunos-transportados" element={<Guard roles={ADMIN_SEC}><TransportedStudentsPage /></Guard>} />
+        <Route path="baixo-rendimento" element={<Guard roles={ADMIN_SEC}><LowPerformancePage /></Guard>} />
+        <Route path="diario-classe" element={<Guard roles={ADMIN_SEC}><ClassDiaryReportPage /></Guard>} />
+        <Route path="quilometragem" element={<Guard roles={ADMIN_SEC}><MileageReportPage /></Guard>} />
+        <Route path="abastecimento" element={<Guard roles={ADMIN_SEC}><FuelReportPage /></Guard>} />
         <Route path="cadastro-prefeitura" element={<Guard roles={ADMIN}><MunicipalitySettingsPage /></Guard>} />
         <Route path="config-formularios" element={<Guard roles={['super_admin']}><FormConfigPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />

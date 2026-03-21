@@ -53,13 +53,17 @@ const REPORTS: Report[] = [
   { code: 'R208', title: 'Relatorio Individual do Aluno', desc: 'Relatorio BNCC com competencias e desempenho', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-individual', icon: BookOpen, tags: ['individual', 'bncc', 'competencia', 'aluno'] },
   { code: 'R209', title: 'Quadro de Rendimento Escolar', desc: 'Aprovados, retidos e transferidos por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/quadro-rendimento', icon: TrendingUp, tags: ['rendimento', 'aprovado', 'retido', 'escola'] },
   { code: 'R210', title: 'Ata de Resultados Finais', desc: 'Documento oficial de resultados do ano letivo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados-finais', icon: FileText, tags: ['ata', 'resultado', 'final', 'oficial'] },
-  // Frota e Rotas (6)
+  { code: 'R211', title: 'Alunos com Baixo Rendimento', desc: 'Alunos com media abaixo do minimo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/baixo-rendimento', icon: TrendingUp, tags: ['baixo', 'rendimento', 'recuperacao', 'nota'] },
+  { code: 'R212', title: 'Diario de Classe', desc: 'Frequencia diaria por turma e mes', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/diario-classe', icon: BookOpen, tags: ['diario', 'classe', 'frequencia', 'presenca'] },
+  // Frota e Rotas (8)
   { code: 'R301', title: 'Relatorio de Viagens', desc: 'Historico de viagens concluidas', module: 'Frota e Rotas', color: '#f97316', to: '/relatorio-transporte', icon: Bus, tags: ['viagem', 'transporte'] },
   { code: 'R302', title: 'Relatorio da Frota', desc: 'Veiculos, status e documentos', module: 'Frota e Rotas', color: '#f97316', to: '/relatorios', icon: Truck, tags: ['veiculo', 'frota', 'documento'] },
   { code: 'R303', title: 'Vistoria de Veiculos', desc: 'Checklist de inspecao veicular', module: 'Frota e Rotas', color: '#f97316', to: '/vistoria-veiculos', icon: FileText, tags: ['vistoria', 'inspecao'] },
   { code: 'R304', title: 'Ficha do Motorista', desc: 'Dados completos do motorista', module: 'Frota e Rotas', color: '#f97316', to: '/motoristas', icon: Users, tags: ['motorista', 'ficha'] },
   { code: 'R305', title: 'Lista de Monitores', desc: 'Monitores do transporte escolar', module: 'Frota e Rotas', color: '#f97316', to: '/monitores', icon: Users, tags: ['monitor', 'lista'] },
   { code: 'R308', title: 'Alunos Transportados (FNDE)', desc: 'Relatorio FNDE com todos os alunos do transporte', module: 'Frota e Rotas', color: '#f97316', to: '/alunos-transportados', icon: Bus, tags: ['aluno', 'transportado', 'fnde', 'rota', 'rural'] },
+  { code: 'R309', title: 'Quilometragem', desc: 'Km percorridos por veiculo e rota', module: 'Frota e Rotas', color: '#f97316', to: '/quilometragem', icon: Truck, tags: ['quilometragem', 'km', 'veiculo', 'distancia'] },
+  { code: 'R310', title: 'Abastecimento', desc: 'Controle de combustivel da frota', module: 'Frota e Rotas', color: '#f97316', to: '/abastecimento', icon: Truck, tags: ['abastecimento', 'combustivel', 'diesel', 'litro'] },
   // Gestao e Recursos (6)
   { code: 'R401', title: 'Relatorio Financeiro', desc: 'Receitas, despesas e saldo', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/financeiro', icon: TrendingUp, tags: ['financeiro', 'receita', 'despesa'] },
   { code: 'R402', title: 'Relatorio de Contratos', desc: 'Contratos vigentes e vencidos', module: 'Gestao e Recursos', color: '#0ea5e9', to: '/contratos', icon: FileText, tags: ['contrato', 'fornecedor'] },

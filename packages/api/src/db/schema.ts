@@ -694,6 +694,30 @@ export const contracts = mysqlTable("contracts", {
 });
 
 // ============================================
+// TABELA: REGISTROS DE ABASTECIMENTO
+// ============================================
+export const fuelRecords = mysqlTable("fuel_records", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  vehicleId: int("vehicleId").notNull().references(() => vehicles.id),
+  driverId: int("driverId").references(() => drivers.id),
+
+  // Dados do abastecimento
+  fuelDate: timestamp("fuelDate").notNull(),
+  fuelType: varchar("fuelType", { length: 50 }),          // Diesel, Gasolina, Etanol, GNV
+  liters: decimal("liters", { precision: 10, scale: 2 }).notNull(),
+  pricePerLiter: decimal("pricePerLiter", { precision: 10, scale: 3 }),
+  totalCost: decimal("totalCost", { precision: 10, scale: 2 }).notNull(),
+  kmAtFueling: int("kmAtFueling"),                        // Km no momento do abastecimento
+  gasStation: varchar("gasStation", { length: 255 }),      // Posto
+  invoiceNumber: varchar("invoiceNumber", { length: 50 }), // Nota fiscal
+  notes: text("notes"),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
 // TABELA: REGISTROS DE MANUTENÇÃO
 // ============================================
 export const maintenanceRecords = mysqlTable("maintenance_records", {

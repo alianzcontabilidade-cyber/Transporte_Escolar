@@ -217,6 +217,10 @@ export default function Layout() {
     { code: '213', to: '/quadro-rendimento', text: 'Quadro de Rendimento', module: 'Ensino e Aprendizagem', desc: 'Aprovados, retidos e transferidos por turma', tags: 'quadro rendimento aprovado retido transferido escola turma', color: '#8b5cf6' },
     { code: '214', to: '/ata-resultados-finais', text: 'Ata de Resultados Finais', module: 'Ensino e Aprendizagem', desc: 'Documento oficial com resultados finais por turma', tags: 'ata resultado final oficial turma aprovado retido', color: '#8b5cf6' },
     { code: '312', to: '/alunos-transportados', text: 'Alunos Transportados', module: 'Frota e Rotas', desc: 'Relatório FNDE de alunos do transporte escolar', tags: 'aluno transportado fnde transporte escolar rural urbano rota', color: '#f97316' },
+    { code: '215', to: '/baixo-rendimento', text: 'Baixo Rendimento', module: 'Ensino e Aprendizagem', desc: 'Alunos com média abaixo do mínimo', tags: 'baixo rendimento nota media reprovacao recuperacao', color: '#8b5cf6' },
+    { code: '216', to: '/diario-classe', text: 'Diário de Classe', module: 'Ensino e Aprendizagem', desc: 'Frequência diária por turma e mês', tags: 'diario classe frequencia presenca falta mensal', color: '#8b5cf6' },
+    { code: '313', to: '/quilometragem', text: 'Quilometragem', module: 'Frota e Rotas', desc: 'Km percorridos por veículo e rota', tags: 'quilometragem km veiculo rota viagem distancia', color: '#f97316' },
+    { code: '314', to: '/abastecimento', text: 'Abastecimento', module: 'Frota e Rotas', desc: 'Controle de combustível da frota', tags: 'abastecimento combustivel diesel gasolina litro posto', color: '#f97316' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -260,6 +264,8 @@ export default function Layout() {
       { to: '/relatorio-individual', icon: BookOpen, text: 'Rel. Individual' },
       { to: '/quadro-rendimento', icon: BarChart3, text: 'Quadro Rendimento' },
       { to: '/ata-resultados-finais', icon: FileText, text: 'Ata Resultados Finais' },
+      { to: '/baixo-rendimento', icon: BarChart3, text: 'Baixo Rendimento' },
+      { to: '/diario-classe', icon: BookOpen, text: 'Diário de Classe' },
     ]},
     { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#f97316', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
@@ -269,6 +275,8 @@ export default function Layout() {
       { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' }, { to: '/relatorio-transporte', icon: BarChart3, text: 'Relatório' },
       { to: '/vistoria-veiculos', icon: ClipboardList, text: 'Vistoria Veículos' },
       { to: '/alunos-transportados', icon: Users, text: 'Alunos Transportados' },
+      { to: '/quilometragem', icon: BarChart3, text: 'Quilometragem' },
+      { to: '/abastecimento', icon: BarChart3, text: 'Abastecimento' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },

@@ -143,6 +143,11 @@ export const api = {
     update: (input: any) => call('vehicles.update', input, 'mutation'),
     delete: (input: any) => call('vehicles.delete', input, 'mutation'),
   },
+  fuel: {
+    list: (input: any) => call('fuel.list', input, 'query'),
+    create: (input: any) => call('fuel.create', input, 'mutation'),
+    delete: (input: any) => call('fuel.delete', input, 'mutation'),
+  },
   trips: {
     completeAll: (input: any) => call('trips.completeAll', input, 'mutation'),
     listActive: (input: any) => call('trips.listActive', input, 'query'),

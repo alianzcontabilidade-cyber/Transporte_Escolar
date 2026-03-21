@@ -13,7 +13,7 @@ import {
   financialAccounts, financialTransactions,
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
-  municipalityResponsibles, formFieldConfigs
+  municipalityResponsibles, formFieldConfigs, fuelRecords
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -3802,6 +3802,49 @@ export const formConfigRouter = t.router({
 });
 
 // ============================================
+// FUEL RECORDS ROUTER
+// ============================================
+export const fuelRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), vehicleId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(fuelRecords.municipalityId, input.municipalityId)];
+      if (input.vehicleId) conditions.push(eq(fuelRecords.vehicleId, input.vehicleId));
+      return db.select({
+        fuel: fuelRecords,
+        vehicle: { id: vehicles.id, plate: vehicles.plate, nickname: vehicles.nickname },
+      }).from(fuelRecords)
+        .innerJoin(vehicles, eq(fuelRecords.vehicleId, vehicles.id))
+        .where(and(...conditions))
+        .orderBy(desc(fuelRecords.fuelDate));
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), vehicleId: z.number(), driverId: z.number().optional(),
+      fuelDate: z.string(), fuelType: z.string().optional(),
+      liters: z.number(), pricePerLiter: z.number().optional(), totalCost: z.number(),
+      kmAtFueling: z.number().optional(), gasStation: z.string().optional(),
+      invoiceNumber: z.string().optional(), notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [result] = await db.insert(fuelRecords).values({
+        ...input, fuelDate: new Date(input.fuelDate),
+        liters: String(input.liters), totalCost: String(input.totalCost),
+        pricePerLiter: input.pricePerLiter ? String(input.pricePerLiter) : undefined,
+      } as any);
+      return { id: result.insertId };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(fuelRecords).where(eq(fuelRecords.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -3821,7 +3864,8 @@ export const appRouter = t.router({
   monitorStaff: monitorStaffRouter,
   contracts: contractsRouter,
   maintenance: maintenanceRouter,
-    location: locationRouter,
+  fuel: fuelRouter,
+  location: locationRouter,
 
   // Módulo Acadêmico
   academicYears: academicYearsRouter,

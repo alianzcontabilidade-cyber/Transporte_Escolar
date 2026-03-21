@@ -343,6 +343,8 @@ export const municipalitiesRouter = t.router({
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
       email: z.string().optional(),
       phone: z.string().optional(),
       address: z.string().optional(),

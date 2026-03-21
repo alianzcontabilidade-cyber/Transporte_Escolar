@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { lookupCEP, maskCEP } from '../lib/cnpjCep';
+import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { maskPhone, maskCPF } from '../lib/utils';
 import { Building2, Save, Upload, Plus, Trash2, Loader2, CheckCircle, AlertTriangle, Image, User, GraduationCap, Users, Pencil } from 'lucide-react';
 import CNPJField from '../components/CNPJField';
@@ -38,6 +39,7 @@ export default function MunicipalitySettingsPage() {
     secretarioDecreto: '',
   });
 
+  const { municipios: munCidades, loading: munCidadesLoading } = useMunicipios(form.estado);
   const [responsibles, setResponsibles] = useState<Responsible[]>([]);
   const [newResp, setNewResp] = useState({ name: '', role: '', cpf: '', decree: '' });
   const [customRoles, setCustomRoles] = useState<string[]>([]);
@@ -186,6 +188,8 @@ export default function MunicipalitySettingsPage() {
       await api.municipalities.update({
         id: mid,
         name: form.name || undefined,
+        city: form.cidade || undefined,
+        state: form.estado || undefined,
         email: form.email || undefined,
         phone: form.phone || undefined,
         address: fullAddress || undefined,
@@ -281,8 +285,8 @@ export default function MunicipalitySettingsPage() {
               <div><label className="label">Numero</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
               <div><label className="label">Complemento</label><input className="input" value={form.complemento} onChange={sf('complemento')} /></div>
               <div><label className="label">Bairro *</label><input className="input" value={form.bairro} onChange={sf('bairro')} /></div>
-              <div><label className="label">Municipio *</label><input className="input" value={form.cidade} onChange={sf('cidade')} /></div>
-              <div><label className="label">UF *</label><input className="input" value={form.estado} onChange={sf('estado')} maxLength={2} /></div>
+              <div><label className="label">UF *</label><select className="input" value={form.estado} onChange={(e) => setForm(f => ({...f, estado: e.target.value, cidade: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf} - {es.nome}</option>)}</select></div>
+              <div><label className="label">Municipio * {munCidadesLoading && <span className="text-xs text-gray-400">carregando...</span>}</label><select className="input" value={form.cidade} onChange={sf('cidade')} disabled={!form.estado || munCidadesLoading}><option value="">Selecione</option>{munCidades.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}</select></div>
             </div>
           </div>
 

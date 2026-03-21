@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Fuel, Download, Printer, Truck, Plus, Trash2, X } from 'lucide-react';
-import { loadMunicipalityData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
 import { buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport } from '../components/ExportModal';
@@ -105,7 +105,6 @@ export default function FuelReportPage() {
   };
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
-  const handlePDF = async () => { const html = buildReportHTML(); if (html) await openReportAsPDF(html, 'Relatorio_Abastecimento'); };
   const handleExportClick = () => {
     if (!allFuel.length) { alert('Nenhum dado disponível'); return; }
     const html = buildReportHTML();
@@ -124,7 +123,6 @@ export default function FuelReportPage() {
           <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Registrar</button>
           {allFuel.length > 0 && (
             <>
-              <button onClick={handlePDF} className="btn-secondary flex items-center gap-2"><Download size={16} /> PDF</button>
               <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
               <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
             </>

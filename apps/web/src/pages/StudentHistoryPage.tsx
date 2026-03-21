@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { History, Search, Printer, Download, Users, BookOpen, CheckCircle, FileDown } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { History, Search, Printer, Download, Users, BookOpen, CheckCircle } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
 import { generateHistoricoEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -63,14 +63,6 @@ export default function StudentHistoryPage() {
     return generateHistoricoEscolar(student, history, school, municipality, secretaria, selectedSigs);
   };
 
-  const handlePDF = async () => {
-    const html = buildHistoricoHTML();
-    if (!html) return;
-    try {
-      await openReportAsPDF(html, 'Historico_' + (student?.name || 'aluno'));
-    } catch { printReportHTML(html); }
-  };
-
   const handlePrint = () => {
     const html = buildHistoricoHTML();
     if (!html) return;
@@ -89,7 +81,6 @@ export default function StudentHistoryPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><History size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Historico Escolar</h1><p className="text-gray-500">Trajetoria academica do aluno</p></div></div>
         {selStudent && allEnrollments.length > 0 && (
           <div className="flex items-center gap-2">
-            <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><FileDown size={16} /> PDF</button>
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}

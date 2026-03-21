@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Search, Users, FileDown, Printer , Download } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, openReportAsPDF, printReportHTML } from '../lib/reportTemplate';
+import { FileText, Search, Users, Printer, Download } from 'lucide-react';
+import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
 import { generateFichaMatricula } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -35,11 +35,6 @@ export default function StudentReportPage() {
     return generateFichaMatricula(selStudent, school, munReport.municipality, munReport.secretaria, selectedSigs);
   };
 
-  const handlePDF = async () => {
-    const html = buildHTML();
-    if (html) await openReportAsPDF(html, 'Ficha_' + (selStudent?.name || 'Aluno'));
-  };
-
   const handlePrint = () => {
     const html = buildHTML();
     if (html) printReportHTML(html);
@@ -59,7 +54,6 @@ export default function StudentReportPage() {
         </div>
         {selStudent && (
           <div className="flex gap-2">
-            <button onClick={handlePDF} className="btn-primary flex items-center gap-2 bg-red-600 hover:bg-red-700"><FileDown size={16} /> PDF</button>
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}

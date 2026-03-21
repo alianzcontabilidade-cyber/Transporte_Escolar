@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Printer, Search, Download, Users } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
 import { generateBoletimEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -69,13 +69,6 @@ export default function ReportCardPage() {
     return generateBoletimEscolar(studentData, grades, school, municipality, secretaria, selectedSigs, new Date().getFullYear());
   };
 
-  const printReport = async () => {
-    const html = buildReportHTML();
-    if (!html) return;
-    const student = allEnrollments.find((e: any) => String(e.studentId) === selStudent);
-    await openReportAsPDF(html, 'Boletim_' + (student?.studentName || 'aluno'));
-  };
-
   const printReportDirect = () => {
     const html = buildReportHTML();
     if (html) printReportHTML(html);
@@ -101,7 +94,7 @@ export default function ReportCardPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Boletim Escolar</h1><p className="text-gray-500">Consulta e impressão de boletins</p></div></div>
-        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReport} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></div>}
+        {report.length > 0 && <div className="flex items-center gap-2"><button onClick={printReportDirect} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></div>}
       </div>
 
       <div className="flex gap-3 mb-6">

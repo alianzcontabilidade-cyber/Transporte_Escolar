@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Wrench, Download, Printer, Truck } from 'lucide-react';
-import { loadMunicipalityData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
 import { buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport } from '../components/ExportModal';
@@ -66,7 +66,6 @@ export default function MaintenanceReportPage() {
   };
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
-  const handlePDF = async () => { const html = buildReportHTML(); if (html) await openReportAsPDF(html, 'Relatorio_Manutencoes'); };
   const handleExportClick = () => {
     if (!filtered.length) { alert('Nenhum dado'); return; }
     const html = buildReportHTML(); if (!html) return;
@@ -82,7 +81,6 @@ export default function MaintenanceReportPage() {
         </div>
         {filtered.length > 0 && (
           <div className="flex items-center gap-2">
-            <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><Download size={16} /> PDF</button>
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
             <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>

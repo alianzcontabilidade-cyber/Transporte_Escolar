@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Download, Printer, Users, Award } from 'lucide-react';
-import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF, generateReportHTML } from '../lib/reportTemplate';
+import { loadMunicipalityData, loadSchoolData, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport } from '../components/ExportModal';
 
@@ -175,7 +175,6 @@ export default function FinalResultsPage() {
   };
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
-  const handlePDF = async () => { const html = buildReportHTML(); if (html) await openReportAsPDF(html, 'Ata_Resultados_Finais_' + (cls?.name || '')); };
   const handleExportClick = () => {
     if (!selClass) { alert('Selecione uma turma'); return; }
     if (!gradesByStudent.length) { alert('Nenhum aluno encontrado nesta turma'); return; }
@@ -194,7 +193,6 @@ export default function FinalResultsPage() {
         </div>
         {gradesByStudent.length > 0 && (
           <div className="flex items-center gap-2">
-            <button onClick={handlePDF} className="btn-primary flex items-center gap-2"><Download size={16} /> Gerar PDF</button>
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
             <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>

@@ -289,13 +289,30 @@ export function printReportHTML(html: string) {
   }
 }
 
-// Open report in new tab with action toolbar
+// Open report in new tab with action toolbar + zoom controls
 export async function openReportAsPDF(html: string, filename?: string) {
   const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_');
   const safeNameClean = safeName.replace(/_+/g, '_');
 
   const actionBarScript = `
 <script>
+var currentZoom = 100;
+function setZoom(val) {
+  currentZoom = Math.max(50, Math.min(200, val));
+  var content = document.getElementById('report-content-wrapper');
+  content.style.transform = 'scale(' + (currentZoom / 100) + ')';
+  content.style.transformOrigin = 'top center';
+  document.getElementById('zoom-label').textContent = currentZoom + '%';
+}
+function zoomIn() { setZoom(currentZoom + 10); }
+function zoomOut() { setZoom(currentZoom - 10); }
+function zoomReset() { setZoom(100); }
+function zoomFit() {
+  var ww = window.innerWidth - 40;
+  var pw = 794; /* A4 width in px at 96dpi */
+  var fit = Math.floor((ww / pw) * 100);
+  setZoom(Math.min(fit, 150));
+}
 function downloadWord() {
   var bar = document.getElementById('report-action-bar');
   var barHTML = bar ? bar.outerHTML : '';
@@ -315,6 +332,9 @@ function downloadPDF() {
   var btn = document.getElementById('btn-pdf');
   btn.innerHTML = 'Gerando PDF...';
   btn.disabled = true;
+  /* Reset zoom before generating */
+  var content = document.getElementById('report-content-wrapper');
+  content.style.transform = 'none';
   var script = document.createElement('script');
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
   script.onload = function() {
@@ -327,8 +347,9 @@ function downloadPDF() {
       html2canvas: {scale: 2, useCORS: true},
       jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
     };
-    html2pdf().set(opt).from(document.body).save().then(function() {
+    html2pdf().set(opt).from(content).save().then(function() {
       bar.style.display = 'flex';
+      setZoom(currentZoom);
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF';
       btn.disabled = false;
     });
@@ -338,28 +359,50 @@ function downloadPDF() {
 function imprimirDoc() {
   var bar = document.getElementById('report-action-bar');
   bar.style.display = 'none';
+  var content = document.getElementById('report-content-wrapper');
+  content.style.transform = 'none';
   setTimeout(function() {
     window.print();
-    setTimeout(function() { bar.style.display = 'flex'; }, 500);
+    setTimeout(function() { bar.style.display = 'flex'; setZoom(currentZoom); }, 500);
   }, 100);
 }
+/* Auto-fit on load */
+window.addEventListener('load', function() { zoomFit(); });
 <\/script>`;
 
   const actionBar = `
 <style id="action-bar-style">
-  #report-action-bar { position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 12px rgba(0,0,0,0.4);font-family:Arial,sans-serif }
-  #report-action-bar .bar-title { color:white;font-size:14px;font-weight:bold;flex:1 }
-  #report-action-bar button { border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.2s }
-  #report-action-bar button:hover { opacity:0.9 }
+  #report-action-bar { position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,0.4);font-family:Arial,sans-serif }
+  #report-action-bar .bar-title { color:white;font-size:14px;font-weight:bold;margin-right:auto }
+  #report-action-bar button { border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s }
+  #report-action-bar button:hover { opacity:0.9;transform:translateY(-1px) }
   #report-action-bar button:disabled { opacity:0.5;cursor:wait }
   .btn-pdf-dl { background:#e53e3e;color:white }
   .btn-print { background:#3182ce;color:white }
   .btn-word { background:#2B579A;color:white }
-  body { padding-top: 56px !important }
-  @media print { #report-action-bar, #action-bar-style + style { display:none!important } body { padding-top:0!important } }
+  .btn-zoom { background:rgba(255,255,255,0.15);color:white;padding:7px 10px!important;min-width:32px;justify-content:center }
+  .btn-zoom:hover { background:rgba(255,255,255,0.25)!important }
+  .zoom-divider { width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px }
+  #zoom-label { color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;min-width:40px;text-align:center }
+  html { background:#525659!important }
+  body { padding-top:56px!important;background:#525659!important;margin:0!important;max-width:none!important;box-shadow:none!important }
+  #report-content-wrapper { background:white;max-width:794px;margin:20px auto;padding:30px 40px;box-shadow:0 2px 20px rgba(0,0,0,0.3);transition:transform 0.15s ease }
+  @media print { #report-action-bar,#action-bar-style+style{display:none!important} html,body{background:white!important;padding:0!important} #report-content-wrapper{margin:0!important;padding:0!important;box-shadow:none!important;max-width:none!important;transform:none!important} }
 </style>
 <div id="report-action-bar">
   <span class="bar-title">NetEscol</span>
+  <button class="btn-zoom" onclick="zoomOut()" title="Diminuir zoom">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <span id="zoom-label">100%</span>
+  <button class="btn-zoom" onclick="zoomIn()" title="Aumentar zoom">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <button class="btn-zoom" onclick="zoomReset()" title="Zoom 100%">100%</button>
+  <button class="btn-zoom" onclick="zoomFit()" title="Ajustar a tela">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+  </button>
+  <div class="zoom-divider"></div>
   <button id="btn-pdf" class="btn-pdf-dl" onclick="downloadPDF()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Baixar PDF
@@ -374,10 +417,19 @@ function imprimirDoc() {
   </button>
 </div>`;
 
+  // Wrap body content in a zoom container
+  let modifiedHTML = html;
+  // Remove the @media screen body style that conflicts with our viewer
+  modifiedHTML = modifiedHTML.replace(
+    /@media screen\{[^}]*body\{[^}]*\}[^}]*\}/,
+    '@media screen{}'
+  );
+
   // Insert action bar + script into HTML
-  const finalHTML = html
+  const finalHTML = modifiedHTML
     .replace('</head>', actionBarScript + '</head>')
-    .replace(/<body[^>]*>/i, '$&' + actionBar);
+    .replace(/<body[^>]*>/i, '$&' + actionBar + '<div id="report-content-wrapper">')
+    .replace('</body>', '</div></body>');
 
   const w = window.open('', '_blank');
   if (w) {

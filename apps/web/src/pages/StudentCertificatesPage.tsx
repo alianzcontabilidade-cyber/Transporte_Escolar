@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
-import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, FileDown, Loader2 } from 'lucide-react';
+import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, FileDown, Loader2, Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, openReportAsPDF } from '../lib/reportTemplate';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { generateDeclaracaoEscolaridade, generateDeclaracaoTransferencia, generateDeclaracaoFrequencia, generateFichaMatricula } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
@@ -35,6 +36,7 @@ export default function StudentCertificatesPage() {
   }, [mid]);
 
   const [generating, setGenerating] = useState('');
+  const [certExportModal, setCertExportModal] = useState<{html:string;filename:string}|null>(null);
 
   const buildHTML = (type: string): string => {
     if (!selStudent || !munReport) return '';
@@ -177,6 +179,10 @@ ${cleanCSS}
                           className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors">
                           <Printer size={14} />
                         </button>
+                        <button onClick={() => { const html = buildHTML(cert.id); if (html) setCertExportModal({ html, filename: (cert.label || 'documento').replace(/[^a-zA-Z0-9]/g, '_') }); }}
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors" title="Exportar">
+                          <Download size={14} />
+                        </button>
                       </div>
                     </div>
                   );
@@ -191,6 +197,8 @@ ${cleanCSS}
           )}
         </div>
       </div>
+
+      <ExportModal open={!!certExportModal} onClose={() => setCertExportModal(null)} onExport={(fmt: ExportFormat) => { if (certExportModal?.html) { handleExport(fmt, [], certExportModal.html, certExportModal.filename); } setCertExportModal(null); }} title="Exportar Declaracao" />
     </div>
   );
 }

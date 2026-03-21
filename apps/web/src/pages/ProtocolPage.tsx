@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { Ticket, Plus, X, Search, Clock, CheckCircle, AlertTriangle, Printer , Download } from 'lucide-react';
-import ExportModal, { handleExport as _handleExport, ExportFormat as _ExportFormat } from '../components/ExportModal';
+import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
 interface Protocol {
   id: number;
@@ -30,6 +30,7 @@ export default function ProtocolPage() {
   });
   const [viewProtocol, setViewProtocol] = useState<Protocol | null>(null);
   const [responseText, setResponseText] = useState('');
+  const [protoExportModal, setProtoExportModal] = useState<{html:string;filename:string}|null>(null);
 
   const saveProtocols = (p: Protocol[]) => { setProtocols(p); localStorage.setItem('netescol_protocols_' + mid, JSON.stringify(p)); };
   const sf = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -95,7 +96,7 @@ export default function ProtocolPage() {
 
       {/* View/Respond Modal */}
       {viewProtocol && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b"><div><h3 className="text-lg font-semibold">Protocolo #{viewProtocol.number}</h3><p className="text-sm text-gray-500">{viewProtocol.type} \u00B7 {new Date(viewProtocol.date).toLocaleDateString('pt-BR')}</p></div><div className="flex gap-2"><button onClick={() => printProtocol(viewProtocol)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><Printer size={18} /></button><button onClick={() => setViewProtocol(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div></div>
+        <div className="flex items-center justify-between p-5 border-b"><div><h3 className="text-lg font-semibold">Protocolo #{viewProtocol.number}</h3><p className="text-sm text-gray-500">{viewProtocol.type} \u00B7 {new Date(viewProtocol.date).toLocaleDateString('pt-BR')}</p></div><div className="flex gap-2"><button onClick={() => printProtocol(viewProtocol)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Imprimir"><Printer size={18} /></button><button onClick={() => { const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Protocolo ${viewProtocol.number}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}.field{padding:10px;background:#f8f9fa;border-radius:6px;font-size:13px}.field-label{font-size:10px;color:#999}.field-value{font-weight:500;margin-top:3px}.desc{padding:15px;background:#f8f9fa;border-radius:8px;margin:15px 0;font-size:13px;line-height:1.6}.signatures{display:flex;justify-content:space-between;margin-top:60px}.sig{text-align:center;width:200px;border-top:1px solid #333;padding-top:5px;font-size:11px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999}@media print{body{padding:15px}}</style></head><body><h1>PROTOCOLO N\u00BA ${viewProtocol.number}</h1><div class="grid"><div class="field"><div class="field-label">Data</div><div class="field-value">${new Date(viewProtocol.date).toLocaleDateString('pt-BR')}</div></div><div class="field"><div class="field-label">Tipo</div><div class="field-value">${viewProtocol.type}</div></div><div class="field"><div class="field-label">Requerente</div><div class="field-value">${viewProtocol.requester}</div></div><div class="field"><div class="field-label">Status</div><div class="field-value">${STATUS_MAP[viewProtocol.status]?.label || viewProtocol.status}</div></div></div><div class="field"><div class="field-label">Assunto</div><div class="field-value">${viewProtocol.subject}</div></div><div class="desc"><b>Descri\u00E7\u00E3o:</b><br>${viewProtocol.description || '--'}</div>${viewProtocol.response ? '<div class="desc"><b>Resposta/Parecer:</b><br>'+viewProtocol.response+'</div>' : ''}<div class="signatures"><div class="sig">Requerente</div><div class="sig">Respons\u00E1vel</div></div><div class="footer">NetEscol - ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`; setProtoExportModal({ html, filename: 'Protocolo_' + viewProtocol.number.replace('/', '-') }); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Exportar"><Download size={18} /></button><button onClick={() => setViewProtocol(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div></div>
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3"><div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Requerente</p><p className="text-sm font-medium">{viewProtocol.requester}</p></div><div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Status</p><p className="text-sm font-medium">{STATUS_MAP[viewProtocol.status]?.label}</p></div></div>
           <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Assunto</p><p className="text-sm font-medium">{viewProtocol.subject}</p></div>
@@ -125,6 +126,8 @@ export default function ProtocolPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={addProtocol} className="btn-primary flex-1">Registrar</button></div>
       </div></div>)}
+
+      <ExportModal open={!!protoExportModal} onClose={() => setProtoExportModal(null)} onExport={(fmt: ExportFormat) => { if (protoExportModal?.html) { handleExport(fmt, [], protoExportModal.html, protoExportModal.filename); } setProtoExportModal(null); }} title="Exportar Protocolo" />
     </div>
   );
 }

@@ -170,13 +170,17 @@ export async function exportToPDF(html: string, filename: string, download: bool
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
     };
 
+    // Gerar o PDF como arraybuffer para criar Blob com tipo correto
+    const worker = html2pdf().set(opt).from(container);
+
     if (download) {
-      // Download direto do PDF
-      await html2pdf().set(opt).from(container).save();
+      await worker.save();
     } else {
-      // Gerar Blob PDF e abrir no visualizador do navegador
-      const pdfBlob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      // Gerar como arraybuffer e criar Blob PDF real
+      const arrayBuffer = await worker.outputPdf('arraybuffer');
+      const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(pdfBlob);
+      // Abrir no visualizador de PDF nativo do Chrome (blob:https://...)
       window.open(url, '_blank');
     }
 

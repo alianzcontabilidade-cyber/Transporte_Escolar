@@ -97,7 +97,7 @@ export default function MonitoresPage() {
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><UserCheck size={20} className="text-teal-600"/></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Monitores</h1><p className="text-gray-500">Auxiliares que acompanham o motorista no transporte dos alunos</p></div>
         </div>
-        <div className="flex gap-2"><button onClick={() => {const html=buildMonHTML('Lista de Monitores',monExportRows,monExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();}}}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Imprimir</button><button onClick={() => setMonExportModal({title:'Lista de Monitores',data:monExportRows,cols:monExportCols,filename:'monitores_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button></div>
+        <div className="flex gap-2"><button onClick={() => setMonExportModal({title:'Lista de Monitores',data:monExportRows,cols:monExportCols,filename:'monitores_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Monitor</button></div>
       </div>
       <div className="grid grid-cols-3 gap-4 mb-5">
         <div className="card text-center bg-teal-50 border-0"><Users size={22} className="text-teal-500 mx-auto mb-1"/><p className="text-2xl font-bold">{monitores.length}</p><p className="text-xs text-gray-500">Total</p></div>

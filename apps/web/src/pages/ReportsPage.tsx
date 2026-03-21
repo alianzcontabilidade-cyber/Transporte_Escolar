@@ -121,7 +121,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><FileText size={18} className="text-gray-500"/><h3 className="font-semibold">Histórico de Viagens</h3><span className="text-sm text-gray-400">({tripRows.length} registros)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => { const html = buildReportHTML('Relatorio de Viagens',tripRows,['Rota','Data','Inicio','Fim','Status'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              
               <button onClick={() => setExportModal({ title:'Relatorio de Viagens', data:tripRows, cols:['Rota','Data','Inicio','Fim','Status'], filename:'viagens_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><Users size={18} className="text-gray-500"/><h3 className="font-semibold">Lista de Alunos</h3><span className="text-sm text-gray-400">({studentRows.length} alunos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => { const html = buildReportHTML('Lista de Alunos',studentRows,['Nome','Matricula','Serie','Turma','Turno','Escola'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              
               <button onClick={() => setExportModal({ title:'Lista de Alunos', data:studentRows, cols:['Nome','Matricula','Serie','Turma','Turno','Escola'], filename:'alunos_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2"><MapPin size={18} className="text-gray-500"/><h3 className="font-semibold">Relatório de Frota</h3><span className="text-sm text-gray-400">({vehicleRows.length} veículos)</span></div>
             <div className="flex gap-2">
-              <button onClick={() => { const html = buildReportHTML('Relatorio de Frota',vehicleRows,['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'],munReport); if(html) { const w=window.open('','_blank'); if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();} } }} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Printer size={14}/> Imprimir</button>
+              
               <button onClick={() => setExportModal({ title:'Relatorio de Frota', data:vehicleRows, cols:['Placa','Apelido','Marca/Modelo','Capacidade','Km Atual','Status'], filename:'frota_netescol' })} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg"><Download size={14}/> Exportar</button>
             </div>
           </div>

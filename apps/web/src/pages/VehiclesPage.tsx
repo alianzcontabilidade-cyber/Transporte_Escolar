@@ -93,7 +93,7 @@ export default function VehiclesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Veículos</h1><p className="text-gray-500">{all.length} veículo(s) na frota</p></div>
-        <div className="flex gap-2"><button onClick={function(){const html=buildVehiclesHTML('Relatorio de Frota',vehExportRows,vehExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=function(){w.print();}}}}} className="btn-secondary flex items-center gap-2"><Printer size={16}/> Imprimir</button><button onClick={function(){setVehExportModal({title:'Relatorio de Frota',data:vehExportRows,cols:vehExportCols,filename:'veiculos_netescol'})}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button></div>
+        <div className="flex gap-2"><button onClick={function(){setVehExportModal({title:'Relatorio de Frota',data:vehExportRows,cols:vehExportCols,filename:'veiculos_netescol'})}} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Veículo</button></div>
       </div>
 
       <div className="grid grid-cols-4 gap-3 mb-4">

@@ -258,7 +258,6 @@ export default function SchoolsPage() {
         <div><h1 className="text-2xl font-bold text-gray-900">Escolas</h1><p className="text-gray-500">{all.length} escola(s) cadastrada(s)</p></div>
         <div className="flex gap-2">
           <button onClick={() => { setShowImportINEP(true); setInepResults([]); setInepMsg(''); setInepCityCode(munCityName); }} className="btn-secondary flex items-center gap-2"><DatabaseZap size={16} /> Importar do INEP</button>
-          <button onClick={() => {const html=buildSchHTML('Lista de Escolas',schExportRows,schExportCols);if(html){const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();w.onload=()=>w.print();}}}} className="btn-secondary flex items-center gap-2"><Download size={16} /> Imprimir</button>
           <button onClick={() => setSchExportModal({title:'Lista de Escolas',data:schExportRows,cols:schExportCols,filename:'escolas_netescol'})} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova Escola</button>
         </div>

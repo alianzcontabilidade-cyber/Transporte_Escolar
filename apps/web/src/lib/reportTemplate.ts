@@ -179,34 +179,9 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   return `<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><title>${opts.title} - NetEscol</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:${font};font-size:${fontSize}px;color:#1a1a1a;line-height:1.6;background:#f4f4f4;margin:0;padding:20px}
-
-  /* FOLHA A4 - dimensões exatas */
-  .folha-a4{
-    background:white;
-    width:21cm;
-    min-height:29.7cm;
-    display:block;
-    margin:0 auto;
-    padding:1.8cm 2cm 2.5cm 2cm;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
-    position:relative;
-  }
-
-  /* CONFIGURAÇÃO PARA IMPRESSÃO - sem cortes */
-  @page{size:${orientation === 'landscape' ? 'A4 landscape' : 'A4'};margin:0}
-  @media print{
-    body{background:none;padding:0;margin:0}
-    .folha-a4{
-      box-shadow:none;
-      margin:0;
-      width:100%;
-      min-height:auto;
-      padding:1.5cm 2cm 2cm 2cm;
-    }
-    .no-print{display:none!important}
-    .report-footer-bar{position:fixed;bottom:0;left:0;right:0;padding:8px 2cm}
-  }
+  @page{size:${orientation === 'landscape' ? 'A4 landscape' : 'A4'};margin:15mm 20mm}
+  body{font-family:${font};font-size:${fontSize}px;color:#1a1a1a;line-height:1.6;margin:0;padding:30px 40px;max-width:900px;margin:0 auto;background:#fff}
+  @media print{body{padding:0;max-width:none;background:none}.no-print{display:none!important}}
 
   /* HEADER */
   .report-institutional-header{margin-bottom:20px}
@@ -231,7 +206,6 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   .report-title .subtitle{font-size:12px;color:#666;margin-top:5px}
 
   /* CONTENT */
-  .report-body{min-height:200px}
   .report-body p{text-align:justify;text-indent:40px;margin-bottom:12px;line-height:1.8}
   .report-body table{width:100%;border-collapse:collapse;margin:15px 0;font-size:11px;page-break-inside:auto}
   .report-body thead{display:table-header-group}
@@ -252,30 +226,25 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* ASSINATURAS - nunca quebrar entre páginas */
+  /* SIGNATURES */
   .report-signatures{page-break-inside:avoid;margin-top:30px}
 
-  /* FOOTER - fixo no fundo da folha */
-  .report-footer-bar{
-    text-align:center;font-size:8px;color:#999;
-    border-top:2px solid #d1d5db;padding:8px 0 0;
-    margin-top:30px;
-  }
+  /* FOOTER */
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:8px 0 0;margin-top:40px}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
-  /* TABLE SPECIFIC STYLES */
+  /* TABLE STYLES */
   .grade-table th{font-size:9px;padding:5px 4px}
   .grade-table td{padding:4px;font-size:11px}
   .grade-table .approved{color:#059669;font-weight:bold}
   .grade-table .failed{color:#dc2626;font-weight:bold}
   .grade-table .total-row{background:#f0f4f8!important;font-weight:bold}
 
-  /* DECLARATION TEXT */
+  /* DECLARATION */
   .declaration-text{font-size:14px;line-height:2;text-align:justify;text-indent:50px;margin:20px 0}
   .declaration-text b{color:#1B3A5C}
 </style></head><body>
-<div class="folha-a4">
 ${headerHTML}
 <div class="report-title">
   <h1>${opts.title}</h1>
@@ -291,7 +260,6 @@ ${sigHTML}
 <div class="report-footer-bar">
   ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
   <div class="footer-line footer-brand">NetEscol - Sistema de Gestão Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
-</div>
 </div>
 </body></html>`;
 }
@@ -321,15 +289,11 @@ export async function openReportAsPDF(html: string, filename?: string) {
       reportCSS += inner + '\n';
     }
   }
-  // Remove regras que conflitam com o viewer
+  // Limpar regras que conflitam com o viewer
   reportCSS = reportCSS
-    .replace(/@media\s+screen\s*\{[^{}]*\{[^}]*\}[^}]*\}/g, '')
-    .replace(/@media\s+screen\s*\{[^}]*\}/g, '')
-    .replace(/@media\s+print\s*\{[\s\S]*?\}\s*\}/g, '')
+    .replace(/@media\s+print\s*\{[^}]*\}/g, '')
     .replace(/@page\s*\{[^}]*\}/g, '')
-    .replace(/body\s*\{[^}]*\}/g, '')
-    .replace(/html\s*,?\s*body\s*\{[^}]*\}/g, '')
-    .replace(/\.folha-a4\s*\{[^}]*\}/g, '.folha-a4{width:100%;min-height:auto;padding:0;margin:0;box-shadow:none;position:relative}');
+    .replace(/body\s*\{[^}]*\}/g, '');
 
   // Escape backticks and backslashes in content for safe embedding
   const safeBody = bodyContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');

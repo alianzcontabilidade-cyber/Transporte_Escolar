@@ -44,34 +44,51 @@ export function generateDeclaracaoEscolaridade(
   student: any, school: ReportSchool | undefined,
   mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
 ) {
-  const schoolName = school?.name || 'desta Unidade Escolar';
   const nivelEnsino = detectNivelEnsino(student.grade);
   const year = new Date().getFullYear();
+  const sexo = student.sex === 'M' ? 'o' : student.sex === 'F' ? 'a' : 'o(a)';
+  const filhoFilha = student.sex === 'M' ? 'filho' : student.sex === 'F' ? 'filha' : 'filho(a)';
+  const nascido = student.sex === 'M' ? 'nascido' : student.sex === 'F' ? 'nascida' : 'nascido(a)';
+  const naturalidade = student.naturalness
+    ? `natural de <b>${student.naturalness}${student.naturalnessUf ? ' – ' + student.naturalnessUf : ''}</b>, `
+    : '';
 
   const content = `
     <p class="declaration-text">
       Declaro para os devidos fins que <b>${student.name || 'ALUNO(A)'}</b>,
-      ${student.motherName ? 'filho(a) de <b>' + student.motherName + '</b>' : ''}
+      ${filhoFilha} de <b>${student.motherName || 'NOME DA MÃE'}</b>
       ${student.fatherName ? ' e de <b>' + student.fatherName + '</b>' : ''},
-      ${student.naturalness ? 'natural de <b>' + student.naturalness + (student.naturalnessUf ? ' – ' + student.naturalnessUf : '') + '</b>,' : ''}
-      nascido(a) aos <b>${formatDateFull(student.birthDate)}</b>,
-      é aluno(a) deste Estabelecimento de Ensino, está cursando
-      <b>${student.grade || '--'}${nivelEnsino ? ' – ' + nivelEnsino : ''}</b>,
+      ${naturalidade}${nascido} aos <b>${formatDateFull(student.birthDate)}</b>,
+      é alun${sexo} deste Estabelecimento de Ensino, está cursando
+      <b>${student.grade || '--'} – ${nivelEnsino || 'ENSINO FUNDAMENTAL'}</b>,
       do turno <b>${shiftLabel(student.shift)}</b>
-      no ano letivo de <b>${year}</b>,
+      no ano letivo de <b>${year}</b>
       Matrícula Nº <b>${student.enrollment || '--'}</b>.
     </p>
     <p class="declaration-text">
-      Declaramos, outrossim, que o(a) referido(a) aluno(a) encontra-se com a situação acadêmica
-      regular perante esta instituição de ensino, nada constando em seus registros que o(a) desabone.
+      Declaramos, outrossim, que ${sexo === 'o' ? 'o' : 'a'} referid${sexo} alun${sexo} encontra-se com a situação acadêmica
+      regular perante esta instituição de ensino, nada constando em seus registros que ${sexo === 'o' ? 'o' : 'a'} desabone.
     </p>
     <p class="declaration-text">
       Por ser expressão da verdade, firmamos a presente declaração para que produza os efeitos legais que se fizerem necessários.
     </p>
-    <div style="margin-top:20px;font-size:10px;color:#555;line-height:1.6">
-      ${student.nis ? `<b>NIS:</b> ${student.nis}<br>` : ''}
-      ${school?.code ? `<b>ID Censo (INEP):</b> ${school.code}<br>` : ''}
-      ${student.cpf ? `<b>CPF do Aluno:</b> ${student.cpf}` : ''}
+    <div style="margin-top:15px;font-size:10px;color:#444;line-height:1.8;border:1px solid #e5e7eb;border-radius:4px;padding:10px 12px;background:#fafafa">
+      <div style="font-weight:bold;color:#1B3A5C;font-size:11px;margin-bottom:4px;border-bottom:1px solid #e5e7eb;padding-bottom:4px">DADOS DO ALUNO</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 20px">
+        <div><b>Nome:</b> ${student.name || '--'}</div>
+        <div><b>Data de Nascimento:</b> ${formatDate(student.birthDate)}</div>
+        <div><b>Mãe:</b> ${student.motherName || '--'}</div>
+        <div><b>Pai:</b> ${student.fatherName || '--'}</div>
+        <div><b>Naturalidade:</b> ${student.naturalness || '--'}${student.naturalnessUf ? '/' + student.naturalnessUf : ''}</div>
+        <div><b>Nacionalidade:</b> ${student.nationality || 'Brasileira'}</div>
+        <div><b>CPF:</b> ${student.cpf || '--'}</div>
+        <div><b>RG:</b> ${student.rg || '--'}${student.rgOrgao ? ' – ' + student.rgOrgao + '/' + (student.rgUf || '') : ''}</div>
+        <div><b>NIS:</b> ${student.nis || '--'}</div>
+        <div><b>Matrícula:</b> ${student.enrollment || '--'}</div>
+        <div><b>Série/Ano:</b> ${student.grade || '--'}</div>
+        <div><b>Turno:</b> ${shiftLabel(student.shift)}</div>
+      </div>
+      ${school?.code ? `<div style="margin-top:4px"><b>ID Censo (INEP):</b> ${school.code}</div>` : ''}
     </div>
   `;
 

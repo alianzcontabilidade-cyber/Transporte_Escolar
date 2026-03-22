@@ -86,6 +86,13 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
+export const superAdminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.role !== 'super_admin') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a super administrador' });
+  }
+  return next({ ctx });
+});
+
 export const staffProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (!['super_admin', 'municipal_admin', 'secretary', 'driver', 'monitor'].includes(ctx.role || '')) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão' });

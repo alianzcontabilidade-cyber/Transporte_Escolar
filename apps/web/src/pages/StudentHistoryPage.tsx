@@ -22,7 +22,7 @@ export default function StudentHistoryPage() {
   const { data: enrollmentsData } = useQuery(() => selStudent ? api.enrollments.list({ municipalityId: mid, studentId: parseInt(selStudent) }) : Promise.resolve([]), [mid, selStudent]);
   const { data: yearsData } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
-  const { data: historyData } = useQuery(() => selStudent ? api.studentHistory.list({ studentId: parseInt(selStudent) }) : Promise.resolve([]), [selStudent]);
+  const { data: historyData } = useQuery(() => selStudent ? api.studentHistory.list({ municipalityId: mid, studentId: parseInt(selStudent) }) : Promise.resolve([]), [selStudent]);
 
   const allSchools = (schoolsData as any) || [];
 

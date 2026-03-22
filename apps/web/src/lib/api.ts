@@ -96,6 +96,10 @@ export const api = {
     me: () => call('auth.me', {}, 'query'),
   },
   municipalities: {
+    list: () => call('municipalities.list', {}, 'query'),
+    globalStats: () => call('municipalities.globalStats', {}, 'query'),
+    create: (input: any) => call('municipalities.create', input, 'mutation'),
+    toggleActive: (input: any) => call('municipalities.toggleActive', input, 'mutation'),
     getById: (input: any) => call('municipalities.getById', input, 'query'),
     update: (input: any) => call('municipalities.update', input, 'mutation'),
     getDashboardStats: (input: any) => call('municipalities.getDashboardStats', input, 'query'),
@@ -356,6 +360,7 @@ export const api = {
     exportClasses: (input: any) => call('educacenso.exportClasses', input, 'query'),
   },
   transparency: {
+    listMunicipalities: () => call('transparency.listMunicipalities', {}, 'query'),
     publicData: (input: any) => call('transparency.publicData', input, 'query'),
   },
   descriptiveReports: {

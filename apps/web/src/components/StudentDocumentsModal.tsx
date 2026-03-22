@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { FileText, Upload, Trash2, X, Image, File, Download } from 'lucide-react';
 
 const DOC_TYPES: any = { certidao_nascimento:'Certidão de Nascimento', rg:'RG', cpf:'CPF', comprovante_residencia:'Comprovante de Residência', historico_escolar:'Histórico Escolar', laudo_medico:'Laudo Médico', foto:'Foto', outro:'Outro' };
 
 export default function StudentDocumentsModal({ studentId, studentName, onClose }: { studentId: number; studentName: string; onClose: () => void }) {
+  const { user } = useAuth();
+  const municipalityId = user?.municipalityId || 0;
   const [form, setForm] = useState({ name: '', type: 'outro', fileUrl: '' });
   const [showAdd, setShowAdd] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { data: docs, refetch } = useQuery(() => api.studentDocuments.list({ studentId }), [studentId]);
+  const { data: docs, refetch } = useQuery(() => api.studentDocuments.list({ municipalityId, studentId }), [municipalityId, studentId]);
   const { mutate: create } = useMutation(api.studentDocuments.create);
   const { mutate: remove } = useMutation(api.studentDocuments.delete);
 

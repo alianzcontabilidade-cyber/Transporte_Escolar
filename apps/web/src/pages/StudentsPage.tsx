@@ -376,7 +376,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
   const loadHistory = async function(studentId: number) {
     setHistoryLoading(true);
     try {
-      const data = await api.studentHistory.list({ studentId });
+      const data = await api.studentHistory.list({ municipalityId, studentId });
       setHistoryEntries((data as any) || []);
     } catch { setHistoryEntries([]); }
     setHistoryLoading(false);

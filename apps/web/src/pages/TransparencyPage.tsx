@@ -1,14 +1,28 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { Building2, Users, GraduationCap, Bus, MapPin, FileText, DollarSign, TrendingUp, TrendingDown, School, Loader2, ArrowLeft } from 'lucide-react';
+import { Building2, Users, GraduationCap, Bus, MapPin, FileText, DollarSign, TrendingUp, TrendingDown, School, Loader2, ArrowLeft, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function TransparencyPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [munId, setMunId] = useState(1);
+  const [munId, setMunId] = useState(0);
+  const [munList, setMunList] = useState<any[]>([]);
+
+  // Load municipality list on mount
+  useEffect(() => {
+    api.transparency.listMunicipalities()
+      .then((list: any) => {
+        setMunList(list || []);
+        if (list?.length > 0 && munId === 0) {
+          setMunId(list[0].id);
+        }
+      })
+      .catch(() => setMunList([]));
+  }, []);
 
   useEffect(() => {
+    if (munId === 0) return;
     setLoading(true);
     api.transparency.publicData({ municipalityId: munId })
       .then((d: any) => setData(d))
@@ -37,6 +51,24 @@ export default function TransparencyPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Municipality Selector */}
+        {munList.length > 1 && (
+          <div className="mb-6 flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-600">Municipio:</label>
+            <div className="relative">
+              <select
+                value={munId}
+                onChange={(e) => setMunId(Number(e.target.value))}
+                className="appearance-none bg-white border border-gray-300 rounded-xl px-4 py-2 pr-10 text-sm font-medium text-gray-700 shadow-sm hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+              >
+                {munList.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name} - {m.city}/{m.state}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[

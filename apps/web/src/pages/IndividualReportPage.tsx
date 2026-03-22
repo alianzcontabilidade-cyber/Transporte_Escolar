@@ -50,7 +50,7 @@ export default function IndividualReportPage() {
   const { data: enrollmentsData } = useQuery(() => selClass ? api.enrollments.list({ municipalityId: mid, classId: parseInt(selClass), status: 'active' }) : Promise.resolve([]), [mid, selClass]);
   const { data: reportData } = useQuery(() => selClass && selStudent ? api.studentGrades.reportCard({ classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve([]), [selClass, selStudent]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
-  const { data: descriptiveData } = useQuery(() => selClass && selStudent ? api.descriptiveReports.list({ classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve([]), [selClass, selStudent]);
+  const { data: descriptiveData } = useQuery(() => selClass && selStudent ? api.descriptiveReports.list({ municipalityId: mid, classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve([]), [selClass, selStudent]);
   const { data: attendanceRaw } = useQuery(() => selClass && selStudent ? api.diaryAttendance.studentSummary({ classId: parseInt(selClass), startDate: `${new Date().getFullYear()}-01-01`, endDate: `${new Date().getFullYear()}-12-31` }) : Promise.resolve(null), [selClass, selStudent]);
 
   const allClasses = (classesData as any) || [];

@@ -37,7 +37,7 @@ export default function ClassCouncilPage() {
   const loadCouncil = async (classId: string, bim: string) => {
     if (!classId) { setNotes({}); setGeneralNotes(''); return; }
     try {
-      const records: any[] = await api.classCouncil.list({ classId: parseInt(classId), bimester: parseInt(bim) });
+      const records: any[] = await api.classCouncil.list({ municipalityId: mid, classId: parseInt(classId), bimester: parseInt(bim) });
       const loaded: Record<number, { decision: string; observations: string }> = {};
       if (records && records.length > 0) {
         for (const r of records) {

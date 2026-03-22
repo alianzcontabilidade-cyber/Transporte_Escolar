@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { t, publicProcedure, protectedProcedure, adminProcedure, staffProcedure, academicProcedure, validateOptionalCPF, validateOptionalCNPJ, JWT_SECRET } from './trpc';
+import { t, publicProcedure, protectedProcedure, adminProcedure, superAdminProcedure, staffProcedure, academicProcedure, validateOptionalCPF, validateOptionalCNPJ, JWT_SECRET } from './trpc';
 import { z } from 'zod';
 import { db } from './db/index';
 import {
@@ -446,6 +446,83 @@ export const municipalitiesRouter = t.router({
     .mutation(async ({ input }) => {
       await db.delete(municipalityResponsibles).where(eq(municipalityResponsibles.id, input.id));
       return { success: true };
+    }),
+
+  // List all municipalities (super_admin only)
+  list: superAdminProcedure
+    .query(async () => {
+      const allMuns = await db.select().from(municipalities).orderBy(municipalities.name);
+      const results = await Promise.all(allMuns.map(async (m) => {
+        const [schoolCount] = await db.select({ count: sql<number>`count(*)` }).from(schools).where(and(eq(schools.municipalityId, m.id), eq(schools.isActive, true)));
+        const [studentCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(and(eq(students.municipalityId, m.id), eq(students.isActive, true)));
+        const [routeCount] = await db.select({ count: sql<number>`count(*)` }).from(routes).where(and(eq(routes.municipalityId, m.id), eq(routes.isActive, true)));
+        const [vehicleCount] = await db.select({ count: sql<number>`count(*)` }).from(vehicles).where(eq(vehicles.municipalityId, m.id));
+        const [driverCount] = await db.select({ count: sql<number>`count(*)` }).from(drivers).where(eq(drivers.municipalityId, m.id));
+        const [tripCount] = await db.select({ count: sql<number>`count(*)` }).from(trips)
+          .innerJoin(routes, eq(trips.routeId, routes.id))
+          .where(and(eq(routes.municipalityId, m.id), eq(trips.status, 'started')));
+        return {
+          ...m,
+          schoolCount: Number(schoolCount?.count || 0),
+          studentCount: Number(studentCount?.count || 0),
+          routeCount: Number(routeCount?.count || 0),
+          vehicleCount: Number(vehicleCount?.count || 0),
+          driverCount: Number(driverCount?.count || 0),
+          activeTrips: Number(tripCount?.count || 0),
+        };
+      }));
+      return results;
+    }),
+
+  // Create new municipality with first admin user (super_admin only)
+  create: superAdminProcedure
+    .input(z.object({
+      name: z.string().min(3),
+      state: z.string().length(2),
+      city: z.string(),
+      cnpj: z.string().optional(),
+      email: z.string().email(),
+      phone: z.string().optional(),
+      subscriptionPlan: z.enum(['free', 'basic', 'premium', 'enterprise']).default('free'),
+      adminName: z.string().min(3),
+      adminEmail: z.string().email(),
+      adminPassword: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      const { adminName, adminEmail, adminPassword, ...munData } = input;
+      const [mun] = await db.insert(municipalities).values({
+        ...munData,
+        isActive: true,
+      } as any).$returningId();
+      const passwordHash = await hash(adminPassword, 10);
+      await db.insert(users).values({
+        name: adminName,
+        email: adminEmail,
+        passwordHash,
+        role: 'municipal_admin',
+        municipalityId: mun.id,
+        isActive: true,
+      } as any);
+      return { success: true, id: mun.id };
+    }),
+
+  // Get global stats for super admin dashboard
+  globalStats: superAdminProcedure
+    .query(async () => {
+      const [muns] = await db.select({ count: sql<number>`count(*)` }).from(municipalities).where(eq(municipalities.isActive, true));
+      const [studentCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.isActive, true));
+      const [routeCount] = await db.select({ count: sql<number>`count(*)` }).from(routes).where(eq(routes.isActive, true));
+      const [vehicleCount] = await db.select({ count: sql<number>`count(*)` }).from(vehicles);
+      const [activeTrips] = await db.select({ count: sql<number>`count(*)` }).from(trips).where(eq(trips.status, 'started'));
+      const [docCount] = await db.select({ count: sql<number>`count(*)` }).from(documents).where(eq(documents.status, 'valid'));
+      return {
+        municipalities: Number(muns?.count || 0),
+        students: Number(studentCount?.count || 0),
+        routes: Number(routeCount?.count || 0),
+        vehicles: Number(vehicleCount?.count || 0),
+        activeTrips: Number(activeTrips?.count || 0),
+        documents: Number(docCount?.count || 0),
+      };
     }),
 
   getDashboardStats: adminProcedure
@@ -3787,15 +3864,14 @@ export const libraryBooksRouter = t.router({
 });
 
 export const libraryLoansRouter = t.router({
-  list: protectedProcedure.input(z.object({ municipalityId: z.number().optional(), bookId: z.number().optional(), status: z.string().optional() }))
+  list: protectedProcedure.input(z.object({ municipalityId: z.number(), bookId: z.number().optional(), status: z.string().optional() }))
     .query(async ({ input }) => {
-      const conditions: any[] = [];
-      if (input.municipalityId) conditions.push(eq(libraryBooks.municipalityId, input.municipalityId));
+      const conditions: any[] = [eq(libraryBooks.municipalityId, input.municipalityId)];
       if (input.bookId) conditions.push(eq(libraryLoans.bookId, input.bookId));
       if (input.status) conditions.push(eq(libraryLoans.status, input.status as any));
       return db.select({ id: libraryLoans.id, bookId: libraryLoans.bookId, userId: libraryLoans.userId, studentId: libraryLoans.studentId, loanDate: libraryLoans.loanDate, dueDate: libraryLoans.dueDate, returnDate: libraryLoans.returnDate, status: libraryLoans.status, bookTitle: libraryBooks.title, userName: users.name })
         .from(libraryLoans).leftJoin(libraryBooks, eq(libraryLoans.bookId, libraryBooks.id)).leftJoin(users, eq(libraryLoans.userId, users.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(libraryLoans.loanDate));
+        .where(and(...conditions)).orderBy(desc(libraryLoans.loanDate));
     }),
   create: protectedProcedure.input(z.object({ bookId: z.number(), userId: z.number().optional(), studentId: z.number().optional(), dueDate: z.string() }))
     .mutation(async ({ ctx, input }) => { const [r] = await db.insert(libraryLoans).values({ bookId: input.bookId, userId: input.userId || ctx.userId!, studentId: input.studentId, dueDate: new Date(input.dueDate) }).$returningId(); await db.update(libraryBooks).set({ available: sql`available - 1` }).where(eq(libraryBooks.id, input.bookId)); return { success: true, id: r.id }; }),
@@ -3919,6 +3995,17 @@ export const educacensoRouter = t.router({
 // TRANSPARENCY PORTAL (PORTAL DE TRANSPARÊNCIA - PÚBLICO)
 // ============================================
 export const transparencyRouter = t.router({
+  // Lista de municípios para seleção pública
+  listMunicipalities: publicProcedure
+    .query(async () => {
+      return db.select({
+        id: municipalities.id,
+        name: municipalities.name,
+        city: municipalities.city,
+        state: municipalities.state,
+      }).from(municipalities).where(eq(municipalities.isActive, true)).orderBy(municipalities.name);
+    }),
+
   // Dados públicos do município - sem autenticação
   publicData: publicProcedure
     .input(z.object({ municipalityId: z.number() }))
@@ -3964,8 +4051,10 @@ export const transparencyRouter = t.router({
 
 // Parecer Descritivo
 export const descriptiveReportsRouter = t.router({
-  list: academicProcedure.input(z.object({ classId: z.number(), bimester: z.string().optional() }))
+  list: academicProcedure.input(z.object({ municipalityId: z.number(), classId: z.number(), bimester: z.string().optional() }))
     .query(async ({ input }) => {
+      const [cls] = await db.select({ municipalityId: classes.municipalityId }).from(classes).where(and(eq(classes.id, input.classId), eq(classes.municipalityId, input.municipalityId))).limit(1);
+      if (!cls) throw new TRPCError({ code: 'NOT_FOUND', message: 'Turma não encontrada' });
       const conditions = [eq(descriptiveReports.classId, input.classId), eq(descriptiveReports.isActive, true)];
       if (input.bimester) conditions.push(eq(descriptiveReports.bimester, input.bimester as any));
       return db.select({ id: descriptiveReports.id, studentId: descriptiveReports.studentId, bimester: descriptiveReports.bimester, content: descriptiveReports.content, status: descriptiveReports.status, studentName: students.name })
@@ -4176,8 +4265,10 @@ export const waitingListRouter = t.router({
 
 // Documentos do Aluno
 export const studentDocumentsRouter = t.router({
-  list: protectedProcedure.input(z.object({ studentId: z.number() }))
+  list: protectedProcedure.input(z.object({ municipalityId: z.number(), studentId: z.number() }))
     .query(async ({ input }) => {
+      const [stu] = await db.select({ municipalityId: students.municipalityId }).from(students).where(and(eq(students.id, input.studentId), eq(students.municipalityId, input.municipalityId))).limit(1);
+      if (!stu) throw new TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
       return db.select().from(studentDocuments).where(eq(studentDocuments.studentId, input.studentId)).orderBy(desc(studentDocuments.createdAt));
     }),
   create: adminProcedure.input(z.object({ studentId: z.number(), name: z.string(), type: z.enum(['certidao_nascimento','rg','cpf','comprovante_residencia','historico_escolar','laudo_medico','foto','outro']).optional(), fileUrl: z.string().optional() }))
@@ -4271,8 +4362,10 @@ export const fuelRouter = t.router({
 // ============================================
 export const studentHistoryRouter = t.router({
   list: protectedProcedure
-    .input(z.object({ studentId: z.number() }))
+    .input(z.object({ municipalityId: z.number(), studentId: z.number() }))
     .query(async ({ input }) => {
+      const [stu] = await db.select({ municipalityId: students.municipalityId }).from(students).where(and(eq(students.id, input.studentId), eq(students.municipalityId, input.municipalityId))).limit(1);
+      if (!stu) throw new TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
       return db.select().from(studentHistory)
         .where(eq(studentHistory.studentId, input.studentId))
         .orderBy(studentHistory.year);
@@ -4512,8 +4605,10 @@ export const quotationItemsRouter = t.router({
 // ============================================
 export const classCouncilRouter = t.router({
   list: protectedProcedure
-    .input(z.object({ classId: z.number(), bimester: z.number() }))
+    .input(z.object({ municipalityId: z.number(), classId: z.number(), bimester: z.number() }))
     .query(async ({ input }) => {
+      const [cls] = await db.select({ municipalityId: classes.municipalityId }).from(classes).where(and(eq(classes.id, input.classId), eq(classes.municipalityId, input.municipalityId))).limit(1);
+      if (!cls) throw new TRPCError({ code: 'NOT_FOUND', message: 'Turma não encontrada' });
       return db.select().from(classCouncilRecords)
         .where(and(
           eq(classCouncilRecords.classId, input.classId),

@@ -29,7 +29,7 @@ export default function DescriptiveReportPage() {
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selClass ? api.enrollments.list({ municipalityId: mid, classId: parseInt(selClass), status: 'active' }) : Promise.resolve([]), [mid, selClass]);
-  const { data: reportsData, refetch } = useQuery(() => selClass ? api.descriptiveReports.list({ classId: parseInt(selClass), bimester: selBimester }) : Promise.resolve([]), [selClass, selBimester]);
+  const { data: reportsData, refetch } = useQuery(() => selClass ? api.descriptiveReports.list({ municipalityId: mid, classId: parseInt(selClass), bimester: selBimester }) : Promise.resolve([]), [selClass, selBimester]);
 
   const allClasses = (classesData as any) || [];
   const allEnrollments = (enrollmentsData as any) || [];

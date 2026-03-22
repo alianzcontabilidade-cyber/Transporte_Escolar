@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createContext = createContext;
 const jsonwebtoken_1 = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'netescol-dev-secret-2024');
-if (!JWT_SECRET) {
-    console.error('FATAL: JWT_SECRET must be set in production');
+const JWT_SECRET = process.env.JWT_SECRET || '';
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+    console.error('FATAL: JWT_SECRET não definido em produção.');
     process.exit(1);
 }
 function createContext({ req, res }) {

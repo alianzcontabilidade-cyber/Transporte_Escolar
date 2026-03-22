@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.staffEvaluations = exports.staffAllocations = exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalities = void 0;
-exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = void 0;
+exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
+exports.formFieldConfigs = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -28,8 +28,43 @@ exports.municipalities = (0, mysql_core_1.mysqlTable)("municipalities", {
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
     subscriptionPlan: (0, mysql_core_1.mysqlEnum)("subscriptionPlan", ["free", "basic", "premium", "enterprise"]).default("free").notNull(),
     subscriptionExpiresAt: (0, mysql_core_1.timestamp)("subscriptionExpiresAt"),
+    // Endereço completo
+    cep: (0, mysql_core_1.varchar)("cep", { length: 9 }),
+    logradouro: (0, mysql_core_1.varchar)("logradouro", { length: 255 }),
+    numero: (0, mysql_core_1.varchar)("numero", { length: 10 }),
+    complemento: (0, mysql_core_1.varchar)("complemento", { length: 100 }),
+    bairro: (0, mysql_core_1.varchar)("bairro", { length: 100 }),
+    fax: (0, mysql_core_1.varchar)("fax", { length: 20 }),
+    website: (0, mysql_core_1.varchar)("website", { length: 255 }),
+    // Prefeito(a)
+    prefeitoName: (0, mysql_core_1.varchar)("prefeitoName", { length: 255 }),
+    prefeitoCpf: (0, mysql_core_1.varchar)("prefeitoCpf", { length: 14 }),
+    prefeitoCargo: (0, mysql_core_1.varchar)("prefeitoCargo", { length: 100 }),
+    // Secretaria de Educação
+    secretariaName: (0, mysql_core_1.varchar)("secretariaName", { length: 255 }),
+    secretariaCnpj: (0, mysql_core_1.varchar)("secretariaCnpj", { length: 18 }),
+    secretariaPhone: (0, mysql_core_1.varchar)("secretariaPhone", { length: 20 }),
+    secretariaEmail: (0, mysql_core_1.varchar)("secretariaEmail", { length: 320 }),
+    secretariaLogradouro: (0, mysql_core_1.varchar)("secretariaLogradouro", { length: 255 }),
+    // Secretário(a) de Educação
+    secretarioName: (0, mysql_core_1.varchar)("secretarioName", { length: 255 }),
+    secretarioCpf: (0, mysql_core_1.varchar)("secretarioCpf", { length: 14 }),
+    secretarioCargo: (0, mysql_core_1.varchar)("secretarioCargo", { length: 100 }),
+    secretarioDecreto: (0, mysql_core_1.varchar)("secretarioDecreto", { length: 100 }),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: RESPONSÁVEIS DO MUNICÍPIO
+// ============================================
+exports.municipalityResponsibles = (0, mysql_core_1.mysqlTable)("municipality_responsibles", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    role: (0, mysql_core_1.varchar)("role", { length: 100 }).notNull(),
+    cpf: (0, mysql_core_1.varchar)("cpf", { length: 14 }),
+    decree: (0, mysql_core_1.varchar)("decree", { length: 100 }),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
 });
 // ============================================
 // TABELA: ESCOLAS
@@ -159,35 +194,110 @@ exports.students = (0, mysql_core_1.mysqlTable)("students", {
     id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
     municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
     schoolId: (0, mysql_core_1.int)("schoolId").notNull().references(() => exports.schools.id),
-    // Dados do aluno
+    // Dados pessoais do aluno
     name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
     birthDate: (0, mysql_core_1.timestamp)("birthDate"),
+    cpf: (0, mysql_core_1.varchar)("cpf", { length: 14 }), // CPF do aluno
+    rg: (0, mysql_core_1.varchar)("rg", { length: 20 }), // RG
+    rgOrgao: (0, mysql_core_1.varchar)("rgOrgao", { length: 20 }), // Orgao Expedidor (SSP, etc)
+    rgUf: (0, mysql_core_1.varchar)("rgUf", { length: 2 }), // UF do RG
+    rgDate: (0, mysql_core_1.varchar)("rgDate", { length: 10 }), // Data expedicao
+    sex: (0, mysql_core_1.varchar)("sex", { length: 1 }), // M ou F
+    race: (0, mysql_core_1.varchar)("race", { length: 20 }), // Branca, Negra, Parda, Amarela, Indigena, Nao Declarada
+    nationality: (0, mysql_core_1.varchar)("nationality", { length: 50 }), // Brasileira, etc
+    naturalness: (0, mysql_core_1.varchar)("naturalness", { length: 100 }), // Cidade de nascimento
+    naturalnessUf: (0, mysql_core_1.varchar)("naturalnessUf", { length: 2 }), // UF nascimento
+    nis: (0, mysql_core_1.varchar)("nis", { length: 15 }), // NIS (Numero de Identificacao Social)
+    cartaoSus: (0, mysql_core_1.varchar)("cartaoSus", { length: 20 }), // Cartao SUS
+    // Certidao de Nascimento
+    certidaoTipo: (0, mysql_core_1.varchar)("certidaoTipo", { length: 20 }), // nascimento, casamento
+    certidaoNumero: (0, mysql_core_1.varchar)("certidaoNumero", { length: 50 }), // Numero
+    certidaoFolha: (0, mysql_core_1.varchar)("certidaoFolha", { length: 10 }), // Folha
+    certidaoLivro: (0, mysql_core_1.varchar)("certidaoLivro", { length: 10 }), // Livro
+    certidaoData: (0, mysql_core_1.varchar)("certidaoData", { length: 10 }), // Data emissao
+    certidaoCartorio: (0, mysql_core_1.varchar)("certidaoCartorio", { length: 255 }), // Cartorio
+    // Academico
     grade: (0, mysql_core_1.varchar)("grade", { length: 50 }), // "5º Ano", "1ª Série"
     classRoom: (0, mysql_core_1.varchar)("classRoom", { length: 50 }), // "Turma A"
-    enrollment: (0, mysql_core_1.varchar)("enrollment", { length: 50 }), // Matrícula
-    // Turno
+    enrollment: (0, mysql_core_1.varchar)("enrollment", { length: 50 }), // Numero de Matricula
     shift: (0, mysql_core_1.mysqlEnum)("shift", ["morning", "afternoon", "evening"]).default("morning"),
-    // Foto para identificação
+    // Foto
     photoUrl: (0, mysql_core_1.text)("photoUrl"),
-    // Necessidades especiais
+    // Endereco completo
+    address: (0, mysql_core_1.text)("address"), // Logradouro
+    addressNumber: (0, mysql_core_1.varchar)("addressNumber", { length: 10 }), // Numero
+    addressComplement: (0, mysql_core_1.varchar)("addressComplement", { length: 100 }),
+    neighborhood: (0, mysql_core_1.varchar)("neighborhood", { length: 100 }), // Bairro
+    cep: (0, mysql_core_1.varchar)("cep", { length: 9 }), // CEP
+    city: (0, mysql_core_1.varchar)("city", { length: 100 }), // Cidade
+    state: (0, mysql_core_1.varchar)("state", { length: 2 }), // UF
+    zone: (0, mysql_core_1.varchar)("zone", { length: 10 }), // urbana, rural
+    phone: (0, mysql_core_1.varchar)("phone", { length: 20 }), // Telefone residencial
+    cellPhone: (0, mysql_core_1.varchar)("cellPhone", { length: 20 }), // Celular
+    latitude: (0, mysql_core_1.decimal)("latitude", { precision: 10, scale: 8 }),
+    longitude: (0, mysql_core_1.decimal)("longitude", { precision: 11, scale: 8 }),
+    // Transporte escolar
+    needsTransport: (0, mysql_core_1.boolean)("needsTransport").default(false),
+    transportType: (0, mysql_core_1.varchar)("transportType", { length: 50 }), // Onibus, Van, Barco, etc
+    transportDistance: (0, mysql_core_1.varchar)("transportDistance", { length: 10 }), // km
+    // Programas sociais
+    bolsaFamilia: (0, mysql_core_1.boolean)("bolsaFamilia").default(false),
+    bpc: (0, mysql_core_1.boolean)("bpc").default(false), // Beneficio Prestacao Continuada
+    peti: (0, mysql_core_1.boolean)("peti").default(false), // PETI
+    otherPrograms: (0, mysql_core_1.varchar)("otherPrograms", { length: 255 }), // Outros programas
+    // Necessidades especiais / Deficiencia
     hasSpecialNeeds: (0, mysql_core_1.boolean)("hasSpecialNeeds").default(false),
     specialNeedsNotes: (0, mysql_core_1.text)("specialNeedsNotes"),
-    // Saúde
-    bloodType: (0, mysql_core_1.varchar)("bloodType", { length: 5 }), // Tipo sanguíneo (A+, A-, B+, B-, AB+, AB-, O+, O-)
-    allergies: (0, mysql_core_1.text)("allergies"), // Alergias
-    medications: (0, mysql_core_1.text)("medications"), // Medicamentos em uso
-    healthNotes: (0, mysql_core_1.text)("healthNotes"), // Observações de saúde
-    // Contatos de emergência
+    deficiencyType: (0, mysql_core_1.varchar)("deficiencyType", { length: 255 }), // Surdez, Auditiva, Mental, Fisica, Multipla, Cegueira, Baixa Visao
+    tgd: (0, mysql_core_1.varchar)("tgd", { length: 255 }), // Psicose Infantil, Autismo, Asperger, Rett
+    superdotacao: (0, mysql_core_1.boolean)("superdotacao").default(false), // Altas Habilidades/Superdotacao
+    salaRecursos: (0, mysql_core_1.boolean)("salaRecursos").default(false), // Frequenta Sala de Recursos
+    acompanhamento: (0, mysql_core_1.varchar)("acompanhamento", { length: 255 }), // Psicologia, Fono, Psicopedagogia, Fisioterapia
+    encaminhamento: (0, mysql_core_1.varchar)("encaminhamento", { length: 255 }), // CAPS, CRAS, CREAS, etc
+    // Saude
+    bloodType: (0, mysql_core_1.varchar)("bloodType", { length: 5 }),
+    allergies: (0, mysql_core_1.text)("allergies"),
+    medications: (0, mysql_core_1.text)("medications"),
+    healthNotes: (0, mysql_core_1.text)("healthNotes"),
+    // Contatos de emergencia
     emergencyContact1Name: (0, mysql_core_1.varchar)("emergencyContact1Name", { length: 255 }),
     emergencyContact1Phone: (0, mysql_core_1.varchar)("emergencyContact1Phone", { length: 20 }),
     emergencyContact1Relation: (0, mysql_core_1.varchar)("emergencyContact1Relation", { length: 50 }),
     emergencyContact2Name: (0, mysql_core_1.varchar)("emergencyContact2Name", { length: 255 }),
     emergencyContact2Phone: (0, mysql_core_1.varchar)("emergencyContact2Phone", { length: 20 }),
     emergencyContact2Relation: (0, mysql_core_1.varchar)("emergencyContact2Relation", { length: 50 }),
-    // Endereço de embarque
-    address: (0, mysql_core_1.text)("address"),
-    latitude: (0, mysql_core_1.decimal)("latitude", { precision: 10, scale: 8 }),
-    longitude: (0, mysql_core_1.decimal)("longitude", { precision: 11, scale: 8 }),
+    // Filiacao (dados diretos, sem precisar de users)
+    fatherName: (0, mysql_core_1.varchar)("fatherName", { length: 255 }),
+    fatherCpf: (0, mysql_core_1.varchar)("fatherCpf", { length: 14 }),
+    fatherRg: (0, mysql_core_1.varchar)("fatherRg", { length: 20 }),
+    fatherPhone: (0, mysql_core_1.varchar)("fatherPhone", { length: 20 }),
+    fatherProfession: (0, mysql_core_1.varchar)("fatherProfession", { length: 100 }),
+    fatherWorkplace: (0, mysql_core_1.varchar)("fatherWorkplace", { length: 255 }),
+    fatherEducation: (0, mysql_core_1.varchar)("fatherEducation", { length: 50 }), // Escolaridade
+    fatherNaturalness: (0, mysql_core_1.varchar)("fatherNaturalness", { length: 50 }),
+    fatherNaturalnessUf: (0, mysql_core_1.varchar)("fatherNaturalnessUf", { length: 2 }),
+    motherName: (0, mysql_core_1.varchar)("motherName", { length: 255 }),
+    motherCpf: (0, mysql_core_1.varchar)("motherCpf", { length: 14 }),
+    motherRg: (0, mysql_core_1.varchar)("motherRg", { length: 20 }),
+    motherPhone: (0, mysql_core_1.varchar)("motherPhone", { length: 20 }),
+    motherProfession: (0, mysql_core_1.varchar)("motherProfession", { length: 100 }),
+    motherWorkplace: (0, mysql_core_1.varchar)("motherWorkplace", { length: 255 }),
+    motherEducation: (0, mysql_core_1.varchar)("motherEducation", { length: 50 }),
+    motherNaturalness: (0, mysql_core_1.varchar)("motherNaturalness", { length: 50 }),
+    motherNaturalnessUf: (0, mysql_core_1.varchar)("motherNaturalnessUf", { length: 2 }),
+    familyIncome: (0, mysql_core_1.varchar)("familyIncome", { length: 50 }), // Renda familiar
+    // Procedencia / Situacao anterior
+    previousSchool: (0, mysql_core_1.varchar)("previousSchool", { length: 255 }), // Escola anterior
+    previousSchoolType: (0, mysql_core_1.varchar)("previousSchoolType", { length: 30 }), // municipal, estadual, particular, federal
+    previousSchoolZone: (0, mysql_core_1.varchar)("previousSchoolZone", { length: 10 }), // urbana, rural
+    previousCity: (0, mysql_core_1.varchar)("previousCity", { length: 100 }),
+    previousState: (0, mysql_core_1.varchar)("previousState", { length: 2 }),
+    enrollmentType: (0, mysql_core_1.varchar)("enrollmentType", { length: 20 }), // novato, renovacao, transferencia
+    // Situacao do aluno na serie
+    studentStatus: (0, mysql_core_1.varchar)("studentStatus", { length: 30 }), // aprovado, reprovado, remanejado, transferido, abandono
+    // Rota e observações
+    routeName: (0, mysql_core_1.varchar)("routeName", { length: 255 }), // Nome da rota vinculada
+    observations: (0, mysql_core_1.text)("observations"), // Observações gerais
     // Status
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
@@ -457,6 +567,27 @@ exports.contracts = (0, mysql_core_1.mysqlTable)("contracts", {
     notes: (0, mysql_core_1.text)("notes"),
     status: (0, mysql_core_1.mysqlEnum)("contractStatus", ["active", "expired", "pending", "cancelled"]).default("active"),
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: REGISTROS DE ABASTECIMENTO
+// ============================================
+exports.fuelRecords = (0, mysql_core_1.mysqlTable)("fuel_records", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    vehicleId: (0, mysql_core_1.int)("vehicleId").notNull().references(() => exports.vehicles.id),
+    driverId: (0, mysql_core_1.int)("driverId").references(() => exports.drivers.id),
+    // Dados do abastecimento
+    fuelDate: (0, mysql_core_1.timestamp)("fuelDate").notNull(),
+    fuelType: (0, mysql_core_1.varchar)("fuelType", { length: 50 }), // Diesel, Gasolina, Etanol, GNV
+    liters: (0, mysql_core_1.decimal)("liters", { precision: 10, scale: 2 }).notNull(),
+    pricePerLiter: (0, mysql_core_1.decimal)("pricePerLiter", { precision: 10, scale: 3 }),
+    totalCost: (0, mysql_core_1.decimal)("totalCost", { precision: 10, scale: 2 }).notNull(),
+    kmAtFueling: (0, mysql_core_1.int)("kmAtFueling"), // Km no momento do abastecimento
+    gasStation: (0, mysql_core_1.varchar)("gasStation", { length: 255 }), // Posto
+    invoiceNumber: (0, mysql_core_1.varchar)("invoiceNumber", { length: 50 }), // Nota fiscal
+    notes: (0, mysql_core_1.text)("notes"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1073,4 +1204,15 @@ exports.waitingList = (0, mysql_core_1.mysqlTable)("waiting_list", {
     notes: (0, mysql_core_1.text)("notes"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS
+// ============================================
+exports.formFieldConfigs = (0, mysql_core_1.mysqlTable)("form_field_configs", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    formType: (0, mysql_core_1.varchar)("formType", { length: 50 }).notNull(), // student, school, driver, vehicle, route, teacher
+    fieldName: (0, mysql_core_1.varchar)("fieldName", { length: 100 }).notNull(), // cpf, rg, fatherName, etc
+    isRequired: (0, mysql_core_1.boolean)("isRequired").default(false).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
 });

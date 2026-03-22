@@ -1,31 +1,13 @@
 import puppeteer, { Browser } from 'puppeteer';
-import { execSync } from 'child_process';
+import { existsSync } from 'fs';
 
 let browser: Browser | null = null;
 let launching = false;
 
 function findChromiumPath(): string | undefined {
-  // Try environment variable first
   if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-
-  // Try common paths
-  const paths = [
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-  ];
-  for (const p of paths) {
-    try { execSync(`test -f ${p}`); return p; } catch {}
-  }
-
-  // Try which
-  try {
-    const result = execSync('which chromium chromium-browser google-chrome 2>/dev/null').toString().trim().split('\n')[0];
-    if (result) return result;
-  } catch {}
-
-  // Let Puppeteer use its bundled Chromium
+  const paths = ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'];
+  for (const p of paths) { if (existsSync(p)) return p; }
   return undefined;
 }
 

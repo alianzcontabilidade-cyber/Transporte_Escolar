@@ -77,11 +77,14 @@ function validateOptionalCNPJ(cnpj) {
         throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'CNPJ inválido.' });
     }
 }
-// JWT Secret
-exports.JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'netescol-dev-secret-2024');
+// JWT Secret - OBRIGATÓRIO via variável de ambiente
+exports.JWT_SECRET = process.env.JWT_SECRET || '';
 if (!exports.JWT_SECRET) {
-    console.error('FATAL: JWT_SECRET must be set in production');
-    process.exit(1);
+    if (process.env.NODE_ENV === 'production') {
+        console.error('FATAL: JWT_SECRET não definido. Configure a variável de ambiente.');
+        process.exit(1);
+    }
+    console.warn('AVISO: JWT_SECRET não definido. Configure no arquivo .env');
 }
 // tRPC init
 exports.t = server_1.initTRPC.context().create();

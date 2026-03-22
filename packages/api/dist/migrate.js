@@ -56,6 +56,44 @@ async function migrate() {
             if (!e.message?.includes('Duplicate'))
                 console.log('users.role enum already up to date or:', e.message);
         }
+        // Municipality extra columns (v3.2 - dados prefeito, secretaria, responsaveis)
+        const munCols = [
+            "cep VARCHAR(9)", "logradouro VARCHAR(255)", "numero VARCHAR(10)",
+            "complemento VARCHAR(100)", "bairro VARCHAR(100)", "fax VARCHAR(20)", "website VARCHAR(255)",
+            "prefeitoName VARCHAR(255)", "prefeitoCpf VARCHAR(14)", "prefeitoCargo VARCHAR(100)",
+            "secretariaName VARCHAR(255)", "secretariaCnpj VARCHAR(18)",
+            "secretariaPhone VARCHAR(20)", "secretariaEmail VARCHAR(320)", "secretariaLogradouro VARCHAR(255)",
+            "secretarioName VARCHAR(255)", "secretarioCpf VARCHAR(14)",
+            "secretarioCargo VARCHAR(100)", "secretarioDecreto VARCHAR(100)",
+        ];
+        for (const col of munCols) {
+            const colName = col.split(' ')[0];
+            try {
+                await conn.execute(`ALTER TABLE municipalities ADD COLUMN ${col}`);
+                console.log(`Added municipalities.${colName}`);
+            }
+            catch (e) {
+                if (!e.message?.includes('Duplicate column'))
+                    console.log(`municipalities.${colName}: ${e.message?.substring(0, 60)}`);
+            }
+        }
+        // Responsibles table
+        try {
+            await conn.execute(`CREATE TABLE IF NOT EXISTS municipality_responsibles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(100) NOT NULL,
+        cpf VARCHAR(14),
+        decree VARCHAR(100),
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id)
+      )`);
+            console.log('Created municipality_responsibles table');
+        }
+        catch (e) {
+            console.log('municipality_responsibles:', e.message?.substring(0, 60));
+        }
         // Create new tables if they don't exist
         const tables = [
             `CREATE TABLE IF NOT EXISTS academic_years (
@@ -257,6 +295,14 @@ async function migrate() {
         isActive BOOLEAN NOT NULL DEFAULT TRUE,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (municipalityId) REFERENCES municipalities(id), FOREIGN KEY (senderUserId) REFERENCES users(id))`,
+            `CREATE TABLE IF NOT EXISTS form_field_configs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        municipalityId INT NOT NULL,
+        formType VARCHAR(50) NOT NULL,
+        fieldName VARCHAR(100) NOT NULL,
+        isRequired BOOLEAN NOT NULL DEFAULT FALSE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
             `CREATE TABLE IF NOT EXISTS waiting_list (
         id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL, schoolId INT NOT NULL,
         studentName VARCHAR(255) NOT NULL, birthDate TIMESTAMP NULL,
@@ -279,6 +325,43 @@ async function migrate() {
                 }
             }
         }
+        // Add new student columns (v3.1 - campos completos para relatorios)
+        const newStudentCols = [
+            "cpf VARCHAR(14)", "rg VARCHAR(20)", "rgOrgao VARCHAR(20)", "rgUf VARCHAR(2)", "rgDate VARCHAR(10)",
+            "sex VARCHAR(1)", "race VARCHAR(20)", "nationality VARCHAR(50)", "naturalness VARCHAR(100)", "naturalnessUf VARCHAR(2)",
+            "nis VARCHAR(15)", "cartaoSus VARCHAR(20)",
+            "certidaoTipo VARCHAR(20)", "certidaoNumero VARCHAR(50)", "certidaoFolha VARCHAR(10)", "certidaoLivro VARCHAR(10)",
+            "certidaoData VARCHAR(10)", "certidaoCartorio VARCHAR(255)",
+            "addressNumber VARCHAR(10)", "addressComplement VARCHAR(100)", "neighborhood VARCHAR(100)",
+            "cep VARCHAR(9)", "city VARCHAR(100)", "state VARCHAR(2)", "zone VARCHAR(10)",
+            "phone VARCHAR(20)", "cellPhone VARCHAR(20)",
+            "needsTransport BOOLEAN DEFAULT FALSE", "transportType VARCHAR(50)", "transportDistance VARCHAR(10)",
+            "bolsaFamilia BOOLEAN DEFAULT FALSE", "bpc BOOLEAN DEFAULT FALSE", "peti BOOLEAN DEFAULT FALSE", "otherPrograms VARCHAR(255)",
+            "deficiencyType VARCHAR(255)", "tgd VARCHAR(255)", "superdotacao BOOLEAN DEFAULT FALSE",
+            "salaRecursos BOOLEAN DEFAULT FALSE", "acompanhamento VARCHAR(255)", "encaminhamento VARCHAR(255)",
+            "fatherName VARCHAR(255)", "fatherCpf VARCHAR(14)", "fatherRg VARCHAR(20)", "fatherPhone VARCHAR(20)",
+            "fatherProfession VARCHAR(100)", "fatherWorkplace VARCHAR(255)", "fatherEducation VARCHAR(50)",
+            "fatherNaturalness VARCHAR(50)", "fatherNaturalnessUf VARCHAR(2)",
+            "motherName VARCHAR(255)", "motherCpf VARCHAR(14)", "motherRg VARCHAR(20)", "motherPhone VARCHAR(20)",
+            "motherProfession VARCHAR(100)", "motherWorkplace VARCHAR(255)", "motherEducation VARCHAR(50)",
+            "motherNaturalness VARCHAR(50)", "motherNaturalnessUf VARCHAR(2)",
+            "familyIncome VARCHAR(50)",
+            "previousSchool VARCHAR(255)", "previousSchoolType VARCHAR(30)", "previousSchoolZone VARCHAR(10)",
+            "previousCity VARCHAR(100)", "previousState VARCHAR(2)", "enrollmentType VARCHAR(20)",
+            "studentStatus VARCHAR(30)",
+        ];
+        for (const col of newStudentCols) {
+            const colName = col.split(' ')[0];
+            try {
+                await conn.execute(`ALTER TABLE students ADD COLUMN ${col}`);
+                console.log(`Added students.${colName}`);
+            }
+            catch (e) {
+                if (!e.message?.includes('Duplicate column'))
+                    console.log(`students.${colName}: ${e.message?.substring(0, 60)}`);
+            }
+        }
+        console.log('Student columns migration complete');
         console.log('Migration complete - all tables created/verified');
     }
     catch (err) {

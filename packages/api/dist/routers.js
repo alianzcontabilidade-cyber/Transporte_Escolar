@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.appRouter = exports.fuelRouter = exports.formConfigRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
 const server_1 = require("@trpc/server");
 const trpc_1 = require("./trpc");
 const zod_1 = require("zod");
@@ -290,15 +290,91 @@ exports.municipalitiesRouter = trpc_1.t.router({
         .input(zod_1.z.object({
         id: zod_1.z.number(),
         name: zod_1.z.string().optional(),
-        email: zod_1.z.string().email().optional(),
+        city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
+        email: zod_1.z.string().optional(),
         phone: zod_1.z.string().optional(),
         address: zod_1.z.string().optional(),
         logoUrl: zod_1.z.string().optional(),
         primaryColor: zod_1.z.string().optional(),
+        cnpj: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(),
+        logradouro: zod_1.z.string().optional(),
+        numero: zod_1.z.string().optional(),
+        complemento: zod_1.z.string().optional(),
+        bairro: zod_1.z.string().optional(),
+        fax: zod_1.z.string().optional(),
+        website: zod_1.z.string().optional(),
+        prefeitoName: zod_1.z.string().optional(),
+        prefeitoCpf: zod_1.z.string().optional(),
+        prefeitoCargo: zod_1.z.string().optional(),
+        secretariaName: zod_1.z.string().optional(),
+        secretariaCnpj: zod_1.z.string().optional(),
+        secretariaPhone: zod_1.z.string().optional(),
+        secretariaEmail: zod_1.z.string().optional(),
+        secretariaLogradouro: zod_1.z.string().optional(),
+        secretarioName: zod_1.z.string().optional(),
+        secretarioCpf: zod_1.z.string().optional(),
+        secretarioCargo: zod_1.z.string().optional(),
+        secretarioDecreto: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        await index_1.db.update(schema_1.municipalities).set(data).where((0, drizzle_orm_1.eq)(schema_1.municipalities.id, id));
+        // Remove undefined values
+        const cleanData = {};
+        for (const [k, v] of Object.entries(data)) {
+            if (v !== undefined)
+                cleanData[k] = v;
+        }
+        if (Object.keys(cleanData).length > 0) {
+            await index_1.db.update(schema_1.municipalities).set(cleanData).where((0, drizzle_orm_1.eq)(schema_1.municipalities.id, id));
+        }
+        return { success: true };
+    }),
+    // Responsáveis do município
+    listResponsibles: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.municipalityResponsibles)
+            .where((0, drizzle_orm_1.eq)(schema_1.municipalityResponsibles.municipalityId, input.municipalityId))
+            .orderBy(schema_1.municipalityResponsibles.name);
+    }),
+    addResponsible: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        name: zod_1.z.string().min(2),
+        role: zod_1.z.string().min(2),
+        cpf: zod_1.z.string().optional(),
+        decree: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [r] = await index_1.db.insert(schema_1.municipalityResponsibles).values(input).$returningId();
+        return { success: true, id: r.id };
+    }),
+    updateResponsible: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(),
+        name: zod_1.z.string().optional(),
+        role: zod_1.z.string().optional(),
+        cpf: zod_1.z.string().optional(),
+        decree: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const cleanData = {};
+        for (const [k, v] of Object.entries(data)) {
+            if (v !== undefined)
+                cleanData[k] = v;
+        }
+        if (Object.keys(cleanData).length > 0) {
+            await index_1.db.update(schema_1.municipalityResponsibles).set(cleanData).where((0, drizzle_orm_1.eq)(schema_1.municipalityResponsibles.id, id));
+        }
+        return { success: true };
+    }),
+    removeResponsible: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.municipalityResponsibles).where((0, drizzle_orm_1.eq)(schema_1.municipalityResponsibles.id, input.id));
         return { success: true };
     }),
     getDashboardStats: trpc_1.adminProcedure
@@ -404,6 +480,18 @@ exports.schoolsRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasStudents] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.schoolId, input.id), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)));
+        const [hasClasses] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.classes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classes.schoolId, input.id), (0, drizzle_orm_1.eq)(schema_1.classes.isActive, true)));
+        const [hasRoutes] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.routes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.schoolId, input.id), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true)));
+        const deps = [];
+        if (Number(hasStudents.c) > 0)
+            deps.push(`${hasStudents.c} aluno(s)`);
+        if (Number(hasClasses.c) > 0)
+            deps.push(`${hasClasses.c} turma(s)`);
+        if (Number(hasRoutes.c) > 0)
+            deps.push(`${hasRoutes.c} rota(s)`);
+        if (deps.length > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Escola possui: ${deps.join(', ')}` });
         await index_1.db.update(schema_1.schools).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.schools.id, input.id));
         return { success: true };
     }),
@@ -465,6 +553,15 @@ exports.routesRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasStops] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.stops).where((0, drizzle_orm_1.eq)(schema_1.stops.routeId, input.id));
+        const [hasTrips] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.trips).where((0, drizzle_orm_1.eq)(schema_1.trips.routeId, input.id));
+        const deps = [];
+        if (Number(hasStops.c) > 0)
+            deps.push(`${hasStops.c} parada(s)`);
+        if (Number(hasTrips.c) > 0)
+            deps.push(`${hasTrips.c} viagem(ns)`);
+        if (deps.length > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Rota possui: ${deps.join(', ')}` });
         await index_1.db.update(schema_1.routes).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.routes.id, input.id));
         return { success: true };
     }),
@@ -535,11 +632,30 @@ exports.stopsRouter = trpc_1.t.router({
         }
         return { success: true };
     }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        const [hasStudents] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.stopStudents).where((0, drizzle_orm_1.eq)(schema_1.stopStudents.stopId, input.id));
+        if (Number(hasStudents.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Parada possui ${hasStudents.c} aluno(s) vinculado(s)` });
+        await index_1.db.update(schema_1.stops).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.stops.id, input.id));
+        return { success: true };
+    }),
 });
 // ============================================
 // STUDENTS ROUTER
 // ============================================
 exports.studentsRouter = trpc_1.t.router({
+    // Lista cartórios distintos já cadastrados para autocomplete
+    listCartorios: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const result = await index_1.db.selectDistinct({ cartorio: schema_1.students.certidaoCartorio })
+            .from(schema_1.students)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.sql) `${schema_1.students.certidaoCartorio} IS NOT NULL AND ${schema_1.students.certidaoCartorio} != ''`))
+            .orderBy(schema_1.students.certidaoCartorio);
+        return result.map(r => r.cartorio).filter(Boolean);
+    }),
     list: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional() }))
         .query(async ({ input }) => {
@@ -574,6 +690,17 @@ exports.studentsRouter = trpc_1.t.router({
             address: schema_1.students.address,
             latitude: schema_1.students.latitude,
             longitude: schema_1.students.longitude,
+            needsTransport: schema_1.students.needsTransport,
+            transportType: schema_1.students.transportType,
+            transportDistance: schema_1.students.transportDistance,
+            zone: schema_1.students.zone,
+            routeName: schema_1.students.routeName,
+            cpf: schema_1.students.cpf,
+            sex: schema_1.students.sex,
+            nis: schema_1.students.nis,
+            bolsaFamilia: schema_1.students.bolsaFamilia,
+            studentStatus: schema_1.students.studentStatus,
+            enrollmentType: schema_1.students.enrollmentType,
             isActive: schema_1.students.isActive,
             createdAt: schema_1.students.createdAt,
             updatedAt: schema_1.students.updatedAt,
@@ -596,65 +723,133 @@ exports.studentsRouter = trpc_1.t.router({
         className: zod_1.z.string().optional(),
         enrollment: zod_1.z.string().optional(),
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(),
-        address: zod_1.z.string().optional(),
-        city: zod_1.z.string().optional(),
-        state: zod_1.z.string().optional(),
-        latitude: zod_1.z.number().optional(),
-        longitude: zod_1.z.number().optional(),
-        photoUrl: zod_1.z.string().optional(),
-        photo: zod_1.z.string().optional(),
-        hasSpecialNeeds: zod_1.z.boolean().optional(),
-        specialNeedsNotes: zod_1.z.string().optional(),
-        bloodType: zod_1.z.string().optional(),
-        allergies: zod_1.z.string().optional(),
-        medications: zod_1.z.string().optional(),
-        healthNotes: zod_1.z.string().optional(),
-        emergencyContact1Name: zod_1.z.string().optional(),
-        emergencyContact1Phone: zod_1.z.string().optional(),
+        // Dados pessoais
+        cpf: zod_1.z.string().optional(), rg: zod_1.z.string().optional(), rgOrgao: zod_1.z.string().optional(),
+        rgUf: zod_1.z.string().optional(), rgDate: zod_1.z.string().optional(),
+        sex: zod_1.z.string().optional(), race: zod_1.z.string().optional(),
+        nationality: zod_1.z.string().optional(), naturalness: zod_1.z.string().optional(), naturalnessUf: zod_1.z.string().optional(),
+        nis: zod_1.z.string().optional(), cartaoSus: zod_1.z.string().optional(),
+        // Certidao
+        certidaoTipo: zod_1.z.string().optional(), certidaoNumero: zod_1.z.string().optional(),
+        certidaoFolha: zod_1.z.string().optional(), certidaoLivro: zod_1.z.string().optional(),
+        certidaoData: zod_1.z.string().optional(), certidaoCartorio: zod_1.z.string().optional(),
+        // Endereco
+        address: zod_1.z.string().optional(), addressNumber: zod_1.z.string().optional(),
+        addressComplement: zod_1.z.string().optional(), neighborhood: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(), city: zod_1.z.string().optional(), state: zod_1.z.string().optional(),
+        zone: zod_1.z.string().optional(), phone: zod_1.z.string().optional(), cellPhone: zod_1.z.string().optional(),
+        latitude: zod_1.z.number().optional(), longitude: zod_1.z.number().optional(),
+        // Transporte
+        needsTransport: zod_1.z.boolean().optional(), transportType: zod_1.z.string().optional(), transportDistance: zod_1.z.string().optional(),
+        // Programas sociais
+        bolsaFamilia: zod_1.z.boolean().optional(), bpc: zod_1.z.boolean().optional(), peti: zod_1.z.boolean().optional(), otherPrograms: zod_1.z.string().optional(),
+        // Necessidades especiais
+        photoUrl: zod_1.z.string().optional(), photo: zod_1.z.string().optional(),
+        hasSpecialNeeds: zod_1.z.boolean().optional(), specialNeedsNotes: zod_1.z.string().optional(),
+        deficiencyType: zod_1.z.string().optional(), tgd: zod_1.z.string().optional(),
+        superdotacao: zod_1.z.boolean().optional(), salaRecursos: zod_1.z.boolean().optional(),
+        acompanhamento: zod_1.z.string().optional(), encaminhamento: zod_1.z.string().optional(),
+        // Saude
+        bloodType: zod_1.z.string().optional(), allergies: zod_1.z.string().optional(),
+        medications: zod_1.z.string().optional(), healthNotes: zod_1.z.string().optional(),
+        // Contatos emergencia
+        emergencyContact1Name: zod_1.z.string().optional(), emergencyContact1Phone: zod_1.z.string().optional(),
         emergencyContact1Relation: zod_1.z.string().optional(),
-        emergencyContact2Name: zod_1.z.string().optional(),
-        emergencyContact2Phone: zod_1.z.string().optional(),
+        emergencyContact2Name: zod_1.z.string().optional(), emergencyContact2Phone: zod_1.z.string().optional(),
         emergencyContact2Relation: zod_1.z.string().optional(),
-        guardian1Name: zod_1.z.string().optional(),
-        guardian1Phone: zod_1.z.string().optional(),
-        guardian1Relation: zod_1.z.string().optional(),
-        guardian2Name: zod_1.z.string().optional(),
-        guardian2Phone: zod_1.z.string().optional(),
-        guardian2Relation: zod_1.z.string().optional(),
-        observations: zod_1.z.string().optional(),
-        routeId: zod_1.z.number().optional(),
-        school: zod_1.z.string().optional(),
+        guardian1Name: zod_1.z.string().optional(), guardian1Phone: zod_1.z.string().optional(), guardian1Relation: zod_1.z.string().optional(),
+        guardian2Name: zod_1.z.string().optional(), guardian2Phone: zod_1.z.string().optional(), guardian2Relation: zod_1.z.string().optional(),
+        // Filiacao
+        fatherName: zod_1.z.string().optional(), fatherCpf: zod_1.z.string().optional(), fatherRg: zod_1.z.string().optional(),
+        fatherPhone: zod_1.z.string().optional(), fatherProfession: zod_1.z.string().optional(), fatherWorkplace: zod_1.z.string().optional(),
+        fatherEducation: zod_1.z.string().optional(), fatherNaturalness: zod_1.z.string().optional(), fatherNaturalnessUf: zod_1.z.string().optional(),
+        motherName: zod_1.z.string().optional(), motherCpf: zod_1.z.string().optional(), motherRg: zod_1.z.string().optional(),
+        motherPhone: zod_1.z.string().optional(), motherProfession: zod_1.z.string().optional(), motherWorkplace: zod_1.z.string().optional(),
+        motherEducation: zod_1.z.string().optional(), motherNaturalness: zod_1.z.string().optional(), motherNaturalnessUf: zod_1.z.string().optional(),
+        familyIncome: zod_1.z.string().optional(),
+        // Procedencia
+        previousSchool: zod_1.z.string().optional(), previousSchoolType: zod_1.z.string().optional(),
+        previousSchoolZone: zod_1.z.string().optional(), previousCity: zod_1.z.string().optional(),
+        previousState: zod_1.z.string().optional(), enrollmentType: zod_1.z.string().optional(),
+        studentStatus: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(), routeId: zod_1.z.number().optional(), school: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const finalSchoolId = input.schoolId || (input.school ? parseInt(input.school) : undefined);
         if (!finalSchoolId)
             throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
-        const fullAddress = [input.address, input.city, input.state].filter(Boolean).join(', ');
+        const { municipalityId, school: _s, photo, className, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, ...rest } = input;
         const [student] = await index_1.db.insert(schema_1.students).values({
-            municipalityId: input.municipalityId,
+            municipalityId,
             schoolId: finalSchoolId,
-            name: input.name,
-            enrollment: input.enrollment || undefined,
-            grade: input.grade || undefined,
-            classRoom: input.classRoom || input.className || undefined,
-            shift: input.shift || undefined,
-            birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
-            photoUrl: input.photoUrl || input.photo || undefined,
-            address: fullAddress || input.address || undefined,
-            hasSpecialNeeds: input.hasSpecialNeeds || false,
-            specialNeedsNotes: input.specialNeedsNotes || undefined,
-            bloodType: input.bloodType || undefined,
-            allergies: input.allergies || undefined,
-            medications: input.medications || undefined,
-            healthNotes: input.healthNotes || undefined,
-            emergencyContact1Name: input.emergencyContact1Name || input.guardian1Name || undefined,
-            emergencyContact1Phone: input.emergencyContact1Phone || input.guardian1Phone || undefined,
-            emergencyContact1Relation: input.emergencyContact1Relation || input.guardian1Relation || undefined,
-            emergencyContact2Name: input.emergencyContact2Name || input.guardian2Name || undefined,
-            emergencyContact2Phone: input.emergencyContact2Phone || input.guardian2Phone || undefined,
-            emergencyContact2Relation: input.emergencyContact2Relation || input.guardian2Relation || undefined,
-            ...(input.latitude !== undefined && { latitude: input.latitude.toFixed(8) }),
-            ...(input.longitude !== undefined && { longitude: input.longitude.toFixed(8) }),
+            name: rest.name,
+            enrollment: rest.enrollment || undefined,
+            grade: rest.grade || undefined,
+            classRoom: rest.classRoom || className || undefined,
+            shift: rest.shift || undefined,
+            birthDate: rest.birthDate ? new Date(rest.birthDate) : undefined,
+            photoUrl: rest.photoUrl || photo || undefined,
+            address: rest.address || undefined,
+            addressNumber: rest.addressNumber || undefined,
+            addressComplement: rest.addressComplement || undefined,
+            neighborhood: rest.neighborhood || undefined,
+            cep: rest.cep || undefined,
+            city: rest.city || undefined,
+            state: rest.state || undefined,
+            zone: rest.zone || undefined,
+            phone: rest.phone || undefined,
+            cellPhone: rest.cellPhone || undefined,
+            // Dados pessoais
+            cpf: rest.cpf || undefined, rg: rest.rg || undefined, rgOrgao: rest.rgOrgao || undefined,
+            rgUf: rest.rgUf || undefined, rgDate: rest.rgDate || undefined,
+            sex: rest.sex || undefined, race: rest.race || undefined,
+            nationality: rest.nationality || undefined, naturalness: rest.naturalness || undefined,
+            naturalnessUf: rest.naturalnessUf || undefined,
+            nis: rest.nis || undefined, cartaoSus: rest.cartaoSus || undefined,
+            // Certidao
+            certidaoTipo: rest.certidaoTipo || undefined, certidaoNumero: rest.certidaoNumero || undefined,
+            certidaoFolha: rest.certidaoFolha || undefined, certidaoLivro: rest.certidaoLivro || undefined,
+            certidaoData: rest.certidaoData || undefined, certidaoCartorio: rest.certidaoCartorio || undefined,
+            // Transporte
+            needsTransport: rest.needsTransport || false, transportType: rest.transportType || undefined,
+            transportDistance: rest.transportDistance || undefined,
+            // Programas sociais
+            bolsaFamilia: rest.bolsaFamilia || false, bpc: rest.bpc || false,
+            peti: rest.peti || false, otherPrograms: rest.otherPrograms || undefined,
+            // Necessidades especiais
+            hasSpecialNeeds: rest.hasSpecialNeeds || false, specialNeedsNotes: rest.specialNeedsNotes || undefined,
+            deficiencyType: rest.deficiencyType || undefined, tgd: rest.tgd || undefined,
+            superdotacao: rest.superdotacao || false, salaRecursos: rest.salaRecursos || false,
+            acompanhamento: rest.acompanhamento || undefined, encaminhamento: rest.encaminhamento || undefined,
+            // Saude
+            bloodType: rest.bloodType || undefined, allergies: rest.allergies || undefined,
+            medications: rest.medications || undefined, healthNotes: rest.healthNotes || undefined,
+            // Contatos emergencia
+            emergencyContact1Name: rest.emergencyContact1Name || guardian1Name || undefined,
+            emergencyContact1Phone: rest.emergencyContact1Phone || guardian1Phone || undefined,
+            emergencyContact1Relation: rest.emergencyContact1Relation || guardian1Relation || undefined,
+            emergencyContact2Name: rest.emergencyContact2Name || guardian2Name || undefined,
+            emergencyContact2Phone: rest.emergencyContact2Phone || guardian2Phone || undefined,
+            emergencyContact2Relation: rest.emergencyContact2Relation || guardian2Relation || undefined,
+            // Filiacao
+            fatherName: rest.fatherName || undefined, fatherCpf: rest.fatherCpf || undefined,
+            fatherRg: rest.fatherRg || undefined, fatherPhone: rest.fatherPhone || undefined,
+            fatherProfession: rest.fatherProfession || undefined, fatherWorkplace: rest.fatherWorkplace || undefined,
+            fatherEducation: rest.fatherEducation || undefined,
+            fatherNaturalness: rest.fatherNaturalness || undefined, fatherNaturalnessUf: rest.fatherNaturalnessUf || undefined,
+            motherName: rest.motherName || undefined, motherCpf: rest.motherCpf || undefined,
+            motherRg: rest.motherRg || undefined, motherPhone: rest.motherPhone || undefined,
+            motherProfession: rest.motherProfession || undefined, motherWorkplace: rest.motherWorkplace || undefined,
+            motherEducation: rest.motherEducation || undefined,
+            motherNaturalness: rest.motherNaturalness || undefined, motherNaturalnessUf: rest.motherNaturalnessUf || undefined,
+            familyIncome: rest.familyIncome || undefined,
+            // Procedencia
+            previousSchool: rest.previousSchool || undefined, previousSchoolType: rest.previousSchoolType || undefined,
+            previousSchoolZone: rest.previousSchoolZone || undefined,
+            previousCity: rest.previousCity || undefined, previousState: rest.previousState || undefined,
+            enrollmentType: rest.enrollmentType || undefined, studentStatus: rest.studentStatus || undefined,
+            ...(rest.latitude !== undefined && { latitude: rest.latitude.toFixed(8) }),
+            ...(rest.longitude !== undefined && { longitude: rest.longitude.toFixed(8) }),
         }).$returningId();
         return { success: true, id: student.id };
     }),
@@ -681,75 +876,125 @@ exports.studentsRouter = trpc_1.t.router({
         classRoom: zod_1.z.string().optional(),
         className: zod_1.z.string().optional(),
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(),
-        address: zod_1.z.string().optional(),
-        city: zod_1.z.string().optional(),
-        state: zod_1.z.string().optional(),
-        photoUrl: zod_1.z.string().optional(),
-        photo: zod_1.z.string().optional(),
-        hasSpecialNeeds: zod_1.z.boolean().optional(),
-        specialNeedsNotes: zod_1.z.string().optional(),
-        bloodType: zod_1.z.string().optional(),
-        allergies: zod_1.z.string().optional(),
-        medications: zod_1.z.string().optional(),
-        healthNotes: zod_1.z.string().optional(),
-        emergencyContact1Name: zod_1.z.string().optional(),
-        emergencyContact1Phone: zod_1.z.string().optional(),
+        // Dados pessoais
+        cpf: zod_1.z.string().optional(), rg: zod_1.z.string().optional(), rgOrgao: zod_1.z.string().optional(),
+        rgUf: zod_1.z.string().optional(), rgDate: zod_1.z.string().optional(),
+        sex: zod_1.z.string().optional(), race: zod_1.z.string().optional(),
+        nationality: zod_1.z.string().optional(), naturalness: zod_1.z.string().optional(), naturalnessUf: zod_1.z.string().optional(),
+        nis: zod_1.z.string().optional(), cartaoSus: zod_1.z.string().optional(),
+        // Certidao
+        certidaoTipo: zod_1.z.string().optional(), certidaoNumero: zod_1.z.string().optional(),
+        certidaoFolha: zod_1.z.string().optional(), certidaoLivro: zod_1.z.string().optional(),
+        certidaoData: zod_1.z.string().optional(), certidaoCartorio: zod_1.z.string().optional(),
+        // Endereco
+        address: zod_1.z.string().optional(), addressNumber: zod_1.z.string().optional(),
+        addressComplement: zod_1.z.string().optional(), neighborhood: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(), city: zod_1.z.string().optional(), state: zod_1.z.string().optional(),
+        zone: zod_1.z.string().optional(), phone: zod_1.z.string().optional(), cellPhone: zod_1.z.string().optional(),
+        // Transporte
+        needsTransport: zod_1.z.boolean().optional(), transportType: zod_1.z.string().optional(), transportDistance: zod_1.z.string().optional(),
+        // Programas sociais
+        bolsaFamilia: zod_1.z.boolean().optional(), bpc: zod_1.z.boolean().optional(), peti: zod_1.z.boolean().optional(), otherPrograms: zod_1.z.string().optional(),
+        // Necessidades especiais
+        photoUrl: zod_1.z.string().optional(), photo: zod_1.z.string().optional(),
+        hasSpecialNeeds: zod_1.z.boolean().optional(), specialNeedsNotes: zod_1.z.string().optional(),
+        deficiencyType: zod_1.z.string().optional(), tgd: zod_1.z.string().optional(),
+        superdotacao: zod_1.z.boolean().optional(), salaRecursos: zod_1.z.boolean().optional(),
+        acompanhamento: zod_1.z.string().optional(), encaminhamento: zod_1.z.string().optional(),
+        // Saude
+        bloodType: zod_1.z.string().optional(), allergies: zod_1.z.string().optional(),
+        medications: zod_1.z.string().optional(), healthNotes: zod_1.z.string().optional(),
+        // Contatos emergencia
+        emergencyContact1Name: zod_1.z.string().optional(), emergencyContact1Phone: zod_1.z.string().optional(),
         emergencyContact1Relation: zod_1.z.string().optional(),
-        emergencyContact2Name: zod_1.z.string().optional(),
-        emergencyContact2Phone: zod_1.z.string().optional(),
+        emergencyContact2Name: zod_1.z.string().optional(), emergencyContact2Phone: zod_1.z.string().optional(),
         emergencyContact2Relation: zod_1.z.string().optional(),
-        guardian1Name: zod_1.z.string().optional(),
-        guardian1Phone: zod_1.z.string().optional(),
-        guardian1Relation: zod_1.z.string().optional(),
-        guardian2Name: zod_1.z.string().optional(),
-        guardian2Phone: zod_1.z.string().optional(),
-        guardian2Relation: zod_1.z.string().optional(),
-        observations: zod_1.z.string().optional(),
-        routeId: zod_1.z.number().optional(),
+        guardian1Name: zod_1.z.string().optional(), guardian1Phone: zod_1.z.string().optional(), guardian1Relation: zod_1.z.string().optional(),
+        guardian2Name: zod_1.z.string().optional(), guardian2Phone: zod_1.z.string().optional(), guardian2Relation: zod_1.z.string().optional(),
+        // Filiacao
+        fatherName: zod_1.z.string().optional(), fatherCpf: zod_1.z.string().optional(), fatherRg: zod_1.z.string().optional(),
+        fatherPhone: zod_1.z.string().optional(), fatherProfession: zod_1.z.string().optional(), fatherWorkplace: zod_1.z.string().optional(),
+        fatherEducation: zod_1.z.string().optional(), fatherNaturalness: zod_1.z.string().optional(), fatherNaturalnessUf: zod_1.z.string().optional(),
+        motherName: zod_1.z.string().optional(), motherCpf: zod_1.z.string().optional(), motherRg: zod_1.z.string().optional(),
+        motherPhone: zod_1.z.string().optional(), motherProfession: zod_1.z.string().optional(), motherWorkplace: zod_1.z.string().optional(),
+        motherEducation: zod_1.z.string().optional(), motherNaturalness: zod_1.z.string().optional(), motherNaturalnessUf: zod_1.z.string().optional(),
+        familyIncome: zod_1.z.string().optional(),
+        // Procedencia
+        previousSchool: zod_1.z.string().optional(), previousSchoolType: zod_1.z.string().optional(),
+        previousSchoolZone: zod_1.z.string().optional(), previousCity: zod_1.z.string().optional(),
+        previousState: zod_1.z.string().optional(), enrollmentType: zod_1.z.string().optional(),
+        studentStatus: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(), routeId: zod_1.z.number().optional(),
+        latitude: zod_1.z.number().optional(), longitude: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
+        const { id, municipalityId, school, photo, className, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, latitude, longitude, ...fields } = input;
         const ud = {};
-        if (input.name !== undefined)
-            ud.name = input.name;
-        if (input.enrollment !== undefined)
-            ud.enrollment = input.enrollment;
-        if (input.grade !== undefined)
-            ud.grade = input.grade;
-        if (input.classRoom || input.className)
-            ud.classRoom = input.classRoom || input.className;
-        if (input.shift !== undefined)
-            ud.shift = input.shift;
-        if (input.birthDate)
-            ud.birthDate = new Date(input.birthDate);
-        if (input.photoUrl || input.photo)
-            ud.photoUrl = input.photoUrl || input.photo;
-        if (input.school)
-            ud.schoolId = parseInt(input.school);
-        if (input.schoolId)
-            ud.schoolId = input.schoolId;
-        if (input.hasSpecialNeeds !== undefined)
-            ud.hasSpecialNeeds = input.hasSpecialNeeds;
-        if (input.specialNeedsNotes !== undefined)
-            ud.specialNeedsNotes = input.specialNeedsNotes;
-        if (input.bloodType !== undefined)
-            ud.bloodType = input.bloodType;
-        if (input.allergies !== undefined)
-            ud.allergies = input.allergies;
-        if (input.medications !== undefined)
-            ud.medications = input.medications;
-        if (input.healthNotes !== undefined)
-            ud.healthNotes = input.healthNotes;
-        // Address
-        if (input.address || input.city || input.state) {
-            ud.address = [input.address, input.city, input.state].filter(Boolean).join(', ');
+        // Basic fields
+        if (fields.name !== undefined)
+            ud.name = fields.name;
+        if (fields.enrollment !== undefined)
+            ud.enrollment = fields.enrollment;
+        if (fields.grade !== undefined)
+            ud.grade = fields.grade;
+        if (fields.classRoom || className)
+            ud.classRoom = fields.classRoom || className;
+        if (fields.shift !== undefined)
+            ud.shift = fields.shift;
+        if (fields.birthDate)
+            ud.birthDate = new Date(fields.birthDate);
+        if (fields.photoUrl || photo)
+            ud.photoUrl = fields.photoUrl || photo;
+        if (school)
+            ud.schoolId = parseInt(school);
+        if (fields.schoolId)
+            ud.schoolId = fields.schoolId;
+        if (latitude !== undefined)
+            ud.latitude = latitude.toFixed(8);
+        if (longitude !== undefined)
+            ud.longitude = longitude.toFixed(8);
+        if (observations !== undefined)
+            ud.observations = observations;
+        // Se routeId foi fornecido, buscar nome da rota e salvar
+        if (routeId) {
+            try {
+                const [route] = await index_1.db.select({ name: schema_1.routes.name }).from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.id, routeId)).limit(1);
+                if (route)
+                    ud.routeName = route.name;
+            }
+            catch { /* ignore */ }
+        }
+        // All string/boolean fields - copy if defined
+        const stringFields = [
+            'cpf', 'rg', 'rgOrgao', 'rgUf', 'rgDate', 'sex', 'race', 'nationality', 'naturalness', 'naturalnessUf',
+            'nis', 'cartaoSus', 'certidaoTipo', 'certidaoNumero', 'certidaoFolha', 'certidaoLivro', 'certidaoData', 'certidaoCartorio',
+            'address', 'addressNumber', 'addressComplement', 'neighborhood', 'cep', 'city', 'state', 'zone', 'phone', 'cellPhone',
+            'transportType', 'transportDistance', 'otherPrograms',
+            'specialNeedsNotes', 'deficiencyType', 'tgd', 'acompanhamento', 'encaminhamento',
+            'bloodType', 'allergies', 'medications', 'healthNotes',
+            'fatherName', 'fatherCpf', 'fatherRg', 'fatherPhone', 'fatherProfession', 'fatherWorkplace', 'fatherEducation',
+            'fatherNaturalness', 'fatherNaturalnessUf',
+            'motherName', 'motherCpf', 'motherRg', 'motherPhone', 'motherProfession', 'motherWorkplace', 'motherEducation',
+            'motherNaturalness', 'motherNaturalnessUf',
+            'familyIncome', 'previousSchool', 'previousSchoolType', 'previousSchoolZone', 'previousCity', 'previousState',
+            'enrollmentType', 'studentStatus',
+        ];
+        for (const f of stringFields) {
+            if (fields[f] !== undefined)
+                ud[f] = fields[f];
+        }
+        const boolFields = ['hasSpecialNeeds', 'needsTransport', 'bolsaFamilia', 'bpc', 'peti', 'superdotacao', 'salaRecursos'];
+        for (const f of boolFields) {
+            if (fields[f] !== undefined)
+                ud[f] = fields[f];
         }
         // Emergency contacts / guardians
-        const ec1Name = input.emergencyContact1Name || input.guardian1Name;
-        const ec1Phone = input.emergencyContact1Phone || input.guardian1Phone;
-        const ec1Rel = input.emergencyContact1Relation || input.guardian1Relation;
-        const ec2Name = input.emergencyContact2Name || input.guardian2Name;
-        const ec2Phone = input.emergencyContact2Phone || input.guardian2Phone;
-        const ec2Rel = input.emergencyContact2Relation || input.guardian2Relation;
+        const ec1Name = fields.emergencyContact1Name || guardian1Name;
+        const ec1Phone = fields.emergencyContact1Phone || guardian1Phone;
+        const ec1Rel = fields.emergencyContact1Relation || guardian1Relation;
+        const ec2Name = fields.emergencyContact2Name || guardian2Name;
+        const ec2Phone = fields.emergencyContact2Phone || guardian2Phone;
+        const ec2Rel = fields.emergencyContact2Relation || guardian2Relation;
         if (ec1Name !== undefined)
             ud.emergencyContact1Name = ec1Name;
         if (ec1Phone !== undefined)
@@ -765,13 +1010,21 @@ exports.studentsRouter = trpc_1.t.router({
         // Remove undefined values
         Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
-            await index_1.db.update(schema_1.students).set(ud).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.id));
+            await index_1.db.update(schema_1.students).set(ud).where((0, drizzle_orm_1.eq)(schema_1.students.id, id));
         return { success: true };
     }),
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
-        await index_1.db.update(schema_1.students).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.id));
+        const [hasEnrollments] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.enrollments).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, input.id), (0, drizzle_orm_1.eq)(schema_1.enrollments.status, 'active'), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
+        if (Number(hasEnrollments.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Aluno possui ${hasEnrollments.c} matrícula(s) ativa(s). Altere o status da matrícula antes de excluir.` });
+        // Desativar aluno
+        await index_1.db.update(schema_1.students).set({ isActive: false, studentStatus: 'inativo' }).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.id));
+        // Limpar vínculos com paradas de rota
+        await index_1.db.delete(schema_1.stopStudents).where((0, drizzle_orm_1.eq)(schema_1.stopStudents.studentId, input.id));
+        // Desativar matrículas que não estão ativas
+        await index_1.db.update(schema_1.enrollments).set({ isActive: false }).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, input.id), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
         return { success: true };
     }),
 });
@@ -779,6 +1032,22 @@ exports.studentsRouter = trpc_1.t.router({
 // TRIPS ROUTER
 // ============================================
 exports.tripsRouter = trpc_1.t.router({
+    // Finalizar todas as viagens ativas de um município
+    completeAll: trpc_1.adminProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        // Finalizar TODAS as viagens que não estão completed/cancelled
+        const activeTrips = await index_1.db.select({ tripId: schema_1.trips.id, status: schema_1.trips.status })
+            .from(schema_1.trips)
+            .innerJoin(schema_1.routes, (0, drizzle_orm_1.eq)(schema_1.trips.routeId, schema_1.routes.id))
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.trips.status, 'started'), (0, drizzle_orm_1.eq)(schema_1.trips.status, 'scheduled')), (0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, input.municipalityId)));
+        let count = 0;
+        for (const t of activeTrips) {
+            await index_1.db.update(schema_1.trips).set({ status: 'completed', completedAt: new Date() }).where((0, drizzle_orm_1.eq)(schema_1.trips.id, t.tripId));
+            count++;
+        }
+        return { success: true, finalized: count };
+    }),
     listActive: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
         .query(async ({ input }) => {
@@ -1059,7 +1328,19 @@ exports.vehiclesRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
-        await index_1.db.delete(schema_1.vehicles).where((0, drizzle_orm_1.eq)(schema_1.vehicles.id, input.id));
+        const [hasTrips] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.trips).where((0, drizzle_orm_1.eq)(schema_1.trips.vehicleId, input.id));
+        const [hasMaint] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.maintenanceRecords).where((0, drizzle_orm_1.eq)(schema_1.maintenanceRecords.vehicleId, input.id));
+        const [hasFuel] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.fuelRecords).where((0, drizzle_orm_1.eq)(schema_1.fuelRecords.vehicleId, input.id));
+        const deps = [];
+        if (Number(hasTrips.c) > 0)
+            deps.push(`${hasTrips.c} viagem(ns)`);
+        if (Number(hasMaint.c) > 0)
+            deps.push(`${hasMaint.c} manutenção(ões)`);
+        if (Number(hasFuel.c) > 0)
+            deps.push(`${hasFuel.c} abastecimento(s)`);
+        if (deps.length > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Veículo possui: ${deps.join(', ')}` });
+        await index_1.db.update(schema_1.vehicles).set({ status: 'inactive' }).where((0, drizzle_orm_1.eq)(schema_1.vehicles.id, input.id));
         return { success: true };
     }),
 });
@@ -1193,11 +1474,10 @@ exports.driversRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
-        const [driver] = await index_1.db.select().from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, input.id)).limit(1);
-        if (driver) {
-            await index_1.db.delete(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, input.id));
-            await index_1.db.delete(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, driver.userId));
-        }
+        const [hasTrips] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.trips).where((0, drizzle_orm_1.eq)(schema_1.trips.driverId, input.id));
+        if (Number(hasTrips.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Motorista possui ${hasTrips.c} viagem(ns) registrada(s)` });
+        await index_1.db.update(schema_1.drivers).set({ isAvailable: false }).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, input.id));
         return { success: true };
     }),
 });
@@ -1320,7 +1600,19 @@ exports.usersRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
-        await index_1.db.delete(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, input.id));
+        const [isDriver] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.userId, input.id));
+        const [isTeacher] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.teachers).where((0, drizzle_orm_1.eq)(schema_1.teachers.userId, input.id));
+        const [isGuardian] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.guardians).where((0, drizzle_orm_1.eq)(schema_1.guardians.userId, input.id));
+        const deps = [];
+        if (Number(isDriver.c) > 0)
+            deps.push('motorista');
+        if (Number(isTeacher.c) > 0)
+            deps.push('professor');
+        if (Number(isGuardian.c) > 0)
+            deps.push('responsável de aluno');
+        if (deps.length > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Usuário vinculado como: ${deps.join(', ')}` });
+        await index_1.db.update(schema_1.users).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.users.id, input.id));
         return { success: true };
     }),
 });
@@ -1470,8 +1762,20 @@ exports.monitorsRouter = trpc_1.t.router({
         const [driver] = await index_1.db.select().from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.userId, ctx.userId)).limit(1);
         if (!driver)
             return null;
-        const [activeTrip] = await index_1.db.select().from(schema_1.trips)
-            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.trips.driverId, driver.id), (0, drizzle_orm_1.eq)(schema_1.trips.status, 'started'))).limit(1);
+        // Buscar TODAS as viagens ativas deste motorista (pode haver mais de uma presa)
+        const allActive = await index_1.db.select().from(schema_1.trips)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.trips.driverId, driver.id), (0, drizzle_orm_1.eq)(schema_1.trips.status, 'started')));
+        // Se não há viagens ativas, retornar null
+        if (allActive.length === 0)
+            return null;
+        // Se há mais de uma, finalizar as extras (manter só a mais recente)
+        if (allActive.length > 1) {
+            const sorted = allActive.sort((a, b) => (b.id || 0) - (a.id || 0));
+            for (let i = 1; i < sorted.length; i++) {
+                await index_1.db.update(schema_1.trips).set({ status: 'completed', completedAt: new Date() }).where((0, drizzle_orm_1.eq)(schema_1.trips.id, sorted[i].id));
+            }
+        }
+        const activeTrip = allActive.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
         if (!activeTrip)
             return null;
         const [route] = await index_1.db.select().from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.id, activeTrip.routeId)).limit(1);
@@ -2070,6 +2374,15 @@ exports.academicYearsRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasClasses] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.classes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classes.academicYearId, input.id), (0, drizzle_orm_1.eq)(schema_1.classes.isActive, true)));
+        const [hasEnrollments] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.enrollments).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.academicYearId, input.id), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
+        const deps = [];
+        if (Number(hasClasses.c) > 0)
+            deps.push(`${hasClasses.c} turma(s)`);
+        if (Number(hasEnrollments.c) > 0)
+            deps.push(`${hasEnrollments.c} matrícula(s)`);
+        if (deps.length > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Ano letivo possui: ${deps.join(', ')}` });
         await index_1.db.update(schema_1.academicYears).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.academicYears.id, input.id));
         return { success: true };
     }),
@@ -2117,6 +2430,9 @@ exports.classGradesRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasClasses] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.classes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classes.classGradeId, input.id), (0, drizzle_orm_1.eq)(schema_1.classes.isActive, true)));
+        if (Number(hasClasses.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Série vinculada a ${hasClasses.c} turma(s)` });
         await index_1.db.update(schema_1.classGrades).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.classGrades.id, input.id));
         return { success: true };
     }),
@@ -2162,6 +2478,9 @@ exports.subjectsRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasAssigned] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.classSubjects).where((0, drizzle_orm_1.eq)(schema_1.classSubjects.subjectId, input.id));
+        if (Number(hasAssigned.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Disciplina vinculada a ${hasAssigned.c} turma(s)` });
         await index_1.db.update(schema_1.subjects).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.subjects.id, input.id));
         return { success: true };
     }),
@@ -2250,6 +2569,9 @@ exports.classesRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        const [hasEnrollments] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.enrollments).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.classId, input.id), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
+        if (Number(hasEnrollments.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Turma possui ${hasEnrollments.c} matrícula(s) ativa(s)` });
         await index_1.db.update(schema_1.classes).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.classes.id, input.id));
         return { success: true };
     }),
@@ -2279,9 +2601,16 @@ exports.enrollmentsRouter = trpc_1.t.router({
             studentName: schema_1.students.name,
             studentEnrollment: schema_1.students.enrollment,
             studentGrade: schema_1.students.grade,
+            birthDate: schema_1.students.birthDate,
+            // Dados da turma
+            className: schema_1.classes.name,
+            classFullName: schema_1.classes.fullName,
+            classShift: schema_1.classes.shift,
+            schoolId: schema_1.classes.schoolId,
         })
             .from(schema_1.enrollments)
             .leftJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, schema_1.students.id))
+            .leftJoin(schema_1.classes, (0, drizzle_orm_1.eq)(schema_1.enrollments.classId, schema_1.classes.id))
             .where((0, drizzle_orm_1.and)(...conditions))
             .orderBy(schema_1.students.name);
     }),
@@ -2335,7 +2664,84 @@ exports.enrollmentsRouter = trpc_1.t.router({
             });
             created++;
         }
+        // Sincronizar: atualizar grade, classRoom e shift nos alunos matriculados
+        if (created > 0) {
+            try {
+                const [cls] = await index_1.db.select({
+                    name: schema_1.classes.name, fullName: schema_1.classes.fullName, shift: schema_1.classes.shift, schoolId: schema_1.classes.schoolId, gradeId: schema_1.classes.classGradeId,
+                }).from(schema_1.classes).where((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId)).limit(1);
+                if (cls) {
+                    let gradeName = '';
+                    if (cls.gradeId) {
+                        const [cg] = await index_1.db.select({ name: schema_1.classGrades.name }).from(schema_1.classGrades).where((0, drizzle_orm_1.eq)(schema_1.classGrades.id, cls.gradeId)).limit(1);
+                        if (cg)
+                            gradeName = cg.name;
+                    }
+                    const su = {};
+                    if (cls.name)
+                        su.classRoom = cls.name;
+                    if (gradeName)
+                        su.grade = gradeName;
+                    if (cls.shift)
+                        su.shift = cls.shift;
+                    if (Object.keys(su).length > 0) {
+                        for (const sid of input.studentIds) {
+                            try {
+                                await index_1.db.update(schema_1.students).set(su).where((0, drizzle_orm_1.eq)(schema_1.students.id, sid));
+                            }
+                            catch { /* skip */ }
+                        }
+                    }
+                }
+            }
+            catch { /* sync best effort */ }
+        }
         return { success: true, created, skipped };
+    }),
+    // Alterar turma da matrícula + sincronizar com aluno
+    updateClass: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(),
+        classId: zod_1.z.number(),
+    }))
+        .mutation(async ({ input }) => {
+        // Buscar enrollment atual
+        const [enr] = await index_1.db.select().from(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, input.id)).limit(1);
+        if (!enr)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Matrícula não encontrada' });
+        // Atualizar enrollment
+        await index_1.db.update(schema_1.enrollments).set({ classId: input.classId }).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, input.id));
+        // Buscar dados da nova turma para sincronizar com aluno
+        const [cls] = await index_1.db.select({
+            name: schema_1.classes.name,
+            fullName: schema_1.classes.fullName,
+            shift: schema_1.classes.shift,
+            schoolId: schema_1.classes.schoolId,
+            gradeId: schema_1.classes.classGradeId,
+        }).from(schema_1.classes).where((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId)).limit(1);
+        if (cls) {
+            // Buscar nome da série
+            let gradeName = '';
+            if (cls.gradeId) {
+                const [cg] = await index_1.db.select({ name: schema_1.classGrades.name }).from(schema_1.classGrades).where((0, drizzle_orm_1.eq)(schema_1.classGrades.id, cls.gradeId)).limit(1);
+                if (cg)
+                    gradeName = cg.name;
+            }
+            // Sincronizar: atualizar grade, classRoom, shift e schoolId no aluno
+            const studentUpdate = {};
+            if (cls.name)
+                studentUpdate.classRoom = cls.name;
+            if (gradeName)
+                studentUpdate.grade = gradeName;
+            if (cls.shift)
+                studentUpdate.shift = cls.shift;
+            if (cls.schoolId)
+                studentUpdate.schoolId = cls.schoolId;
+            if (Object.keys(studentUpdate).length > 0) {
+                await index_1.db.update(schema_1.students).set(studentUpdate).where((0, drizzle_orm_1.eq)(schema_1.students.id, enr.studentId));
+            }
+        }
+        return { success: true };
     }),
     updateStatus: trpc_1.adminProcedure
         .input(zod_1.z.object({
@@ -2346,10 +2752,26 @@ exports.enrollmentsRouter = trpc_1.t.router({
     }))
         .mutation(async ({ input }) => {
         const { id, ...data } = input;
+        // Buscar a matrícula para saber o studentId
+        const [enr] = await index_1.db.select({ studentId: schema_1.enrollments.studentId }).from(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, id)).limit(1);
+        // Atualizar status da matrícula
         await index_1.db.update(schema_1.enrollments).set({
             ...data,
             statusChangedAt: new Date(),
         }).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, id));
+        // Sincronizar: atualizar studentStatus no cadastro do aluno
+        if (enr) {
+            const statusMap = {
+                active: 'ativo', transferred: 'transferido', cancelled: 'cancelado',
+                graduated: 'aprovado', retained: 'retido', evaded: 'evadido',
+            };
+            const studentStatus = statusMap[input.status] || input.status;
+            await index_1.db.update(schema_1.students).set({ studentStatus }).where((0, drizzle_orm_1.eq)(schema_1.students.id, enr.studentId));
+            // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas
+            if (['transferred', 'cancelled', 'evaded'].includes(input.status)) {
+                await index_1.db.delete(schema_1.stopStudents).where((0, drizzle_orm_1.eq)(schema_1.stopStudents.studentId, enr.studentId));
+            }
+        }
         return { success: true };
     }),
     delete: trpc_1.adminProcedure
@@ -2832,7 +3254,13 @@ exports.positionsRouter = trpc_1.t.router({
     }),
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
-        .mutation(async ({ input }) => { await index_1.db.update(schema_1.positions).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.positions.id, input.id)); return { success: true }; }),
+        .mutation(async ({ input }) => {
+        const [hasStaff] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.staffAllocations).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.staffAllocations.positionId, input.id), (0, drizzle_orm_1.eq)(schema_1.staffAllocations.isActive, true)));
+        if (Number(hasStaff.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Cargo vinculado a ${hasStaff.c} servidor(es)` });
+        await index_1.db.update(schema_1.positions).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.positions.id, input.id));
+        return { success: true };
+    }),
 });
 exports.departmentsRouter = trpc_1.t.router({
     list: trpc_1.adminProcedure
@@ -2854,7 +3282,13 @@ exports.departmentsRouter = trpc_1.t.router({
         await index_1.db.update(schema_1.departments).set(ud).where((0, drizzle_orm_1.eq)(schema_1.departments.id, id)); return { success: true }; }),
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
-        .mutation(async ({ input }) => { await index_1.db.update(schema_1.departments).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.departments.id, input.id)); return { success: true }; }),
+        .mutation(async ({ input }) => {
+        const [hasStaff] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.staffAllocations).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.staffAllocations.departmentId, input.id), (0, drizzle_orm_1.eq)(schema_1.staffAllocations.isActive, true)));
+        if (Number(hasStaff.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Departamento vinculado a ${hasStaff.c} servidor(es)` });
+        await index_1.db.update(schema_1.departments).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.departments.id, input.id));
+        return { success: true };
+    }),
 });
 exports.staffAllocationsRouter = trpc_1.t.router({
     list: trpc_1.adminProcedure
@@ -2944,7 +3378,13 @@ exports.financialAccountsRouter = trpc_1.t.router({
         .mutation(async ({ input }) => { const { id, balance, ...data } = input; const ud = { ...data }; if (balance !== undefined)
         ud.balance = balance.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0)
         await index_1.db.update(schema_1.financialAccounts).set(ud).where((0, drizzle_orm_1.eq)(schema_1.financialAccounts.id, id)); return { success: true }; }),
-    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.financialAccounts).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.financialAccounts.id, input.id)); return { success: true }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => {
+        const [hasTx] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.financialTransactions).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.financialTransactions.accountId, input.id), (0, drizzle_orm_1.eq)(schema_1.financialTransactions.isActive, true)));
+        if (Number(hasTx.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Conta possui ${hasTx.c} transação(ões)` });
+        await index_1.db.update(schema_1.financialAccounts).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.financialAccounts.id, input.id));
+        return { success: true };
+    }),
 });
 exports.financialTransactionsRouter = trpc_1.t.router({
     list: trpc_1.adminProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), accountId: zod_1.z.number().optional(), type: zod_1.z.string().optional(), startDate: zod_1.z.string().optional(), endDate: zod_1.z.string().optional() }))
@@ -3004,7 +3444,13 @@ exports.libraryBooksRouter = trpc_1.t.router({
         .mutation(async ({ input }) => { const { id, ...data } = input; const ud = {}; Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
         ud[k] = v; }); if (Object.keys(ud).length > 0)
         await index_1.db.update(schema_1.libraryBooks).set(ud).where((0, drizzle_orm_1.eq)(schema_1.libraryBooks.id, id)); return { success: true }; }),
-    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.libraryBooks).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.libraryBooks.id, input.id)); return { success: true }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => {
+        const [hasLoans] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.libraryLoans).where((0, drizzle_orm_1.eq)(schema_1.libraryLoans.bookId, input.id));
+        if (Number(hasLoans.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Livro possui ${hasLoans.c} empréstimo(s)` });
+        await index_1.db.update(schema_1.libraryBooks).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.libraryBooks.id, input.id));
+        return { success: true };
+    }),
 });
 exports.libraryLoansRouter = trpc_1.t.router({
     list: trpc_1.protectedProcedure.input(zod_1.z.object({ bookId: zod_1.z.number().optional(), status: zod_1.z.string().optional() }))
@@ -3067,7 +3513,13 @@ exports.inventoryRouter = trpc_1.t.router({
             await index_1.db.update(schema_1.inventoryItems).set({ currentStock: (0, drizzle_orm_1.sql) `currentStock + ${delta}` }).where((0, drizzle_orm_1.eq)(schema_1.inventoryItems.id, input.itemId));
         return { success: true };
     }),
-    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.inventoryItems).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.inventoryItems.id, input.id)); return { success: true }; }),
+    delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => {
+        const [hasMov] = await index_1.db.select({ c: (0, drizzle_orm_1.sql) `count(*)`.as('c') }).from(schema_1.inventoryMovements).where((0, drizzle_orm_1.eq)(schema_1.inventoryMovements.itemId, input.id));
+        if (Number(hasMov.c) > 0)
+            throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Item possui ${hasMov.c} movimentação(ões)` });
+        await index_1.db.update(schema_1.inventoryItems).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.inventoryItems.id, input.id));
+        return { success: true };
+    }),
 });
 // ============================================
 // EDUCACENSO ROUTER (EXPORTAÇÃO DE DADOS)
@@ -3385,6 +3837,76 @@ exports.studentDocumentsRouter = trpc_1.t.router({
         .mutation(async ({ input }) => { await index_1.db.delete(schema_1.studentDocuments).where((0, drizzle_orm_1.eq)(schema_1.studentDocuments.id, input.id)); return { success: true }; }),
 });
 // ============================================
+// FORM FIELD CONFIG ROUTER
+// ============================================
+exports.formConfigRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), formType: zod_1.z.string().optional() }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.formFieldConfigs.municipalityId, input.municipalityId)];
+        if (input.formType)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.formFieldConfigs.formType, input.formType));
+        return index_1.db.select().from(schema_1.formFieldConfigs).where((0, drizzle_orm_1.and)(...conditions));
+    }),
+    save: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        formType: zod_1.z.string(),
+        fields: zod_1.z.array(zod_1.z.object({ fieldName: zod_1.z.string(), isRequired: zod_1.z.boolean() })),
+    }))
+        .mutation(async ({ input }) => {
+        // Delete existing configs for this form type
+        await index_1.db.delete(schema_1.formFieldConfigs).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.formFieldConfigs.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.formFieldConfigs.formType, input.formType)));
+        // Insert new configs (only required ones)
+        const required = input.fields.filter(f => f.isRequired);
+        if (required.length > 0) {
+            await index_1.db.insert(schema_1.formFieldConfigs).values(required.map(f => ({ municipalityId: input.municipalityId, formType: input.formType, fieldName: f.fieldName, isRequired: true })));
+        }
+        return { success: true };
+    }),
+});
+// ============================================
+// FUEL RECORDS ROUTER
+// ============================================
+exports.fuelRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), vehicleId: zod_1.z.number().optional() }))
+        .query(async ({ input }) => {
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.fuelRecords.municipalityId, input.municipalityId)];
+        if (input.vehicleId)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.fuelRecords.vehicleId, input.vehicleId));
+        return index_1.db.select({
+            fuel: schema_1.fuelRecords,
+            vehicle: { id: schema_1.vehicles.id, plate: schema_1.vehicles.plate, nickname: schema_1.vehicles.nickname },
+        }).from(schema_1.fuelRecords)
+            .innerJoin(schema_1.vehicles, (0, drizzle_orm_1.eq)(schema_1.fuelRecords.vehicleId, schema_1.vehicles.id))
+            .where((0, drizzle_orm_1.and)(...conditions))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.fuelRecords.fuelDate));
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), vehicleId: zod_1.z.number(), driverId: zod_1.z.number().optional(),
+        fuelDate: zod_1.z.string(), fuelType: zod_1.z.string().optional(),
+        liters: zod_1.z.number(), pricePerLiter: zod_1.z.number().optional(), totalCost: zod_1.z.number(),
+        kmAtFueling: zod_1.z.number().optional(), gasStation: zod_1.z.string().optional(),
+        invoiceNumber: zod_1.z.string().optional(), notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [result] = await index_1.db.insert(schema_1.fuelRecords).values({
+            ...input, fuelDate: new Date(input.fuelDate),
+            liters: String(input.liters), totalCost: String(input.totalCost),
+            pricePerLiter: input.pricePerLiter ? String(input.pricePerLiter) : undefined,
+        });
+        return { id: result.insertId };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.fuelRecords).where((0, drizzle_orm_1.eq)(schema_1.fuelRecords.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
 // MAIN ROUTER
 // ============================================
 exports.appRouter = trpc_1.t.router({
@@ -3404,6 +3926,7 @@ exports.appRouter = trpc_1.t.router({
     monitorStaff: exports.monitorStaffRouter,
     contracts: exports.contractsRouter,
     maintenance: exports.maintenanceRouter,
+    fuel: exports.fuelRouter,
     location: locationRouter,
     // Módulo Acadêmico
     academicYears: exports.academicYearsRouter,
@@ -3441,4 +3964,6 @@ exports.appRouter = trpc_1.t.router({
     messages: exports.messagesRouter,
     waitingList: exports.waitingListRouter,
     studentDocuments: exports.studentDocumentsRouter,
+    // Configuração de Formulários
+    formConfig: exports.formConfigRouter,
 });

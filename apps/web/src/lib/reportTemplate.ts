@@ -231,6 +231,7 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
 
   /* FOOTER */
   .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:8px 0 0;margin-top:40px}
+  @media print{.report-footer-bar{position:fixed;bottom:0;left:0;right:0;margin:0;padding:8px 20mm 10mm 20mm;border-top:1px solid #ccc}}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 

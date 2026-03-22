@@ -77,7 +77,7 @@ export default function StudentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number|null>(null);
   const [form, setForm] = useState<any>(emptyForm);
-  const [tab, setTab] = useState<'dados'|'documentos'|'endereco'|'filiacao'|'saude'|'social'|'procedencia'>('dados');
+  const [tab, setTab] = useState<'dados'|'documentos'|'endereco'|'filiacao'|'saude'|'social'|'procedencia'|'historico'>('dados');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
@@ -89,6 +89,11 @@ export default function StudentsPage() {
   const [importResult, setImportResult] = useState('');
   const [page, setPage] = useState(1);
   const PER_PAGE = 25;
+  // Histórico escolar anterior
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyForm, setHistoryForm] = useState<any>(null);
+  const [historySaving, setHistorySaving] = useState(false);
   const { municipios: stdMunicipios, loading: stdMunLoading } = useMunicipios(form.state);
   const { municipios: natMunicipios, loading: natMunLoading } = useMunicipios(form.naturalnessUf);
   const { municipios: fatherMunicipios, loading: fatherMunLoading } = useMunicipios(form.fatherNaturalnessUf);
@@ -197,7 +202,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       guardian2Relation: s.emergencyContact2Relation || s.guardian2Relation || '',
       birthDate: s.birthDate ? (typeof s.birthDate === 'string' ? s.birthDate.split('T')[0] : new Date(s.birthDate).toISOString().split('T')[0]) : '',
     });
-    setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true);
+    setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true); setHistoryEntries([]); setHistoryForm(null); loadHistory(s.id);
   };
 
   const [viewStudent, setViewStudent] = useState<any>(null);
@@ -330,6 +335,38 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     } else {
       create(payload,{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     }
+  };
+
+  // Histórico escolar - CRUD
+  const loadHistory = async function(studentId: number) {
+    setHistoryLoading(true);
+    try {
+      const data = await api.studentHistory.list({ studentId });
+      setHistoryEntries((data as any) || []);
+    } catch { setHistoryEntries([]); }
+    setHistoryLoading(false);
+  };
+  const emptyHistoryForm = { year: new Date().getFullYear() - 1, grade: '', schoolName: '', schoolCity: '', schoolState: '', schoolType: 'municipal', result: 'aprovado', observations: '' };
+  const saveHistory = async function() {
+    if (!editId || !historyForm) return;
+    setHistorySaving(true);
+    try {
+      if (historyForm.id) {
+        await api.studentHistory.update({ id: historyForm.id, year: historyForm.year, grade: historyForm.grade, schoolName: historyForm.schoolName, schoolCity: historyForm.schoolCity, schoolState: historyForm.schoolState, schoolType: historyForm.schoolType, result: historyForm.result, observations: historyForm.observations });
+      } else {
+        await api.studentHistory.create({ studentId: editId, year: historyForm.year, grade: historyForm.grade, schoolName: historyForm.schoolName, schoolCity: historyForm.schoolCity || undefined, schoolState: historyForm.schoolState || undefined, schoolType: historyForm.schoolType || undefined, result: historyForm.result || undefined, observations: historyForm.observations || undefined });
+      }
+      setHistoryForm(null);
+      loadHistory(editId);
+    } catch (e: any) { setFormErr(e?.message || 'Erro ao salvar histórico'); }
+    setHistorySaving(false);
+  };
+  const deleteHistory = async function(id: number) {
+    if (!editId) return;
+    try {
+      await api.studentHistory.delete({ id });
+      loadHistory(editId);
+    } catch (e: any) { setFormErr(e?.message || 'Erro ao excluir'); }
   };
 
   return (
@@ -567,7 +604,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       {showModal&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 pb-2 border-b border-gray-100 flex-shrink-0"><h3 className="text-lg font-semibold">{editId?'Editar Aluno':'Novo Aluno'}</h3><button onClick={function(){setShowModal(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="flex gap-1 px-4 py-2 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 flex-shrink-0 overflow-x-auto">
-          {([['dados','Dados'],['documentos','Docs'],['endereco','Endereço'],['filiacao','Filiação'],['saude','Saúde'],['social','Social'],['procedencia','Procedência']] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-500 text-white shadow-sm':'text-gray-500 hover:text-gray-700 hover:bg-gray-100')}>{t[1]}</button>);})}
+          {([['dados','Dados'],['documentos','Docs'],['endereco','Endereço'],['filiacao','Filiação'],['saude','Saúde'],['social','Social'],['procedencia','Procedência'],...(editId?[['historico','Histórico']]:[])] as any[]).map(function(t: any){return(<button key={t[0]} onClick={function(){setTab(t[0]);}} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap '+(tab===t[0]?'bg-primary-500 text-white shadow-sm':'text-gray-500 hover:text-gray-700 hover:bg-gray-100')}>{t[1]}</button>);})}
         </div>
         <div className="overflow-y-auto flex-1 p-5 space-y-3">
           {formErr&&<div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
@@ -760,6 +797,66 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"><p className="text-xs font-semibold text-blue-700 mb-3 uppercase">Situação do Aluno</p><div className="grid grid-cols-2 gap-3">
               <div><label className="label">Situação</label><select className="input" value={form.studentStatus} onChange={setField('studentStatus')}><option value="">Selecione</option><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="remanejado">Remanejado</option><option value="transferido">Transferido</option><option value="abandono">Abandono</option></select></div>
             </div></div>
+          </div>)}
+
+          {/* ABA HISTÓRICO ESCOLAR */}
+          {tab==='historico'&&editId&&(<div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700 flex items-center gap-2"><History size={16} className="text-primary-500"/> Histórico Escolar Anterior</p>
+              <button type="button" onClick={function(){setHistoryForm({...emptyHistoryForm});}} className="btn-primary text-xs flex items-center gap-1 px-3 py-1.5"><Plus size={14}/> Adicionar Ano</button>
+            </div>
+            <p className="text-xs text-gray-500">Registre aqui os anos letivos cursados em escolas anteriores. Esses dados compõem o Histórico Escolar do aluno.</p>
+
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-8"><Loader2 size={20} className="animate-spin text-primary-500"/><span className="ml-2 text-sm text-gray-500">Carregando...</span></div>
+            ) : historyEntries.length === 0 && !historyForm ? (
+              <div className="text-center py-8 text-gray-400"><History size={32} className="mx-auto mb-2 opacity-50"/><p className="text-sm">Nenhum histórico anterior registrado</p><p className="text-xs mt-1">Clique em "Adicionar Ano" para registrar</p></div>
+            ) : (
+              <div className="space-y-2">
+                {historyEntries.map(function(h: any) {
+                  return (
+                    <div key={h.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-100 dark:border-gray-600">
+                      <div className="w-14 h-14 bg-primary-100 dark:bg-primary-900 rounded-lg flex flex-col items-center justify-center flex-shrink-0">
+                        <span className="text-xs text-primary-500 font-bold">{h.year}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{h.grade || '—'}</p>
+                        <p className="text-xs text-gray-500 truncate">{h.schoolName || '—'}{h.schoolCity ? ' - ' + h.schoolCity : ''}{h.schoolState ? '/' + h.schoolState : ''}</p>
+                        <div className="flex gap-2 mt-1">
+                          <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (h.result === 'aprovado' ? 'bg-green-100 text-green-700' : h.result === 'reprovado' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600')}>{h.result === 'aprovado' ? 'Aprovado' : h.result === 'reprovado' ? 'Reprovado' : h.result === 'transferido' ? 'Transferido' : h.result || '—'}</span>
+                          {h.schoolType && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{h.schoolType === 'municipal' ? 'Municipal' : h.schoolType === 'estadual' ? 'Estadual' : h.schoolType === 'federal' ? 'Federal' : h.schoolType === 'particular' ? 'Particular' : h.schoolType}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button type="button" onClick={function(){setHistoryForm({...h});}} className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-primary-500" title="Editar"><Pencil size={14}/></button>
+                        <button type="button" onClick={function(){if(confirm('Excluir registro de '+h.year+'?')) deleteHistory(h.id);}} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500" title="Excluir"><Trash2 size={14}/></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Formulário inline de histórico */}
+            {historyForm && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700">
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-3 uppercase">{historyForm.id ? 'Editar Registro' : 'Novo Registro'}</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className="label">Ano *</label><input className="input" type="number" min="1990" max={new Date().getFullYear()} value={historyForm.year} onChange={function(e){setHistoryForm(function(f:any){return{...f,year:parseInt(e.target.value)||0};});}}/></div>
+                  <div><label className="label">Série/Ano *</label><input className="input" value={historyForm.grade} onChange={function(e){setHistoryForm(function(f:any){return{...f,grade:e.target.value};});}} placeholder="Ex: 3º ANO"/></div>
+                  <div><label className="label">Resultado</label><select className="input" value={historyForm.result} onChange={function(e){setHistoryForm(function(f:any){return{...f,result:e.target.value};});}}><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option><option value="transferido">Transferido</option><option value="cursando">Cursando</option></select></div>
+                  <div className="col-span-3"><label className="label">Nome da Escola</label><input className="input" value={historyForm.schoolName} onChange={function(e){setHistoryForm(function(f:any){return{...f,schoolName:e.target.value};});}} placeholder="Nome da escola"/></div>
+                  <div><label className="label">Cidade</label><input className="input" value={historyForm.schoolCity||''} onChange={function(e){setHistoryForm(function(f:any){return{...f,schoolCity:e.target.value};});}}/></div>
+                  <div><label className="label">UF</label><select className="input" value={historyForm.schoolState||''} onChange={function(e){setHistoryForm(function(f:any){return{...f,schoolState:e.target.value};});}}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
+                  <div><label className="label">Rede</label><select className="input" value={historyForm.schoolType||''} onChange={function(e){setHistoryForm(function(f:any){return{...f,schoolType:e.target.value};});}}><option value="">Selecione</option><option value="municipal">Municipal</option><option value="estadual">Estadual</option><option value="federal">Federal</option><option value="particular">Particular</option></select></div>
+                  <div className="col-span-3"><label className="label">Observações</label><input className="input" value={historyForm.observations||''} onChange={function(e){setHistoryForm(function(f:any){return{...f,observations:e.target.value};});}}/></div>
+                </div>
+                <div className="flex gap-2 mt-3 justify-end">
+                  <button type="button" onClick={function(){setHistoryForm(null);}} className="btn-secondary text-xs px-4 py-1.5">Cancelar</button>
+                  <button type="button" onClick={saveHistory} disabled={historySaving || !historyForm.year || !historyForm.grade} className="btn-primary text-xs px-4 py-1.5">{historySaving ? 'Salvando...' : historyForm.id ? 'Salvar' : 'Adicionar'}</button>
+                </div>
+              </div>
+            )}
           </div>)}
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Aluno'}</button></div>

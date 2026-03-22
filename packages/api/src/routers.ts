@@ -2171,7 +2171,319 @@ export const guardiansRouter = t.router({
 
       return tripHistory;
     }),
+
+  // ============================================
+  // PORTAL DO RESPONSÁVEL - ENDPOINTS ACADÊMICOS
+  // ============================================
+
+  // 1. Boletim do aluno
+  studentReportCard: protectedProcedure
+    .input(z.object({ studentId: z.number(), classId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      // Buscar avaliações da turma
+      const classAssessments = await db.select().from(assessments)
+        .where(and(eq(assessments.classId, input.classId), eq(assessments.isActive, true)));
+
+      if (classAssessments.length === 0) return { subjects: [], summary: { average: 0, totalAssessments: 0 } };
+
+      const assessmentIds = classAssessments.map(a => a.id);
+
+      // Buscar notas do aluno
+      const grades = await db.select().from(studentGrades)
+        .where(and(eq(studentGrades.studentId, input.studentId), inArray(studentGrades.assessmentId, assessmentIds)));
+
+      // Buscar nomes das disciplinas
+      const subjectIds = [...new Set(classAssessments.map(a => a.subjectId))];
+      const subjectList = subjectIds.length > 0
+        ? await db.select({ id: subjects.id, name: subjects.name }).from(subjects).where(inArray(subjects.id, subjectIds))
+        : [];
+
+      // Agrupar por disciplina e bimestre
+      const subjectMap: Record<number, { subjectName: string; bimesters: Record<string, { assessments: any[]; average: number }> }> = {};
+
+      for (const assessment of classAssessments) {
+        if (!subjectMap[assessment.subjectId]) {
+          const subj = subjectList.find(s => s.id === assessment.subjectId);
+          subjectMap[assessment.subjectId] = { subjectName: subj?.name || 'Disciplina', bimesters: {} };
+        }
+        if (!subjectMap[assessment.subjectId].bimesters[assessment.bimester]) {
+          subjectMap[assessment.subjectId].bimesters[assessment.bimester] = { assessments: [], average: 0 };
+        }
+
+        const grade = grades.find(g => g.assessmentId === assessment.id);
+        subjectMap[assessment.subjectId].bimesters[assessment.bimester].assessments.push({
+          assessmentName: assessment.name,
+          type: assessment.type,
+          maxScore: assessment.maxScore,
+          weight: assessment.weight,
+          score: grade?.score || null,
+          date: assessment.date,
+        });
+      }
+
+      // Calcular médias por bimestre
+      for (const subjectId of Object.keys(subjectMap)) {
+        for (const bim of Object.keys(subjectMap[Number(subjectId)].bimesters)) {
+          const bimData = subjectMap[Number(subjectId)].bimesters[bim];
+          const scored = bimData.assessments.filter(a => a.score !== null);
+          if (scored.length > 0) {
+            const totalWeight = scored.reduce((s, a) => s + parseFloat(a.weight || '1'), 0);
+            const weightedSum = scored.reduce((s, a) => s + (parseFloat(a.score) / parseFloat(a.maxScore)) * 10 * parseFloat(a.weight || '1'), 0);
+            bimData.average = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : 0;
+          }
+        }
+      }
+
+      const subjectsResult = Object.entries(subjectMap).map(([id, data]) => ({
+        subjectId: Number(id),
+        subjectName: data.subjectName,
+        bimesters: data.bimesters,
+      }));
+
+      // Média geral
+      const allAverages = subjectsResult.flatMap(s => Object.values(s.bimesters).map(b => b.average)).filter(a => a > 0);
+      const generalAverage = allAverages.length > 0 ? Math.round((allAverages.reduce((s, a) => s + a, 0) / allAverages.length) * 100) / 100 : 0;
+
+      return { subjects: subjectsResult, summary: { average: generalAverage, totalAssessments: classAssessments.length } };
+    }),
+
+  // 2. Frequência do aluno
+  studentAttendance: protectedProcedure
+    .input(z.object({ studentId: z.number(), classId: z.number().optional() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      const conditions: any[] = [eq(dailyAttendance.studentId, input.studentId)];
+      if (input.classId) conditions.push(eq(dailyAttendance.classId, input.classId));
+
+      const records = await db.select().from(dailyAttendance).where(and(...conditions));
+
+      const totalDays = records.length;
+      const present = records.filter(r => r.status === 'present').length;
+      const absent = records.filter(r => r.status === 'absent').length;
+      const justified = records.filter(r => r.status === 'justified').length;
+      const late = records.filter(r => r.status === 'late').length;
+      const percentPresent = totalDays > 0 ? Math.round(((present + late + justified) / totalDays) * 10000) / 100 : 0;
+
+      // Breakdown mensal
+      const monthlyMap: Record<string, { present: number; absent: number; justified: number; late: number; total: number }> = {};
+      for (const r of records) {
+        const month = r.date ? `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+        if (!monthlyMap[month]) monthlyMap[month] = { present: 0, absent: 0, justified: 0, late: 0, total: 0 };
+        monthlyMap[month].total++;
+        if (r.status === 'present') monthlyMap[month].present++;
+        else if (r.status === 'absent') monthlyMap[month].absent++;
+        else if (r.status === 'justified') monthlyMap[month].justified++;
+        else if (r.status === 'late') monthlyMap[month].late++;
+      }
+
+      const monthly = Object.entries(monthlyMap).map(([month, data]) => ({ month, ...data })).sort((a, b) => a.month.localeCompare(b.month));
+
+      return { totalDays, present, absent, justified, late, percentPresent, monthly };
+    }),
+
+  // 3. Parecer descritivo
+  studentParecer: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      const reports = await db.select({
+        id: descriptiveReports.id,
+        bimester: descriptiveReports.bimester,
+        content: descriptiveReports.content,
+        classId: descriptiveReports.classId,
+        createdAt: descriptiveReports.createdAt,
+      }).from(descriptiveReports)
+        .where(and(
+          eq(descriptiveReports.studentId, input.studentId),
+          eq(descriptiveReports.status, 'published'),
+          eq(descriptiveReports.isActive, true),
+        ))
+        .orderBy(descriptiveReports.bimester);
+
+      // Enriquecer com nome da turma
+      const result = await Promise.all(reports.map(async (r) => {
+        const [cls] = await db.select({ name: classes.name }).from(classes).where(eq(classes.id, r.classId)).limit(1);
+        return { ...r, className: cls?.name || '' };
+      }));
+
+      return result;
+    }),
+
+  // 4. Ocorrências do aluno
+  studentOccurrences: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      const occurrences = await db.select().from(studentOccurrences)
+        .where(eq(studentOccurrences.studentId, input.studentId))
+        .orderBy(desc(studentOccurrences.date));
+
+      return occurrences;
+    }),
+
+  // 5. Calendário escolar
+  schoolCalendar: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      // Buscar escola e município do aluno
+      const [student] = await db.select({ schoolId: students.schoolId, municipalityId: students.municipalityId })
+        .from(students).where(eq(students.id, input.studentId)).limit(1);
+      if (!student) throw new TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
+
+      const events = await db.select().from(schoolCalendar)
+        .where(and(
+          eq(schoolCalendar.municipalityId, student.municipalityId),
+          eq(schoolCalendar.isActive, true),
+          or(
+            eq(schoolCalendar.schoolId, student.schoolId),
+            sql`${schoolCalendar.schoolId} IS NULL`
+          )
+        ))
+        .orderBy(schoolCalendar.startDate);
+
+      return events;
+    }),
+
+  // 6. Cardápio da merenda
+  schoolMenu: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      const [student] = await db.select({ municipalityId: students.municipalityId, schoolId: students.schoolId })
+        .from(students).where(eq(students.id, input.studentId)).limit(1);
+      if (!student) throw new TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
+
+      const menus = await db.select().from(mealMenus)
+        .where(and(
+          eq(mealMenus.municipalityId, student.municipalityId),
+          eq(mealMenus.isActive, true),
+          or(
+            eq(mealMenus.schoolId, student.schoolId),
+            sql`${mealMenus.schoolId} IS NULL`
+          )
+        ))
+        .orderBy(desc(mealMenus.date))
+        .limit(30);
+
+      return menus;
+    }),
+
+  // 7. Mensagens para o responsável
+  myMessages: protectedProcedure
+    .query(async ({ ctx }) => {
+      // Buscar todos os alunos vinculados a este responsável
+      const guardianLinks = await db.select({
+        studentId: guardians.studentId,
+      }).from(guardians).where(eq(guardians.userId, ctx.userId!));
+
+      if (guardianLinks.length === 0) return [];
+
+      const studentIds = guardianLinks.map(g => g.studentId);
+
+      // Buscar dados dos alunos (escola, município)
+      const studentList = await db.select({
+        id: students.id, schoolId: students.schoolId, municipalityId: students.municipalityId,
+      }).from(students).where(inArray(students.id, studentIds));
+
+      if (studentList.length === 0) return [];
+
+      const municipalityIds = [...new Set(studentList.map(s => s.municipalityId))];
+      const schoolIds = [...new Set(studentList.map(s => s.schoolId))];
+
+      // Buscar matrículas ativas para saber as turmas
+      const activeEnrollments = await db.select({
+        studentId: enrollments.studentId, classId: enrollments.classId,
+      }).from(enrollments)
+        .where(and(inArray(enrollments.studentId, studentIds), eq(enrollments.status, 'active')));
+
+      const classIds = [...new Set(activeEnrollments.map(e => e.classId))];
+
+      // Buscar mensagens que se aplicam
+      const allMessages = await db.select().from(messages)
+        .where(and(
+          inArray(messages.municipalityId, municipalityIds),
+          eq(messages.isActive, true),
+          or(
+            eq(messages.targetType, 'all'),
+            and(eq(messages.targetType, 'student'), inArray(messages.targetStudentId, studentIds)),
+            ...(schoolIds.length > 0 ? [and(eq(messages.targetType, 'school'), inArray(messages.schoolId, schoolIds))] : []),
+            ...(classIds.length > 0 ? [and(eq(messages.targetType, 'class'), inArray(messages.targetClassId, classIds))] : []),
+          )
+        ))
+        .orderBy(desc(messages.createdAt))
+        .limit(50);
+
+      // Enriquecer com nome do remetente
+      const result = await Promise.all(allMessages.map(async (msg) => {
+        const [sender] = await db.select({ name: users.name }).from(users).where(eq(users.id, msg.senderUserId)).limit(1);
+        return { ...msg, senderName: sender?.name || 'Sistema' };
+      }));
+
+      return result;
+    }),
+
+  // 8. Informações de matrícula do aluno
+  studentEnrollmentInfo: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+
+      // Buscar matrícula ativa mais recente
+      const enrollmentList = await db.select({
+        enrollmentId: enrollments.id,
+        classId: enrollments.classId,
+        academicYearId: enrollments.academicYearId,
+        enrollmentDate: enrollments.enrollmentDate,
+        status: enrollments.status,
+      }).from(enrollments)
+        .where(and(eq(enrollments.studentId, input.studentId), eq(enrollments.status, 'active')))
+        .orderBy(desc(enrollments.enrollmentDate))
+        .limit(1);
+
+      if (enrollmentList.length === 0) return null;
+
+      const enrollment = enrollmentList[0];
+
+      // Buscar nome da turma
+      const [cls] = await db.select({ name: classes.name, schoolId: classes.schoolId }).from(classes)
+        .where(eq(classes.id, enrollment.classId)).limit(1);
+
+      // Buscar nome da escola
+      const [school] = cls ? await db.select({ name: schools.name }).from(schools)
+        .where(eq(schools.id, cls.schoolId)).limit(1) : [null];
+
+      // Buscar ano letivo
+      const [year] = await db.select({ year: academicYears.year, name: academicYears.name }).from(academicYears)
+        .where(eq(academicYears.id, enrollment.academicYearId)).limit(1);
+
+      return {
+        enrollmentId: enrollment.enrollmentId,
+        classId: enrollment.classId,
+        className: cls?.name || '',
+        academicYear: year?.year || 0,
+        academicYearName: year?.name || '',
+        schoolName: school?.name || '',
+        enrollmentDate: enrollment.enrollmentDate,
+        status: enrollment.status,
+      };
+    }),
 });
+
+// Helper: verificar se responsável tem acesso ao aluno
+async function verifyGuardianAccess(userId: number, studentId: number): Promise<boolean> {
+  const [link] = await db.select().from(guardians)
+    .where(and(eq(guardians.userId, userId), eq(guardians.studentId, studentId)))
+    .limit(1);
+  return !!link;
+}
 
 // ============================================
 // MONITORS ROUTER (APP MONITORES)

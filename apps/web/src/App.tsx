@@ -24,6 +24,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ContractsPage = lazy(() => import('./pages/ContractsPage'));
 const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const GuardianPage = lazy(() => import('./pages/GuardianPage'));
+const GuardianPortalPage = lazy(() => import('./pages/GuardianPortalPage'));
 const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
 const AIRoutesPage = lazy(() => import('./pages/AIRoutesPage'));
 const PredictivePage = lazy(() => import('./pages/PredictivePage'));
@@ -233,7 +234,8 @@ export default function App() {
         <Route path="mapa-tempo-real" element={<Guard roles={ALL_USERS}><TrackMapPage /></Guard>} />
 
         {/* Portal do Responsavel */}
-        <Route path="portal-responsavel" element={<Guard roles={ALL_USERS}><GuardianPage /></Guard>} />
+        <Route path="portal-responsavel" element={<Guard roles={ALL_USERS}><GuardianPortalPage /></Guard>} />
+        <Route path="portal-responsavel-antigo" element={<Guard roles={ALL_USERS}><GuardianPage /></Guard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

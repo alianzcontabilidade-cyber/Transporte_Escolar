@@ -6,6 +6,7 @@ import { CreditCard, Printer, Search, Users , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import { getQRCodeURL } from '../lib/qrcode';
 
 export default function StudentCardPage() {
   const { user } = useAuth();
@@ -33,16 +34,18 @@ export default function StudentCardPage() {
     <style>
       body{font-family:Arial,sans-serif;padding:10px;margin:0}
       .cards{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
-      .card{width:340px;height:210px;border:2px solid #1B3A5C;border-radius:12px;padding:15px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
-      .card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #2DB5B0}
-      .card-header h3{color:#1B3A5C;font-size:14px;margin:0}
-      .card-header .school{font-size:10px;color:#666;margin:0}
-      .card-body{display:flex;gap:12px}
-      .photo{width:70px;height:85px;background:#ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#999;border:1px solid #ccc}
+      .card{width:380px;height:220px;border:2px solid #1B3A5C;border-radius:12px;padding:15px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
+      .card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #2DB5B0}
+      .card-header h3{color:#1B3A5C;font-size:13px;margin:0}
+      .card-header .school{font-size:9px;color:#666;margin:0}
+      .card-body{display:flex;gap:10px}
+      .photo{width:65px;height:80px;background:#ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#999;border:1px solid #ccc;flex-shrink:0}
       .photo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
-      .info{flex:1;font-size:11px;line-height:1.6}
+      .info{flex:1;font-size:10px;line-height:1.5}
       .info b{color:#1B3A5C}
-      .card-footer{position:absolute;bottom:8px;left:15px;right:15px;display:flex;justify-content:space-between;font-size:9px;color:#999}
+      .qr{width:75px;height:75px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+      .qr img{width:70px;height:70px}
+      .card-footer{position:absolute;bottom:6px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:center;font-size:8px;color:#999}
       .logo{font-weight:bold;color:#2DB5B0;font-size:11px}
       @media print{body{padding:0}.cards{gap:10px}}
     </style></head><body>
@@ -59,8 +62,9 @@ export default function StudentCardPage() {
             <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manh\u00e3'}</p>
             <p><b>Nascimento:</b> ${s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '\u2014'}</p>
           </div>
+          <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 70)}" alt="QR"/></div>
         </div>
-        <div class="card-footer"><span>Validade: ${new Date().getFullYear()}</span><span>ID: ${s.id}</span></div>
+        <div class="card-footer"><span>Validade: ${new Date().getFullYear()}</span><span>Mat: ${s.enrollment || s.id}</span></div>
       </div>`;
     }).join('')}</div></body></html>`;
     const w = window.open('', '_blank');

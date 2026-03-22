@@ -1,4 +1,4 @@
-// Simple QR Code generator using qrserver.com API (no library needed)
+// QR Code generator using qrserver.com API (no library needed)
 export function getQRCodeURL(data: string, size: number = 200): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&format=svg`;
 }
@@ -16,9 +16,10 @@ export function printStudentQRCodes(students: any[], appUrl: string) {
     .header h1{color:#1B3A5C;font-size:20px}
     @media print{.qr-card{border:1px solid #ccc}}
   </style></head><body>
-  <div class="header"><h1>QR Codes dos Alunos - NetEscol</h1><p>Escaneie para registro de frequencia/embarque</p></div>
+  <div class="header"><h1>QR Codes dos Alunos - NetEscol</h1><p>Escaneie para registro de embarque/desembarque</p></div>
   <div class="grid">${students.map(s => {
-    const qrData = JSON.stringify({ id: s.id, name: s.name, enrollment: s.enrollment || '' });
+    // QR contém apenas a matrícula (string simples) para compatibilidade com o scanner
+    const qrData = s.enrollment || String(s.id);
     const qrUrl = getQRCodeURL(qrData, 150);
     return `<div class="qr-card"><img src="${qrUrl}" alt="QR ${s.name}"/><h4>${s.name}</h4><p>Mat: ${s.enrollment || '\u2014'}</p><p>${s.grade || ''} ${s.classRoom || ''}</p></div>`;
   }).join('')}</div></body></html>`;

@@ -1,21 +1,64 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { QrCode, CheckCircle, XCircle, User, Bus, Search, Camera, X, Clock, Users, TrendingUp } from 'lucide-react';
+import jsQR from 'jsqr';
 
 function QRScanner({ onScan, onClose }: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scanningRef = useRef(true);
   const [hasCamera, setHasCamera] = useState(true);
   const [manual, setManual] = useState('');
+  const [scanning, setScanning] = useState(false);
+
+  const scanFrame = useCallback(() => {
+    if (!scanningRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(scanFrame);
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { requestAnimationFrame(scanFrame); return; }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      scanningRef.current = false;
+      // Vibrar para feedback
+      if (navigator.vibrate) navigator.vibrate(200);
+      onScan(code.data.trim());
+      return;
+    }
+    requestAnimationFrame(scanFrame);
+  }, [onScan]);
 
   useEffect(() => {
     let stream: MediaStream;
-    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(s => { stream = s; if (videoRef.current) videoRef.current.srcObject = s; })
+    scanningRef.current = true;
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play();
+          setScanning(true);
+          setHasCamera(true);
+          // Iniciar scanning após video carregar
+          videoRef.current.onloadeddata = () => requestAnimationFrame(scanFrame);
+        }
+      })
       .catch(() => setHasCamera(false));
-    return () => { stream?.getTracks().forEach(t => t.stop()); };
-  }, []);
+    return () => {
+      scanningRef.current = false;
+      stream?.getTracks().forEach(t => t.stop());
+    };
+  }, [scanFrame]);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -27,23 +70,29 @@ function QRScanner({ onScan, onClose }: any) {
         <div className="p-4">
           {hasCamera ? (
             <div className="relative bg-black rounded-xl overflow-hidden aspect-square mb-4">
-              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-48 h-48 border-2 border-white/60 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }}/>
+                <div className="w-48 h-48 border-2 border-white/60 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.3)' }}>
+                  {scanning && <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-400 animate-pulse"/>}
+                </div>
               </div>
-              <div className="absolute bottom-2 left-0 right-0 text-center text-xs text-white/70">Aponte para o QR Code do aluno</div>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-xs text-white/70">
+                {scanning ? 'Escaneando... aponte para o QR Code' : 'Iniciando câmera...'}
+              </div>
             </div>
           ) : (
             <div className="bg-gray-100 rounded-xl aspect-square mb-4 flex flex-col items-center justify-center gap-2">
               <Camera size={40} className="text-gray-300"/>
               <p className="text-sm text-gray-500">Câmera não disponível</p>
+              <p className="text-xs text-gray-400">Use o campo abaixo para digitar a matrícula</p>
             </div>
           )}
           <div>
             <label className="label">Ou digite a matrícula manualmente</label>
             <div className="flex gap-2">
               <input className="input flex-1" placeholder="Matrícula do aluno" value={manual} onChange={e => setManual(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && manual && onScan(manual)} />
+                onKeyDown={e => e.key === 'Enter' && manual && onScan(manual)} autoFocus={!hasCamera} />
               <button onClick={() => manual && onScan(manual)} className="btn-primary px-4">OK</button>
             </div>
           </div>
@@ -112,9 +161,16 @@ export default function AttendancePage() {
 
   const handleScan = (code: string) => {
     setShowScanner(false);
-    const student = allStudents.find((s: any) => s.enrollment === code || String(s.id) === code);
+    // Tentar parsear JSON legado (QR antigos com {id, name, enrollment})
+    let searchCode = code;
+    try {
+      const parsed = JSON.parse(code);
+      if (parsed.enrollment) searchCode = parsed.enrollment;
+      else if (parsed.id) searchCode = String(parsed.id);
+    } catch { /* não é JSON, usar como string direta */ }
+    const student = allStudents.find((s: any) => s.enrollment === searchCode || String(s.id) === searchCode);
     if (student) { registerAttendance(student.id, 'boarding'); }
-    else { setScanResult({ error: true, code }); setTimeout(() => setScanResult(null), 3000); }
+    else { setScanResult({ error: true, code: searchCode }); setTimeout(() => setScanResult(null), 3000); }
   };
 
   const todayRecords = records.filter(r => new Date(r.time).toDateString() === new Date().toDateString());
@@ -218,7 +274,7 @@ export default function AttendancePage() {
           </div>
           <div className="card"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><Bus size={16}/> Gerar QR Codes</h3>
             <p className="text-sm text-gray-500 mb-3">Gere QR Codes individuais para cada aluno para facilitar o registro de presença.</p>
-            <button className="btn-secondary flex items-center gap-2 text-sm"><QrCode size={14}/> Gerar QR Codes de todos os alunos</button>
+            <button onClick={() => { import('../lib/qrcode').then(m => m.printStudentQRCodes(allStudents, window.location.origin)); }} className="btn-secondary flex items-center gap-2 text-sm"><QrCode size={14}/> Gerar QR Codes de todos os alunos</button>
           </div>
         </div>
       )}

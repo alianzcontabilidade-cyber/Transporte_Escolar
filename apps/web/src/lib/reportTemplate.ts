@@ -273,102 +273,39 @@ export function printReportHTML(html: string) {
   }
 }
 
-// Open report in new tab with action toolbar + zoom controls
+// Open report in new tab with toolbar
 export async function openReportAsPDF(html: string, filename?: string) {
-  const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_');
-  const safeNameClean = safeName.replace(/_+/g, '_');
+  const safeName = (filename || 'relatorio').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_').replace(/_+/g, '_');
 
-  // Extract body content and styles from report HTML
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-  const bodyContent = bodyMatch ? bodyMatch[1] : html;
-  let reportCSS = '';
-  if (styleMatches) {
-    for (const m of styleMatches) {
-      const inner = m.replace(/<\/?style[^>]*>/gi, '');
-      reportCSS += inner + '\n';
-    }
-  }
-  // Limpar regras que conflitam com o viewer
-  reportCSS = reportCSS
-    .replace(/@media\s+print\s*\{[^}]*\}/g, '')
-    .replace(/@page\s*\{[^}]*\}/g, '')
-    .replace(/body\s*\{[^}]*\}/g, '');
-
-  // Escape backticks and backslashes in content for safe embedding
-  const safeBody = bodyContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
-
-  const finalHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeNameClean} - NetEscol</title>
-<style>
-/* VIEWER STYLES */
-*{margin:0;padding:0;box-sizing:border-box}
-html{background:#525659!important}
-body{background:#525659!important;font-family:Arial,sans-serif;overflow-x:hidden;margin:0;padding:0}
-#ne-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
-#ne-toolbar .ne-title{color:white;font-size:14px;font-weight:bold;margin-right:auto}
-#ne-toolbar button{border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+  // Inserir toolbar fixo no topo do HTML original do relatório
+  const toolbarCSS = `<style id="ne-toolbar-css">
+#ne-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1B3A5C,#264a6e);padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,0.4);font-family:Arial,sans-serif}
+#ne-toolbar .t{color:white;font-size:14px;font-weight:bold;margin-right:auto}
+#ne-toolbar button{border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;color:white}
 #ne-toolbar button:hover{opacity:0.85}
-#ne-toolbar button:disabled{opacity:0.5;cursor:wait}
-.ne-bpdf{background:#e53e3e;color:white}
-.ne-bprint{background:#3182ce;color:white}
-.ne-bword{background:#2B579A;color:white}
-.ne-bzoom{background:rgba(255,255,255,0.15);color:white;padding:7px 10px!important;min-width:32px;justify-content:center}
-.ne-bzoom:hover{background:rgba(255,255,255,0.25)!important}
-.ne-div{width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px}
-#ne-zlabel{color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;min-width:40px;text-align:center}
-#ne-viewer{padding-top:56px;padding-bottom:20px;display:flex;justify-content:center}
-#ne-page{background:white;width:794px;min-height:500px;padding:1.8cm 2cm 2.5cm 2cm;box-shadow:0 2px 20px rgba(0,0,0,0.3);transform-origin:top center}
-@media print{#ne-toolbar{display:none!important}body{background:white!important}#ne-viewer{padding:0!important}#ne-page{width:100%!important;box-shadow:none!important;transform:none!important;padding:1.5cm 2cm 2cm 2cm!important}}
-</style>
-<style>
-/* REPORT STYLES */
-${reportCSS}
-</style>
-</head><body>
-<div id="ne-toolbar">
-<span class="ne-title">NetEscol</span>
-<button class="ne-bzoom" onclick="nZout()" title="Diminuir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-<span id="ne-zlabel">100%</span>
-<button class="ne-bzoom" onclick="nZin()" title="Aumentar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-<button class="ne-bzoom" onclick="nZreset()">100%</button>
-<button class="ne-bzoom" onclick="nZfit()" title="Ajustar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
-<div class="ne-div"></div>
-<button id="ne-btnpdf" class="ne-bpdf" onclick="nDpdf()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF</button>
-<button class="ne-bprint" onclick="nPrint()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir</button>
-<button class="ne-bword" onclick="nWord()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="2" width="18" height="20" rx="2" fill="#fff" opacity="0.3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="Arial">W</text></svg> Word</button>
-</div>
-<div id="ne-viewer"><div id="ne-page">${bodyContent}</div></div>
-<script>
-var _z=100;
-function _sz(v){_z=Math.max(25,Math.min(300,v));document.getElementById('ne-page').style.transform='scale('+(_z/100)+')';document.getElementById('ne-zlabel').textContent=_z+'%';}
-function nZin(){_sz(_z+10);}
-function nZout(){_sz(_z-10);}
-function nZreset(){_sz(100);}
-function nZfit(){var w=window.innerWidth-80;_sz(Math.min(Math.floor(w/794*100),150));}
-function nWord(){
-var c=document.getElementById('ne-page').innerHTML;
-var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif}</style></head><body>'+c+'</body></html>';
-var b=new Blob(['\\uFEFF'+h],{type:'application/msword'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='${safeNameClean}.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);
-}
-function nDpdf(){
-var btn=document.getElementById('ne-btnpdf');btn.innerHTML='Gerando...';btn.disabled=true;
-var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-s.onload=function(){
-var pg=document.getElementById('ne-page');pg.style.transform='none';
-document.getElementById('ne-toolbar').style.display='none';
-html2pdf().set({margin:[10,10,10,10],filename:'${safeNameClean}.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(pg).save().then(function(){
-document.getElementById('ne-toolbar').style.display='flex';_sz(_z);
-btn.innerHTML='Baixar PDF';btn.disabled=false;
-});};document.head.appendChild(s);
-}
-function nPrint(){
-var pg=document.getElementById('ne-page');pg.style.transform='none';
-document.getElementById('ne-toolbar').style.display='none';
-setTimeout(function(){window.print();setTimeout(function(){document.getElementById('ne-toolbar').style.display='flex';_sz(_z);},500);},100);
-}
-nZfit();
-<\/script>
-</body></html>`;
+.bp{background:#e53e3e}.bi{background:#3182ce}.bw{background:#2B579A}
+body{padding-top:50px!important}
+@media print{#ne-toolbar{display:none!important}body{padding-top:0!important}}
+</style>`;
+
+  const toolbarHTML = `<div id="ne-toolbar">
+<span class="t">NetEscol - ${safeName.replace(/_/g, ' ')}</span>
+<button class="bp" onclick="nPdf()">Salvar PDF</button>
+<button class="bi" onclick="nPri()">Imprimir</button>
+<button class="bw" onclick="nDoc()">Word</button>
+</div>`;
+
+  const toolbarScript = `<script>
+function nPri(){document.getElementById('ne-toolbar').style.display='none';setTimeout(function(){window.print();setTimeout(function(){document.getElementById('ne-toolbar').style.display='flex'},500)},100)}
+function nPdf(){alert('Use Ctrl+P ou o botao Imprimir, e selecione "Salvar como PDF" na impressora.\\n\\nIsso gera um PDF perfeito sem cortes.')}
+function nDoc(){var b=document.body.cloneNode(true);var tb=b.querySelector('#ne-toolbar');if(tb)tb.remove();var st=b.querySelector('#ne-toolbar-css');if(st)st.remove();var c=b.innerHTML;var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif}</style></head><body>'+c+'</body></html>';var bl=new Blob(['\\uFEFF'+h],{type:'application/msword'});var a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='${safeName}.doc';document.body.appendChild(a);a.click();document.body.removeChild(a)}
+<\/script>`;
+
+  // Inserir toolbar no HTML original - sem modificar o conteúdo
+  const finalHTML = html
+    .replace('</head>', toolbarCSS + '</head>')
+    .replace(/<body[^>]*>/i, '$&' + toolbarHTML)
+    .replace('</body>', toolbarScript + '</body>');
 
   const w = window.open('', '_blank');
   if (w) {

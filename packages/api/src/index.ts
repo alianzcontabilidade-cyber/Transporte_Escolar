@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -13,6 +14,26 @@ import { db } from './db/index';
 import { sql } from 'drizzle-orm';
 
 dotenv.config();
+
+// ============================================
+// SENTRY - MONITORAMENTO DE ERROS
+// ============================================
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    release: 'netescol@3.1.0',
+    tracesSampleRate: 0.2,
+    beforeSend(event) {
+      // Não enviar erros de rate limit ou CORS
+      if (event.message?.includes('rate limit') || event.message?.includes('CORS')) return null;
+      return event;
+    },
+  });
+  console.log('📊 Sentry ativo - monitoramento de erros habilitado');
+} else {
+  console.log('📊 Sentry não configurado (defina SENTRY_DSN para ativar)');
+}
 
 // ============================================
 // EXPRESS + TRPC + SOCKET.IO SERVER
@@ -200,12 +221,31 @@ app.get('*', (_req, res) => {
 });
 
 // ============================================
+// ERROR HANDLER GLOBAL (Sentry + log)
+// ============================================
+app.use((err: any, _req: any, res: any, _next: any) => {
+  if (process.env.SENTRY_DSN) Sentry.captureException(err);
+  console.error('Erro não tratado:', err.message || err);
+  res.status(500).json({ error: 'Erro interno do servidor' });
+});
+
+// Capturar erros não tratados do processo
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Promessa não tratada:', reason);
+  if (process.env.SENTRY_DSN) Sentry.captureException(reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Exceção não capturada:', err);
+  if (process.env.SENTRY_DSN) Sentry.captureException(err);
+});
+
+// ============================================
 // START SERVER
 // ============================================
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 NetEscol API v3.0.0 rodando na porta ${PORT} [tsx-direct]`);
+  console.log(`🚀 NetEscol API v3.1.0 rodando na porta ${PORT}`);
   console.log(`📡 Socket.IO ativo`);
   console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
 });

@@ -4,26 +4,30 @@ const config: CapacitorConfig = {
   appId: 'br.com.netescol.app',
   appName: 'NetEscol',
   webDir: 'dist',
-  server: {
-    // Em produção, usar o servidor Railway
-    url: 'https://transporteescolar-production.up.railway.app',
-    cleartext: true,
-  },
   plugins: {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
-    Geolocation: {
-      // Solicitar permissão de localização em segundo plano
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#1B3A5C',
+      showSpinner: true,
+      spinnerColor: '#2DB5B0',
     },
     StatusBar: {
-      style: 'dark',
+      style: 'DARK',
       backgroundColor: '#1B3A5C',
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
     },
   },
   android: {
     backgroundColor: '#1B3A5C',
     allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
   },
 };
 

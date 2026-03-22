@@ -1,4 +1,14 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Em app nativo (Capacitor), sempre usar a URL do servidor Railway
+// Em web (browser), usar o mesmo domínio (string vazia)
+function getApiUrl(): string {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  // Detectar se está rodando em app nativo (file:// ou localhost no Android)
+  if (typeof window !== 'undefined' && (window.location.protocol === 'file:' || window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' && window.location.port === '')) {
+    return 'https://transporteescolar-production.up.railway.app';
+  }
+  return '';
+}
+const API_URL = getApiUrl();
 
 function getToken() {
   return localStorage.getItem('token');

@@ -134,21 +134,19 @@ export async function generateQRCodeDataURL(url: string): Promise<string> {
 
 export function injectQRCodeIntoHTML(html: string, qrDataURL: string, verificationCode: string, verifyUrl: string): string {
   const qrBlock = `
-    <div style="page-break-inside:avoid;margin-top:20px;padding:10px 0;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:15px">
-      <div style="flex:1;font-size:7px;color:#888;line-height:1.4">
-        <div style="font-weight:bold;color:#1B3A5C;font-size:8px;margin-bottom:2px">VERIFICAÇÃO DE AUTENTICIDADE</div>
-        Documento gerado eletronicamente pelo sistema NetEscol.<br>
-        Código de verificação: <b style="color:#1B3A5C">${verificationCode}</b><br>
-        Verifique em: <span style="color:#2DB5B0">${verifyUrl}</span><br>
-        Conforme Lei nº 14.063/2020 (assinatura eletrônica).
+    <div style="margin-top:10px;padding:6px 0;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="flex:1;font-size:7px;color:#888;line-height:1.3">
+        <b style="color:#1B3A5C;font-size:7px">VERIFICAÇÃO DE AUTENTICIDADE</b><br>
+        Código: <b style="color:#1B3A5C">${verificationCode}</b> |
+        <span style="color:#2DB5B0">${verifyUrl}</span><br>
+        Conforme Lei nº 14.063/2020 | NetEscol
       </div>
       <div style="text-align:center;flex-shrink:0">
-        <img src="${qrDataURL}" style="width:70px;height:70px" alt="QR Code"/>
-        <div style="font-size:6px;color:#999;margin-top:2px">${verificationCode}</div>
+        <img src="${qrDataURL}" style="width:55px;height:55px" alt="QR"/>
       </div>
     </div>`;
 
-  // Injetar antes do fechamento do </body> ou antes do footer
+  // Injetar antes do footer (dentro do report-bottom-block)
   if (html.includes('report-footer-bar')) {
     return html.replace(/<div class="report-footer-bar"/, qrBlock + '<div class="report-footer-bar"');
   }

@@ -226,11 +226,12 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* SIGNATURES */
-  .report-signatures{page-break-inside:avoid;margin-top:30px}
+  /* SIGNATURES + FOOTER BLOCK - nunca quebrar */
+  .report-bottom-block{page-break-inside:avoid;margin-top:20px}
+  .report-signatures{margin-top:15px}
 
   /* FOOTER */
-  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:8px 0 0;margin-top:40px;page-break-inside:avoid}
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:6px 0 0;margin-top:15px}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 
@@ -254,12 +255,14 @@ ${headerHTML}
   ${opts.content}
 </div>
 ${showDate ? `<div class="report-date">${dateText}</div>` : ''}
+<div class="report-bottom-block">
 <div class="report-signatures">
 ${sigHTML}
 </div>
 <div class="report-footer-bar">
   ${footerParts.map(l => `<div class="footer-line">${l}</div>`).join('')}
   <div class="footer-line footer-brand">NetEscol - Sistema de Gestão Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
+</div>
 </div>
 </body></html>`;
 }

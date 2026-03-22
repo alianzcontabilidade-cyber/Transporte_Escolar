@@ -12,6 +12,8 @@ import { createContext } from './middleware/context';
 import { setSocketIO } from './socketInstance';
 import { db } from './db/index';
 import { sql } from 'drizzle-orm';
+import { generatePDF, isPuppeteerAvailable } from './services/pdfService';
+import { verify as jwtVerify } from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -164,9 +166,6 @@ app.get('/api/health', async (_req, res) => {
 // ============================================
 // PDF GENERATION ENDPOINT (REST - binary response)
 // ============================================
-import { generatePDF, isPuppeteerAvailable } from './services/pdfService';
-import { verify as jwtVerify } from 'jsonwebtoken';
-
 app.post('/api/pdf/generate', async (req, res) => {
   try {
     // Authenticate

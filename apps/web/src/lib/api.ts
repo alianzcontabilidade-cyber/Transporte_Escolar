@@ -1,9 +1,18 @@
-// Em app nativo (Capacitor), sempre usar a URL do servidor Railway
-// Em web (browser), usar o mesmo domínio (string vazia)
+// Detecta ambiente e retorna URL da API
+// - Web no Railway: string vazia (mesmo domínio)
+// - Capacitor (nativo/emulador): URL completa do Railway
+// - Dev local (Vite): string vazia (proxy configurado)
 function getApiUrl(): string {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  // Detectar se está rodando em app nativo (file:// ou localhost no Android)
-  if (typeof window !== 'undefined' && (window.location.protocol === 'file:' || window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' && window.location.port === '')) {
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    const p = window.location.protocol;
+    const port = window.location.port;
+    // Dev local com Vite (porta 5173/5174/3000) → usa mesmo domínio
+    if (h === 'localhost' && port.match(/^(5173|5174|3000)$/)) return '';
+    // Railway produção → usa mesmo domínio
+    if (h.includes('railway.app') || h.includes('up.railway.app')) return '';
+    // Qualquer outro caso (Capacitor, file://, etc) → Railway direto
     return 'https://transporteescolar-production.up.railway.app';
   }
   return '';

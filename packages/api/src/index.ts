@@ -62,8 +62,8 @@ const corsOptions = {
     if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
     // Subdomínios do Railway (*.railway.app)
     if (origin.endsWith('.railway.app') || origin.endsWith('.up.railway.app')) return callback(null, true);
-    // Localhost para desenvolvimento
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return callback(null, true);
+    // Localhost para desenvolvimento e Capacitor (https://localhost)
+    if (origin.startsWith('http://localhost') || origin.startsWith('https://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'capacitor://localhost') return callback(null, true);
     // Bloquear origens desconhecidas
     console.warn(`CORS bloqueado para origem: ${origin}`);
     callback(new Error('Origem não permitida pelo CORS'));

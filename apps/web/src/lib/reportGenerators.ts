@@ -28,23 +28,38 @@ function shiftLabel(s: string): string {
 // ==========================================
 // DECLARAÇÃO DE ESCOLARIDADE
 // ==========================================
+
+function detectNivelEnsino(grade: string): string {
+  if (!grade) return '';
+  const g = grade.toLowerCase();
+  if (g.includes('berçário') || g.includes('bercario') || g.includes('maternal') || g.includes('jardim') || g.includes('pré') || g.includes('pre') || g.includes('creche') || g.includes('infantil')) return 'EDUCAÇÃO INFANTIL';
+  if (g.includes('6º') || g.includes('7º') || g.includes('8º') || g.includes('9º') || g.includes('6 ano') || g.includes('7 ano') || g.includes('8 ano') || g.includes('9 ano')) return 'ENSINO FUNDAMENTAL – 6º ao 9º Ano';
+  if (g.includes('1º') || g.includes('2º') || g.includes('3º') || g.includes('4º') || g.includes('5º') || g.includes('1 ano') || g.includes('2 ano') || g.includes('3 ano') || g.includes('4 ano') || g.includes('5 ano')) return 'ENSINO FUNDAMENTAL – 1º ao 5º Ano';
+  if (g.includes('médio') || g.includes('medio') || g.includes('1ª série') || g.includes('2ª série') || g.includes('3ª série')) return 'ENSINO MÉDIO';
+  if (g.includes('eja') || g.includes('supletivo')) return 'EDUCAÇÃO DE JOVENS E ADULTOS (EJA)';
+  return 'ENSINO FUNDAMENTAL';
+}
+
 export function generateDeclaracaoEscolaridade(
   student: any, school: ReportSchool | undefined,
   mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
 ) {
   const schoolName = school?.name || 'desta Unidade Escolar';
+  const nivelEnsino = detectNivelEnsino(student.grade);
+  const year = new Date().getFullYear();
+
   const content = `
     <p class="declaration-text">
-      Declaramos, para os devidos fins e efeitos legais, que <b>${student.name || 'ALUNO(A)'}</b>,
+      Declaro para os devidos fins que <b>${student.name || 'ALUNO(A)'}</b>,
       ${student.motherName ? 'filho(a) de <b>' + student.motherName + '</b>' : ''}
       ${student.fatherName ? ' e de <b>' + student.fatherName + '</b>' : ''},
-      nascido(a) em <b>${formatDateFull(student.birthDate)}</b>,
       ${student.naturalness ? 'natural de <b>' + student.naturalness + (student.naturalnessUf ? ' – ' + student.naturalnessUf : '') + '</b>,' : ''}
-      portador(a) do CPF nº <b>${student.cpf || '___.___.___-__'}</b>,
-      encontra-se devidamente matriculado(a) neste Estabelecimento de Ensino, cursando o(a) <b>${student.grade || '--'}</b>,
-      no turno <b>${shiftLabel(student.shift)}</b>,
-      no corrente ano letivo de <b>${new Date().getFullYear()}</b>,
-      sob a Matrícula nº <b>${student.enrollment || '--'}</b>.
+      nascido(a) aos <b>${formatDateFull(student.birthDate)}</b>,
+      é aluno(a) deste Estabelecimento de Ensino, está cursando
+      <b>${student.grade || '--'}${nivelEnsino ? ' – ' + nivelEnsino : ''}</b>,
+      do turno <b>${shiftLabel(student.shift)}</b>
+      no ano letivo de <b>${year}</b>,
+      Matrícula Nº <b>${student.enrollment || '--'}</b>.
     </p>
     <p class="declaration-text">
       Declaramos, outrossim, que o(a) referido(a) aluno(a) encontra-se com a situação acadêmica
@@ -53,8 +68,11 @@ export function generateDeclaracaoEscolaridade(
     <p class="declaration-text">
       Por ser expressão da verdade, firmamos a presente declaração para que produza os efeitos legais que se fizerem necessários.
     </p>
-    ${student.nis ? `<div style="margin-top:20px;font-size:11px;color:#555"><b>NIS:</b> ${student.nis}</div>` : ''}
-    ${school?.code ? `<div style="font-size:11px;color:#555"><b>Código INEP:</b> ${school.code}</div>` : ''}
+    <div style="margin-top:20px;font-size:10px;color:#555;line-height:1.6">
+      ${student.nis ? `<b>NIS:</b> ${student.nis}<br>` : ''}
+      ${school?.code ? `<b>ID Censo (INEP):</b> ${school.code}<br>` : ''}
+      ${student.cpf ? `<b>CPF do Aluno:</b> ${student.cpf}` : ''}
+    </div>
   `;
 
   return generateReportHTML({
@@ -221,14 +239,16 @@ export function generateHistoricoEscolar(
   school: ReportSchool | undefined,
   mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
 ) {
-  // Student data section
+  const nivelEnsino = detectNivelEnsino(student.grade);
+
+  // Student data section - formato compacto como modelo oficial
   const studentData = `
     <div class="section-title">DADOS DO ALUNO</div>
     <div class="field-grid">
-      ${field('Nome', student.name)}
+      ${field('Nome Completo', student.name)}
       ${field('Data de Nascimento', formatDate(student.birthDate))}
       ${field('Sexo', student.sex === 'M' ? 'Masculino' : student.sex === 'F' ? 'Feminino' : '--')}
-      ${field('Nacionalidade', student.nationality)}
+      ${field('Nacionalidade', student.nationality || 'Brasileira')}
       ${field('Naturalidade', (student.naturalness || '') + (student.naturalnessUf ? ' – ' + student.naturalnessUf : ''))}
       ${field('CPF', student.cpf)}
       ${field('RG / Órgão Emissor', student.rg ? student.rg + (student.rgOrgao ? ' – ' + student.rgOrgao + '/' + (student.rgUf || '') : '') : '--')}
@@ -241,7 +261,7 @@ export function generateHistoricoEscolar(
     </div>
   `;
 
-  // History table
+  // History table - trajetória ano a ano
   let historyRows = '';
   for (const h of history) {
     const resultClass = h.result?.toLowerCase().includes('aprov') ? 'approved' :
@@ -257,15 +277,82 @@ export function generateHistoricoEscolar(
   const historyTable = `
     <div class="section-title">HISTÓRICO DE ESCOLARIDADE</div>
     <table>
-      <thead><tr><th>ANO</th><th style="text-align:left">SÉRIE/ANO</th><th style="text-align:left">ESTABELECIMENTO DE ENSINO</th><th>RESULTADO</th></tr></thead>
+      <thead><tr><th style="width:60px">ANO</th><th style="text-align:left">SÉRIE/ANO</th><th style="text-align:left">ESTABELECIMENTO DE ENSINO</th><th style="width:100px">RESULTADO</th></tr></thead>
       <tbody>${historyRows || '<tr><td colspan="4" style="color:#999">Nenhum registro encontrado</td></tr>'}</tbody>
     </table>
+  `;
+
+  // Grades detail - tabela com disciplinas e notas (quando disponível)
+  let gradesDetail = '';
+  const yearsWithGrades = history.filter(h => h.grades && h.grades.length > 0);
+  if (yearsWithGrades.length > 0) {
+    for (const h of yearsWithGrades) {
+      let gradeRows = '';
+      let totalCH = 0;
+      for (const g of (h.grades || [])) {
+        const b1 = g.b1 ?? g.bim1 ?? '--';
+        const b2 = g.b2 ?? g.bim2 ?? '--';
+        const b3 = g.b3 ?? g.bim3 ?? '--';
+        const b4 = g.b4 ?? g.bim4 ?? '--';
+        const vals = [b1, b2, b3, b4].map((v: any) => typeof v === 'number' ? v : parseFloat(v));
+        const valid = vals.filter((v: number) => !isNaN(v));
+        const avg = valid.length > 0 ? valid.reduce((a: number, b: number) => a + b, 0) / valid.length : null;
+        const ch = g.cargaHoraria || g.weeklyHours ? (g.weeklyHours || 0) * 40 : 80;
+        totalCH += ch;
+        const faltas = g.faltas ?? g.absences ?? '--';
+        gradeRows += `<tr>
+          <td style="text-align:left;font-size:9px">${g.subject || g.disciplina || '--'}</td>
+          <td style="font-size:9px">${typeof b1 === 'number' ? b1.toFixed(1) : b1}</td>
+          <td style="font-size:9px">${typeof b2 === 'number' ? b2.toFixed(1) : b2}</td>
+          <td style="font-size:9px">${typeof b3 === 'number' ? b3.toFixed(1) : b3}</td>
+          <td style="font-size:9px">${typeof b4 === 'number' ? b4.toFixed(1) : b4}</td>
+          <td style="font-size:9px;font-weight:bold">${avg !== null ? avg.toFixed(1) : '--'}</td>
+          <td style="font-size:9px">${ch}</td>
+          <td style="font-size:9px">${faltas}</td>
+        </tr>`;
+      }
+
+      gradesDetail += `
+        <div class="section-title" style="font-size:11px">${h.grade} – ANO LETIVO ${h.year} – ${h.school}</div>
+        <table style="font-size:9px">
+          <thead><tr>
+            <th style="text-align:left;min-width:120px">COMPONENTE CURRICULAR</th>
+            <th style="width:40px">1º B</th><th style="width:40px">2º B</th><th style="width:40px">3º B</th><th style="width:40px">4º B</th>
+            <th style="width:45px;background:#15304d">MF</th>
+            <th style="width:35px">CH</th>
+            <th style="width:40px">FT</th>
+          </tr></thead>
+          <tbody>${gradeRows}</tbody>
+          <tfoot><tr style="background:#f0f4f8;font-weight:bold">
+            <td style="text-align:right;font-size:9px" colspan="6">TOTAL CARGA HORÁRIA</td>
+            <td style="font-size:9px">${totalCH}h</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+        <div style="font-size:8px;color:#888;margin-top:4px">
+          <b>Legenda:</b> B = Bimestre | MF = Média Final | CH = Carga Horária | FT = Faltas |
+          <b>Resultado:</b> ${h.result || '--'}
+        </div>
+      `;
+    }
+  }
+
+  // Observações finais
+  const obs = `
+    <div style="margin-top:12px;font-size:9px;color:#555;border:1px solid #e5e7eb;border-radius:4px;padding:8px">
+      <b>OBSERVAÇÕES:</b><br>
+      • Aprovação com média final igual ou superior a 6,0 (seis) e frequência mínima de 75%.<br>
+      • O presente Histórico Escolar tem validade em todo o território nacional conforme LDB 9.394/96.
+      ${school?.code ? '<br>• Código INEP da Escola: ' + school.code : ''}
+      ${student.nis ? '<br>• NIS do Aluno: ' + student.nis : ''}
+    </div>
   `;
 
   return generateReportHTML({
     municipality: mun, secretaria: sec, school,
     title: 'HISTÓRICO ESCOLAR',
-    content: studentData + historyTable,
+    subtitle: nivelEnsino || undefined,
+    content: studentData + historyTable + gradesDetail + obs,
     signatories: sigs, fontFamily: 'sans-serif', fontSize: 11,
   });
 }

@@ -441,4 +441,11 @@ export const api = {
     verifySignature: (input: any) => call('documentSignatures.verifySignature', input, 'query'),
   },
 
+  ai: {
+    analyzeRoutes: (input: any) => call('ai.analyzeRoutes', input, 'query'),
+    optimizeRoute: (input: any) => call('ai.optimizeRoute', input, 'mutation'),
+    suggestStops: (input: any) => call('ai.suggestStops', input, 'query'),
+    studentRiskAnalysis: (input: any) => call('ai.studentRiskAnalysis', input, 'query'),
+  },
+
 };

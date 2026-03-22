@@ -77,6 +77,7 @@ const REPORTS: Report[] = [
   { code: 'R407', title: 'Relatório de RH', desc: 'Quadro de pessoal por cargo e departamento', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-rh', icon: Users, tags: ['rh', 'pessoal', 'servidor', 'cargo'] },
   { code: 'R408', title: 'Relatório de Patrimônio', desc: 'Inventário de bens patrimoniais', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-patrimonio', icon: Briefcase, tags: ['patrimonio', 'bem', 'inventario', 'tombamento'] },
   { code: 'R409', title: 'Relatório EDUCACENSO', desc: 'Dados consolidados para o Censo Escolar', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-educacenso', icon: TrendingUp, tags: ['educacenso', 'censo', 'inep', 'escolar'] },
+  { code: 'R410', title: 'Risco de Evasão Escolar', desc: 'Análise de risco de abandono por aluno via IA', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/risco-evasao', icon: TrendingUp, tags: ['risco', 'evasao', 'abandono', 'ia', 'frequencia'] },
 ];
 
 // ============================================

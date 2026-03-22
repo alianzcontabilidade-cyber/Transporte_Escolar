@@ -208,6 +208,7 @@ export default function Layout() {
     { code: '507', to: '/cadastro-prefeitura', text: 'Cadastro da Prefeitura', module: 'Central de Controle', desc: 'Dados completos, CNPJ, responsáveis e logo', tags: 'prefeitura cadastro cnpj receita federal logo responsavel secretaria', color: '#64748b' },
     { code: '508', to: '/config-formularios', text: 'Configuração de Formulários', module: 'Central de Controle', desc: 'Definir campos obrigatórios por formulário', tags: 'configuracao formulario campo obrigatorio required aluno escola', color: '#64748b' },
     { code: '509', to: '/gestao-documentos', text: 'Gestão de Documentos', module: 'Central de Controle', desc: 'Documentos gerados, assinaturas eletrônicas e verificação', tags: 'documento assinatura eletronica verificacao hash pdf qr code', color: '#64748b' },
+    { code: '510', to: '/risco-evasao', text: 'Risco de Evasão', module: 'Central de Controle', desc: 'Análise de risco de evasão escolar via IA', tags: 'risco evasao abandono aluno ia inteligencia artificial frequencia nota', color: '#64748b' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
     { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
@@ -307,6 +308,7 @@ export default function Layout() {
     { key: 'configuracoes', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/cadastro-prefeitura', icon: School, text: 'Cadastro Prefeitura' },
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
+      { to: '/risco-evasao', icon: AlertTriangle, text: 'Risco de Evasao' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },
       { to: '/gestao-documentos', icon: FileCheck, text: 'Gestao Documentos' },

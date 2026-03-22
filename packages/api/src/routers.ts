@@ -22,6 +22,7 @@ import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { emitToMunicipality } from './socketInstance';
+import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents } from './services/routeOptimizer';
 
 // ============================================
 // AUTH ROUTER
@@ -4891,6 +4892,352 @@ export const documentSignaturesRouter = t.router({
 });
 
 // ============================================
+// AI / OTIMIZAÇÃO ROUTER
+// ============================================
+export const aiRouter = t.router({
+  // Analisar todas as rotas de um município
+  analyzeRoutes: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const allRoutes = await db.select().from(routes)
+        .where(and(eq(routes.municipalityId, input.municipalityId), eq(routes.isActive, true)));
+
+      const results = [];
+      for (const route of allRoutes) {
+        const routeStops = await db.select({
+          id: stops.id,
+          name: stops.name,
+          latitude: stops.latitude,
+          longitude: stops.longitude,
+          orderIndex: stops.orderIndex,
+        }).from(stops)
+          .where(and(eq(stops.routeId, route.id), eq(stops.isActive, true)))
+          .orderBy(stops.orderIndex);
+
+        // Buscar alunos associados às paradas desta rota
+        const stopIds = routeStops.map(s => s.id);
+        let routeStudents: { id: number; name: string; latitude: number; longitude: number }[] = [];
+        if (stopIds.length > 0) {
+          const studs = await db.select({
+            id: students.id,
+            name: students.name,
+            latitude: students.latitude,
+            longitude: students.longitude,
+          }).from(stopStudents)
+            .innerJoin(students, eq(stopStudents.studentId, students.id))
+            .where(inArray(stopStudents.stopId, stopIds));
+          routeStudents = studs
+            .filter(s => s.latitude != null && s.longitude != null)
+            .map(s => ({
+              id: s.id,
+              name: s.name,
+              latitude: parseFloat(String(s.latitude)),
+              longitude: parseFloat(String(s.longitude)),
+            }));
+        }
+
+        const validStops = routeStops
+          .filter(s => s.latitude != null && s.longitude != null)
+          .map(s => ({
+            id: s.id,
+            name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+          }));
+
+        const analysis = analyzeRoute(route, validStops, routeStudents);
+        results.push({
+          routeId: route.id,
+          routeName: route.name,
+          stopCount: routeStops.length,
+          studentCount: routeStudents.length,
+          analysis,
+        });
+      }
+
+      return results;
+    }),
+
+  // Otimizar a ordem das paradas de uma rota
+  optimizeRoute: adminProcedure
+    .input(z.object({ routeId: z.number() }))
+    .mutation(async ({ input }) => {
+      const routeStops = await db.select({
+        id: stops.id,
+        name: stops.name,
+        latitude: stops.latitude,
+        longitude: stops.longitude,
+        orderIndex: stops.orderIndex,
+      }).from(stops)
+        .where(and(eq(stops.routeId, input.routeId), eq(stops.isActive, true)))
+        .orderBy(stops.orderIndex);
+
+      const validStops = routeStops
+        .filter(s => s.latitude != null && s.longitude != null)
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          latitude: parseFloat(String(s.latitude)),
+          longitude: parseFloat(String(s.longitude)),
+        }));
+
+      if (validStops.length < 2) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'A rota precisa de pelo menos 2 paradas com coordenadas para otimizar.',
+        });
+      }
+
+      const { optimizedStops, originalDistance, optimizedDistance, savingsPercent } =
+        optimizeStopOrder(validStops);
+
+      // Atualizar orderIndex de cada parada no banco
+      for (let i = 0; i < optimizedStops.length; i++) {
+        await db.update(stops)
+          .set({ orderIndex: i })
+          .where(eq(stops.id, optimizedStops[i].id));
+      }
+
+      // Atualizar distância total da rota
+      await db.update(routes)
+        .set({ totalDistanceKm: String(optimizedDistance) })
+        .where(eq(routes.id, input.routeId));
+
+      return {
+        routeId: input.routeId,
+        originalDistance,
+        optimizedDistance,
+        savingsPercent,
+        newOrder: optimizedStops.map((s, i) => ({
+          stopId: s.id,
+          stopName: s.name,
+          newIndex: i,
+        })),
+      };
+    }),
+
+  // Sugerir paradas para alunos sem atribuição
+  suggestStops: adminProcedure
+    .input(z.object({ municipalityId: z.number(), numClusters: z.number().default(5) }))
+    .query(async ({ input }) => {
+      // Buscar alunos que precisam de transporte mas não têm parada atribuída
+      const allStudents = await db.select({
+        id: students.id,
+        name: students.name,
+        latitude: students.latitude,
+        longitude: students.longitude,
+        address: students.address,
+        neighborhood: students.neighborhood,
+      }).from(students)
+        .where(and(
+          eq(students.municipalityId, input.municipalityId),
+          eq(students.needsTransport, true),
+        ));
+
+      // Filtrar alunos que já têm parada
+      const assignedStudentIds = await db.select({ studentId: stopStudents.studentId })
+        .from(stopStudents);
+      const assignedSet = new Set(assignedStudentIds.map(a => a.studentId));
+
+      const unassigned = allStudents
+        .filter(s => !assignedSet.has(s.id))
+        .filter(s => s.latitude != null && s.longitude != null &&
+          parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0)
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          latitude: parseFloat(String(s.latitude)),
+          longitude: parseFloat(String(s.longitude)),
+          address: s.address,
+          neighborhood: s.neighborhood,
+        }));
+
+      if (unassigned.length === 0) {
+        return {
+          totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+          withCoordinates: 0,
+          clusters: [],
+          message: 'Nenhum aluno sem parada com coordenadas GPS cadastradas.',
+        };
+      }
+
+      const { clusters } = clusterStudents(
+        unassigned.map(s => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude })),
+        input.numClusters
+      );
+
+      return {
+        totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+        withCoordinates: unassigned.length,
+        clusters: clusters.map((c, idx) => ({
+          clusterIndex: idx + 1,
+          suggestedName: `Ponto Sugerido ${idx + 1}`,
+          center: c.center,
+          studentCount: c.students.length,
+          students: c.students.map(s => {
+            const full = unassigned.find(u => u.id === s.id);
+            return {
+              id: s.id,
+              name: s.name,
+              address: full?.address || null,
+              neighborhood: full?.neighborhood || null,
+              distanceToCenter: Math.round(
+                haversineDistance(s.latitude, s.longitude, c.center.latitude, c.center.longitude) * 1000
+              ), // em metros
+            };
+          }),
+          averageRadius: Math.round(
+            c.students.reduce((sum, s) =>
+              sum + haversineDistance(s.latitude, s.longitude, c.center.latitude, c.center.longitude), 0
+            ) / c.students.length * 1000
+          ), // raio médio em metros
+        })),
+      };
+    }),
+
+  // Análise de risco de evasão escolar
+  studentRiskAnalysis: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      // Buscar todos os alunos do município
+      const allStudents = await db.select({
+        id: students.id,
+        name: students.name,
+        enrollment: students.enrollment,
+        schoolId: students.schoolId,
+        grade: students.grade,
+      }).from(students)
+        .where(eq(students.municipalityId, input.municipalityId));
+
+      if (allStudents.length === 0) return [];
+
+      const studentIds = allStudents.map(s => s.id);
+
+      // Buscar contagem de ausências por aluno (trip_student_logs where eventType='absent')
+      const absenceCounts = await db.select({
+        studentId: tripStudentLogs.studentId,
+        count: sql<number>`COUNT(*)`.as('count'),
+      }).from(tripStudentLogs)
+        .where(and(
+          inArray(tripStudentLogs.studentId, studentIds),
+          eq(tripStudentLogs.eventType, 'absent')
+        ))
+        .groupBy(tripStudentLogs.studentId);
+      const absenceMap = new Map(absenceCounts.map(a => [a.studentId, Number(a.count)]));
+
+      // Buscar médias de notas por aluno
+      const gradeAvgs = await db.select({
+        studentId: studentGrades.studentId,
+        avg: sql<number>`AVG(${studentGrades.score})`.as('avg'),
+      }).from(studentGrades)
+        .where(inArray(studentGrades.studentId, studentIds))
+        .groupBy(studentGrades.studentId);
+      const gradeMap = new Map(gradeAvgs.map(g => [g.studentId, Number(g.avg)]));
+
+      // Buscar contagem de ocorrências por aluno
+      const occCounts = await db.select({
+        studentId: studentOccurrences.studentId,
+        count: sql<number>`COUNT(*)`.as('count'),
+      }).from(studentOccurrences)
+        .where(and(
+          eq(studentOccurrences.municipalityId, input.municipalityId),
+          inArray(studentOccurrences.studentId, studentIds)
+        ))
+        .groupBy(studentOccurrences.studentId);
+      const occMap = new Map(occCounts.map(o => [o.studentId, Number(o.count)]));
+
+      // Buscar status de matrícula (evadido/transferido = já em risco)
+      const enrollmentStatuses = await db.select({
+        studentId: enrollments.studentId,
+        status: enrollments.status,
+      }).from(enrollments)
+        .where(and(
+          eq(enrollments.municipalityId, input.municipalityId),
+          inArray(enrollments.studentId, studentIds),
+          inArray(enrollments.status, ['transferred', 'evaded'])
+        ));
+      const atRiskEnrollment = new Set(enrollmentStatuses.map(e => e.studentId));
+
+      // Calcular score de risco para cada aluno
+      const results = allStudents.map(student => {
+        let riskScore = 0;
+        const riskFactors: string[] = [];
+
+        // Ausências
+        const absences = absenceMap.get(student.id) || 0;
+        if (absences > 10) {
+          riskScore += 30;
+          riskFactors.push(`${absences} ausências no transporte (crítico)`);
+        } else if (absences > 5) {
+          riskScore += 15;
+          riskFactors.push(`${absences} ausências no transporte`);
+        }
+
+        // Notas
+        const avgGrade = gradeMap.get(student.id);
+        if (avgGrade !== undefined) {
+          if (avgGrade < 5.0) {
+            riskScore += 25;
+            riskFactors.push(`Média ${avgGrade.toFixed(1)} (abaixo de 5.0 - crítico)`);
+          } else if (avgGrade < 7.0) {
+            riskScore += 10;
+            riskFactors.push(`Média ${avgGrade.toFixed(1)} (abaixo de 7.0)`);
+          }
+        }
+
+        // Ocorrências
+        const occurrences = occMap.get(student.id) || 0;
+        if (occurrences > 3) {
+          riskScore += 20;
+          riskFactors.push(`${occurrences} ocorrências registradas (crítico)`);
+        } else if (occurrences > 1) {
+          riskScore += 10;
+          riskFactors.push(`${occurrences} ocorrências registradas`);
+        }
+
+        // Matrícula em risco (transferido/evadido)
+        if (atRiskEnrollment.has(student.id)) {
+          riskScore += 15;
+          riskFactors.push('Matrícula transferida ou evadida');
+        }
+
+        // Frequência baixa no transporte (muitas ausências proporcionais)
+        if (absences > 3 && absences <= 5) {
+          riskScore += 5;
+          riskFactors.push('Frequência irregular no transporte');
+        }
+
+        riskScore = Math.min(100, riskScore);
+
+        let riskLevel: 'baixo' | 'moderado' | 'alto' | 'critico';
+        if (riskScore >= 60) riskLevel = 'critico';
+        else if (riskScore >= 40) riskLevel = 'alto';
+        else if (riskScore >= 20) riskLevel = 'moderado';
+        else riskLevel = 'baixo';
+
+        return {
+          studentId: student.id,
+          studentName: student.name,
+          enrollment: student.enrollment,
+          schoolId: student.schoolId,
+          grade: student.grade,
+          riskScore,
+          riskLevel,
+          riskFactors,
+          absences,
+          avgGrade: avgGrade !== undefined ? Math.round(avgGrade * 10) / 10 : null,
+          occurrences,
+        };
+      });
+
+      // Ordenar por risco (maior primeiro), filtrar apenas quem tem algum risco
+      return results
+        .filter(r => r.riskScore > 0)
+        .sort((a, b) => b.riskScore - a.riskScore);
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -4962,6 +5309,8 @@ export const appRouter = t.router({
   // Documentos e Assinaturas Eletrônicas
   documents: documentsRouter,
   documentSignatures: documentSignaturesRouter,
+  // IA e Otimização
+  ai: aiRouter,
 });
 
 export type AppRouter = typeof appRouter;

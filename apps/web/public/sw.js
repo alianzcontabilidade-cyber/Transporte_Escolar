@@ -1,9 +1,23 @@
-const CACHE_NAME = 'netescol-v7';
+const CACHE_NAME = 'netescol-v8';
+const API_CACHE_NAME = 'netescol-api-v1';
+
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/bus.svg',
+  '/bus-marker.svg',
+];
+
+// Read-only API endpoints that can be cached for offline use
+const CACHEABLE_API_PATTERNS = [
+  '/api/trpc/schools.list',
+  '/api/trpc/routes.list',
+  '/api/trpc/vehicles.list',
+  '/api/trpc/drivers.list',
+  '/api/trpc/students.list',
+  '/api/trpc/stops.list',
+  '/api/trpc/municipality.get',
 ];
 
 // Install - cache static assets
@@ -21,24 +35,58 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys
+          .filter((key) => key !== CACHE_NAME && key !== API_CACHE_NAME)
+          .map((key) => caches.delete(key))
       );
     })
   );
   self.clients.claim();
 });
 
-// Fetch - network first, fallback to cache
+// Check if URL is a cacheable API endpoint
+function isCacheableAPI(url) {
+  return CACHEABLE_API_PATTERNS.some((pattern) => url.includes(pattern));
+}
+
+// Fetch handler with strategies
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip API calls - always go to network
-  if (event.request.url.includes('/api/')) return;
-
   // Skip socket.io
   if (event.request.url.includes('socket.io')) return;
 
+  // API calls: network-first with cache fallback for read-only endpoints
+  if (event.request.url.includes('/api/')) {
+    if (isCacheableAPI(event.request.url)) {
+      event.respondWith(
+        fetch(event.request)
+          .then((response) => {
+            if (response.status === 200) {
+              const clone = response.clone();
+              caches.open(API_CACHE_NAME).then((cache) => {
+                cache.put(event.request, clone);
+              });
+            }
+            return response;
+          })
+          .catch(() => {
+            return caches.match(event.request).then((cached) => {
+              if (cached) return cached;
+              return new Response(
+                JSON.stringify({ error: 'Offline - dados indisponiveis' }),
+                { status: 503, headers: { 'Content-Type': 'application/json' } }
+              );
+            });
+          })
+      );
+    }
+    // Non-cacheable API calls pass through to network (no interception)
+    return;
+  }
+
+  // Static assets: network-first, cache fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -55,7 +103,7 @@ self.addEventListener('fetch', (event) => {
         // Fallback to cache
         return caches.match(event.request).then((cached) => {
           if (cached) return cached;
-          // For navigation requests, return the cached index.html
+          // For navigation requests, return the cached index.html (SPA)
           if (event.request.mode === 'navigate') {
             return caches.match('/index.html');
           }
@@ -64,6 +112,15 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Notify all clients about online/offline status changes
+function notifyClients(type, data) {
+  self.clients.matchAll({ type: 'window' }).then((clientList) => {
+    clientList.forEach((client) => {
+      client.postMessage({ type, ...data });
+    });
+  });
+}
 
 // Push notifications
 self.addEventListener('push', (event) => {
@@ -76,7 +133,7 @@ self.addEventListener('push', (event) => {
 
   const title = data.title || 'NetEscol';
 
-  // Ícones por tipo de notificação
+  // Icones por tipo de notificacao
   const typeEmoji = {
     trip_started: 'Viagem iniciada',
     student_boarded: 'Aluno embarcou',
@@ -169,9 +226,13 @@ self.addEventListener('message', (event) => {
       });
     });
   }
+  if (event.data && event.data.type === 'CLEAR_API_CACHE') {
+    // Limpar cache de API quando solicitado (ex: apos login/logout)
+    caches.delete(API_CACHE_NAME);
+  }
 });
 
-// Background sync (para enviar posições GPS acumuladas offline)
+// Background sync (para enviar posicoes GPS acumuladas offline)
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-locations') {
     event.waitUntil(

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api';
 import { useSocket } from './socket';
 import { enableNoSleep, disableNoSleep } from './noSleep';
+import { isNative, watchPosition as nativeWatchPosition, clearWatch as nativeClearWatch, vibrate } from './native';
 
 export interface GPSPosition {
   latitude: number;
@@ -24,7 +25,7 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
   const [position, setPosition] = useState<GPSPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
-  const watchIdRef = useRef<number | null>(null);
+  const watchIdRef = useRef<number | string | null>(null);
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPositionRef = useRef<GPSPosition | null>(null);
   const { socket } = useSocket();
@@ -145,41 +146,64 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
       console.log('Web Worker nao disponivel, usando fallback');
     }
 
-    // 4. GPS watchPosition (thread principal)
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (geoPos) => {
+    // 4. GPS watchPosition (native Capacitor ou browser)
+    if (isNative) {
+      // Usar Capacitor Geolocation plugin para melhor performance nativa
+      nativeWatchPosition((pos) => {
         const newPos: GPSPosition = {
-          latitude: geoPos.coords.latitude,
-          longitude: geoPos.coords.longitude,
-          speed: geoPos.coords.speed,
-          heading: geoPos.coords.heading,
-          accuracy: geoPos.coords.accuracy,
-          timestamp: geoPos.timestamp,
+          latitude: pos.lat,
+          longitude: pos.lng,
+          speed: null,
+          heading: null,
+          accuracy: pos.accuracy,
+          timestamp: Date.now(),
         };
         setPosition(newPos);
         lastPositionRef.current = newPos;
-      },
-      (geoErr) => {
-        switch (geoErr.code) {
-          case geoErr.PERMISSION_DENIED:
-            setError('Permissao de GPS negada. Habilite nas configuracoes do navegador.');
-            break;
-          case geoErr.POSITION_UNAVAILABLE:
-            setError('Posicao GPS indisponivel.');
-            break;
-          case geoErr.TIMEOUT:
-            setError('Tempo esgotado ao obter GPS.');
-            break;
-          default:
-            setError('Erro ao obter GPS: ' + geoErr.message);
+        // Feedback haptico sutil na primeira posicao
+        if (!lastPositionRef.current) vibrate(100);
+      }).then(id => {
+        watchIdRef.current = id;
+      }).catch(() => {
+        setError('Erro ao iniciar GPS nativo.');
+      });
+    } else {
+      // Web fallback: navigator.geolocation
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (geoPos) => {
+          const newPos: GPSPosition = {
+            latitude: geoPos.coords.latitude,
+            longitude: geoPos.coords.longitude,
+            speed: geoPos.coords.speed,
+            heading: geoPos.coords.heading,
+            accuracy: geoPos.coords.accuracy,
+            timestamp: geoPos.timestamp,
+          };
+          setPosition(newPos);
+          lastPositionRef.current = newPos;
+        },
+        (geoErr) => {
+          switch (geoErr.code) {
+            case geoErr.PERMISSION_DENIED:
+              setError('Permissao de GPS negada. Habilite nas configuracoes do navegador.');
+              break;
+            case geoErr.POSITION_UNAVAILABLE:
+              setError('Posicao GPS indisponivel.');
+              break;
+            case geoErr.TIMEOUT:
+              setError('Tempo esgotado ao obter GPS.');
+              break;
+            default:
+              setError('Erro ao obter GPS: ' + geoErr.message);
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 5000,
         }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 5000,
-      }
-    );
+      );
+    }
 
     // 5. Fallback: envio periodico pela thread principal (backup do Worker)
     sendIntervalRef.current = setInterval(() => {
@@ -191,7 +215,11 @@ export function useGPSTracking({ tripId, driverId, municipalityId, intervalMs = 
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
+      if (isNative) {
+        nativeClearWatch(String(watchIdRef.current));
+      } else {
+        navigator.geolocation.clearWatch(watchIdRef.current as number);
+      }
       watchIdRef.current = null;
     }
     if (sendIntervalRef.current !== null) {
@@ -248,6 +276,8 @@ export function useVehicleLocations(municipalityId: number | null, enabled = tru
 
 // Check if GPS is supported
 export function isGPSSupported(): boolean {
+  // Native apps always have GPS via Capacitor plugin
+  if (isNative) return true;
   return 'geolocation' in navigator;
 }
 

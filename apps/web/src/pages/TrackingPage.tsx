@@ -4,7 +4,8 @@ import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported, requestGPSPermission } from '../lib/gps';
 import { useSocket } from '../lib/socket';
 import { useWakeLock } from '../lib/pwa';
-import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square, Bus, Maximize2, Minimize2 } from 'lucide-react';
+import { MapPin, CheckCircle, XCircle, AlertTriangle, Smartphone, Plug, Navigation, RefreshCw, Play, Square, Bus, Maximize2, Minimize2, Zap } from 'lucide-react';
+import { isNative, platform } from '../lib/native';
 
 function TrackingMap({ position, stops, fullscreen }: { position: any; stops?: any[]; fullscreen?: boolean }) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -171,7 +172,14 @@ export default function TrackingPage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><Navigation size={20} className="text-blue-600" /></div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Rastreamento GPS</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900">Rastreamento GPS</h1>
+              {isNative && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700 rounded-full">
+                  <Zap size={10} /> {platform === 'android' ? 'Android' : platform === 'ios' ? 'iOS' : 'Nativo'}
+                </span>
+              )}
+            </div>
             <p className="text-gray-500">Compartilhe sua localização em tempo real</p>
           </div>
         </div>

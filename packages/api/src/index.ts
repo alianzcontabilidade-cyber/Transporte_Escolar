@@ -3,11 +3,14 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import * as trpcExpress from '@trpc/server/adapters/express';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { appRouter } from './routers';
 import { createContext } from './middleware/context';
 import { setSocketIO } from './socketInstance';
+import { db } from './db/index';
+import { sql } from 'drizzle-orm';
 
 dotenv.config();
 
@@ -62,9 +65,79 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: '3.0.0', timestamp: new Date().toISOString(), mode: 'tsx-direct' });
+// ============================================
+// RATE LIMITING
+// ============================================
+
+// Rate limit para login: 5 tentativas / 15 min por IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+});
+
+// Rate limit para registro: 3 tentativas / hora por IP
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { error: 'Limite de cadastros atingido. Tente novamente em 1 hora.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+});
+
+// Rate limit geral da API: 200 requisições / min por IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: { error: 'Limite de requisições atingido. Aguarde um momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+});
+
+// Aplicar rate limit por tipo de procedure tRPC
+app.use('/api/trpc/auth.login', loginLimiter);
+app.use('/api/trpc/auth.registerMunicipality', registerLimiter);
+app.use('/api/trpc/auth.registerGuardian', registerLimiter);
+app.use('/api/trpc/auth.requestPasswordReset', registerLimiter);
+app.use('/api/trpc', apiLimiter);
+
+// ============================================
+// HEALTH CHECK APRIMORADO
+// ============================================
+const startTime = Date.now();
+
+app.get('/api/health', async (_req, res) => {
+  let dbStatus = 'disconnected';
+  let dbLatency = 0;
+  try {
+    const start = Date.now();
+    await db.execute(sql`SELECT 1`);
+    dbLatency = Date.now() - start;
+    dbStatus = 'connected';
+  } catch { dbStatus = 'error'; }
+
+  const mem = process.memoryUsage();
+  res.json({
+    status: dbStatus === 'connected' ? 'ok' : 'degraded',
+    version: '3.1.0',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatency,
+    },
+    memory: {
+      usedMB: Math.round(mem.heapUsed / 1024 / 1024),
+      totalMB: Math.round(mem.heapTotal / 1024 / 1024),
+      rssMB: Math.round(mem.rss / 1024 / 1024),
+    },
+    node: process.version,
+  });
 });
 
 // tRPC

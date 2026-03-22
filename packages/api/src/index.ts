@@ -80,6 +80,9 @@ setSocketIO(io);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
+// Test route (primeira rota registrada)
+app.get('/api/ping', (_req, res) => { res.json({ pong: true, ts: Date.now() }); });
+
 // Request timeout (30 seconds)
 app.use((_req, res, next) => {
   res.setTimeout(30000, () => {

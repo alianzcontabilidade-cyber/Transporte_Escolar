@@ -214,6 +214,8 @@ export const vehicles = mysqlTable("vehicles", {
   gpsDeviceId: varchar("gpsDeviceId", { length: 100 }),
   gpsDeviceModel: varchar("gpsDeviceModel", { length: 100 }),
 
+  observations: text("observations"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

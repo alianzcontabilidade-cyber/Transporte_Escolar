@@ -66,13 +66,16 @@ export default function VehiclesPage() {
       year: v.year ? String(v.year) : '',
       capacity: v.capacity ? String(v.capacity) : '40',
       currentKm: v.currentKm ? String(v.currentKm) : '',
+      lastRevision: formatDate(v.lastMaintenanceAt),
+      nextRevision: formatDate(v.nextMaintenanceAt),
+      observations: v.observations || '',
     });
     setEditId(v.id); setTab('dados'); setShowModal(true);
   };
 
   const save = function() {
     if (!form.plate) return;
-    const payload: any = { municipalityId, plate:form.plate, nickname:form.nickname||undefined, brand:form.brand||undefined, model:form.model||undefined, year:form.year?parseInt(form.year):undefined, capacity:form.capacity?parseInt(form.capacity):undefined, color:form.color||undefined, fuel:form.fuel||undefined, chassis:form.chassis||undefined, renavam:form.renavam||undefined, crlvExpiry:form.crlvExpiry||undefined, ipvaExpiry:form.ipvaExpiry||undefined, inspectionExpiry:form.inspectionExpiry||undefined, insuranceCompany:form.insuranceCompany||undefined, insurancePolicy:form.insurancePolicy||undefined, insuranceExpiry:form.insuranceExpiry||undefined, fireExtinguisherExpiry:form.fireExtinguisherExpiry||undefined, currentKm:form.currentKm?parseInt(form.currentKm):undefined };
+    const payload: any = { municipalityId, plate:form.plate, nickname:form.nickname||undefined, brand:form.brand||undefined, model:form.model||undefined, year:form.year?parseInt(form.year):undefined, capacity:form.capacity?parseInt(form.capacity):undefined, color:form.color||undefined, fuel:form.fuel||undefined, chassis:form.chassis||undefined, renavam:form.renavam||undefined, crlvExpiry:form.crlvExpiry||undefined, ipvaExpiry:form.ipvaExpiry||undefined, inspectionExpiry:form.inspectionExpiry||undefined, insuranceCompany:form.insuranceCompany||undefined, insurancePolicy:form.insurancePolicy||undefined, insuranceExpiry:form.insuranceExpiry||undefined, fireExtinguisherExpiry:form.fireExtinguisherExpiry||undefined, currentKm:form.currentKm?parseInt(form.currentKm):undefined, lastMaintenanceAt:form.lastRevision||undefined, nextMaintenanceAt:form.nextRevision||undefined, observations:form.observations||undefined };
     if (editId!==null) {
       update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);}});
     } else {

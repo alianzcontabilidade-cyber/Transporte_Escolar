@@ -302,18 +302,35 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       classRoom:form.className||undefined,
       shift:form.shift||undefined,
       birthDate:form.birthDate||undefined,
-      address:form.address||undefined,
-      city:form.city||undefined,
-      state:form.state||undefined,
       photoUrl:form.photo||undefined,
       routeId:form.routeId?parseInt(form.routeId):undefined,
+      // Dados pessoais
+      cpf:form.cpf||undefined,
+      rg:form.rg||undefined, rgOrgao:form.rgOrgao||undefined, rgUf:form.rgUf||undefined, rgDate:form.rgDate||undefined,
+      sex:form.sex||undefined, race:form.race||undefined,
+      nationality:form.nationality||undefined, naturalness:form.naturalness||undefined, naturalnessUf:form.naturalnessUf||undefined,
+      nis:form.nis||undefined, cartaoSus:form.cartaoSus||undefined,
+      // Certidão
+      certidaoTipo:form.certidaoTipo||undefined, certidaoNumero:form.certidaoNumero||undefined,
+      certidaoFolha:form.certidaoFolha||undefined, certidaoLivro:form.certidaoLivro||undefined,
+      certidaoData:form.certidaoData||undefined, certidaoCartorio:form.certidaoCartorio||undefined,
+      // Endereço completo
+      address:form.address||undefined, addressNumber:form.addressNumber||undefined,
+      addressComplement:form.addressComplement||undefined, neighborhood:form.neighborhood||undefined,
+      cep:form.cep||undefined, city:form.city||undefined, state:form.state||undefined, zone:form.zone||undefined,
+      phone:form.phone||undefined, cellPhone:form.cellPhone||undefined,
+      // Transporte
+      needsTransport:form.needsTransport||false, transportType:form.transportType||undefined, transportDistance:form.transportDistance||undefined,
+      // Programas sociais
+      bolsaFamilia:form.bolsaFamilia||false, bpc:form.bpc||false, peti:form.peti||false, otherPrograms:form.otherPrograms||undefined,
+      // Necessidades especiais
+      hasSpecialNeeds:form.hasSpecialNeeds||false, specialNeedsNotes:form.specialNeedsNotes||undefined,
+      deficiencyType:form.deficiencyType||undefined, tgd:form.tgd||undefined,
+      superdotacao:form.superdotacao||false, salaRecursos:form.salaRecursos||false,
+      acompanhamento:form.acompanhamento||undefined, encaminhamento:form.encaminhamento||undefined,
       // Saude
-      hasSpecialNeeds:form.hasSpecialNeeds||false,
-      specialNeedsNotes:form.specialNeedsNotes||undefined,
-      bloodType:form.bloodType||undefined,
-      allergies:form.allergies||undefined,
-      medications:form.medications||undefined,
-      healthNotes:form.healthNotes||undefined,
+      bloodType:form.bloodType||undefined, allergies:form.allergies||undefined,
+      medications:form.medications||undefined, healthNotes:form.healthNotes||undefined,
       // Contatos emergencia + Responsaveis (unificados)
       emergencyContact1Name:form.emergencyContact1Name||form.guardian1Name||undefined,
       emergencyContact1Phone:form.emergencyContact1Phone||form.guardian1Phone||undefined,
@@ -321,13 +338,31 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       emergencyContact2Name:form.emergencyContact2Name||form.guardian2Name||undefined,
       emergencyContact2Phone:form.emergencyContact2Phone||form.guardian2Phone||undefined,
       emergencyContact2Relation:form.emergencyContact2Relation||form.guardian2Relation||undefined,
-      // Tambem enviar como guardian para compatibilidade
       guardian1Name:form.guardian1Name||form.emergencyContact1Name||undefined,
       guardian1Phone:form.guardian1Phone||form.emergencyContact1Phone||undefined,
       guardian1Relation:form.guardian1Relation||form.emergencyContact1Relation||undefined,
       guardian2Name:form.guardian2Name||form.emergencyContact2Name||undefined,
       guardian2Phone:form.guardian2Phone||form.emergencyContact2Phone||undefined,
       guardian2Relation:form.guardian2Relation||form.emergencyContact2Relation||undefined,
+      // Filiação - Pai
+      fatherName:form.fatherName||undefined, fatherCpf:form.fatherCpf||undefined,
+      fatherRg:form.fatherRg||undefined, fatherRgOrgao:form.fatherRgOrgao||undefined, fatherRgUf:form.fatherRgUf||undefined,
+      fatherPhone:form.fatherPhone||undefined, fatherProfession:form.fatherProfession||undefined,
+      fatherWorkplace:form.fatherWorkplace||undefined, fatherEducation:form.fatherEducation||undefined,
+      fatherNaturalness:form.fatherNaturalness||undefined, fatherNaturalnessUf:form.fatherNaturalnessUf||undefined,
+      // Filiação - Mãe
+      motherName:form.motherName||undefined, motherCpf:form.motherCpf||undefined,
+      motherRg:form.motherRg||undefined, motherRgOrgao:form.motherRgOrgao||undefined, motherRgUf:form.motherRgUf||undefined,
+      motherPhone:form.motherPhone||undefined, motherProfession:form.motherProfession||undefined,
+      motherWorkplace:form.motherWorkplace||undefined, motherEducation:form.motherEducation||undefined,
+      motherNaturalness:form.motherNaturalness||undefined, motherNaturalnessUf:form.motherNaturalnessUf||undefined,
+      // Renda
+      familyIncome:form.familyIncome||undefined,
+      // Procedência
+      previousSchool:form.previousSchool||undefined, previousSchoolType:form.previousSchoolType||undefined,
+      previousSchoolZone:form.previousSchoolZone||undefined, previousCity:form.previousCity||undefined,
+      previousState:form.previousState||undefined, enrollmentType:form.enrollmentType||undefined,
+      studentStatus:form.studentStatus||undefined,
       observations:form.observations||undefined,
     };
     if (editId!==null) {

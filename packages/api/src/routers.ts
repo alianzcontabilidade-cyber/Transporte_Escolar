@@ -931,7 +931,14 @@ export const studentsRouter = t.router({
       if (!finalSchoolId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
 
       const { municipalityId, school: _s, photo, className, guardian1Name, guardian1Phone, guardian1Relation,
-        guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, ...rest } = input;
+        guardian2Name, guardian2Phone, guardian2Relation, routeId, ...rest } = input;
+
+      // Resolve routeId -> routeName
+      let resolvedRouteName: string | undefined;
+      if (routeId) {
+        const [rt] = await db.select({ name: routes.name }).from(routes).where(eq(routes.id, routeId));
+        resolvedRouteName = rt?.name || undefined;
+      }
 
       const [student] = await db.insert(students).values({
         municipalityId,
@@ -967,6 +974,7 @@ export const studentsRouter = t.router({
         // Transporte
         needsTransport: rest.needsTransport || false, transportType: rest.transportType || undefined,
         transportDistance: rest.transportDistance || undefined,
+        routeName: resolvedRouteName,
         // Programas sociais
         bolsaFamilia: rest.bolsaFamilia || false, bpc: rest.bpc || false,
         peti: rest.peti || false, otherPrograms: rest.otherPrograms || undefined,
@@ -987,12 +995,14 @@ export const studentsRouter = t.router({
         emergencyContact2Relation: rest.emergencyContact2Relation || guardian2Relation || undefined,
         // Filiacao
         fatherName: rest.fatherName || undefined, fatherCpf: rest.fatherCpf || undefined,
-        fatherRg: rest.fatherRg || undefined, fatherPhone: rest.fatherPhone || undefined,
+        fatherRg: rest.fatherRg || undefined, fatherRgOrgao: rest.fatherRgOrgao || undefined, fatherRgUf: rest.fatherRgUf || undefined,
+        fatherPhone: rest.fatherPhone || undefined,
         fatherProfession: rest.fatherProfession || undefined, fatherWorkplace: rest.fatherWorkplace || undefined,
         fatherEducation: rest.fatherEducation || undefined,
         fatherNaturalness: rest.fatherNaturalness || undefined, fatherNaturalnessUf: rest.fatherNaturalnessUf || undefined,
         motherName: rest.motherName || undefined, motherCpf: rest.motherCpf || undefined,
-        motherRg: rest.motherRg || undefined, motherPhone: rest.motherPhone || undefined,
+        motherRg: rest.motherRg || undefined, motherRgOrgao: rest.motherRgOrgao || undefined, motherRgUf: rest.motherRgUf || undefined,
+        motherPhone: rest.motherPhone || undefined,
         motherProfession: rest.motherProfession || undefined, motherWorkplace: rest.motherWorkplace || undefined,
         motherEducation: rest.motherEducation || undefined,
         motherNaturalness: rest.motherNaturalness || undefined, motherNaturalnessUf: rest.motherNaturalnessUf || undefined,
@@ -1002,6 +1012,7 @@ export const studentsRouter = t.router({
         previousSchoolZone: rest.previousSchoolZone || undefined,
         previousCity: rest.previousCity || undefined, previousState: rest.previousState || undefined,
         enrollmentType: rest.enrollmentType || undefined, studentStatus: rest.studentStatus || undefined,
+        observations: rest.observations || undefined,
         ...(rest.latitude !== undefined && { latitude: rest.latitude.toFixed(8) }),
         ...(rest.longitude !== undefined && { longitude: rest.longitude.toFixed(8) }),
       }).$returningId();
@@ -1451,6 +1462,7 @@ export const vehiclesRouter = t.router({
       fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
       lastMaintenanceAt: z.string().optional(), nextMaintenanceAt: z.string().optional(),
       gpsDeviceId: z.string().optional(), gpsDeviceModel: z.string().optional(),
+      observations: z.string().optional(),
       status: z.enum(['active', 'maintenance', 'inactive']).optional(),
     }))
     .mutation(async ({ input }) => {
@@ -1481,6 +1493,7 @@ export const vehiclesRouter = t.router({
       fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
       lastMaintenanceAt: z.string().optional(), nextMaintenanceAt: z.string().optional(),
       gpsDeviceId: z.string().optional(), gpsDeviceModel: z.string().optional(),
+      observations: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...data } = input;

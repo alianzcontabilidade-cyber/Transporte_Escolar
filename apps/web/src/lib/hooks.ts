@@ -43,7 +43,12 @@ export function useMutation<T>(fn: (input: any) => Promise<T>) {
     } catch (e: any) {
       const msg = e.message || 'Erro desconhecido';
       setError(msg);
-      callbacks?.onError?.(msg);
+      if (callbacks?.onError) {
+        callbacks.onError(msg);
+      } else {
+        // Se não tem onError definido, mostrar alerta para o usuário
+        alert(msg);
+      }
     } finally {
       setLoading(false);
     }

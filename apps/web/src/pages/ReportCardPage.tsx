@@ -45,8 +45,10 @@ export default function ReportCardPage() {
       const bimAvg = (bim: string) => {
         const gs = r.bimesters[bim] || [];
         if (!gs.length) return null;
-        const scores = gs.filter((g: any) => g.score !== null).map((g: any) => g.score);
-        return scores.length ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null;
+        const valid = gs.filter((g: any) => g.score !== null);
+        if (!valid.length) return null;
+        const totalWeight = valid.reduce((s: number, g: any) => s + (g.weight || 1), 0);
+        return valid.reduce((s: number, g: any) => s + g.score * (g.weight || 1), 0) / totalWeight;
       };
       return {
         subject: r.subjectName,
@@ -77,8 +79,10 @@ export default function ReportCardPage() {
   const calcAvg = (bimesters: any, bim: string) => {
     const grades = bimesters[bim] || [];
     if (!grades.length) return null;
-    const scores = grades.filter((g: any) => g.score !== null).map((g: any) => g.score);
-    return scores.length ? (scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : null;
+    const valid = grades.filter((g: any) => g.score !== null);
+    if (!valid.length) return null;
+    const totalWeight = valid.reduce((s: number, g: any) => s + (g.weight || 1), 0);
+    return valid.reduce((s: number, g: any) => s + g.score * (g.weight || 1), 0) / totalWeight;
   };
 
   const handleExportClick = () => {

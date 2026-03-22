@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School } from 'lucide-react';
+import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School, Trash2 } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
 const STATUS_LABELS: any = { active: 'Ativo', transferred: 'Transferido', cancelled: 'Cancelado', graduated: 'Aprovado', retained: 'Retido', evaded: 'Evadido' };
@@ -26,6 +26,9 @@ export default function EnrollmentsPage() {
   const [classModal, setClassModal] = useState<any>(null);
   const [newClassId, setNewClassId] = useState('');
   const [quickAdd, setQuickAdd] = useState<string | null>(null);
+  const [showIndividual, setShowIndividual] = useState(false);
+  const [indForm, setIndForm] = useState({ studentId: '', classId: '', academicYearId: '', enrollmentNumber: '' });
+  const [indSaving, setIndSaving] = useState(false);
 
   const { data: enrollmentsList, refetch } = useQuery(() => api.enrollments.list({ municipalityId: mid, classId: filterClass ? parseInt(filterClass) : undefined, academicYearId: filterYear ? parseInt(filterYear) : undefined, status: filterStatus || undefined }), [mid, filterClass, filterYear, filterStatus]);
   const { data: classesData, refetch: refetchClasses } = useQuery(() => api.classes.list({ municipalityId: mid, academicYearId: filterYear ? parseInt(filterYear) : undefined }), [mid, filterYear]);
@@ -82,6 +85,26 @@ export default function EnrollmentsPage() {
     } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao alterar turma')); }
   };
 
+  const doIndividualEnroll = async () => {
+    if (!indForm.studentId || !indForm.classId || !indForm.academicYearId) return;
+    setIndSaving(true);
+    try {
+      await api.enrollments.create({ municipalityId: mid, studentId: parseInt(indForm.studentId), classId: parseInt(indForm.classId), academicYearId: parseInt(indForm.academicYearId), enrollmentNumber: indForm.enrollmentNumber || undefined });
+      refetch();
+      setShowIndividual(false);
+      setIndForm({ studentId: '', classId: '', academicYearId: '', enrollmentNumber: '' });
+    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao matricular')); }
+    finally { setIndSaving(false); }
+  };
+
+  const handleDelete = async (enrollment: any) => {
+    if (!confirm(`Excluir matrícula de ${enrollment.studentName}?`)) return;
+    try {
+      await api.enrollments.delete({ id: enrollment.id });
+      refetch();
+    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao excluir')); }
+  };
+
   const activeYear = allYears.find((y: any) => y.status === 'active');
   const counts = { active: all.filter((e: any) => e.status === 'active').length, total: all.length };
 
@@ -92,7 +115,10 @@ export default function EnrollmentsPage() {
           <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><ClipboardList size={20} className="text-teal-600" /></div>
           <div><h1 className="text-2xl font-bold text-gray-900">Matrículas</h1><p className="text-gray-500">{counts.active} ativa(s) de {counts.total} total</p></div>
         </div>
-        <button onClick={() => { setShowBulk(true); setImportResult(''); setSelectedStudents([]); setBulkClassId(''); }} className="btn-primary flex items-center gap-2"><UserPlus size={16} /> Matricular Alunos</button>
+        <div className="flex gap-2">
+          <button onClick={() => { setShowIndividual(true); setIndForm({ studentId: '', classId: filterClass || '', academicYearId: filterYear || '', enrollmentNumber: '' }); }} className="btn-secondary flex items-center gap-2"><Plus size={16} /> Matricular Aluno</button>
+          <button onClick={() => { setShowBulk(true); setImportResult(''); setSelectedStudents([]); setBulkClassId(''); }} className="btn-primary flex items-center gap-2"><UserPlus size={16} /> Matricular em Lote</button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4 flex-wrap">
@@ -120,9 +146,10 @@ export default function EnrollmentsPage() {
                 <td className="px-4 py-3 text-xs text-gray-500">{e.classShift ? shiftLabel(e.classShift) : '--'}</td>
                 <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[e.status] || ''}`}>{STATUS_LABELS[e.status] || e.status}</span></td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <button onClick={() => { setClassModal(e); setNewClassId(String(e.classId || '')); }} className="text-xs text-indigo-500 hover:underline">Alterar turma</button>
                     <button onClick={() => { setStatusModal(e); setNewStatus(e.status); setStatusNotes(''); }} className="text-xs text-primary-500 hover:underline">Alterar status</button>
+                    <button onClick={() => handleDelete(e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded" title="Excluir matrícula"><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -177,6 +204,18 @@ export default function EnrollmentsPage() {
           {importResult && <div className={`p-3 rounded-lg text-sm ${importResult.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{importResult}</div>}
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowBulk(false)} className="btn-secondary flex-1">Fechar</button><button onClick={doBulkEnroll} disabled={!bulkClassId || !filterYear || !selectedStudents.length || importing} className="btn-primary flex-1 flex items-center justify-center gap-2">{importing && <Loader2 size={16} className="animate-spin" />}{importing ? 'Matriculando...' : `Matricular ${selectedStudents.length} aluno(s)`}</button></div>
+      </div></div>)}
+
+      {/* Modal matricula individual */}
+      {showIndividual && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold flex items-center gap-2"><Plus size={18} className="text-teal-500" /> Matricular Aluno</h3><button onClick={() => setShowIndividual(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div>
+        <div className="p-5 space-y-4">
+          <div><label className="label">Aluno *</label><select className="input" value={indForm.studentId} onChange={e => setIndForm(f => ({ ...f, studentId: e.target.value }))}><option value="">Selecione o aluno</option>{allStudents.map((s: any) => <option key={s.id} value={s.id}>{s.name}{s.enrollment ? ` (${s.enrollment})` : ''}</option>)}</select></div>
+          <div><label className="label">Ano Letivo *</label><select className="input" value={indForm.academicYearId} onChange={e => setIndForm(f => ({ ...f, academicYearId: e.target.value }))}><option value="">Selecione</option>{allYears.map((y: any) => <option key={y.id} value={y.id}>{y.name}</option>)}</select></div>
+          <div><label className="label">Turma *</label><select className="input" value={indForm.classId} onChange={e => setIndForm(f => ({ ...f, classId: e.target.value }))}><option value="">Selecione</option>{allClasses.map((c: any) => <option key={c.id} value={c.id}>{c.fullName || c.name} - {c.schoolName}</option>)}</select></div>
+          <div><label className="label">Número de matrícula (opcional)</label><input className="input" value={indForm.enrollmentNumber} onChange={e => setIndForm(f => ({ ...f, enrollmentNumber: e.target.value }))} placeholder="Auto-gerado se vazio" /></div>
+        </div>
+        <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowIndividual(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={doIndividualEnroll} disabled={!indForm.studentId || !indForm.classId || !indForm.academicYearId || indSaving} className="btn-primary flex-1">{indSaving ? 'Salvando...' : 'Matricular'}</button></div>
       </div></div>)}
 
       {/* QuickAddModal */}

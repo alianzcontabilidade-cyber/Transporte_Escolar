@@ -304,6 +304,7 @@ export const api = {
   staffEvaluations: {
     list: (input: any) => call('staffEvaluations.list', input, 'query'),
     create: (input: any) => call('staffEvaluations.create', input, 'mutation'),
+    update: (input: any) => call('staffEvaluations.update', input, 'mutation'),
     delete: (input: any) => call('staffEvaluations.delete', input, 'mutation'),
   },
   financialAccounts: {

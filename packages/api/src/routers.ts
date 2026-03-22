@@ -327,6 +327,20 @@ export const authRouter = t.router({
     if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
     return { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId };
   }),
+
+  // Resetar senha (admin)
+  adminResetPassword: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input }) => {
+      const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      let newPassword = '';
+      for (let i = 0; i < 8; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+      const passwordHash = await hash(newPassword, 12);
+      await db.update(users).set({ passwordHash }).where(eq(users.id, input.userId));
+      return { success: true, generatedPassword: newPassword };
+    }),
 });
 
 // ============================================
@@ -576,9 +590,16 @@ export const routesRouter = t.router({
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
-      return db.select().from(routes)
+      const allRoutes = await db.select().from(routes)
         .where(and(eq(routes.municipalityId, input.municipalityId), eq(routes.isActive, true)))
         .orderBy(routes.name);
+      const routesWithStops = await Promise.all(allRoutes.map(async (route) => {
+        const routeStops = await db.select().from(stops)
+          .where(eq(stops.routeId, route.id))
+          .orderBy(stops.orderIndex);
+        return { route, stops: routeStops };
+      }));
+      return routesWithStops;
     }),
 
   getById: protectedProcedure
@@ -604,9 +625,35 @@ export const routesRouter = t.router({
       scheduledEndTime: z.string().optional(),
       defaultVehicleId: z.number().optional(),
       defaultDriverId: z.number().optional(),
+      stops: z.array(z.object({
+        name: z.string(),
+        lat: z.string().optional(),
+        lng: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        order: z.number().optional(),
+      })).optional(),
     }))
     .mutation(async ({ input }) => {
-      const [route] = await db.insert(routes).values(input).$returningId();
+      const { stops: inputStops, ...routeData } = input;
+      const [route] = await db.insert(routes).values(routeData).$returningId();
+
+      // Insert stops if provided
+      if (inputStops && inputStops.length > 0) {
+        for (let i = 0; i < inputStops.length; i++) {
+          const s = inputStops[i];
+          const lat = s.lat || s.latitude || '0';
+          const lng = s.lng || s.longitude || '0';
+          await db.insert(stops).values({
+            routeId: route.id,
+            name: s.name,
+            latitude: lat,
+            longitude: lng,
+            orderIndex: s.order ?? i,
+          });
+        }
+      }
+
       return { success: true, id: route.id };
     }),
 
@@ -3648,6 +3695,17 @@ export const staffEvaluationsRouter = t.router({
       const [result] = await db.insert(staffEvaluations).values({ ...input, evaluatorUserId: ctx.userId, overallScore, status: 'submitted' }).$returningId();
       return { success: true, id: result.id };
     }),
+  update: adminProcedure
+    .input(z.object({ id: z.number(), period: z.string().optional(), punctuality: z.number().optional(), productivity: z.number().optional(), teamwork: z.number().optional(), initiative: z.number().optional(), communication: z.number().optional(), strengths: z.string().optional(), improvements: z.string().optional(), goals: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const scores = [data.punctuality, data.productivity, data.teamwork, data.initiative, data.communication].filter(v => v !== undefined && v !== null) as number[];
+      const ud: any = {};
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      if (scores.length > 0) ud.overallScore = (scores.reduce((a, b) => a + b, 0) / scores.length).toString();
+      if (Object.keys(ud).length > 0) await db.update(staffEvaluations).set(ud).where(eq(staffEvaluations.id, id));
+      return { success: true };
+    }),
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => { await db.update(staffEvaluations).set({ isActive: false }).where(eq(staffEvaluations.id, input.id)); return { success: true }; }),
@@ -3683,6 +3741,8 @@ export const financialTransactionsRouter = t.router({
     }),
   create: adminProcedure.input(z.object({ municipalityId: z.number(), accountId: z.number(), type: z.enum(['receita', 'despesa']), category: z.string(), description: z.string().optional(), value: z.number(), date: z.string(), documentNumber: z.string().optional(), supplier: z.string().optional() }))
     .mutation(async ({ ctx, input }) => { const { date, value, ...rest } = input; const [r] = await db.insert(financialTransactions).values({ ...rest, date: new Date(date), value: value.toString(), registeredByUserId: ctx.userId }).$returningId(); return { success: true, id: r.id }; }),
+  update: adminProcedure.input(z.object({ id: z.number(), accountId: z.number().optional(), type: z.enum(['receita', 'despesa']).optional(), category: z.string().optional(), description: z.string().optional(), value: z.number().optional(), date: z.string().optional(), documentNumber: z.string().optional(), supplier: z.string().optional() }))
+    .mutation(async ({ input }) => { const { id, date, value, ...data } = input; const ud: any = { ...data }; if (date) ud.date = new Date(date); if (value !== undefined) ud.value = value.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0) await db.update(financialTransactions).set(ud).where(eq(financialTransactions.id, id)); return { success: true }; }),
   delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => { await db.update(financialTransactions).set({ isActive: false }).where(eq(financialTransactions.id, input.id)); return { success: true }; }),
 });
 
@@ -3725,9 +3785,10 @@ export const libraryBooksRouter = t.router({
 });
 
 export const libraryLoansRouter = t.router({
-  list: protectedProcedure.input(z.object({ bookId: z.number().optional(), status: z.string().optional() }))
+  list: protectedProcedure.input(z.object({ municipalityId: z.number().optional(), bookId: z.number().optional(), status: z.string().optional() }))
     .query(async ({ input }) => {
       const conditions: any[] = [];
+      if (input.municipalityId) conditions.push(eq(libraryBooks.municipalityId, input.municipalityId));
       if (input.bookId) conditions.push(eq(libraryLoans.bookId, input.bookId));
       if (input.status) conditions.push(eq(libraryLoans.status, input.status as any));
       return db.select({ id: libraryLoans.id, bookId: libraryLoans.bookId, userId: libraryLoans.userId, studentId: libraryLoans.studentId, loanDate: libraryLoans.loanDate, dueDate: libraryLoans.dueDate, returnDate: libraryLoans.returnDate, status: libraryLoans.status, bookTitle: libraryBooks.title, userName: users.name })

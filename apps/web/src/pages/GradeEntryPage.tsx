@@ -45,10 +45,17 @@ export default function GradeEntryPage() {
     setSaving(true);
     setSaveMsg('');
     try {
-      const gradeList = allEnrollments.map((e: any) => ({
-        studentId: e.studentId,
-        score: grades[e.studentId] !== undefined && grades[e.studentId] !== '' ? parseFloat(grades[e.studentId]) : (allGrades.find((g: any) => g.studentId === e.studentId)?.score !== null ? parseFloat(allGrades.find((g: any) => g.studentId === e.studentId)?.score || '0') : null),
-      }));
+      const gradeList = allEnrollments
+        .filter((e: any) => {
+          // Only include students who have a grade typed by the user OR already have an existing grade
+          const hasUserInput = grades[e.studentId] !== undefined && grades[e.studentId] !== '';
+          const hasExistingGrade = allGrades.some((g: any) => g.studentId === e.studentId && g.score !== null && g.score !== undefined);
+          return hasUserInput || hasExistingGrade;
+        })
+        .map((e: any) => ({
+          studentId: e.studentId,
+          score: grades[e.studentId] !== undefined && grades[e.studentId] !== '' ? parseFloat(grades[e.studentId]) : parseFloat(allGrades.find((g: any) => g.studentId === e.studentId)?.score || '0'),
+        }));
       await api.studentGrades.registerBatch({ assessmentId: parseInt(selAssessment), grades: gradeList });
       setSaveMsg('Notas salvas com sucesso!');
       refetchGrades();

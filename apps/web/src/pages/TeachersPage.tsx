@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
-import { UserCheck, Plus, X, Pencil, Trash2, Search, Phone, Mail, FileText, GraduationCap } from 'lucide-react';
+import { UserCheck, Plus, X, Pencil, Trash2, Search, Phone, Mail, FileText, GraduationCap, KeyRound } from 'lucide-react';
 
 const CONTRACT_TYPES: any = { effective: 'Efetivo', temporary: 'Temporario', substitute: 'Substituto' };
 const CONTRACT_COLORS: any = { effective: 'bg-green-100 text-green-700', temporary: 'bg-yellow-100 text-yellow-700', substitute: 'bg-orange-100 text-orange-700' };
@@ -24,6 +24,7 @@ export default function TeachersPage() {
   const { mutate: create, loading: creating } = useMutation(api.teachers.create);
   const { mutate: update, loading: updating } = useMutation(api.teachers.update);
   const { mutate: remove } = useMutation(api.teachers.delete);
+  const { mutate: resetPwd, loading: resetting } = useMutation(api.auth.adminResetPassword);
 
   const raw = (teachersList as any) || [];
   const all = raw.map((t: any) => t.teacher && t.user ? { id: t.teacher.id, name: t.user.name, email: t.user.email, phone: t.user.phone, cpf: t.user.cpf, ...t.teacher } : t);
@@ -43,6 +44,15 @@ export default function TeachersPage() {
     if (!editId && form.password) payload.password = form.password;
     if (editId) { update({ id: editId, ...payload }, { onSuccess: () => { refetch(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
     else { create(payload, { onSuccess: (r: any) => { refetch(); setShowModal(false); if (r?.generatedPassword) alert('Senha gerada: ' + r.generatedPassword); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
+  };
+
+  const handleResetPassword = (teacher: any) => {
+    if (!teacher.userId) { alert('Professor sem usuario vinculado'); return; }
+    if (!confirm(`Resetar a senha de ${teacher.name}? Uma nova senha sera gerada.`)) return;
+    resetPwd({ userId: teacher.userId }, {
+      onSuccess: (r: any) => { alert('Nova senha gerada: ' + r.generatedPassword + '\n\nAnote esta senha, ela nao sera exibida novamente.'); },
+      onError: (e: any) => alert('Erro ao resetar senha: ' + (e || 'Erro desconhecido')),
+    });
   };
 
   return (
@@ -71,7 +81,7 @@ export default function TeachersPage() {
                 {t.weeklyWorkload && <span>{t.weeklyWorkload}h/sem</span>}
               </div>
             </div>
-            <div className="flex gap-1"><button onClick={() => openEdit(t)} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg"><Pencil size={15} /></button><button onClick={() => setConfirmDelete(t)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={15} /></button></div>
+            <div className="flex gap-1"><button onClick={() => openEdit(t)} className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg" title="Editar"><Pencil size={15} /></button><button onClick={() => handleResetPassword(t)} className="p-2 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg" title="Resetar Senha"><KeyRound size={15} /></button><button onClick={() => setConfirmDelete(t)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={15} /></button></div>
           </div>
         ))}
         {!filtered.length && <div className="card text-center py-16"><GraduationCap size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500 mb-4">Nenhum professor</p><button className="btn-primary" onClick={openNew}>Adicionar professor</button></div>}

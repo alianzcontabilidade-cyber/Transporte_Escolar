@@ -6,29 +6,35 @@ import { BookMarked, Plus, X, Pencil, Trash2, Search, RotateCcw } from 'lucide-r
 import { lookupISBN } from '../lib/cnpjCep';
 
 const emptyForm = { title: '', author: '', isbn: '', category: '', publisher: '', year: '', quantity: '1', location: '' };
+const emptyLoanForm = { bookId: '', studentName: '', dueDate: '' };
 
 export default function LibraryPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [tab, setTab] = useState<'books'|'loans'>('books');
   const [showModal, setShowModal] = useState(false);
+  const [showLoanModal, setShowLoanModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
+  const [loanForm, setLoanForm] = useState<any>(emptyLoanForm);
   const [search, setSearch] = useState('');
   const [isbnLooking, setIsbnLooking] = useState(false);
   const [isbnMsg, setIsbnMsg] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
   const { data: booksData, refetch: rBooks } = useQuery(() => api.libraryBooks.list({ municipalityId: mid, search: search || undefined }), [mid, search]);
-  const { data: loansData, refetch: rLoans } = useQuery(() => api.libraryLoans.list({}), []);
+  const { data: loansData, refetch: rLoans } = useQuery(() => api.libraryLoans.list({ municipalityId: mid }), [mid]);
   const { mutate: createBook } = useMutation(api.libraryBooks.create);
   const { mutate: updateBook } = useMutation(api.libraryBooks.update);
   const { mutate: deleteBook } = useMutation(api.libraryBooks.delete);
+  const { mutate: createLoan } = useMutation(api.libraryLoans.create);
   const { mutate: returnBook } = useMutation(api.libraryLoans.returnBook);
 
   const allBooks = (booksData as any) || [];
   const allLoans = (loansData as any) || [];
+  const availableBooks = allBooks.filter((b: any) => b.available > 0);
   const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
+  const slf = (k: string) => (e: any) => setLoanForm((f: any) => ({ ...f, [k]: e.target.value }));
 
   const openNew = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
   const openEdit = (b: any) => { setForm({ ...b, year: b.year ? String(b.year) : '', quantity: String(b.quantity || 1) }); setEditId(b.id); setShowModal(true); };
@@ -38,6 +44,12 @@ export default function LibraryPage() {
     const p = { municipalityId: mid, title: form.title, author: form.author || undefined, isbn: form.isbn || undefined, category: form.category || undefined, publisher: form.publisher || undefined, year: form.year ? parseInt(form.year) : undefined, quantity: parseInt(form.quantity) || 1, location: form.location || undefined };
     const cb = { onSuccess: () => { rBooks(); setShowModal(false); } };
     editId ? updateBook({ id: editId, ...p }, cb) : createBook(p, cb);
+  };
+
+  const openNewLoan = () => { setLoanForm({ ...emptyLoanForm, dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0] }); setShowLoanModal(true); };
+  const saveLoan = () => {
+    if (!loanForm.bookId || !loanForm.dueDate) return;
+    createLoan({ bookId: parseInt(loanForm.bookId), dueDate: loanForm.dueDate }, { onSuccess: () => { rLoans(); rBooks(); setShowLoanModal(false); } });
   };
 
   const handleISBNLookup = async () => {
@@ -63,7 +75,10 @@ export default function LibraryPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><BookMarked size={20} className="text-amber-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Biblioteca</h1><p className="text-gray-500">{allBooks.length} titulo(s)</p></div></div>
-        <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Livro</button>
+        <div className="flex gap-2">
+          {tab === 'loans' && <button onClick={openNewLoan} className="btn-primary flex items-center gap-2 bg-green-600 hover:bg-green-700"><Plus size={16} /> Novo Emprestimo</button>}
+          <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Novo Livro</button>
+        </div>
       </div>
 
       <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
@@ -88,8 +103,8 @@ export default function LibraryPage() {
           <tr key={l.id} className="hover:bg-gray-50">
             <td className="px-4 py-3 font-medium">{l.bookTitle}</td>
             <td className="px-4 py-3 text-gray-500">{l.userName}</td>
-            <td className="px-4 py-3 text-gray-500">{l.loanDate ? new Date(l.loanDate).toLocaleDateString('pt-BR') : '—'}</td>
-            <td className="px-4 py-3 text-gray-500">{l.dueDate ? new Date(l.dueDate).toLocaleDateString('pt-BR') : '—'}</td>
+            <td className="px-4 py-3 text-gray-500">{l.loanDate ? new Date(l.loanDate).toLocaleDateString('pt-BR') : '--'}</td>
+            <td className="px-4 py-3 text-gray-500">{l.dueDate ? new Date(l.dueDate).toLocaleDateString('pt-BR') : '--'}</td>
             <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full ${l.status === 'active' ? 'bg-blue-100 text-blue-700' : l.status === 'returned' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{l.status === 'active' ? 'Ativo' : l.status === 'returned' ? 'Devolvido' : l.status}</span></td>
             <td className="px-4 py-3">{l.status === 'active' && <button onClick={() => returnBook({ id: l.id }, { onSuccess: () => { rLoans(); rBooks(); } })} className="text-xs text-primary-500 hover:underline flex items-center gap-1"><RotateCcw size={12} /> Devolver</button>}</td>
           </tr>
@@ -111,6 +126,16 @@ export default function LibraryPage() {
           <div className="col-span-2"><label className="label">Localizacao</label><input className="input" value={form.location} onChange={sf('location')} placeholder="Estante A, Prateleira 3" /></div>
         </div></div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={save} className="btn-primary flex-1">Salvar</button></div>
+      </div></div>)}
+
+      {showLoanModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold">Novo Emprestimo</h3><button onClick={() => setShowLoanModal(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div>
+        <div className="p-5 space-y-4">
+          <div><label className="label">Livro *</label><select className="input" value={loanForm.bookId} onChange={slf('bookId')}><option value="">Selecione um livro</option>{availableBooks.map((b: any) => <option key={b.id} value={b.id}>{b.title} ({b.available} disp.)</option>)}</select></div>
+          <div><label className="label">Nome do aluno</label><input className="input" value={loanForm.studentName} onChange={slf('studentName')} placeholder="Nome do aluno (opcional)" /></div>
+          <div><label className="label">Data de devolucao *</label><input className="input" type="date" value={loanForm.dueDate} onChange={slf('dueDate')} /></div>
+        </div>
+        <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowLoanModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={saveLoan} className="btn-primary flex-1">Registrar Emprestimo</button></div>
       </div></div>)}
     </div>
   );

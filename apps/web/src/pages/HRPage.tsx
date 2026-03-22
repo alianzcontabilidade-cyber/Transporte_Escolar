@@ -32,8 +32,10 @@ export default function HRPage() {
   const { mutate: updateDept } = useMutation(api.departments.update);
   const { mutate: deleteDept } = useMutation(api.departments.delete);
   const { mutate: createAlloc } = useMutation(api.staffAllocations.create);
+  const { mutate: updateAlloc } = useMutation(api.staffAllocations.update);
   const { mutate: deleteAlloc } = useMutation(api.staffAllocations.delete);
   const { mutate: createEval } = useMutation(api.staffEvaluations.create);
+  const { mutate: updateEval } = useMutation(api.staffEvaluations.update);
   const { mutate: deleteEval } = useMutation(api.staffEvaluations.delete);
 
   const allPos = (posData as any) || [];
@@ -65,15 +67,28 @@ export default function HRPage() {
   };
 
   const openNewAlloc = () => { setForm({ userId: '', schoolId: '', positionId: '', startDate: new Date().toISOString().split('T')[0], workload: '40' }); setEditId(null); setFormErr(''); setShowModal(true); };
+  const openEditAlloc = (a: any) => { setForm({ userId: String(a.userId || ''), schoolId: a.schoolId ? String(a.schoolId) : '', positionId: a.positionId ? String(a.positionId) : '', startDate: fmtDate(a.startDate), endDate: fmtDate(a.endDate), workload: String(a.workload || 40), status: a.status || 'active', notes: a.notes || '' }); setEditId(a.id); setFormErr(''); setShowModal(true); };
   const saveAlloc = () => {
     if (!form.userId || !form.startDate) { setFormErr('Servidor e data obrigatórios'); return; }
-    createAlloc({ municipalityId: mid, userId: parseInt(form.userId), schoolId: form.schoolId ? parseInt(form.schoolId) : undefined, positionId: form.positionId ? parseInt(form.positionId) : undefined, startDate: form.startDate, workload: parseInt(form.workload) || 40 }, { onSuccess: () => { refetchAlloc(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') });
+    const cb = { onSuccess: () => { refetchAlloc(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') };
+    if (editId) {
+      updateAlloc({ id: editId, schoolId: form.schoolId ? parseInt(form.schoolId) : undefined, positionId: form.positionId ? parseInt(form.positionId) : undefined, startDate: form.startDate, endDate: form.endDate || undefined, workload: parseInt(form.workload) || 40, status: form.status || undefined, notes: form.notes || undefined }, cb);
+    } else {
+      createAlloc({ municipalityId: mid, userId: parseInt(form.userId), schoolId: form.schoolId ? parseInt(form.schoolId) : undefined, positionId: form.positionId ? parseInt(form.positionId) : undefined, startDate: form.startDate, workload: parseInt(form.workload) || 40 }, cb);
+    }
   };
 
   const openNewEval = () => { setForm({ userId: '', period: new Date().getFullYear().toString(), punctuality: '', productivity: '', teamwork: '', initiative: '', communication: '', strengths: '', improvements: '', goals: '' }); setEditId(null); setFormErr(''); setShowModal(true); };
+  const openEditEval = (e: any) => { setForm({ userId: String(e.userId || ''), period: e.period || '', punctuality: e.punctuality != null ? String(e.punctuality) : '', productivity: e.productivity != null ? String(e.productivity) : '', teamwork: e.teamwork != null ? String(e.teamwork) : '', initiative: e.initiative != null ? String(e.initiative) : '', communication: e.communication != null ? String(e.communication) : '', strengths: e.strengths || '', improvements: e.improvements || '', goals: e.goals || '' }); setEditId(e.id); setFormErr(''); setShowModal(true); };
   const saveEval = () => {
     if (!form.userId || !form.period) { setFormErr('Servidor e período obrigatórios'); return; }
-    createEval({ municipalityId: mid, userId: parseInt(form.userId), period: form.period, punctuality: form.punctuality ? parseInt(form.punctuality) : undefined, productivity: form.productivity ? parseInt(form.productivity) : undefined, teamwork: form.teamwork ? parseInt(form.teamwork) : undefined, initiative: form.initiative ? parseInt(form.initiative) : undefined, communication: form.communication ? parseInt(form.communication) : undefined, strengths: form.strengths || undefined, improvements: form.improvements || undefined, goals: form.goals || undefined }, { onSuccess: () => { refetchEval(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') });
+    const evalPayload = { period: form.period, punctuality: form.punctuality ? parseInt(form.punctuality) : undefined, productivity: form.productivity ? parseInt(form.productivity) : undefined, teamwork: form.teamwork ? parseInt(form.teamwork) : undefined, initiative: form.initiative ? parseInt(form.initiative) : undefined, communication: form.communication ? parseInt(form.communication) : undefined, strengths: form.strengths || undefined, improvements: form.improvements || undefined, goals: form.goals || undefined };
+    const cb = { onSuccess: () => { refetchEval(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') };
+    if (editId) {
+      updateEval({ id: editId, ...evalPayload }, cb);
+    } else {
+      createEval({ municipalityId: mid, userId: parseInt(form.userId), ...evalPayload }, cb);
+    }
   };
 
   const doDelete = () => {
@@ -131,7 +146,7 @@ export default function HRPage() {
             <td className="px-4 py-3 text-gray-500">{a.workload}h/sem</td>
             <td className="px-4 py-3 text-gray-500">{a.startDate ? new Date(a.startDate).toLocaleDateString('pt-BR') : '—'}</td>
             <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full ${a.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{ALLOC_STATUS[a.status] || a.status}</span></td>
-            <td className="px-4 py-3"><button onClick={() => setConfirmDelete(a)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></td>
+            <td className="px-4 py-3"><div className="flex gap-1"><button onClick={() => { setTab('allocations'); openEditAlloc(a); }} className="p-1.5 text-gray-400 hover:text-primary-500 rounded-lg"><Pencil size={14} /></button><button onClick={() => setConfirmDelete(a)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></div></td>
           </tr>
         ))}{!allAlloc.length && <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">Nenhuma lotacao</td></tr>}</tbody></table></div>
       )}
@@ -142,7 +157,7 @@ export default function HRPage() {
           <div key={e.id} className="card">
             <div className="flex items-center justify-between mb-2">
               <div><p className="font-semibold text-gray-800">{e.userName}</p><p className="text-xs text-gray-500">Periodo: {e.period} | Avaliador: {e.evaluatorName || '—'}</p></div>
-              <div className="flex items-center gap-2">{e.overallScore && <span className="text-lg font-bold text-primary-600">{parseFloat(e.overallScore).toFixed(1)}</span>}<button onClick={() => setConfirmDelete(e)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></div>
+              <div className="flex items-center gap-2">{e.overallScore && <span className="text-lg font-bold text-primary-600">{parseFloat(e.overallScore).toFixed(1)}</span>}<button onClick={() => { setTab('evaluations'); openEditEval(e); }} className="p-1.5 text-gray-400 hover:text-primary-500 rounded-lg"><Pencil size={14} /></button><button onClick={() => setConfirmDelete(e)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></div>
             </div>
             <div className="grid grid-cols-5 gap-2 mt-2">{['punctuality','productivity','teamwork','initiative','communication'].map(k => (
               <div key={k} className="text-center p-2 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400 capitalize">{k === 'punctuality' ? 'Pontualidade' : k === 'productivity' ? 'Produtividade' : k === 'teamwork' ? 'Trabalho em equipe' : k === 'initiative' ? 'Iniciativa' : 'Comunicacao'}</p><p className="font-bold text-gray-700">{(e as any)[k] || '—'}</p></div>
@@ -171,11 +186,13 @@ export default function HRPage() {
             <div><label className="label">Descricao</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
           </div>)}
           {tab === 'allocations' && (<div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="label">Servidor *</label><select className="input" value={form.userId || ''} onChange={sf('userId')}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}</select></div>
+            <div className="col-span-2"><label className="label">Servidor *</label><select className="input" value={form.userId || ''} onChange={sf('userId')} disabled={!!editId}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}</select></div>
             <div><label className="label">Escola/Local</label><select className="input" value={form.schoolId || ''} onChange={sf('schoolId')}><option value="">Selecione</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
             <div><label className="label">Cargo</label><select className="input" value={form.positionId || ''} onChange={sf('positionId')}><option value="">Selecione</option>{allPos.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
             <div><label className="label">Data inicio *</label><input className="input" type="date" value={form.startDate || ''} onChange={sf('startDate')} /></div>
             <div><label className="label">Carga horaria (h/sem)</label><input className="input" type="number" value={form.workload || '40'} onChange={sf('workload')} /></div>
+            {editId && <div><label className="label">Data fim</label><input className="input" type="date" value={form.endDate || ''} onChange={sf('endDate')} /></div>}
+            {editId && <div><label className="label">Status</label><select className="input" value={form.status || 'active'} onChange={sf('status')}>{Object.entries(ALLOC_STATUS).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>}
           </div>)}
           {tab === 'evaluations' && (<div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

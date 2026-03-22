@@ -26,7 +26,9 @@ export default function FinancialPage() {
   const { mutate: updateAcct } = useMutation(api.financialAccounts.update);
   const { mutate: deleteAcct } = useMutation(api.financialAccounts.delete);
   const { mutate: createTxn } = useMutation(api.financialTransactions.create);
+  const { mutate: updateTxn } = useMutation(api.financialTransactions.update);
   const { mutate: deleteTxn } = useMutation(api.financialTransactions.delete);
+  const [editTxnId, setEditTxnId] = useState<number | null>(null);
 
   const [banks, setBanks] = useState<any[]>([]);
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
@@ -65,7 +67,8 @@ export default function FinancialPage() {
   };
 
   const openNewAcct = () => { setForm({ name: '', type: 'proprio', bankName: '', agency: '', accountNumber: '', balance: '' }); setEditId(null); setFormErr(''); setShowModal(true); };
-  const openNewTxn = () => { setForm({ accountId: '', type: 'despesa', category: '', description: '', value: '', date: new Date().toISOString().split('T')[0], documentNumber: '', supplier: '' }); setEditId(null); setFormErr(''); setShowModal(true); };
+  const openNewTxn = () => { setForm({ accountId: '', type: 'despesa', category: '', description: '', value: '', date: new Date().toISOString().split('T')[0], documentNumber: '', supplier: '' }); setEditTxnId(null); setFormErr(''); setShowModal(true); };
+  const openEditTxn = (t: any) => { setForm({ accountId: String(t.accountId), type: t.type, category: t.category || '', description: t.description || '', value: String(parseFloat(t.value) || ''), date: t.date ? new Date(t.date).toISOString().split('T')[0] : '', documentNumber: t.documentNumber || '', supplier: t.supplier || '' }); setEditTxnId(t.id); setFormErr(''); setShowModal(true); };
 
   const save = () => {
     if (tab === 'accounts') {
@@ -75,8 +78,9 @@ export default function FinancialPage() {
       editId ? updateAcct({ id: editId, ...p }, cb) : createAcct(p, cb);
     } else {
       if (!form.accountId || !form.value || !form.category) { setFormErr('Conta, valor e categoria obrigatorios'); return; }
-      createTxn({ municipalityId: mid, accountId: parseInt(form.accountId), type: form.type, category: form.category, description: form.description || undefined, value: parseFloat(form.value), date: form.date, documentNumber: form.documentNumber || undefined, supplier: form.supplier || undefined },
-        { onSuccess: () => { rTxns(); rAccts(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') });
+      const txnPayload = { accountId: parseInt(form.accountId), type: form.type, category: form.category, description: form.description || undefined, value: parseFloat(form.value), date: form.date, documentNumber: form.documentNumber || undefined, supplier: form.supplier || undefined };
+      const cb = { onSuccess: () => { rTxns(); rAccts(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') };
+      editTxnId ? updateTxn({ id: editTxnId, ...txnPayload }, cb) : createTxn({ municipalityId: mid, ...txnPayload }, cb);
     }
   };
 
@@ -128,7 +132,7 @@ export default function FinancialPage() {
             <td className="px-4 py-3 text-gray-700">{t.category}</td>
             <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{t.description || '—'}</td>
             <td className={`px-4 py-3 font-bold ${t.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'receita' ? '+' : '-'}{fmtMoney(parseFloat(t.value) || 0)}</td>
-            <td className="px-4 py-3"><button onClick={() => setConfirmDelete(t)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></td>
+            <td className="px-4 py-3 flex gap-1"><button onClick={() => openEditTxn(t)} className="p-1.5 text-gray-400 hover:text-primary-500 rounded-lg"><Pencil size={14} /></button><button onClick={() => setConfirmDelete(t)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></td>
           </tr>
         ))}{!allTxns.length && <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">Nenhuma transacao</td></tr>}</tbody></table></div>
       )}
@@ -136,7 +140,7 @@ export default function FinancialPage() {
       {confirmDelete && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><Trash2 size={28} className="text-red-400 mx-auto mb-3" /><h3 className="font-bold mb-2">Excluir?</h3><div className="flex gap-3 mt-5"><button onClick={() => setConfirmDelete(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={doDelete} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}
 
       {showModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold">{tab === 'accounts' ? (editId ? 'Editar Conta' : 'Nova Conta') : 'Nova Transacao'}</h3><button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div>
+        <div className="flex items-center justify-between p-5 border-b"><h3 className="text-lg font-semibold">{tab === 'accounts' ? (editId ? 'Editar Conta' : 'Nova Conta') : (editTxnId ? 'Editar Transação' : 'Nova Transação')}</h3><button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div>
         <div className="p-5 space-y-4">
           {formErr && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{formErr}</div>}
           {tab === 'accounts' ? (
@@ -163,6 +167,8 @@ export default function FinancialPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={save} className="btn-primary flex-1">Salvar</button></div>
       </div></div>)}
+
+      <div className="mt-4"><ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} /></div>
 
       <ExportModal open={!!finExportModal} onClose={() => setFinExportModal(null)} onExport={(fmt: ExportFormat) => { if (finExportModal?.html) { handleExport(fmt, [], finExportModal.html, finExportModal.filename); } setFinExportModal(null); }} title="Exportar Relatorio Financeiro" />
     </div>

@@ -16,6 +16,7 @@ export default function StudentHistoryPage() {
   const [selStudent, setSelStudent] = useState('');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
+  const [gradesMap, setGradesMap] = useState<Record<string, any[]>>({});
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selStudent ? api.enrollments.list({ municipalityId: mid, studentId: parseInt(selStudent) }) : Promise.resolve([]), [mid, selStudent]);
@@ -33,6 +34,33 @@ export default function StudentHistoryPage() {
   const allStudents = (studentsData as any) || [];
   const allEnrollments = (enrollmentsData as any) || [];
   const allYears = (yearsData as any) || [];
+
+  // Carregar notas por turma quando as matrículas mudarem
+  useEffect(() => {
+    if (!selStudent || !allEnrollments.length) { setGradesMap({}); return; }
+    const loadGrades = async () => {
+      const map: Record<string, any[]> = {};
+      for (const enr of allEnrollments) {
+        if (!enr.classId) continue;
+        try {
+          const reportCard = await api.studentGrades.reportCard({ classId: enr.classId, studentId: parseInt(selStudent) });
+          const subjects = (reportCard as any) || [];
+          const grades = subjects.map((s: any) => {
+            const bimAvg = (bim: string) => {
+              const gs = s.bimesters[bim] || [];
+              if (!gs.length) return null;
+              const scores = gs.filter((g: any) => g.score !== null).map((g: any) => g.score);
+              return scores.length ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null;
+            };
+            return { subject: s.subjectName, b1: bimAvg('1'), b2: bimAvg('2'), b3: bimAvg('3'), b4: bimAvg('4') };
+          });
+          map[String(enr.classId)] = grades;
+        } catch {}
+      }
+      setGradesMap(map);
+    };
+    loadGrades();
+  }, [selStudent, allEnrollments.length]);
 
   const filtered = allStudents.filter((s: any) => {
     if (!search) return true;
@@ -52,11 +80,13 @@ export default function StudentHistoryPage() {
 
     const history = allEnrollments.map((e: any) => {
       const year = allYears.find((y: any) => y.id === e.academicYearId);
+      const classGrades = gradesMap[String(e.classId)] || [];
       return {
         year: year?.year || 0,
-        grade: e.className || year?.name || '--',
-        school: student.school || school?.name || '--',
+        grade: e.classFullName || e.className || e.studentGrade || year?.name || '--',
+        school: e.schoolId ? (allSchools.find((s: any) => s.id === e.schoolId)?.name || student.school || school?.name || '--') : (student.school || school?.name || '--'),
         result: STATUS_LABELS[e.status] || e.status || '--',
+        grades: classGrades,
       };
     });
 

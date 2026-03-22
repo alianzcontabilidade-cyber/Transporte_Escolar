@@ -223,22 +223,29 @@ app.post('/api/pdf/generate', async (req, res) => {
             ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://transporteescolar-production.up.railway.app';
         const verifyUrl = `${baseUrl}/verificar/${verificationCode}`;
         const qrDataURL = await (0, pdfService_1.generateQRCodeDataURL)(verifyUrl);
-        // Injetar QR Code no HTML
-        let htmlWithQR = (0, pdfService_1.injectQRCodeIntoHTML)(html, qrDataURL, verificationCode, verifyUrl);
+        // NÃO injetar QR no corpo do HTML - vai no rodapé de todas as páginas
+        let htmlClean = html;
         // Extrair rodapé institucional do HTML para colocar em todas as páginas
         let footerContent = '';
-        const footerMatch = htmlWithQR.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>\s*<\/div>/);
+        const footerMatch = htmlClean.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>\s*<\/div>/);
         if (footerMatch) {
             footerContent = footerMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-            // Remover o footer do HTML (o Puppeteer vai colocar em todas as páginas)
-            htmlWithQR = htmlWithQR.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>\s*(<\/body>)/, '$1');
+            // Remover o footer do HTML
+            htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>\s*(<\/body>)/, '$1');
         }
-        const footerTemplate = `<div style="width:100%;font-size:7px;color:#666;text-align:center;padding:3px 15mm;border-top:1px solid #ccc;font-family:Arial,sans-serif;line-height:1.4">
-      <div>${footerContent || 'NetEscol - Sistema de Gestão Escolar Municipal'}</div>
-      <div style="color:#999;font-size:6px">Página <span class="pageNumber"></span> de <span class="totalPages"></span> | Código: ${verificationCode}</div>
+        // Rodapé com QR Code + informações institucionais em TODAS as páginas
+        const footerTemplate = `<div style="width:100%;font-size:7px;color:#555;padding:2px 12mm;border-top:1px solid #ccc;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="flex:1;text-align:center;line-height:1.3">
+        <div>${footerContent || 'NetEscol - Sistema de Gestão Escolar Municipal'}</div>
+        <div style="color:#999;font-size:6px;margin-top:1px">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>
+      </div>
+      <div style="text-align:center;flex-shrink:0">
+        <img src="${qrDataURL}" style="width:40px;height:40px"/>
+        <div style="font-size:5px;color:#1B3A5C;font-weight:bold">${verificationCode}</div>
+      </div>
     </div>`;
         // Gerar PDF com Puppeteer
-        const pdfBuffer = await (0, pdfService_1.generatePDF)(htmlWithQR, {
+        const pdfBuffer = await (0, pdfService_1.generatePDF)(htmlClean, {
             orientation: orientation || 'portrait',
             displayHeaderFooter: true,
             footerTemplate,

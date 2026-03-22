@@ -91,7 +91,7 @@ export async function generatePDF(html: string, options?: PDFOptions): Promise<B
     const pdfBuffer = await page.pdf({
       format: (options?.format || 'A4') as any,
       landscape: isLandscape,
-      margin: showFooter ? { ...margins, bottom: '20mm' } : margins,
+      margin: showFooter ? { ...margins, bottom: '22mm' } : margins,
       printBackground: true,
       displayHeaderFooter: showFooter,
       headerTemplate: options?.headerTemplate || '<span></span>',

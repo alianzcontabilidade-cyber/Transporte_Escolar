@@ -252,7 +252,7 @@ const fs = require('fs');
 const finalFrontendPath = fs.existsSync(path.resolve(__dirname, '../public/index.html'))
   ? path.resolve(__dirname, '../public')
   : path.resolve(__dirname, '../../apps/web/dist');
-app.use(express.static(finalFrontendPath));
+app.use(express.static(finalFrontendPath, { index: false }));
 // Catch-all: serve index.html ONLY for non-API routes (SPA routing)
 app.get('*', (_req, res) => {
   // Never serve HTML for API routes

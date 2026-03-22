@@ -161,6 +161,49 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
+// ============================================
+// PDF GENERATION ENDPOINT (REST - binary response)
+// ============================================
+import { generatePDF, isPuppeteerAvailable } from './services/pdfService';
+import { verify as jwtVerify } from 'jsonwebtoken';
+
+app.post('/api/pdf/generate', async (req, res) => {
+  try {
+    // Authenticate
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Não autenticado' });
+    try {
+      const JWT = process.env.JWT_SECRET || '';
+      jwtVerify(token, JWT);
+    } catch { return res.status(401).json({ error: 'Token inválido' }); }
+
+    const { html, orientation, filename } = req.body;
+    if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
+
+    const available = await isPuppeteerAvailable();
+    if (!available) return res.status(503).json({ error: 'Serviço de PDF indisponível' });
+
+    const pdfBuffer = await generatePDF(html, {
+      orientation: orientation || 'portrait',
+    });
+
+    const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_') + '.pdf';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (e: any) {
+    console.error('Erro ao gerar PDF:', e.message);
+    if (process.env.SENTRY_DSN) Sentry.captureException(e);
+    res.status(500).json({ error: 'Erro ao gerar PDF: ' + (e.message || 'desconhecido') });
+  }
+});
+
+app.get('/api/pdf/status', async (_req, res) => {
+  const available = await isPuppeteerAvailable();
+  res.json({ available, engine: 'puppeteer' });
+});
+
 // tRPC
 app.use('/api/trpc', trpcExpress.createExpressMiddleware({
   router: appRouter,

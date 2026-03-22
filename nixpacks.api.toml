@@ -1,11 +1,15 @@
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "chromium", "nss", "freetype", "harfbuzz"]
 
 [phases.install]
 cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api && cp -r apps/web/dist/* packages/api/public/"]
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/nix/store/chromium/bin/chromium"
 
 [start]
 cmd = "cd packages/api && npx tsx src/migrate.ts && node dist/index.js"

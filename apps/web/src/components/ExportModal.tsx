@@ -146,18 +146,45 @@ export function printHTML(html: string) {
   }
 }
 
-export function exportToPDF(html: string, filename: string, download: boolean = false) {
-  // Use openReportAsPDF for the viewer with zoom controls
-  import('../lib/reportTemplate').then(({ openReportAsPDF, printReportHTML }) => {
-    if (download) {
-      // Download = open and trigger print dialog (user can save as PDF from print)
-      const pdfHTML = html.replace('</head>', '<style>@media print{@page{margin:10mm;size:A4}body{margin:0;padding:15px}.no-print{display:none!important}}</style></head>');
-      const w = window.open('', '_blank');
-      if (w) { w.document.write(pdfHTML); w.document.close(); setTimeout(() => w.print(), 500); }
-    } else {
-      // View = open in viewer with zoom, PDF download, print, Word buttons
-      openReportAsPDF(html, filename);
+export async function exportToPDF(html: string, filename: string, download: boolean = false) {
+  const API_URL = import.meta.env.VITE_API_URL || '';
+  const token = localStorage.getItem('token');
+  const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_');
+
+  // Tentar gerar PDF via servidor (Puppeteer)
+  if (token) {
+    try {
+      const res = await fetch(`${API_URL}/api/pdf/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ html, orientation: 'portrait', filename: safeName }),
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        if (download) {
+          // Download direto
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = safeName + '.pdf';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } else {
+          // Abrir em nova aba para visualização
+          window.open(URL.createObjectURL(blob), '_blank');
+        }
+        return;
+      }
+      // Se o servidor retornou erro, cair no fallback
+      console.warn('PDF server indisponível, usando fallback');
+    } catch {
+      console.warn('PDF server não acessível, usando fallback');
     }
+  }
+
+  // Fallback: abrir HTML com toolbar para imprimir
+  import('../lib/reportTemplate').then(({ openReportAsPDF }) => {
+    openReportAsPDF(html, filename);
   });
 }
 

@@ -1466,6 +1466,30 @@ export type Message = typeof messages.$inferSelect;
 export type WaitingListEntry = typeof waitingList.$inferSelect;
 
 // ============================================
+// TABELA: DOCUMENTOS GERADOS (Verificação + QR Code)
+// ============================================
+export const documents = mysqlTable("documents", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  verificationCode: varchar("verificationCode", { length: 20 }).notNull().unique(),
+  type: varchar("type", { length: 100 }).notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  studentId: int("studentId").references(() => students.id),
+  schoolId: int("schoolId").references(() => schools.id),
+  generatedById: int("generatedById").notNull().references(() => users.id),
+  generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+  pdfHash: varchar("pdfHash", { length: 64 }).notNull(),
+  pdfSize: int("pdfSize"),
+  status: mysqlEnum("docStatus", ["valid", "revoked", "expired"]).default("valid").notNull(),
+  revokedAt: timestamp("revokedAt"),
+  revokedById: int("revokedById"),
+  revokedReason: text("revokedReason"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
 // TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS
 // ============================================
 export const formFieldConfigs = mysqlTable("form_field_configs", {

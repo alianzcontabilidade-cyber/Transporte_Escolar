@@ -108,6 +108,53 @@ export async function isPuppeteerAvailable(): Promise<{ available: boolean; erro
   }
 }
 
+// ============================================
+// QR CODE + DOCUMENT REGISTRATION
+// ============================================
+import QRCode from 'qrcode';
+import { createHash, randomBytes } from 'crypto';
+
+export function generateVerificationCode(): string {
+  const year = new Date().getFullYear();
+  const rand = randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
+  return `NE-${year}-${rand}`;
+}
+
+export function computePdfHash(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+export async function generateQRCodeDataURL(url: string): Promise<string> {
+  return QRCode.toDataURL(url, {
+    width: 80,
+    margin: 1,
+    color: { dark: '#1B3A5C', light: '#ffffff' },
+  });
+}
+
+export function injectQRCodeIntoHTML(html: string, qrDataURL: string, verificationCode: string, verifyUrl: string): string {
+  const qrBlock = `
+    <div style="page-break-inside:avoid;margin-top:20px;padding:10px 0;border-top:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;gap:15px">
+      <div style="flex:1;font-size:7px;color:#888;line-height:1.4">
+        <div style="font-weight:bold;color:#1B3A5C;font-size:8px;margin-bottom:2px">VERIFICAÇÃO DE AUTENTICIDADE</div>
+        Documento gerado eletronicamente pelo sistema NetEscol.<br>
+        Código de verificação: <b style="color:#1B3A5C">${verificationCode}</b><br>
+        Verifique em: <span style="color:#2DB5B0">${verifyUrl}</span><br>
+        Conforme Lei nº 14.063/2020 (assinatura eletrônica).
+      </div>
+      <div style="text-align:center;flex-shrink:0">
+        <img src="${qrDataURL}" style="width:70px;height:70px" alt="QR Code"/>
+        <div style="font-size:6px;color:#999;margin-top:2px">${verificationCode}</div>
+      </div>
+    </div>`;
+
+  // Injetar antes do fechamento do </body> ou antes do footer
+  if (html.includes('report-footer-bar')) {
+    return html.replace(/<div class="report-footer-bar"/, qrBlock + '<div class="report-footer-bar"');
+  }
+  return html.replace('</body>', qrBlock + '</body>');
+}
+
 // Graceful shutdown
 export async function closeBrowser(): Promise<void> {
   if (browser) {

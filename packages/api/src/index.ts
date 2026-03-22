@@ -12,8 +12,9 @@ import { createContext } from './middleware/context';
 import { setSocketIO } from './socketInstance';
 import { db } from './db/index';
 import { sql } from 'drizzle-orm';
-import { generatePDF, isPuppeteerAvailable } from './services/pdfService';
+import { generatePDF, isPuppeteerAvailable, generateVerificationCode, computePdfHash, generateQRCodeDataURL, injectQRCodeIntoHTML } from './services/pdfService';
 import { verify as jwtVerify } from 'jsonwebtoken';
+import { documents } from './db/schema';
 
 dotenv.config();
 
@@ -171,30 +172,100 @@ app.post('/api/pdf/generate', async (req, res) => {
     // Authenticate
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Não autenticado' });
+    let tokenData: any;
     try {
       const JWT = process.env.JWT_SECRET || '';
-      jwtVerify(token, JWT);
+      tokenData = jwtVerify(token, JWT) as any;
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
-    const { html, orientation, filename } = req.body;
+    const { html, orientation, filename, docType, docTitle, studentId, schoolId } = req.body;
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();
     if (!pdfStatus.available) return res.status(503).json({ error: 'Serviço de PDF indisponível: ' + (pdfStatus.error || 'desconhecido') });
 
-    const pdfBuffer = await generatePDF(html, {
+    // Gerar código de verificação e QR Code
+    const verificationCode = generateVerificationCode();
+    const baseUrl = process.env.WEB_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://transporteescolar-production.up.railway.app';
+    const verifyUrl = `${baseUrl}/verificar/${verificationCode}`;
+    const qrDataURL = await generateQRCodeDataURL(verifyUrl);
+
+    // Injetar QR Code no HTML
+    const htmlWithQR = injectQRCodeIntoHTML(html, qrDataURL, verificationCode, verifyUrl);
+
+    // Gerar PDF com Puppeteer
+    const pdfBuffer = await generatePDF(htmlWithQR, {
       orientation: orientation || 'portrait',
     });
+
+    // Registrar documento no banco
+    const pdfHash = computePdfHash(pdfBuffer);
+    try {
+      await db.insert(documents).values({
+        municipalityId: tokenData.municipalityId || 1,
+        verificationCode,
+        type: docType || 'documento',
+        title: docTitle || filename || 'Documento',
+        studentId: studentId || null,
+        schoolId: schoolId || null,
+        generatedById: tokenData.userId || 1,
+        pdfHash,
+        pdfSize: pdfBuffer.length,
+      } as any);
+    } catch (dbErr: any) {
+      console.warn('Aviso: não foi possível registrar documento:', dbErr.message);
+    }
 
     const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_') + '.pdf';
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('X-Verification-Code', verificationCode);
     res.send(pdfBuffer);
   } catch (e: any) {
     console.error('Erro ao gerar PDF:', e.message);
     if (process.env.SENTRY_DSN) Sentry.captureException(e);
     res.status(500).json({ error: 'Erro ao gerar PDF: ' + (e.message || 'desconhecido') });
+  }
+});
+
+// Verificação pública de documento (sem autenticação)
+app.get('/api/documents/verify/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const [doc] = await db.select({
+      id: documents.id,
+      verificationCode: documents.verificationCode,
+      type: documents.type,
+      title: documents.title,
+      status: documents.status,
+      generatedAt: documents.generatedAt,
+      pdfHash: documents.pdfHash,
+      pdfSize: documents.pdfSize,
+    }).from(documents).where(sql`${documents.verificationCode} = ${code}`).limit(1);
+
+    if (!doc) return res.json({ valid: false, message: 'Documento não encontrado' });
+
+    // Buscar nome do gerador e município
+    const { users: usersTable, municipalities } = await import('./db/schema');
+    const [generator] = await db.select({ name: usersTable.name }).from(usersTable).where(sql`${usersTable.id} = (SELECT generatedById FROM documents WHERE verificationCode = ${code})`).limit(1);
+    const [mun] = await db.select({ name: municipalities.name }).from(municipalities).where(sql`${municipalities.id} = (SELECT municipalityId FROM documents WHERE verificationCode = ${code})`).limit(1);
+
+    res.json({
+      valid: doc.status === 'valid',
+      code: doc.verificationCode,
+      type: doc.type,
+      title: doc.title,
+      status: doc.status,
+      generatedAt: doc.generatedAt,
+      generatedBy: generator?.name || 'Usuário do sistema',
+      municipality: mun?.name || '',
+      pdfHash: doc.pdfHash,
+      pdfSize: doc.pdfSize,
+    });
+  } catch (e: any) {
+    res.status(500).json({ valid: false, message: 'Erro ao verificar: ' + e.message });
   }
 });
 

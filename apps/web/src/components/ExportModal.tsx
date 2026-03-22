@@ -157,7 +157,7 @@ export async function exportToPDF(html: string, filename: string, download: bool
       const res = await fetch(`${API_URL}/api/pdf/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ html, orientation: 'portrait', filename: safeName }),
+        body: JSON.stringify({ html, orientation: 'portrait', filename: safeName, docType: safeName, docTitle: filename }),
       });
 
       if (res.ok) {

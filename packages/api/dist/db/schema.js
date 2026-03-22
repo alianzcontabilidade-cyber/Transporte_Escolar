@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
-exports.formFieldConfigs = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
+exports.formFieldConfigs = exports.documents = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -1204,6 +1204,29 @@ exports.waitingList = (0, mysql_core_1.mysqlTable)("waiting_list", {
     notes: (0, mysql_core_1.text)("notes"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: DOCUMENTOS GERADOS (Verificação + QR Code)
+// ============================================
+exports.documents = (0, mysql_core_1.mysqlTable)("documents", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    verificationCode: (0, mysql_core_1.varchar)("verificationCode", { length: 20 }).notNull().unique(),
+    type: (0, mysql_core_1.varchar)("type", { length: 100 }).notNull(),
+    title: (0, mysql_core_1.varchar)("title", { length: 500 }).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    studentId: (0, mysql_core_1.int)("studentId").references(() => exports.students.id),
+    schoolId: (0, mysql_core_1.int)("schoolId").references(() => exports.schools.id),
+    generatedById: (0, mysql_core_1.int)("generatedById").notNull().references(() => exports.users.id),
+    generatedAt: (0, mysql_core_1.timestamp)("generatedAt").defaultNow().notNull(),
+    pdfHash: (0, mysql_core_1.varchar)("pdfHash", { length: 64 }).notNull(),
+    pdfSize: (0, mysql_core_1.int)("pdfSize"),
+    status: (0, mysql_core_1.mysqlEnum)("docStatus", ["valid", "revoked", "expired"]).default("valid").notNull(),
+    revokedAt: (0, mysql_core_1.timestamp)("revokedAt"),
+    revokedById: (0, mysql_core_1.int)("revokedById"),
+    revokedReason: (0, mysql_core_1.text)("revokedReason"),
+    expiresAt: (0, mysql_core_1.timestamp)("expiresAt"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
 });
 // ============================================
 // TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS

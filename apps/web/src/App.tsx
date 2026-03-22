@@ -91,6 +91,7 @@ const MaintenanceReportPage = lazy(() => import('./pages/MaintenanceReportPage')
 const HRReportPage = lazy(() => import('./pages/HRReportPage'));
 const AssetReportPage = lazy(() => import('./pages/AssetReportPage'));
 const EducacensoReportPage = lazy(() => import('./pages/EducacensoReportPage'));
+const DocumentVerifyPage = lazy(() => import('./pages/DocumentVerifyPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -130,6 +131,7 @@ export default function App() {
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
       <Route path="/transparencia" element={<TransparencyPage />} />
+      <Route path="/verificar/:code" element={<Suspense fallback={<PageLoader />}><DocumentVerifyPage /></Suspense>} />
 
       <Route path="/" element={<Guard><Layout /></Guard>}>
         <Route index element={<HomeRedirect />} />

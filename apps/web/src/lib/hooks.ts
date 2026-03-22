@@ -82,12 +82,6 @@ export function useMutation<T>(fn: (input: any) => Promise<T>) {
       } else {
         // Mostrar toast de erro para o usuário
         showErrorToast(msg);
-        // Enviar para Sentry se disponível
-        try {
-          import('@sentry/react').then(Sentry => {
-            if (Sentry.isInitialized?.()) Sentry.captureException(e);
-          }).catch(() => {});
-        } catch {}
       }
     } finally {
       setLoading(false);

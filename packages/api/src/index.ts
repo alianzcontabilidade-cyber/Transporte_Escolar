@@ -97,7 +97,7 @@ const loginLimiter = rateLimit({
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+  validate: { xForwardedForHeader: false },
 });
 
 // Rate limit para registro: 3 tentativas / hora por IP
@@ -107,7 +107,7 @@ const registerLimiter = rateLimit({
   message: { error: 'Limite de cadastros atingido. Tente novamente em 1 hora.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+  validate: { xForwardedForHeader: false },
 });
 
 // Rate limit geral da API: 200 requisições / min por IP
@@ -117,7 +117,7 @@ const apiLimiter = rateLimit({
   message: { error: 'Limite de requisições atingido. Aguarde um momento.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] as string || 'unknown',
+  validate: { xForwardedForHeader: false },
 });
 
 // Aplicar rate limit por tipo de procedure tRPC

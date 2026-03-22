@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Users, Save, Printer, CheckCircle, AlertTriangle , Download } from 'lucide-react';
+import { Users, Save, Printer, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -31,6 +31,33 @@ export default function ClassCouncilPage() {
   const allClasses = (classesData as any) || [];
   const allEnrollments = (enrollmentsData as any) || [];
 
+  const saveCouncilMut = useMutation(api.classCouncil.save);
+
+  // Load council data from API
+  const loadCouncil = async (classId: string, bim: string) => {
+    if (!classId) { setNotes({}); setGeneralNotes(''); return; }
+    try {
+      const records: any[] = await api.classCouncil.list({ classId: parseInt(classId), bimester: parseInt(bim) });
+      const loaded: Record<number, { decision: string; observations: string }> = {};
+      if (records && records.length > 0) {
+        for (const r of records) {
+          loaded[r.studentId] = {
+            decision: r.decision || 'aprovado',
+            observations: r.observations || '',
+          };
+        }
+        // generalNotes comes from the first record (router returns it)
+        setGeneralNotes(records[0]?.generalNotes || '');
+      } else {
+        setGeneralNotes('');
+      }
+      setNotes(loaded);
+    } catch {
+      setNotes({});
+      setGeneralNotes('');
+    }
+  };
+
   const updateNote = (studentId: number, field: string, value: string) => {
     setNotes(prev => ({ ...prev, [studentId]: { ...(prev[studentId] || { decision: 'aprovado', observations: '' }), [field]: value } }));
     setSaved(false);
@@ -39,37 +66,37 @@ export default function ClassCouncilPage() {
   const getNote = (studentId: number) => notes[studentId] || { decision: 'aprovado', observations: '' };
 
   const saveCouncil = async () => {
-    const key = 'netescol_council_' + selClass + '_' + selBimester;
-    localStorage.setItem(key, JSON.stringify({ notes, generalNotes, date: new Date().toISOString() }));
-    setSaved(true);
+    setSaved(false);
     setDbMsg('');
     setSavingDb(true);
 
-    const statusMap: Record<string, string> = { aprovado: 'graduated', retido: 'retained' };
     try {
-      for (const e of allEnrollments) {
-        const decision = getNote(e.studentId).decision;
-        const mappedStatus = statusMap[decision];
-        if (mappedStatus) {
-          await api.enrollments.updateStatus({ id: e.id, status: mappedStatus, statusNotes: `Conselho de classe - ${BIMESTERS.find(b => b.v === selBimester)?.l || ''}` });
-        }
-        // 'recuperacao' keeps status as 'active' (student stays enrolled for recovery)
-      }
-      setDbMsg('Decisoes salvas no banco de dados com sucesso!');
+      const records = allEnrollments.map((e: any) => {
+        const n = getNote(e.studentId);
+        return {
+          studentId: e.studentId,
+          enrollmentId: e.id,
+          decision: n.decision,
+          observations: n.observations || '',
+        };
+      });
+
+      await saveCouncilMut.mutate({
+        municipalityId: mid,
+        classId: parseInt(selClass),
+        bimester: parseInt(selBimester),
+        records,
+        generalNotes,
+      });
+
+      setSaved(true);
+      setDbMsg('Conselho de classe salvo com sucesso!');
     } catch (err: any) {
-      setDbMsg('Erro ao atualizar status no banco: ' + (err?.message || 'Falha desconhecida'));
+      setDbMsg('Erro ao salvar conselho: ' + (err?.message || 'Falha desconhecida'));
     } finally {
       setSavingDb(false);
       setTimeout(() => { setSaved(false); setDbMsg(''); }, 5000);
     }
-  };
-
-  const loadCouncil = (classId: string, bim: string) => {
-    try {
-      const data = JSON.parse(localStorage.getItem('netescol_council_' + classId + '_' + bim) || '{}');
-      setNotes(data.notes || {});
-      setGeneralNotes(data.generalNotes || '');
-    } catch { setNotes({}); setGeneralNotes(''); }
   };
 
   const printCouncil = () => {
@@ -130,13 +157,13 @@ export default function ClassCouncilPage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><Users size={20} className="text-purple-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Conselho de Classe</h1><p className="text-gray-500">Registro de decisões por aluno</p></div></div>
         {selClass && allEnrollments.length > 0 && (
           <div className="flex gap-2">
-            <button onClick={saveCouncil} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
+            <button onClick={saveCouncil} disabled={savingDb} className="btn-secondary flex items-center gap-2"><Save size={16} /> {savingDb ? 'Salvando...' : 'Salvar'}</button>
             <button onClick={printCouncil} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir ATA</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
       </div>
 
-      {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle size={16} /> Conselho de classe salvo! {savingDb && '(Atualizando banco de dados...)'}</div>}
+      {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle size={16} /> Conselho de classe salvo!</div>}
       {dbMsg && <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${dbMsg.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{dbMsg.includes('Erro') ? <AlertTriangle size={16} /> : <CheckCircle size={16} />} {dbMsg}</div>}
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
@@ -183,7 +210,7 @@ export default function ClassCouncilPage() {
       ) : (
         <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para registrar o conselho de classe</p></div>
       )}
-    
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

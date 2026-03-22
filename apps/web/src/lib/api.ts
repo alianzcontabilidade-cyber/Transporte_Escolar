@@ -390,5 +390,40 @@ export const api = {
     list: (input: any) => call('formConfig.list', input, 'query'),
     save: (input: any) => call('formConfig.save', input, 'mutation'),
   },
+  studentOccurrences: {
+    list: (input: any) => call('studentOccurrences.list', input, 'query'),
+    create: (input: any) => call('studentOccurrences.create', input, 'mutation'),
+    update: (input: any) => call('studentOccurrences.update', input, 'mutation'),
+    delete: (input: any) => call('studentOccurrences.delete', input, 'mutation'),
+  },
+  events: {
+    list: (input: any) => call('events.list', input, 'query'),
+    create: (input: any) => call('events.create', input, 'mutation'),
+    update: (input: any) => call('events.update', input, 'mutation'),
+    delete: (input: any) => call('events.delete', input, 'mutation'),
+  },
+  quotations: {
+    list: (input: any) => call('quotations.list', input, 'query'),
+    getById: (input: any) => call('quotations.getById', input, 'query'),
+    create: (input: any) => call('quotations.create', input, 'mutation'),
+    update: (input: any) => call('quotations.update', input, 'mutation'),
+    delete: (input: any) => call('quotations.delete', input, 'mutation'),
+  },
+  quotationItems: {
+    list: (input: any) => call('quotationItems.list', input, 'query'),
+    create: (input: any) => call('quotationItems.create', input, 'mutation'),
+    update: (input: any) => call('quotationItems.update', input, 'mutation'),
+    delete: (input: any) => call('quotationItems.delete', input, 'mutation'),
+  },
+  classCouncil: {
+    list: (input: any) => call('classCouncil.list', input, 'query'),
+    save: (input: any) => call('classCouncil.save', input, 'mutation'),
+  },
+  vehicleInspections: {
+    list: (input: any) => call('vehicleInspections.list', input, 'query'),
+    listByVehicle: (input: any) => call('vehicleInspections.listByVehicle', input, 'query'),
+    create: (input: any) => call('vehicleInspections.create', input, 'mutation'),
+    delete: (input: any) => call('vehicleInspections.delete', input, 'mutation'),
+  },
 
 };

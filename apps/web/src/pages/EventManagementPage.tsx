@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { useQuery, useMutation } from '../lib/hooks';
+import { api } from '../lib/api';
 import { PartyPopper, Plus, X, Pencil, Trash2, Calendar, Users, MapPin, Printer, Search } from 'lucide-react';
 
 interface SchoolEvent {
@@ -26,21 +28,41 @@ export default function EventManagementPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<any>({ title: '', date: '', endDate: '', type: 'Outro', location: '', description: '', responsible: '', estimatedParticipants: '', budget: '', status: 'planejado' });
-  const [events, setEvents] = useState<SchoolEvent[]>(() => { try { return JSON.parse(localStorage.getItem('netescol_events_' + mid) || '[]'); } catch { return []; } });
 
-  const saveEvents = (e: SchoolEvent[]) => { setEvents(e); localStorage.setItem('netescol_events_' + mid, JSON.stringify(e)); };
+  const { data: eventsData, refetch } = useQuery(() => api.events.list({ municipalityId: mid }), [mid]);
+  const events: SchoolEvent[] = (eventsData as any) || [];
+
+  const { mutate: createEvent } = useMutation(api.events.create);
+  const { mutate: updateEvent } = useMutation(api.events.update);
+  const { mutate: deleteEvent } = useMutation(api.events.delete);
+
   const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
 
   const save = () => {
     if (!form.title || !form.date) return;
-    const ev: SchoolEvent = { id: editId || Date.now(), title: form.title, date: form.date, endDate: form.endDate, type: form.type, location: form.location, description: form.description, responsible: form.responsible, estimatedParticipants: parseInt(form.estimatedParticipants) || 0, budget: parseFloat(form.budget) || 0, status: form.status };
-    if (editId) saveEvents(events.map(e => e.id === editId ? ev : e));
-    else saveEvents([ev, ...events]);
+    const payload = {
+      municipalityId: mid,
+      title: form.title,
+      date: form.date,
+      endDate: form.endDate || null,
+      type: form.type,
+      location: form.location,
+      description: form.description,
+      responsible: form.responsible,
+      estimatedParticipants: parseInt(form.estimatedParticipants) || 0,
+      budget: parseFloat(form.budget) || 0,
+      status: form.status,
+    };
+    if (editId) {
+      updateEvent({ id: editId, ...payload }, { onSuccess: () => { refetch(); } });
+    } else {
+      createEvent(payload, { onSuccess: () => { refetch(); } });
+    }
     setShowModal(false); setEditId(null); setForm({ title: '', date: '', endDate: '', type: 'Outro', location: '', description: '', responsible: '', estimatedParticipants: '', budget: '', status: 'planejado' });
   };
 
   const openEdit = (ev: SchoolEvent) => { setForm({ ...ev, estimatedParticipants: String(ev.estimatedParticipants || ''), budget: String(ev.budget || '') }); setEditId(ev.id); setShowModal(true); };
-  const remove = (id: number) => saveEvents(events.filter(e => e.id !== id));
+  const remove = (id: number) => { deleteEvent({ id }, { onSuccess: () => { refetch(); } }); };
   const filtered = events.filter(e => !search || e.title.toLowerCase().includes(search.toLowerCase()) || e.type.toLowerCase().includes(search.toLowerCase()));
   const upcoming = events.filter(e => e.status !== 'concluido' && e.status !== 'cancelado' && new Date(e.date) >= new Date()).length;
 

@@ -13,7 +13,8 @@ import {
   financialAccounts, financialTransactions,
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
-  municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory
+  municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory,
+  studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -4259,6 +4260,289 @@ export const studentHistoryRouter = t.router({
 });
 
 // ============================================
+// STUDENT OCCURRENCES ROUTER
+// ============================================
+export const studentOccurrencesRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(studentOccurrences)
+        .where(eq(studentOccurrences.municipalityId, input.municipalityId))
+        .orderBy(desc(studentOccurrences.date));
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), studentId: z.number(), studentName: z.string().optional(),
+      date: z.string(), type: z.string(), description: z.string(), action: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const [r] = await db.insert(studentOccurrences).values({ ...input, date: new Date(input.date), createdById: ctx.userId }).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), date: z.string().optional(), type: z.string().optional(),
+      description: z.string().optional(), action: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, date, ...data } = input;
+      const ud: any = { ...data };
+      if (date) ud.date = new Date(date);
+      await db.update(studentOccurrences).set(ud).where(eq(studentOccurrences.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(studentOccurrences).where(eq(studentOccurrences.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// EVENTS ROUTER
+// ============================================
+export const eventsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(events)
+        .where(eq(events.municipalityId, input.municipalityId))
+        .orderBy(desc(events.date));
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), title: z.string(), date: z.string(), endDate: z.string().optional(),
+      type: z.string().optional(), location: z.string().optional(), description: z.string().optional(),
+      responsible: z.string().optional(), estimatedParticipants: z.number().optional(), budget: z.number().optional(),
+      status: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { date, endDate, budget, ...rest } = input;
+      const values: any = { ...rest, date: new Date(date), createdById: ctx.userId };
+      if (endDate) values.endDate = new Date(endDate);
+      if (budget !== undefined) values.budget = String(budget);
+      const [r] = await db.insert(events).values(values).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), title: z.string().optional(), date: z.string().optional(), endDate: z.string().optional(),
+      type: z.string().optional(), location: z.string().optional(), description: z.string().optional(),
+      responsible: z.string().optional(), estimatedParticipants: z.number().optional(), budget: z.number().optional(),
+      status: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, date, endDate, budget, ...data } = input;
+      const ud: any = { ...data };
+      if (date) ud.date = new Date(date);
+      if (endDate) ud.endDate = new Date(endDate);
+      if (budget !== undefined) ud.budget = String(budget);
+      await db.update(events).set(ud).where(eq(events.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(events).where(eq(events.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// QUOTATIONS ROUTER
+// ============================================
+export const quotationsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(quotations)
+        .where(eq(quotations.municipalityId, input.municipalityId))
+        .orderBy(desc(quotations.createdAt));
+    }),
+  getById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const [q] = await db.select().from(quotations).where(eq(quotations.id, input.id)).limit(1);
+      if (!q) throw new TRPCError({ code: 'NOT_FOUND', message: 'Cotação não encontrada' });
+      const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, input.id));
+      return { ...q, items };
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), title: z.string(),
+      supplier1Name: z.string().optional(), supplier2Name: z.string().optional(), supplier3Name: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const [r] = await db.insert(quotations).values({ ...input, createdById: ctx.userId } as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), title: z.string().optional(),
+      supplier1Name: z.string().optional(), supplier2Name: z.string().optional(), supplier3Name: z.string().optional(),
+      winnerSupplier: z.string().optional(), status: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(quotations).set(data).where(eq(quotations.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(quotationItems).where(eq(quotationItems.quotationId, input.id));
+      await db.delete(quotations).where(eq(quotations.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// QUOTATION ITEMS ROUTER
+// ============================================
+export const quotationItemsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ quotationId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(quotationItems).where(eq(quotationItems.quotationId, input.quotationId));
+    }),
+  create: adminProcedure
+    .input(z.object({
+      quotationId: z.number(), description: z.string(), unit: z.string().optional(),
+      quantity: z.number().optional(), supplier1Price: z.number().optional(),
+      supplier2Price: z.number().optional(), supplier3Price: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { supplier1Price, supplier2Price, supplier3Price, ...rest } = input;
+      const values: any = { ...rest };
+      if (supplier1Price !== undefined) values.supplier1Price = String(supplier1Price);
+      if (supplier2Price !== undefined) values.supplier2Price = String(supplier2Price);
+      if (supplier3Price !== undefined) values.supplier3Price = String(supplier3Price);
+      const [r] = await db.insert(quotationItems).values(values).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), description: z.string().optional(), unit: z.string().optional(),
+      quantity: z.number().optional(), supplier1Price: z.number().optional(),
+      supplier2Price: z.number().optional(), supplier3Price: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, supplier1Price, supplier2Price, supplier3Price, ...data } = input;
+      const ud: any = { ...data };
+      if (supplier1Price !== undefined) ud.supplier1Price = String(supplier1Price);
+      if (supplier2Price !== undefined) ud.supplier2Price = String(supplier2Price);
+      if (supplier3Price !== undefined) ud.supplier3Price = String(supplier3Price);
+      await db.update(quotationItems).set(ud).where(eq(quotationItems.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(quotationItems).where(eq(quotationItems.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// CLASS COUNCIL ROUTER
+// ============================================
+export const classCouncilRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ classId: z.number(), bimester: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(classCouncilRecords)
+        .where(and(
+          eq(classCouncilRecords.classId, input.classId),
+          eq(classCouncilRecords.bimester, input.bimester)
+        ));
+    }),
+  save: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      classId: z.number(),
+      bimester: z.number(),
+      records: z.array(z.object({
+        studentId: z.number(),
+        decision: z.string().optional(),
+        observations: z.string().optional(),
+      })),
+      generalNotes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      for (const record of input.records) {
+        const existing = await db.select().from(classCouncilRecords)
+          .where(and(
+            eq(classCouncilRecords.classId, input.classId),
+            eq(classCouncilRecords.bimester, input.bimester),
+            eq(classCouncilRecords.studentId, record.studentId)
+          )).limit(1);
+
+        if (existing.length > 0) {
+          await db.update(classCouncilRecords).set({
+            decision: record.decision,
+            observations: record.observations,
+          }).where(eq(classCouncilRecords.id, existing[0].id));
+        } else {
+          await db.insert(classCouncilRecords).values({
+            municipalityId: input.municipalityId,
+            classId: input.classId,
+            bimester: input.bimester,
+            studentId: record.studentId,
+            decision: record.decision,
+            observations: record.observations,
+            createdById: ctx.userId,
+          });
+        }
+      }
+      if (input.generalNotes !== undefined) {
+        await db.update(classes).set({ generalNotes: input.generalNotes }).where(eq(classes.id, input.classId));
+      }
+      return { success: true };
+    }),
+});
+
+// ============================================
+// VEHICLE INSPECTIONS ROUTER
+// ============================================
+export const vehicleInspectionsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(vehicleInspections)
+        .where(eq(vehicleInspections.municipalityId, input.municipalityId))
+        .orderBy(desc(vehicleInspections.inspectionDate));
+    }),
+  listByVehicle: protectedProcedure
+    .input(z.object({ vehicleId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(vehicleInspections)
+        .where(eq(vehicleInspections.vehicleId, input.vehicleId))
+        .orderBy(desc(vehicleInspections.inspectionDate))
+        .limit(1);
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), vehicleId: z.number(), inspectorName: z.string().optional(),
+      inspectionDate: z.string(), checks: z.any().optional(), observations: z.string().optional(),
+      approvedCount: z.number().optional(), rejectedCount: z.number().optional(), pendingCount: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { inspectionDate, ...rest } = input;
+      const [r] = await db.insert(vehicleInspections).values({
+        ...rest, inspectionDate: new Date(inspectionDate), createdById: ctx.userId,
+      } as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(vehicleInspections).where(eq(vehicleInspections.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -4320,6 +4604,13 @@ export const appRouter = t.router({
   studentDocuments: studentDocumentsRouter,
   // Configuração de Formulários
   formConfig: formConfigRouter,
+  // Novos Módulos
+  studentOccurrences: studentOccurrencesRouter,
+  events: eventsRouter,
+  quotations: quotationsRouter,
+  quotationItems: quotationItemsRouter,
+  classCouncil: classCouncilRouter,
+  vehicleInspections: vehicleInspectionsRouter,
 });
 
 export type AppRouter = typeof appRouter;

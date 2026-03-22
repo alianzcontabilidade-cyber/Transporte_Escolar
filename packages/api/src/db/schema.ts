@@ -8,6 +8,8 @@ import {
   boolean,
   decimal,
   json,
+  date,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
@@ -933,6 +935,7 @@ export const classes = mysqlTable("classes", {
   roomNumber: varchar("roomNumber", { length: 20 }),
   teacherUserId: int("teacherUserId").references(() => users.id),
   isActive: boolean("isActive").default(true).notNull(),
+  generalNotes: text("generalNotes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1549,3 +1552,110 @@ export const formFieldConfigs = mysqlTable("form_field_configs", {
 });
 
 export type FormFieldConfig = typeof formFieldConfigs.$inferSelect;
+
+// ============================================
+// TABELA: OCORRÊNCIAS DE ALUNOS
+// ============================================
+export const studentOccurrences = mysqlTable("student_occurrences", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  studentId: int("studentId").notNull(),
+  studentName: varchar("studentName", { length: 255 }),
+  date: date("date").notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("outro"),
+  description: text("description").notNull(),
+  action: text("action"),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: EVENTOS
+// ============================================
+export const events = mysqlTable("events", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  date: date("date").notNull(),
+  endDate: date("endDate"),
+  type: varchar("type", { length: 100 }).default("Outro"),
+  location: varchar("location", { length: 255 }),
+  description: text("description"),
+  responsible: varchar("responsible", { length: 255 }),
+  estimatedParticipants: int("estimatedParticipants").default(0),
+  budget: decimal("budget", { precision: 12, scale: 2 }).default("0"),
+  status: varchar("status", { length: 50 }).default("planejado"),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: COTAÇÕES
+// ============================================
+export const quotations = mysqlTable("quotations", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  supplier1Name: varchar("supplier1Name", { length: 255 }).default("Fornecedor 1"),
+  supplier2Name: varchar("supplier2Name", { length: 255 }).default("Fornecedor 2"),
+  supplier3Name: varchar("supplier3Name", { length: 255 }).default("Fornecedor 3"),
+  winnerSupplier: varchar("winnerSupplier", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("draft"),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: ITENS DE COTAÇÃO
+// ============================================
+export const quotationItems = mysqlTable("quotation_items", {
+  id: int("id").autoincrement().primaryKey(),
+  quotationId: int("quotationId").notNull().references(() => quotations.id),
+  description: varchar("description", { length: 255 }).notNull(),
+  unit: varchar("unit", { length: 10 }).default("un"),
+  quantity: int("quantity").default(1),
+  supplier1Price: decimal("supplier1Price", { precision: 12, scale: 2 }).default("0"),
+  supplier2Price: decimal("supplier2Price", { precision: 12, scale: 2 }).default("0"),
+  supplier3Price: decimal("supplier3Price", { precision: 12, scale: 2 }).default("0"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
+// TABELA: CONSELHO DE CLASSE
+// ============================================
+export const classCouncilRecords = mysqlTable("class_council_records", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  classId: int("classId").notNull(),
+  bimester: int("bimester").notNull().default(1),
+  studentId: int("studentId").notNull(),
+  decision: varchar("decision", { length: 30 }).default("aprovado"),
+  observations: text("observations"),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  uqCouncil: uniqueIndex("uq_council").on(table.classId, table.bimester, table.studentId),
+}));
+
+// ============================================
+// TABELA: VISTORIAS DE VEÍCULOS
+// ============================================
+export const vehicleInspections = mysqlTable("vehicle_inspections", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  vehicleId: int("vehicleId").notNull().references(() => vehicles.id),
+  inspectorName: varchar("inspectorName", { length: 255 }),
+  inspectionDate: date("inspectionDate").notNull(),
+  checks: json("checks"),
+  observations: text("observations"),
+  approvedCount: int("approvedCount").default(0),
+  rejectedCount: int("rejectedCount").default(0),
+  pendingCount: int("pendingCount").default(0),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});

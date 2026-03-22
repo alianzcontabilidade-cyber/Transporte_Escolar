@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus , Download } from 'lucide-react';
+import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus, Download, Save, History, Trash2 } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -36,6 +36,7 @@ export default function VehicleInspectionPage() {
   const [munReport, setMunReport] = useState<any>(null);
   const [checks, setChecks] = useState<Record<string, 'ok' | 'nok' | ''>>({});
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [observations, setObservations] = useState('');
@@ -45,25 +46,52 @@ export default function VehicleInspectionPage() {
   const allVehicles = (vehiclesData as any) || [];
   const vehicle = allVehicles.find((v: any) => String(v.id) === selVehicle);
 
-  // Load inspection data from localStorage when vehicle changes
-  useEffect(() => {
-    if (!selVehicle) return;
-    const stored = localStorage.getItem(`inspection_${selVehicle}`);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setChecks(parsed.checks || {});
-        setObservations(parsed.observations || '');
-        setInspector(parsed.inspector || user?.name || '');
-      } catch { /* ignore parse errors */ }
-    }
-  }, [selVehicle]);
+  // Load latest inspection from API when vehicle changes
+  const { data: inspData, refetch: refetchInsp } = useQuery(
+    () => selVehicle ? api.vehicleInspections.listByVehicle({ vehicleId: parseInt(selVehicle) }) : Promise.resolve(null),
+    [selVehicle]
+  );
 
-  // Save inspection data to localStorage when checks, observations, or inspector change
+  // Populate checks/observations/inspector from latest inspection
   useEffect(() => {
+    if (!inspData || !Array.isArray(inspData) || inspData.length === 0) return;
+    const latest = inspData[0];
+    try {
+      const parsedChecks = typeof latest.checks === 'string' ? JSON.parse(latest.checks) : latest.checks;
+      setChecks(parsedChecks || {});
+    } catch { setChecks({}); }
+    setObservations(latest.observations || '');
+    setInspector(latest.inspector || user?.name || '');
+  }, [inspData]);
+
+  // History: all inspections for this municipality
+  const { data: historyData, refetch: refetchHistory } = useQuery(
+    () => showHistory ? api.vehicleInspections.list({ municipalityId: mid }) : Promise.resolve(null),
+    [showHistory, mid]
+  );
+  const historyList: any[] = (historyData as any) || [];
+
+  const { mutate: createInspection } = useMutation(api.vehicleInspections.create);
+  const { mutate: deleteInspection } = useMutation(api.vehicleInspections.delete);
+
+  const saveInspection = () => {
     if (!selVehicle) return;
-    localStorage.setItem(`inspection_${selVehicle}`, JSON.stringify({ checks, observations, inspector }));
-  }, [selVehicle, checks, observations, inspector]);
+    createInspection({
+      municipalityId: mid,
+      vehicleId: parseInt(selVehicle),
+      checks: JSON.stringify(checks),
+      observations,
+      inspector,
+      approvalPct: pct,
+      date: new Date().toISOString().split('T')[0],
+    }, {
+      onSuccess: () => {
+        refetchInsp();
+        if (showHistory) refetchHistory();
+        alert('Vistoria salva com sucesso!');
+      },
+    });
+  };
 
   const toggle = (id: string) => setChecks(prev => ({ ...prev, [id]: prev[id] === 'ok' ? 'nok' : 'ok' }));
   const total = CHECKLIST.length;
@@ -122,7 +150,11 @@ export default function VehicleInspectionPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><ClipboardCheck size={20} className="text-orange-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Vistoria de Veículos</h1><p className="text-gray-500">Checklist de inspeção veicular</p></div></div>
-        {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+        <div className="flex gap-2">
+          {vehicle && okCount + nokCount > 0 && <><button onClick={printInspection} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Relatório</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+          {vehicle && <button onClick={saveInspection} className="btn-primary flex items-center gap-2"><Save size={16} /> Salvar Vistoria</button>}
+          <button onClick={() => setShowHistory(!showHistory)} className={`btn-secondary flex items-center gap-2 ${showHistory ? 'ring-2 ring-orange-400' : ''}`}><History size={16} /> Histórico</button>
+        </div>
       </div>
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
@@ -177,7 +209,40 @@ export default function VehicleInspectionPage() {
       ) : (
         <div className="card text-center py-16"><ClipboardCheck size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione um veículo para realizar a vistoria</p></div>
       )}
-    
+
+      {/* Historico de Vistorias */}
+      {showHistory && (
+        <div className="mt-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"><History size={20} /> Histórico de Vistorias</h2>
+          {historyList.length > 0 ? (
+            <div className="space-y-2">
+              {historyList.map((h: any) => {
+                const veh = allVehicles.find((v: any) => v.id === h.vehicleId);
+                let hChecks: Record<string, string> = {};
+                try { hChecks = typeof h.checks === 'string' ? JSON.parse(h.checks) : (h.checks || {}); } catch {}
+                const hOk = Object.values(hChecks).filter(v => v === 'ok').length;
+                const hNok = Object.values(hChecks).filter(v => v === 'nok').length;
+                return (
+                  <div key={h.id} className="card flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0"><ClipboardCheck size={16} className="text-orange-500" /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800">{veh?.plate || 'Veículo #' + h.vehicleId} {veh?.nickname ? '- ' + veh.nickname : ''}</p>
+                      <p className="text-xs text-gray-500">
+                        {h.date ? new Date(h.date).toLocaleDateString('pt-BR') : '--'} | Inspetor: {h.inspector || '--'} | {hOk} aprovado(s), {hNok} reprovado(s) | {h.approvalPct ?? '--'}%
+                      </p>
+                      {h.observations && <p className="text-xs text-gray-400 mt-0.5">{h.observations}</p>}
+                    </div>
+                    <button onClick={() => deleteInspection({ id: h.id }, { onSuccess: () => { refetchHistory(); refetchInsp(); } })} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="card text-center py-8"><p className="text-gray-400">Nenhuma vistoria registrada</p></div>
+          )}
+        </div>
+      )}
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

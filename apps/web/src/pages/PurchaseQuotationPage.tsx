@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send } from 'lucide-react';
+import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send, Save, FolderOpen, ChevronDown } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -30,6 +31,123 @@ export default function PurchaseQuotationPage() {
   const [newItem, setNewItem] = useState({ description: '', unit: 'un', quantity: 1 });
   const [importMsg, setImportMsg] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
+
+  // --- API state ---
+  const [quotationId, setQuotationId] = useState<number | null>(null);
+  const [showSavedList, setShowSavedList] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  const { data: savedQuotations, refetch: refetchQuotations } = useQuery(
+    () => mid ? api.quotations.list({ municipalityId: mid }) : Promise.resolve([]),
+    [mid]
+  );
+  const allSavedQuotations = (savedQuotations as any[]) || [];
+
+  const createQuotationMut = useMutation(api.quotations.create);
+  const updateQuotationMut = useMutation(api.quotations.update);
+  const createItemMut = useMutation(api.quotationItems.create);
+  const deleteQuotationMut = useMutation(api.quotations.delete);
+
+  // Save quotation to API
+  const saveQuotation = async () => {
+    if (!mid || items.length === 0) return;
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      let qId = quotationId;
+      if (qId) {
+        // Update existing quotation header
+        await updateQuotationMut.mutate({ id: qId, title, supplier1Name: suppliers[0], supplier2Name: suppliers[1], supplier3Name: suppliers[2] });
+        // Delete old items and re-create (simplest approach)
+        const existingItems: any[] = await api.quotationItems.list({ quotationId: qId });
+        for (const ei of existingItems) {
+          await api.quotationItems.delete({ id: ei.id });
+        }
+      } else {
+        // Create new quotation
+        const created: any = await createQuotationMut.mutate({
+          municipalityId: mid,
+          title,
+          supplier1Name: suppliers[0],
+          supplier2Name: suppliers[1],
+          supplier3Name: suppliers[2],
+        });
+        qId = created?.id;
+        if (!qId) throw new Error('Falha ao criar cotação');
+        setQuotationId(qId);
+      }
+
+      // Save each item
+      for (const item of items) {
+        await createItemMut.mutate({
+          quotationId: qId,
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          supplier1Price: item.supplier1Price,
+          supplier2Price: item.supplier2Price,
+          supplier3Price: item.supplier3Price,
+        });
+      }
+
+      setSaveMsg('Cotação salva com sucesso!');
+      refetchQuotations();
+    } catch (err: any) {
+      setSaveMsg('Erro ao salvar: ' + (err?.message || 'Falha desconhecida'));
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMsg(''), 5000);
+    }
+  };
+
+  // Load a saved quotation
+  const loadSavedQuotation = async (id: number) => {
+    try {
+      const q: any = await api.quotations.getById({ id });
+      if (!q) return;
+      setQuotationId(q.id);
+      setTitle(q.title || '');
+      setSuppliers([q.supplier1Name || 'Fornecedor 1', q.supplier2Name || 'Fornecedor 2', q.supplier3Name || 'Fornecedor 3']);
+
+      const loadedItems: any[] = await api.quotationItems.list({ quotationId: q.id });
+      setItems(
+        (loadedItems || []).map((it: any, idx: number) => ({
+          id: it.id || Date.now() + idx,
+          description: it.description || '',
+          unit: it.unit || 'un',
+          quantity: it.quantity || 1,
+          supplier1Price: parseFloat(it.supplier1Price) || 0,
+          supplier2Price: parseFloat(it.supplier2Price) || 0,
+          supplier3Price: parseFloat(it.supplier3Price) || 0,
+        }))
+      );
+      setShowSavedList(false);
+    } catch (err: any) {
+      setSaveMsg('Erro ao carregar cotação: ' + (err?.message || ''));
+      setTimeout(() => setSaveMsg(''), 5000);
+    }
+  };
+
+  // Delete a saved quotation
+  const deleteSavedQuotation = async (id: number) => {
+    if (!confirm('Excluir esta cotação salva?')) return;
+    try {
+      await deleteQuotationMut.mutate({ id });
+      if (quotationId === id) {
+        setQuotationId(null);
+      }
+      refetchQuotations();
+    } catch {}
+  };
+
+  // New blank quotation
+  const newQuotation = () => {
+    setQuotationId(null);
+    setItems([]);
+    setTitle('Cotação de Preços - ' + new Date().toLocaleDateString('pt-BR'));
+    setSuppliers(['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3']);
+  };
 
   // Exportar planilha modelo para enviar ao fornecedor
   const exportModelSheet = (supplierIndex: number) => {
@@ -147,9 +265,49 @@ export default function PurchaseQuotationPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center"><ShoppingCart size={20} className="text-sky-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Cotação de Compras</h1><p className="text-gray-500">Compare preços de até 3 fornecedores</p></div></div>
-        {items.length > 0 && <><button onClick={printQuotation} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Cotação</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button></>}
+        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center"><ShoppingCart size={20} className="text-sky-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Cotação de Compras</h1><p className="text-gray-500">Compare preços de até 3 fornecedores{quotationId ? ` (ID: ${quotationId})` : ''}</p></div></div>
+        <div className="flex gap-2">
+          <button onClick={newQuotation} className="btn-secondary flex items-center gap-2 text-sm"><Plus size={16} /> Nova Cotação</button>
+          <button onClick={() => setShowSavedList(!showSavedList)} className="btn-secondary flex items-center gap-2 text-sm"><FolderOpen size={16} /> Cotações Salvas <ChevronDown size={14} /></button>
+          {items.length > 0 && (
+            <>
+              <button onClick={saveQuotation} disabled={saving} className="btn-primary flex items-center gap-2 text-sm"><Save size={16} /> {saving ? 'Salvando...' : 'Salvar Cotação'}</button>
+              <button onClick={printQuotation} className="btn-primary flex items-center gap-2 text-sm"><Printer size={16} /> Imprimir</button>
+              <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2 text-sm"><Download size={16} /> Exportar</button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Save message */}
+      {saveMsg && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${saveMsg.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{saveMsg}</div>
+      )}
+
+      {/* Saved quotations list */}
+      {showSavedList && (
+        <div className="card mb-4">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><FolderOpen size={16} /> Cotações Salvas ({allSavedQuotations.length})</h3>
+          {allSavedQuotations.length === 0 ? (
+            <p className="text-gray-500 text-sm">Nenhuma cotação salva ainda.</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {allSavedQuotations.map((q: any) => (
+                <div key={q.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer hover:bg-gray-50 ${quotationId === q.id ? 'border-sky-300 bg-sky-50' : 'border-gray-200'}`}>
+                  <div className="flex-1" onClick={() => loadSavedQuotation(q.id)}>
+                    <p className="font-medium text-gray-800 text-sm">{q.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {q.supplier1Name} / {q.supplier2Name} / {q.supplier3Name}
+                      {q.createdAt ? ` - ${new Date(q.createdAt).toLocaleDateString('pt-BR')}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); deleteSavedQuotation(q.id); }} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
@@ -246,7 +404,7 @@ export default function PurchaseQuotationPage() {
       {items.length === 0 && (
         <div className="card text-center py-16"><ShoppingCart size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Adicione itens para começar a cotação</p></div>
       )}
-    
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

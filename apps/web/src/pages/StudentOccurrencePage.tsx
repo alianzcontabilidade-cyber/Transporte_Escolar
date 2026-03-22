@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { AlertTriangle, Plus, Search, Printer, Trash2, X , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -37,30 +37,37 @@ export default function StudentOccurrencePage() {
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [form, setForm] = useState({ studentId: '', date: new Date().toISOString().split('T')[0], type: 'indisciplina', description: '', action: '' });
-  const [occurrences, setOccurrences] = useState<Occurrence[]>(() => {
-    try { return JSON.parse(localStorage.getItem('netescol_occurrences_' + mid) || '[]'); } catch { return []; }
-  });
+
+  const { data: occurrencesData, refetch } = useQuery(() => api.studentOccurrences.list({ municipalityId: mid }), [mid]);
+  const occurrences: Occurrence[] = (occurrencesData as any) || [];
+
+  const { mutate: createOcc } = useMutation(api.studentOccurrences.create);
+  const { mutate: removeOcc } = useMutation(api.studentOccurrences.delete);
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const allStudents = (studentsData as any) || [];
 
-  const saveOccurrences = (occs: Occurrence[]) => {
-    setOccurrences(occs);
-    localStorage.setItem('netescol_occurrences_' + mid, JSON.stringify(occs));
-  };
-
   const addOccurrence = () => {
     if (!form.studentId || !form.description) return;
     const student = allStudents.find((s: any) => String(s.id) === form.studentId);
-    const occ: Occurrence = { id: Date.now(), studentId: parseInt(form.studentId), studentName: student?.name || '', date: form.date, type: form.type, description: form.description, action: form.action };
-    saveOccurrences([occ, ...occurrences]);
+    createOcc({
+      municipalityId: mid,
+      studentId: parseInt(form.studentId),
+      studentName: student?.name || '',
+      date: form.date,
+      type: form.type,
+      description: form.description,
+      action: form.action,
+    }, { onSuccess: () => { refetch(); } });
     setShowModal(false);
     setForm({ studentId: '', date: new Date().toISOString().split('T')[0], type: 'indisciplina', description: '', action: '' });
   };
 
-  const removeOccurrence = (id: number) => saveOccurrences(occurrences.filter(o => o.id !== id));
+  const removeOccurrence = (id: number) => {
+    removeOcc({ id }, { onSuccess: () => { refetch(); } });
+  };
 
-  const filtered = occurrences.filter(o => !search || o.studentName.toLowerCase().includes(search.toLowerCase()) || o.description.toLowerCase().includes(search.toLowerCase()));
+  const filtered = occurrences.filter(o => !search || (o.studentName || '').toLowerCase().includes(search.toLowerCase()) || (o.description || '').toLowerCase().includes(search.toLowerCase()));
 
   const printOccurrences = (studentId?: number) => {
     const list = studentId ? occurrences.filter(o => o.studentId === studentId) : filtered;
@@ -142,7 +149,7 @@ export default function StudentOccurrencePage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={addOccurrence} className="btn-primary flex-1">Registrar</button></div>
       </div></div>)}
-    
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

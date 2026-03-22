@@ -9,7 +9,6 @@ cmds = ["npm run build --workspace=apps/web && npm run build --workspace=package
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "/nix/store/chromium/bin/chromium"
 
 [start]
-cmd = "cd packages/api && npx tsx src/migrate.ts && node dist/index.js"
+cmd = "cd packages/api && npx tsx src/migrate.ts && npx tsx src/index.ts"

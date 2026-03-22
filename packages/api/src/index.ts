@@ -290,4 +290,6 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 NetEscol API v3.1.0 rodando na porta ${PORT}`);
   console.log(`📡 Socket.IO ativo`);
   console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
+  console.log(`🖨️ PDF endpoint: /api/pdf/generate`);
+  console.log(`❤️ Health: /api/health`);
 });

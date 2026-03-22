@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20", "chromium", "nss", "freetype", "harfbuzz"]
 cmds = ["npm install"]
 
 [phases.build]
-cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api && cp -r apps/web/dist/* packages/api/public/"]
+cmds = ["npm run build --workspace=apps/web && mkdir -p packages/api/public && cp -r apps/web/dist/* packages/api/public/"]
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"

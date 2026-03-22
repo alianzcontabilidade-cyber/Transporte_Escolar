@@ -5,9 +5,9 @@ let browser: Browser | null = null;
 let launching = false;
 
 function findChromiumPath(): string | undefined {
+  // Usar PUPPETEER_EXECUTABLE_PATH se definido
   if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const paths = ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'];
-  for (const p of paths) { if (existsSync(p)) return p; }
+  // Deixar Puppeteer usar o Chrome bundled (mais confiável)
   return undefined;
 }
 

@@ -1,14 +1,12 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "chromium", "nss", "freetype", "harfbuzz"]
+nixPkgs = ["nodejs_20"]
+aptPkgs = ["libnss3", "libatk-bridge2.0-0", "libdrm2", "libxkbcommon0", "libgbm1", "libpango-1.0-0", "libcairo2", "libasound2", "libcups2", "libxrandr2", "libxdamage1", "libxfixes3", "libxcomposite1"]
 
 [phases.install]
 cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api && mkdir -p packages/api/public && cp -r apps/web/dist/* packages/api/public/"]
-
-[variables]
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
 
 [start]
 cmd = "cd packages/api && npx tsx src/migrate.ts && node dist/index.js"

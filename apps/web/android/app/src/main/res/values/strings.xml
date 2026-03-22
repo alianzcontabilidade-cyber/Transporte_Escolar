@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NetEscol</string>
+    <string name="title_activity_main">NetEscol</string>
+    <string name="package_name">br.com.netescol.app</string>
+    <string name="custom_url_scheme">br.com.netescol.app</string>
+</resources>

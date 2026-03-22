@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
-import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Bus, Building2, Heart, ArrowLeft, Eye, EyeOff, Loader2, Search, CheckCircle2, AlertTriangle, Users, GraduationCap } from 'lucide-react';
 import { maskCPF, validateCPF, maskCNPJ, validateCNPJ, maskPhone } from '../lib/utils';
 import CNPJField from '../components/CNPJField';
 
@@ -13,7 +13,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [cpfError, setCpfError] = useState('');
   const [cnpjError, setCnpjError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -22,8 +21,59 @@ export default function RegisterPage() {
   const [mForm, setMForm] = useState({ municipalityName: '', state: '', city: '', cnpj: '', adminName: '', adminEmail: '', adminPassword: '', adminPhone: '' });
   const { municipios: munList, loading: munLoading } = useMunicipios(mForm.state);
 
-  // Guardian form
+  // Guardian form - 2 step flow
+  const [guardianStep, setGuardianStep] = useState<1 | 2>(1);
+  const [cpfInput, setCpfInput] = useState('');
+  const [cpfError, setCpfError] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState<any>(null);
   const [gForm, setGForm] = useState({ name: '', email: '', password: '', phone: '', cpf: '', studentEnrollment: '', relationship: 'father' });
+  const [fallbackMode, setFallbackMode] = useState(false);
+
+  // Auto-lookup when CPF reaches 11 digits
+  const doLookup = useCallback(async (cpf: string) => {
+    const digits = cpf.replace(/\D/g, '');
+    if (digits.length !== 11) return;
+    if (!validateCPF(digits)) {
+      setCpfError('CPF inválido');
+      return;
+    }
+    setCpfError('');
+    setLookupLoading(true);
+    setError('');
+    try {
+      const result = await api.auth.lookupGuardianByCpf({ cpf: digits });
+      setLookupResult(result);
+      if (result.found) {
+        setGForm(prev => ({
+          ...prev,
+          cpf: cpf,
+          name: result.guardianName || '',
+          phone: result.guardianPhone || '',
+          relationship: result.relationship || 'father',
+          studentEnrollment: result.students[0]?.enrollment || '',
+        }));
+        setFallbackMode(false);
+      } else {
+        setFallbackMode(true);
+        setGForm(prev => ({ ...prev, cpf: cpf }));
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao buscar CPF');
+    } finally {
+      setLookupLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const digits = cpfInput.replace(/\D/g, '');
+    if (digits.length === 11) {
+      doLookup(cpfInput);
+    } else {
+      setLookupResult(null);
+      setFallbackMode(false);
+    }
+  }, [cpfInput, doLookup]);
 
   async function handleMunicipalityRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -49,10 +99,8 @@ export default function RegisterPage() {
       const result = await api.auth.registerGuardian(gForm);
       setSuccess(result.message || 'Cadastro realizado!');
       if (result.isExistingUser) {
-        // User already exists - they need to login with existing credentials
         setTimeout(() => { navigate('/login'); }, 3000);
       } else {
-        // New user - auto login
         setTimeout(async () => {
           try {
             await login({ identifier: gForm.email, password: gForm.password });
@@ -80,7 +128,7 @@ export default function RegisterPage() {
               className="w-full p-5 bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 hover:shadow-lg transition-all text-left flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0"><Heart size={22} className="text-pink-500" /></div>
               <div>
-                <h3 className="font-bold text-gray-900">Sou Pai/Responsável</h3>
+                <h3 className="font-bold text-gray-900">Sou Pai/Responsavel</h3>
                 <p className="text-sm text-gray-500 mt-1">Quero acompanhar o transporte escolar do meu filho(a)</p>
               </div>
             </button>
@@ -89,12 +137,12 @@ export default function RegisterPage() {
               <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0"><Building2 size={22} className="text-blue-500" /></div>
               <div>
                 <h3 className="font-bold text-gray-900">Sou Prefeitura/Secretaria</h3>
-                <p className="text-sm text-gray-500 mt-1">Quero gerenciar o transporte escolar do município</p>
+                <p className="text-sm text-gray-500 mt-1">Quero gerenciar o transporte escolar do municipio</p>
               </div>
             </button>
           </div>
           <p className="text-center mt-6 text-sm text-gray-500">
-            Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link>
+            Ja tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link>
           </p>
         </div>
       </div>
@@ -105,26 +153,222 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-          <button onClick={() => setMode('choose')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"><ArrowLeft size={16} /> Voltar</button>
+          <button onClick={() => {
+            if (guardianStep === 2 && lookupResult?.found) {
+              setGuardianStep(1);
+            } else {
+              setMode('choose');
+              setGuardianStep(1);
+              setLookupResult(null);
+              setCpfInput('');
+              setFallbackMode(false);
+              setError('');
+              setSuccess('');
+            }
+          }} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+            <ArrowLeft size={16} /> {guardianStep === 2 ? 'Voltar' : 'Voltar'}
+          </button>
+
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mx-auto mb-3"><Heart size={22} className="text-pink-500" /></div>
-            <h2 className="text-xl font-bold text-gray-900">Cadastro de Responsável</h2>
-            <p className="text-gray-500 text-sm mt-1">Vincule-se ao aluno usando a matrícula escolar</p>
+            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mx-auto mb-3">
+              <Heart size={22} className="text-pink-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Cadastro de Responsavel</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              {guardianStep === 1 ? 'Informe seu CPF para localizar seus filhos' : 'Finalize seu cadastro'}
+            </p>
           </div>
+
           {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
           {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-4">{success}</div>}
-          <form onSubmit={handleGuardianRegister} className="space-y-3">
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Nome completo</label><input type="text" required value={gForm.name} onChange={e => setGForm(p => ({...p, name: e.target.value}))} className={inputClass} placeholder="João da Silva" /></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Email</label><input type="email" required value={gForm.email} onChange={e => setGForm(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="joao@email.com" /></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">CPF</label><input type="text" value={gForm.cpf} onChange={e => { const masked = maskCPF(e.target.value); setGForm(p => ({...p, cpf: masked})); const digits = e.target.value.replace(/\D/g, ''); if (digits.length === 11) { setCpfError(validateCPF(digits) ? '' : 'CPF inválido'); } else { setCpfError(''); } }} className={inputClass} placeholder="000.000.000-00" maxLength={14} />{cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}<p className="text-xs text-gray-400 mt-1">Se você já tem cadastro no sistema, informe seu CPF para vincular o aluno ao seu perfil.</p></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Telefone</label><input type="tel" value={gForm.phone} onChange={e => setGForm(p => ({...p, phone: maskPhone(e.target.value)}))} className={inputClass} placeholder="(63) 99999-0000" maxLength={15} /></div>
-            <div className="relative"><label className="text-sm font-medium text-gray-700 block mb-1">Senha</label><input type={showPassword ? 'text' : 'password'} required minLength={6} value={gForm.password} onChange={e => setGForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="Mínimo 6 caracteres" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
-            <hr className="my-2" />
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Matrícula do Aluno *</label><input type="text" required value={gForm.studentEnrollment} onChange={e => setGForm(p => ({...p, studentEnrollment: e.target.value}))} className={inputClass} placeholder="Ex: 2024001" /><p className="text-xs text-gray-400 mt-1">Informe a matrícula escolar do seu filho(a)</p></div>
-            <div><label className="text-sm font-medium text-gray-700 block mb-1">Parentesco</label><select value={gForm.relationship} onChange={e => setGForm(p => ({...p, relationship: e.target.value}))} className={inputClass}><option value="father">Pai</option><option value="mother">Mãe</option><option value="grandparent">Avô/Avó</option><option value="uncle">Tio/Tia</option><option value="other">Outro</option></select></div>
-            <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">{loading ? 'Cadastrando...' : 'Criar minha conta'}</button>
-          </form>
-          <p className="text-center mt-4 text-sm text-gray-500">Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
+
+          {/* STEP 1: CPF Lookup */}
+          {guardianStep === 1 && (
+            <div className="space-y-4">
+              {/* CPF Input */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Seu CPF</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cpfInput}
+                    onChange={e => {
+                      const masked = maskCPF(e.target.value);
+                      setCpfInput(masked);
+                      const digits = e.target.value.replace(/\D/g, '');
+                      if (digits.length === 11) {
+                        setCpfError(validateCPF(digits) ? '' : 'CPF invalido');
+                      } else {
+                        setCpfError('');
+                      }
+                    }}
+                    className={inputClass}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    autoFocus
+                  />
+                  {lookupLoading && (
+                    <div className="absolute right-3 top-2.5">
+                      <Loader2 size={18} className="animate-spin text-primary-500" />
+                    </div>
+                  )}
+                </div>
+                {cpfError && <p className="text-xs text-red-500 mt-1">{cpfError}</p>}
+              </div>
+
+              {/* Found result - green card */}
+              {lookupResult?.found && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={20} className="text-green-600" />
+                    <span className="font-semibold text-green-800">
+                      Ola, {lookupResult.guardianName}!
+                    </span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    Encontramos {lookupResult.students.length} aluno(s) vinculado(s) ao seu CPF:
+                  </p>
+                  <div className="space-y-2">
+                    {lookupResult.students.map((s: any) => (
+                      <div key={s.id} className="bg-white rounded-lg p-3 flex items-center gap-3 border border-green-100">
+                        <div className="w-9 h-9 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
+                          <GraduationCap size={18} className="text-primary-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{s.name}</p>
+                          <p className="text-xs text-gray-500">Mat: {s.enrollment}{s.grade ? ` - ${s.grade}` : ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {lookupResult.guardianPhone && (
+                    <p className="text-xs text-green-600">Tel: {lookupResult.guardianPhone}</p>
+                  )}
+                  <button
+                    onClick={() => setGuardianStep(2)}
+                    className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition mt-2 flex items-center justify-center gap-2"
+                  >
+                    Continuar <ArrowLeft size={16} className="rotate-180" />
+                  </button>
+                </div>
+              )}
+
+              {/* Not found - yellow card with fallback form */}
+              {fallbackMode && !lookupResult?.found && (
+                <div className="space-y-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle size={18} className="text-amber-600" />
+                      <span className="font-medium text-amber-800 text-sm">CPF nao encontrado</span>
+                    </div>
+                    <p className="text-xs text-amber-700">
+                      Seu CPF nao foi localizado no cadastro de alunos. Voce pode se cadastrar informando a matricula do aluno.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleGuardianRegister} className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Nome completo</label>
+                      <input type="text" required value={gForm.name} onChange={e => setGForm(p => ({...p, name: e.target.value}))} className={inputClass} placeholder="Joao da Silva" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Telefone</label>
+                      <input type="tel" value={gForm.phone} onChange={e => setGForm(p => ({...p, phone: maskPhone(e.target.value)}))} className={inputClass} placeholder="(63) 99999-0000" maxLength={15} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
+                      <input type="email" required value={gForm.email} onChange={e => setGForm(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="joao@email.com" />
+                    </div>
+                    <div className="relative">
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Senha</label>
+                      <input type={showPassword ? 'text' : 'password'} required minLength={6} value={gForm.password} onChange={e => setGForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="Minimo 6 caracteres" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+                    </div>
+                    <hr className="my-2" />
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Matricula do Aluno *</label>
+                      <input type="text" required value={gForm.studentEnrollment} onChange={e => setGForm(p => ({...p, studentEnrollment: e.target.value}))} className={inputClass} placeholder="Ex: 2024001" />
+                      <p className="text-xs text-gray-400 mt-1">Informe a matricula escolar do seu filho(a)</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Parentesco</label>
+                      <select value={gForm.relationship} onChange={e => setGForm(p => ({...p, relationship: e.target.value}))} className={inputClass}>
+                        <option value="father">Pai</option>
+                        <option value="mother">Mae</option>
+                        <option value="grandparent">Avo/Avo</option>
+                        <option value="uncle">Tio/Tia</option>
+                        <option value="other">Outro</option>
+                      </select>
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">
+                      {loading ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Cadastrando...</span> : 'Criar minha conta'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Empty state - show hint */}
+              {!lookupResult && !lookupLoading && cpfInput.replace(/\D/g, '').length < 11 && (
+                <div className="text-center py-6">
+                  <Search size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-sm text-gray-400">
+                    Digite seu CPF completo para<br/>buscarmos seus filhos automaticamente
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 2: Create Account (CPF found path) */}
+          {guardianStep === 2 && lookupResult?.found && (
+            <form onSubmit={handleGuardianRegister} className="space-y-4">
+              {/* Guardian info (read-only) */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Responsavel</span>
+                </div>
+                <p className="font-semibold text-gray-900">{gForm.name}</p>
+                <p className="text-xs text-gray-500">CPF: {cpfInput} {gForm.phone ? `| Tel: ${gForm.phone}` : ''}</p>
+              </div>
+
+              {/* Students cards (read-only) */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Alunos que serao vinculados:</p>
+                {lookupResult.students.map((s: any) => (
+                  <div key={s.id} className="bg-primary-50 rounded-lg p-3 flex items-center gap-3 border border-primary-100">
+                    <div className="w-8 h-8 rounded-lg bg-primary-200 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap size={16} className="text-primary-700" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">{s.name}</p>
+                      <p className="text-xs text-gray-500">Mat: {s.enrollment}{s.grade ? ` - ${s.grade}` : ''}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <hr />
+
+              {/* Only email + password */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
+                <input type="email" required value={gForm.email} onChange={e => setGForm(p => ({...p, email: e.target.value}))} className={inputClass} placeholder="seu@email.com" autoFocus />
+              </div>
+
+              <div className="relative">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Senha</label>
+                <input type={showPassword ? 'text' : 'password'} required minLength={6} value={gForm.password} onChange={e => setGForm(p => ({...p, password: e.target.value}))} className={inputClass} placeholder="Minimo 6 caracteres" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">
+                {loading ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Criando conta...</span> : 'Criar minha conta'}
+              </button>
+            </form>
+          )}
+
+          <p className="text-center mt-4 text-sm text-gray-500">Ja tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
         </div>
       </div>
     );
@@ -138,7 +382,7 @@ export default function RegisterPage() {
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3"><Building2 size={22} className="text-blue-500" /></div>
           <h2 className="text-xl font-bold text-gray-900">Cadastro de Prefeitura</h2>
-          <p className="text-gray-500 text-sm mt-1">Registre seu município para gerenciar o transporte escolar</p>
+          <p className="text-gray-500 text-sm mt-1">Registre seu municipio para gerenciar o transporte escolar</p>
         </div>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
         <form onSubmit={handleMunicipalityRegister} className="space-y-3">
@@ -166,7 +410,7 @@ export default function RegisterPage() {
           <div className="relative"><label className="text-sm font-medium text-gray-700 block mb-1">Senha</label><input type={showPassword ? 'text' : 'password'} required minLength={8} value={mForm.adminPassword} onChange={e => setMForm(p => ({...p, adminPassword: e.target.value}))} className={inputClass} /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400">{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
           <button type="submit" disabled={loading} className="w-full bg-primary-500 text-white py-3 rounded-lg font-medium hover:bg-primary-600 transition disabled:opacity-50">{loading ? 'Cadastrando...' : 'Cadastrar Prefeitura'}</button>
         </form>
-        <p className="text-center mt-4 text-sm text-gray-500">Já tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
+        <p className="text-center mt-4 text-sm text-gray-500">Ja tem conta? <Link to="/login" className="text-primary-500 font-medium hover:underline">Entrar</Link></p>
       </div>
     </div>
   );

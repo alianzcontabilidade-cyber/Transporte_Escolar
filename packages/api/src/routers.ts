@@ -66,6 +66,59 @@ export const authRouter = t.router({
       return { success: true, municipalityId: municipality.id, userId: user.id, message: 'Prefeitura cadastrada com sucesso!' };
     }),
 
+  // Buscar dados do responsável pelo CPF (público, para tela de cadastro)
+  lookupGuardianByCpf: publicProcedure
+    .input(z.object({ cpf: z.string() }))
+    .query(async ({ input }) => {
+      const cpfClean = input.cpf.replace(/\D/g, '');
+      if (cpfClean.length !== 11) throw new TRPCError({ code: 'BAD_REQUEST', message: 'CPF inválido' });
+
+      // Format CPF variations for matching
+      const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+      // Search in students table for fatherCpf or motherCpf
+      const matchingStudents = await db.select({
+        id: students.id,
+        name: students.name,
+        enrollment: students.enrollment,
+        grade: students.grade,
+        schoolId: students.schoolId,
+        fatherName: students.fatherName,
+        fatherCpf: students.fatherCpf,
+        fatherPhone: students.fatherPhone,
+        motherName: students.motherName,
+        motherCpf: students.motherCpf,
+        motherPhone: students.motherPhone,
+      }).from(students)
+        .where(or(
+          eq(students.fatherCpf, cpfClean),
+          eq(students.fatherCpf, cpfFormatted),
+          eq(students.motherCpf, cpfClean),
+          eq(students.motherCpf, cpfFormatted),
+        ));
+
+      if (matchingStudents.length === 0) {
+        return { found: false as const, guardianName: null, guardianPhone: null, relationship: null, students: [] };
+      }
+
+      // Determine if father or mother
+      const first = matchingStudents[0];
+      const isFather = first.fatherCpf?.replace(/\D/g, '') === cpfClean;
+
+      return {
+        found: true as const,
+        guardianName: isFather ? first.fatherName : first.motherName,
+        guardianPhone: isFather ? first.fatherPhone : first.motherPhone,
+        relationship: isFather ? 'father' : 'mother',
+        students: matchingStudents.map(s => ({
+          id: s.id,
+          name: s.name,
+          enrollment: s.enrollment,
+          grade: s.grade,
+        })),
+      };
+    }),
+
   registerGuardian: publicProcedure
     .input(z.object({
       name: z.string().min(3),
@@ -130,32 +183,63 @@ export const authRouter = t.router({
         userId = user.id;
       }
 
-      // Check if guardian relationship already exists
+      // Create guardian link for the first student (by enrollment)
       const existingGuardian = await db.select().from(guardians)
         .where(and(eq(guardians.userId, userId), eq(guardians.studentId, student.id)))
         .limit(1);
 
-      if (existingGuardian.length > 0) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Este aluno já está vinculado ao seu perfil.' });
+      if (existingGuardian.length === 0) {
+        await db.insert(guardians).values({
+          userId,
+          studentId: student.id,
+          relationship: input.relationship || 'other',
+          isPrimary: true,
+          canPickup: true,
+        });
       }
 
-      // Create guardian link
-      await db.insert(guardians).values({
-        userId,
-        studentId: student.id,
-        relationship: input.relationship || 'other',
-        isPrimary: true,
-        canPickup: true,
-      });
+      // Auto-link ALL other students that match the guardian's CPF
+      let linkedCount = 1;
+      if (input.cpf) {
+        const cpfClean = input.cpf.replace(/\D/g, '');
+        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        const allMatchingStudents = await db.select({ id: students.id, fatherCpf: students.fatherCpf }).from(students)
+          .where(or(
+            eq(students.fatherCpf, cpfClean),
+            eq(students.fatherCpf, cpfFormatted),
+            eq(students.motherCpf, cpfClean),
+            eq(students.motherCpf, cpfFormatted),
+          ));
 
+        for (const ms of allMatchingStudents) {
+          if (ms.id === student.id) continue; // already linked above
+          const alreadyLinked = await db.select().from(guardians)
+            .where(and(eq(guardians.userId, userId), eq(guardians.studentId, ms.id)))
+            .limit(1);
+          if (alreadyLinked.length === 0) {
+            const isFather = ms.fatherCpf?.replace(/\D/g, '') === cpfClean;
+            await db.insert(guardians).values({
+              userId,
+              studentId: ms.id,
+              relationship: isFather ? 'father' : 'mother',
+              isPrimary: true,
+              canPickup: true,
+            });
+            linkedCount++;
+          }
+        }
+      }
+
+      const studentMsg = linkedCount > 1 ? `${linkedCount} alunos vinculados` : `Aluno ${student.name} vinculado`;
       return {
         success: true,
         userId,
         studentName: student.name,
+        linkedCount,
         isExistingUser,
         message: isExistingUser
-          ? `Aluno ${student.name} vinculado ao seu perfil existente! Faça login com suas credenciais habituais.`
-          : 'Cadastro realizado! Você já pode acompanhar o transporte.'
+          ? `${studentMsg} ao seu perfil existente! Faça login com suas credenciais habituais.`
+          : `Cadastro realizado! ${studentMsg}. Você já pode acompanhar o transporte.`
       };
     }),
 

@@ -10,6 +10,7 @@
     "start": "serve dist -p $PORT"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/camera": "^8.0.2",
     "@capacitor/cli": "^8.2.0",

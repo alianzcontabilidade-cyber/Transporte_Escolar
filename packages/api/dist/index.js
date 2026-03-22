@@ -214,9 +214,9 @@ app.post('/api/pdf/generate', async (req, res) => {
         const { html, orientation, filename } = req.body;
         if (!html)
             return res.status(400).json({ error: 'HTML é obrigatório' });
-        const available = await (0, pdfService_1.isPuppeteerAvailable)();
-        if (!available)
-            return res.status(503).json({ error: 'Serviço de PDF indisponível' });
+        const pdfStatus = await (0, pdfService_1.isPuppeteerAvailable)();
+        if (!pdfStatus.available)
+            return res.status(503).json({ error: 'Serviço de PDF indisponível: ' + (pdfStatus.error || 'desconhecido') });
         const pdfBuffer = await (0, pdfService_1.generatePDF)(html, {
             orientation: orientation || 'portrait',
         });
@@ -234,8 +234,8 @@ app.post('/api/pdf/generate', async (req, res) => {
     }
 });
 app.get('/api/pdf/status', async (_req, res) => {
-    const available = await (0, pdfService_1.isPuppeteerAvailable)();
-    res.json({ available, engine: 'puppeteer' });
+    const status = await (0, pdfService_1.isPuppeteerAvailable)();
+    res.json({ ...status, engine: 'puppeteer' });
 });
 // tRPC
 app.use('/api/trpc', trpcExpress.createExpressMiddleware({

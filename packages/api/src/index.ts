@@ -182,8 +182,8 @@ app.post('/api/pdf/generate', async (req, res) => {
     const { html, orientation, filename } = req.body;
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
-    const available = await isPuppeteerAvailable();
-    if (!available) return res.status(503).json({ error: 'Serviço de PDF indisponível' });
+    const pdfStatus = await isPuppeteerAvailable();
+    if (!pdfStatus.available) return res.status(503).json({ error: 'Serviço de PDF indisponível: ' + (pdfStatus.error || 'desconhecido') });
 
     const pdfBuffer = await generatePDF(html, {
       orientation: orientation || 'portrait',
@@ -202,8 +202,8 @@ app.post('/api/pdf/generate', async (req, res) => {
 });
 
 app.get('/api/pdf/status', async (_req, res) => {
-  const available = await isPuppeteerAvailable();
-  res.json({ available, engine: 'puppeteer' });
+  const status = await isPuppeteerAvailable();
+  res.json({ ...status, engine: 'puppeteer' });
 });
 
 // tRPC

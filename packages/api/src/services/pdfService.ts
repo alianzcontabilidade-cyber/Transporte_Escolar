@@ -99,12 +99,12 @@ export async function generatePDF(html: string, options?: PDFOptions): Promise<B
 }
 
 // Check if Puppeteer is available
-export async function isPuppeteerAvailable(): Promise<boolean> {
+export async function isPuppeteerAvailable(): Promise<{ available: boolean; error?: string }> {
   try {
     const br = await getBrowser();
-    return br.connected;
-  } catch {
-    return false;
+    return { available: br.connected };
+  } catch (e: any) {
+    return { available: false, error: e.message };
   }
 }
 

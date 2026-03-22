@@ -14,7 +14,10 @@ import { db } from './db/index';
 import { sql } from 'drizzle-orm';
 import { generatePDF, isPuppeteerAvailable, generateVerificationCode, computePdfHash, generateQRCodeDataURL, injectQRCodeIntoHTML } from './services/pdfService';
 import { verify as jwtVerify } from 'jsonwebtoken';
-import { documents } from './db/schema';
+import { compare } from 'bcryptjs';
+import { createHash } from 'crypto';
+import { documents, documentSignatures, users } from './db/schema';
+import { eq } from 'drizzle-orm';
 
 dotenv.config();
 
@@ -178,7 +181,7 @@ app.post('/api/pdf/generate', async (req, res) => {
       tokenData = jwtVerify(token, JWT) as any;
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
-    const { html, orientation, filename, docType, docTitle, studentId, schoolId } = req.body;
+    const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures } = req.body;
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();
@@ -191,8 +194,36 @@ app.post('/api/pdf/generate', async (req, res) => {
     const verifyUrl = `${baseUrl}/verificar/${verificationCode}`;
     const qrDataURL = await generateQRCodeDataURL(verifyUrl);
 
-    // NÃO injetar QR no corpo do HTML - vai no rodapé de todas as páginas
+    // Injetar blocos de assinatura no HTML se fornecidos
     let htmlClean = html;
+    if (signatures && Array.isArray(signatures) && signatures.length > 0) {
+      const sigBlocksHtml = `
+        <div style="page-break-inside:avoid;margin-top:40px;padding-top:20px;border-top:2px solid #1B3A5C;">
+          <div style="text-align:center;font-size:11px;color:#1B3A5C;font-weight:bold;margin-bottom:20px;">
+            ASSINATURAS ELETRÔNICAS
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:30px;">
+            ${signatures.map((s: any) => `
+              <div style="text-align:center;min-width:200px;padding:10px;">
+                <div style="border-bottom:1px solid #333;padding-bottom:5px;margin-bottom:5px;">
+                  <strong style="font-size:11px;">${s.signerName || ''}</strong>
+                </div>
+                <div style="font-size:9px;color:#555;">${s.signerRole || ''}</div>
+                <div style="font-size:8px;color:#888;margin-top:3px;">Assinado eletronicamente</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="text-align:center;font-size:7px;color:#999;margin-top:15px;">
+            Documento assinado eletronicamente conforme MP 2.200-2/2001. Verifique a autenticidade pelo QR Code.
+          </div>
+        </div>`;
+      // Insert before </body> or at the end
+      if (htmlClean.includes('</body>')) {
+        htmlClean = htmlClean.replace('</body>', sigBlocksHtml + '</body>');
+      } else {
+        htmlClean += sigBlocksHtml;
+      }
+    }
 
     // Extrair rodapé institucional do HTML para colocar em todas as páginas
     let footerContent = '';
@@ -224,8 +255,9 @@ app.post('/api/pdf/generate', async (req, res) => {
 
     // Registrar documento no banco
     const pdfHash = computePdfHash(pdfBuffer);
+    let documentId: number | null = null;
     try {
-      await db.insert(documents).values({
+      const [inserted] = await db.insert(documents).values({
         municipalityId: tokenData.municipalityId || 1,
         verificationCode,
         type: docType || 'documento',
@@ -235,9 +267,53 @@ app.post('/api/pdf/generate', async (req, res) => {
         generatedById: tokenData.userId || 1,
         pdfHash,
         pdfSize: pdfBuffer.length,
-      } as any);
+      } as any).$returningId();
+      documentId = inserted.id;
     } catch (dbErr: any) {
       console.warn('Aviso: não foi possível registrar documento:', dbErr.message);
+    }
+
+    // Auto-sign after generation if requested
+    let signatureResult = null;
+    if (signAfterGenerate && signerPassword && documentId) {
+      try {
+        const [user] = await db.select({
+          id: users.id,
+          name: users.name,
+          cpf: users.cpf,
+          passwordHash: users.passwordHash,
+        }).from(users).where(eq(users.id, tokenData.userId)).limit(1);
+
+        if (user && user.passwordHash) {
+          const isValid = await compare(signerPassword, user.passwordHash);
+          if (isValid) {
+            const now = new Date();
+            const signatureHash = createHash('sha256')
+              .update(`${pdfHash}:${user.id}:${now.toISOString()}`)
+              .digest('hex');
+
+            const [sigResult] = await db.insert(documentSignatures).values({
+              documentId,
+              signerId: user.id,
+              signerName: user.name,
+              signerRole: null,
+              signerCpf: user.cpf || null,
+              signatureHash,
+              ipAddress: req.ip || req.socket.remoteAddress || null,
+              signedAt: now,
+            } as any).$returningId();
+
+            signatureResult = {
+              id: sigResult.id,
+              signatureHash,
+              signerName: user.name,
+              signedAt: now.toISOString(),
+            };
+          }
+        }
+      } catch (sigErr: any) {
+        console.warn('Aviso: não foi possível assinar automaticamente:', sigErr.message);
+      }
     }
 
     const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_') + '.pdf';
@@ -245,6 +321,8 @@ app.post('/api/pdf/generate', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     res.setHeader('X-Verification-Code', verificationCode);
+    if (documentId) res.setHeader('X-Document-Id', String(documentId));
+    if (signatureResult) res.setHeader('X-Signature-Hash', signatureResult.signatureHash);
     res.send(pdfBuffer);
   } catch (e: any) {
     console.error('Erro ao gerar PDF:', e.message);
@@ -275,6 +353,18 @@ app.get('/api/documents/verify/:code', async (req, res) => {
     const [generator] = await db.select({ name: usersTable.name }).from(usersTable).where(sql`${usersTable.id} = (SELECT generatedById FROM documents WHERE verificationCode = ${code})`).limit(1);
     const [mun] = await db.select({ name: municipalities.name }).from(municipalities).where(sql`${municipalities.id} = (SELECT municipalityId FROM documents WHERE verificationCode = ${code})`).limit(1);
 
+    // Buscar assinaturas eletrônicas do documento
+    const sigs = await db.select({
+      id: documentSignatures.id,
+      signerName: documentSignatures.signerName,
+      signerRole: documentSignatures.signerRole,
+      signerCpf: documentSignatures.signerCpf,
+      signatureHash: documentSignatures.signatureHash,
+      signedAt: documentSignatures.signedAt,
+    }).from(documentSignatures)
+      .where(eq(documentSignatures.documentId, doc.id))
+      .orderBy(documentSignatures.signedAt);
+
     res.json({
       valid: doc.status === 'valid',
       code: doc.verificationCode,
@@ -286,6 +376,10 @@ app.get('/api/documents/verify/:code', async (req, res) => {
       municipality: mun?.name || '',
       pdfHash: doc.pdfHash,
       pdfSize: doc.pdfSize,
+      signatures: sigs.map(s => ({
+        ...s,
+        signerCpf: s.signerCpf ? s.signerCpf.replace(/(\d{3})\d{6}(\d{2})/, '$1.***.**$2') : null,
+      })),
     });
   } catch (e: any) {
     res.status(500).json({ valid: false, message: 'Erro ao verificar: ' + e.message });

@@ -426,5 +426,14 @@ export const api = {
     create: (input: any) => call('vehicleInspections.create', input, 'mutation'),
     delete: (input: any) => call('vehicleInspections.delete', input, 'mutation'),
   },
+  documents: {
+    list: (input: any) => call('documents.list', input, 'query'),
+    revoke: (input: any) => call('documents.revoke', input, 'mutation'),
+  },
+  documentSignatures: {
+    sign: (input: any) => call('documentSignatures.sign', input, 'mutation'),
+    listByDocument: (input: any) => call('documentSignatures.listByDocument', input, 'query'),
+    verifySignature: (input: any) => call('documentSignatures.verifySignature', input, 'query'),
+  },
 
 };

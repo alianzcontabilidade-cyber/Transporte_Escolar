@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Printer, Download, FileText, FileSpreadsheet, Globe, Check, FileDown } from 'lucide-react';
+import { X, Printer, Download, FileText, FileSpreadsheet, Globe, Check, FileDown, Lock } from 'lucide-react';
 
 export type ExportFormat = 'print' | 'pdf' | 'pdf-download' | 'docx' | 'csv' | 'html' | 'html-download';
 
@@ -24,17 +24,29 @@ const EXPORT_OPTIONS: ExportOption[] = [
 interface ExportModalProps {
   open: boolean;
   onClose: () => void;
-  onExport: (format: ExportFormat) => void;
+  onExport: (format: ExportFormat, options?: { signAfterGenerate?: boolean; signerPassword?: string }) => void;
   title?: string;
+  allowSign?: boolean;
 }
 
-export default function ExportModal({ open, onClose, onExport, title }: ExportModalProps) {
+export default function ExportModal({ open, onClose, onExport, title, allowSign }: ExportModalProps) {
   const [selected, setSelected] = useState<ExportFormat>('pdf');
+  const [signAfterGenerate, setSignAfterGenerate] = useState(false);
+  const [signerPassword, setSignerPassword] = useState('');
 
   if (!open) return null;
 
+  const isPDF = selected === 'pdf' || selected === 'pdf-download';
   const vizOpts = EXPORT_OPTIONS.filter(o => o.group === 'visualizar');
   const dlOpts = EXPORT_OPTIONS.filter(o => o.group === 'download');
+
+  const handleConfirm = () => {
+    const options = signAfterGenerate && isPDF ? { signAfterGenerate: true, signerPassword } : undefined;
+    onExport(selected, options);
+    setSignAfterGenerate(false);
+    setSignerPassword('');
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -97,10 +109,41 @@ export default function ExportModal({ open, onClose, onExport, title }: ExportMo
           </div>
         </div>
 
+        {/* Sign after generate option */}
+        {allowSign && isPDF && (
+          <div className="px-5 pb-2">
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-200 dark:border-gray-600">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={signAfterGenerate}
+                  onChange={(e) => setSignAfterGenerate(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-accent-500 focus:ring-accent-500"
+                />
+                <Lock size={14} className="text-accent-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Assinar ao gerar</span>
+              </label>
+              {signAfterGenerate && (
+                <div className="mt-2">
+                  <input
+                    type="password"
+                    value={signerPassword}
+                    onChange={(e) => setSignerPassword(e.target.value)}
+                    placeholder="Digite sua senha para assinar"
+                    className="input text-sm"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Sua assinatura eletronica sera registrada no documento.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3 p-5 border-t border-gray-100 dark:border-gray-700">
           <button onClick={onClose} className="btn-secondary flex-1">Cancelar</button>
-          <button onClick={() => { onExport(selected); onClose(); }}
-            className="btn-primary flex-1 flex items-center justify-center gap-2">
+          <button onClick={handleConfirm}
+            disabled={signAfterGenerate && isPDF && !signerPassword.trim()}
+            className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
             <Check size={16} /> Confirmar
           </button>
         </div>
@@ -146,7 +189,12 @@ export function printHTML(html: string) {
   }
 }
 
-export async function exportToPDF(html: string, filename: string, download: boolean = false) {
+export async function exportToPDF(
+  html: string,
+  filename: string,
+  download: boolean = false,
+  signOptions?: { signAfterGenerate?: boolean; signerPassword?: string }
+): Promise<{ documentId?: number } | void> {
   const API_URL = import.meta.env.VITE_API_URL || '';
   const token = localStorage.getItem('token');
   const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_');
@@ -154,13 +202,20 @@ export async function exportToPDF(html: string, filename: string, download: bool
   // Tentar gerar PDF via servidor (Puppeteer)
   if (token) {
     try {
+      const body: any = { html, orientation: 'portrait', filename: safeName, docType: safeName, docTitle: filename };
+      if (signOptions?.signAfterGenerate && signOptions?.signerPassword) {
+        body.signAfterGenerate = true;
+        body.signerPassword = signOptions.signerPassword;
+      }
+
       const res = await fetch(`${API_URL}/api/pdf/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ html, orientation: 'portrait', filename: safeName, docType: safeName, docTitle: filename }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
+        const documentId = res.headers.get('X-Document-Id') ? parseInt(res.headers.get('X-Document-Id')!) : undefined;
         const blob = await res.blob();
         if (download) {
           // Download direto
@@ -173,7 +228,7 @@ export async function exportToPDF(html: string, filename: string, download: bool
           // Abrir em nova aba para visualização
           window.open(URL.createObjectURL(blob), '_blank');
         }
-        return;
+        return { documentId };
       }
       // Se o servidor retornou erro, cair no fallback
       console.warn('PDF server indisponível, usando fallback');
@@ -228,17 +283,18 @@ export async function handleExport(
   format: ExportFormat,
   data: any[],
   html: string,
-  filename: string
+  filename: string,
+  signOptions?: { signAfterGenerate?: boolean; signerPassword?: string }
 ) {
   switch (format) {
     case 'print':
       printHTML(html);
       break;
     case 'pdf':
-      exportToPDF(html, filename, false);
+      exportToPDF(html, filename, false, signOptions);
       break;
     case 'pdf-download':
-      exportToPDF(html, filename, true);
+      exportToPDF(html, filename, true, signOptions);
       break;
     case 'docx':
       exportToWord(html, filename);

@@ -10,7 +10,7 @@ import {
   Bell, Shield, Brain, Wrench, UserCheck, ChevronRight, Navigation,
   Locate, MapPinned, Download, Calendar, BookOpen, Briefcase,
   GraduationCap, DollarSign, Package, Database, Moon, Sun, AlertTriangle,
-  Search, PanelLeftClose, PanelLeft, Star, Clock
+  Search, PanelLeftClose, PanelLeft, Star, Clock, FileCheck
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
@@ -207,6 +207,7 @@ export default function Layout() {
     { code: '117', to: '/ficha-matricula', text: 'Ficha de Matrícula', module: 'Gestão Escolar', desc: 'Formulário oficial de matrícula para impressão', tags: 'ficha matricula formulario impressao requerimento', color: '#6366f1' },
     { code: '507', to: '/cadastro-prefeitura', text: 'Cadastro da Prefeitura', module: 'Central de Controle', desc: 'Dados completos, CNPJ, responsáveis e logo', tags: 'prefeitura cadastro cnpj receita federal logo responsavel secretaria', color: '#64748b' },
     { code: '508', to: '/config-formularios', text: 'Configuração de Formulários', module: 'Central de Controle', desc: 'Definir campos obrigatórios por formulário', tags: 'configuracao formulario campo obrigatorio required aluno escola', color: '#64748b' },
+    { code: '509', to: '/gestao-documentos', text: 'Gestão de Documentos', module: 'Central de Controle', desc: 'Documentos gerados, assinaturas eletrônicas e verificação', tags: 'documento assinatura eletronica verificacao hash pdf qr code', color: '#64748b' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0ea5e9' },
     { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#f97316' },
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0ea5e9' },
@@ -308,6 +309,7 @@ export default function Layout() {
       { to: '/configuracoes', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },
+      { to: '/gestao-documentos', icon: FileCheck, text: 'Gestao Documentos' },
       { to: '/backup', icon: Database, text: 'Backup de Dados' },
       ...(role === 'super_admin' ? [
         { to: '/super-admin', icon: Shield, text: 'Super Admin' },

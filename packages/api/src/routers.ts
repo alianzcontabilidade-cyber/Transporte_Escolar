@@ -14,11 +14,13 @@ import {
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
   municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory,
-  studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections
+  studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections,
+  documents, documentSignatures
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
+import { createHash } from 'crypto';
 import { emitToMunicipality } from './socketInstance';
 
 // ============================================
@@ -4604,6 +4606,196 @@ export const vehicleInspectionsRouter = t.router({
 });
 
 // ============================================
+// DOCUMENTS ROUTER
+// ============================================
+export const documentsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const docs = await db.select({
+        id: documents.id,
+        verificationCode: documents.verificationCode,
+        type: documents.type,
+        title: documents.title,
+        status: documents.status,
+        generatedAt: documents.generatedAt,
+        generatedById: documents.generatedById,
+        pdfHash: documents.pdfHash,
+        pdfSize: documents.pdfSize,
+        revokedAt: documents.revokedAt,
+        revokedReason: documents.revokedReason,
+      }).from(documents)
+        .where(eq(documents.municipalityId, input.municipalityId))
+        .orderBy(desc(documents.generatedAt));
+
+      // Get signature counts for each document
+      const docIds = docs.map(d => d.id);
+      let sigCounts: Record<number, number> = {};
+      if (docIds.length > 0) {
+        const counts = await db.select({
+          documentId: documentSignatures.documentId,
+          count: sql<number>`COUNT(*)`.as('count'),
+        }).from(documentSignatures)
+          .where(inArray(documentSignatures.documentId, docIds))
+          .groupBy(documentSignatures.documentId);
+        for (const c of counts) {
+          sigCounts[c.documentId] = c.count;
+        }
+      }
+
+      return docs.map(d => ({
+        ...d,
+        signatureCount: sigCounts[d.id] || 0,
+      }));
+    }),
+
+  revoke: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      reason: z.string().min(3),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db.update(documents)
+        .set({
+          status: 'revoked',
+          revokedAt: new Date(),
+          revokedById: ctx.userId!,
+          revokedReason: input.reason,
+        } as any)
+        .where(eq(documents.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// DOCUMENT SIGNATURES ROUTER (SEI-style)
+// ============================================
+export const documentSignaturesRouter = t.router({
+  // Sign a document (requires password verification)
+  sign: protectedProcedure
+    .input(z.object({
+      documentId: z.number(),
+      password: z.string(),
+      signerRole: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Get user by ctx.userId
+      const [user] = await db.select({
+        id: users.id,
+        name: users.name,
+        cpf: users.cpf,
+        passwordHash: users.passwordHash,
+      }).from(users).where(eq(users.id, ctx.userId!)).limit(1);
+
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+
+      // 2. Verify password with bcrypt compare
+      if (!user.passwordHash) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuário sem senha definida' });
+      const isValid = await compare(input.password, user.passwordHash);
+      if (!isValid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha incorreta. A assinatura requer sua senha de login.' });
+
+      // 3. Get document to get its pdfHash
+      const [doc] = await db.select({
+        id: documents.id,
+        pdfHash: documents.pdfHash,
+        status: documents.status,
+      }).from(documents).where(eq(documents.id, input.documentId)).limit(1);
+
+      if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Documento não encontrado' });
+      if (doc.status !== 'valid') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Documento revogado ou expirado não pode ser assinado' });
+
+      // 4. Check if user already signed this document
+      const [existing] = await db.select({ id: documentSignatures.id })
+        .from(documentSignatures)
+        .where(and(
+          eq(documentSignatures.documentId, input.documentId),
+          eq(documentSignatures.signerId, ctx.userId!),
+        )).limit(1);
+
+      if (existing) throw new TRPCError({ code: 'CONFLICT', message: 'Você já assinou este documento' });
+
+      // 5. Create signatureHash = SHA-256(pdfHash + signerId + timestamp)
+      const now = new Date();
+      const signatureHash = createHash('sha256')
+        .update(`${doc.pdfHash}:${user.id}:${now.toISOString()}`)
+        .digest('hex');
+
+      // 6. Insert into documentSignatures
+      const [result] = await db.insert(documentSignatures).values({
+        documentId: input.documentId,
+        signerId: user.id,
+        signerName: user.name,
+        signerRole: input.signerRole || null,
+        signerCpf: user.cpf || null,
+        signatureHash,
+        ipAddress: null, // Will be filled from REST endpoint if needed
+        signedAt: now,
+      } as any).$returningId();
+
+      return {
+        success: true,
+        id: result.id,
+        signatureHash,
+        signerName: user.name,
+        signedAt: now.toISOString(),
+      };
+    }),
+
+  // List signatures for a document
+  listByDocument: protectedProcedure
+    .input(z.object({ documentId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(documentSignatures)
+        .where(eq(documentSignatures.documentId, input.documentId))
+        .orderBy(documentSignatures.signedAt);
+    }),
+
+  // Verify a signature (public)
+  verifySignature: publicProcedure
+    .input(z.object({ signatureId: z.number() }))
+    .query(async ({ input }) => {
+      const [sig] = await db.select().from(documentSignatures)
+        .where(eq(documentSignatures.id, input.signatureId)).limit(1);
+
+      if (!sig) return { valid: false, message: 'Assinatura não encontrada' };
+
+      const [doc] = await db.select({
+        id: documents.id,
+        verificationCode: documents.verificationCode,
+        type: documents.type,
+        title: documents.title,
+        status: documents.status,
+        pdfHash: documents.pdfHash,
+        generatedAt: documents.generatedAt,
+      }).from(documents).where(eq(documents.id, sig.documentId)).limit(1);
+
+      // Recompute hash to verify integrity
+      const expectedHash = createHash('sha256')
+        .update(`${doc?.pdfHash}:${sig.signerId}:${sig.signedAt instanceof Date ? sig.signedAt.toISOString() : sig.signedAt}`)
+        .digest('hex');
+
+      const hashValid = expectedHash === sig.signatureHash;
+
+      return {
+        valid: hashValid && doc?.status === 'valid',
+        signatureHash: sig.signatureHash,
+        signerName: sig.signerName,
+        signerRole: sig.signerRole,
+        signerCpf: sig.signerCpf ? sig.signerCpf.replace(/(\d{3})\d{6}(\d{2})/, '$1.***.**$2') : null,
+        signedAt: sig.signedAt,
+        document: doc ? {
+          verificationCode: doc.verificationCode,
+          title: doc.title,
+          type: doc.type,
+          status: doc.status,
+          generatedAt: doc.generatedAt,
+        } : null,
+        hashIntegrity: hashValid ? 'Íntegro' : 'Hash divergente - documento pode ter sido alterado',
+      };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -4672,6 +4864,9 @@ export const appRouter = t.router({
   quotationItems: quotationItemsRouter,
   classCouncil: classCouncilRouter,
   vehicleInspections: vehicleInspectionsRouter,
+  // Documentos e Assinaturas Eletrônicas
+  documents: documentsRouter,
+  documentSignatures: documentSignaturesRouter,
 });
 
 export type AppRouter = typeof appRouter;

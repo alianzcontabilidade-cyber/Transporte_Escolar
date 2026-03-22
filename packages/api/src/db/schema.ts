@@ -1540,6 +1540,21 @@ export const documents = mysqlTable("documents", {
 });
 
 // ============================================
+// TABELA: ASSINATURAS ELETRÔNICAS DE DOCUMENTOS
+// ============================================
+export const documentSignatures = mysqlTable("document_signatures", {
+  id: int("id").autoincrement().primaryKey(),
+  documentId: int("documentId").notNull().references(() => documents.id),
+  signerId: int("signerId").notNull().references(() => users.id),
+  signerName: varchar("signerName", { length: 255 }).notNull(),
+  signerRole: varchar("signerRole", { length: 255 }),
+  signerCpf: varchar("signerCpf", { length: 14 }),
+  signatureHash: varchar("signatureHash", { length: 64 }).notNull(), // SHA-256 of document hash + signer data
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  signedAt: timestamp("signedAt").defaultNow().notNull(),
+});
+
+// ============================================
 // TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS
 // ============================================
 export const formFieldConfigs = mysqlTable("form_field_configs", {

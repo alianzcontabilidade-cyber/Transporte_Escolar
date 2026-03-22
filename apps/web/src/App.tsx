@@ -92,6 +92,7 @@ const HRReportPage = lazy(() => import('./pages/HRReportPage'));
 const AssetReportPage = lazy(() => import('./pages/AssetReportPage'));
 const EducacensoReportPage = lazy(() => import('./pages/EducacensoReportPage'));
 const DocumentVerifyPage = lazy(() => import('./pages/DocumentVerifyPage'));
+const DocumentManagementPage = lazy(() => import('./pages/DocumentManagementPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -220,6 +221,7 @@ export default function App() {
         <Route path="relatorio-educacenso" element={<Guard roles={ADMIN_SEC}><EducacensoReportPage /></Guard>} />
         <Route path="cadastro-prefeitura" element={<Guard roles={ADMIN}><MunicipalitySettingsPage /></Guard>} />
         <Route path="config-formularios" element={<Guard roles={['super_admin']}><FormConfigPage /></Guard>} />
+        <Route path="gestao-documentos" element={<Guard roles={ADMIN}><DocumentManagementPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}

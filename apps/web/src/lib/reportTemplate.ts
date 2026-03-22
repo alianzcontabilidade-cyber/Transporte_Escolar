@@ -226,12 +226,12 @@ export function generateReportHTML(opts: ReportTemplateOptions): string {
   /* DATE */
   .report-date{text-align:right;margin:30px 0 10px;font-size:12px;color:#333}
 
-  /* SIGNATURES + FOOTER BLOCK - nunca quebrar */
-  .report-bottom-block{page-break-inside:avoid;margin-top:20px}
-  .report-signatures{margin-top:15px}
+  /* SIGNATURES + FOOTER */
+  .report-bottom-block{margin-top:15px}
+  .report-signatures{margin-top:10px}
 
   /* FOOTER */
-  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:2px solid #d1d5db;padding:6px 0 0;margin-top:15px}
+  .report-footer-bar{text-align:center;font-size:8px;color:#999;border-top:1px solid #d1d5db;padding:5px 0 0;margin-top:10px}
   .report-footer-bar .footer-line{margin:2px 0}
   .report-footer-bar .footer-brand{color:#2DB5B0;font-weight:bold;font-size:9px;margin-top:3px}
 

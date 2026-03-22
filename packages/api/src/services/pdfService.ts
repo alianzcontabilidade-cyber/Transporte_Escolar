@@ -75,10 +75,10 @@ export async function generatePDF(html: string, options?: PDFOptions): Promise<B
 
     const isLandscape = options?.orientation === 'landscape';
     const margins = options?.margins || {
-      top: '15mm',
-      bottom: '15mm',
-      left: '20mm',
-      right: '20mm',
+      top: '10mm',
+      bottom: '10mm',
+      left: '15mm',
+      right: '15mm',
     };
 
     const pdfBuffer = await page.pdf({

@@ -75,14 +75,24 @@ exports.schools = (0, mysql_core_1.mysqlTable)("schools", {
     name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
     code: (0, mysql_core_1.varchar)("code", { length: 50 }), // Código INEP ou interno
     type: (0, mysql_core_1.mysqlEnum)("type", ["infantil", "fundamental", "medio", "tecnico", "especial"]).default("fundamental"),
-    // Endereço
-    address: (0, mysql_core_1.text)("address"),
+    // Documento
+    cnpj: (0, mysql_core_1.varchar)("cnpj", { length: 18 }),
+    // Endereço completo
+    cep: (0, mysql_core_1.varchar)("cep", { length: 9 }),
+    logradouro: (0, mysql_core_1.varchar)("logradouro", { length: 255 }),
+    numero: (0, mysql_core_1.varchar)("numero", { length: 10 }),
+    complemento: (0, mysql_core_1.varchar)("complemento", { length: 100 }),
+    bairro: (0, mysql_core_1.varchar)("bairro", { length: 100 }),
+    city: (0, mysql_core_1.varchar)("city", { length: 255 }),
+    state: (0, mysql_core_1.varchar)("state", { length: 2 }),
+    address: (0, mysql_core_1.text)("address"), // Endereço concatenado (legado)
     latitude: (0, mysql_core_1.decimal)("latitude", { precision: 10, scale: 8 }),
     longitude: (0, mysql_core_1.decimal)("longitude", { precision: 11, scale: 8 }),
     // Contato
     phone: (0, mysql_core_1.varchar)("phone", { length: 20 }),
     email: (0, mysql_core_1.varchar)("email", { length: 320 }),
     directorName: (0, mysql_core_1.varchar)("directorName", { length: 255 }),
+    logoUrl: (0, mysql_core_1.text)("logoUrl"),
     // Horários de funcionamento
     morningStart: (0, mysql_core_1.varchar)("morningStart", { length: 5 }), // "07:00"
     morningEnd: (0, mysql_core_1.varchar)("morningEnd", { length: 5 }), // "12:00"
@@ -163,6 +173,7 @@ exports.vehicles = (0, mysql_core_1.mysqlTable)("vehicles", {
     nextMaintenanceAt: (0, mysql_core_1.timestamp)("nextMaintenanceAt"),
     // GPS Device
     gpsDeviceId: (0, mysql_core_1.varchar)("gpsDeviceId", { length: 100 }),
+    gpsDeviceModel: (0, mysql_core_1.varchar)("gpsDeviceModel", { length: 100 }),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -179,6 +190,14 @@ exports.drivers = (0, mysql_core_1.mysqlTable)("drivers", {
     cnhExpiresAt: (0, mysql_core_1.timestamp)("cnhExpiresAt"),
     // Veículo atual atribuído
     vehicleId: (0, mysql_core_1.int)("vehicleId").references(() => exports.vehicles.id),
+    // Dados pessoais adicionais
+    address: (0, mysql_core_1.text)("address"),
+    city: (0, mysql_core_1.varchar)("city", { length: 255 }),
+    state: (0, mysql_core_1.varchar)("state", { length: 2 }),
+    birthDate: (0, mysql_core_1.timestamp)("birthDate"),
+    experience: (0, mysql_core_1.int)("experience"), // Anos de experiencia
+    photo: (0, mysql_core_1.text)("photo"),
+    observations: (0, mysql_core_1.text)("observations"),
     // Status
     isAvailable: (0, mysql_core_1.boolean)("isAvailable").default(true),
     currentLatitude: (0, mysql_core_1.decimal)("currentLatitude", { precision: 10, scale: 8 }),

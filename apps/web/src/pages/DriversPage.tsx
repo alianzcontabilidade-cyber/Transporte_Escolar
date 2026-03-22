@@ -84,7 +84,7 @@ export default function DriversPage() {
           if(cpfDigits.length > 0 && cpfDigits.length !== 11){setErr('CPF incompleto.');return;}
           if(cpfDigits.length === 11 && !validateCPF(cpfDigits)){setErr('CPF inválido.');return;}
       
-          const p={municipalityId,name:form.name,cpf:form.cpf||undefined,phone:form.phone,email:form.email||undefined,birthDate:form.birthDate||undefined,address:form.address||undefined,city:form.city||undefined,cnhNumber:form.cnhNumber||undefined,cnhCategory:form.cnhCategory||undefined,cnhExpiry:form.cnhExpiry||undefined,experience:form.experience?parseInt(form.experience):undefined,routeId:form.routeId?parseInt(form.routeId):undefined,vehicleId:form.vehicleId?parseInt(form.vehicleId):undefined,photo:form.photo||undefined,observations:form.observations||undefined};
+          const p={municipalityId,name:form.name,cpf:form.cpf||undefined,phone:form.phone,email:form.email||undefined,birthDate:form.birthDate||undefined,address:form.address||undefined,city:form.city||undefined,state:form.state||undefined,cnhNumber:form.cnhNumber||undefined,cnhCategory:form.cnhCategory||undefined,cnhExpiry:form.cnhExpiry||undefined,experience:form.experience?parseInt(form.experience):undefined,routeId:form.routeId?parseInt(form.routeId):undefined,vehicleId:form.vehicleId?parseInt(form.vehicleId):undefined,photo:form.photo||undefined,observations:form.observations||undefined};
           if(editId!==null){update({id:editId,...p},{onSuccess:function(){refetch();setShow(false);},onError:function(e:any){setErr(e?.message||'Erro');}});}
           else{create(p,{onSuccess:function(){refetch();setShow(false);},onError:function(e:any){setErr(e?.message||'Erro');}});}
     };

@@ -486,12 +486,21 @@ export const schoolsRouter = t.router({
       name: z.string().min(3),
       code: z.string().optional(),
       type: z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
+      cnpj: z.string().optional(),
+      cep: z.string().optional(),
+      logradouro: z.string().optional(),
+      numero: z.string().optional(),
+      complemento: z.string().optional(),
+      bairro: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
       address: z.string().optional(),
       latitude: z.number().optional(),
       longitude: z.number().optional(),
       phone: z.string().optional(),
       email: z.string().optional(),
       directorName: z.string().optional(),
+      logoUrl: z.string().optional(),
       morningStart: z.string().optional(),
       morningEnd: z.string().optional(),
       afternoonStart: z.string().optional(),
@@ -513,12 +522,21 @@ export const schoolsRouter = t.router({
       name: z.string().optional(),
       code: z.string().optional(),
       type: z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
+      cnpj: z.string().optional(),
+      cep: z.string().optional(),
+      logradouro: z.string().optional(),
+      numero: z.string().optional(),
+      complemento: z.string().optional(),
+      bairro: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
       address: z.string().optional(),
       latitude: z.number().optional(),
       longitude: z.number().optional(),
       phone: z.string().optional(),
       email: z.string().optional(),
       directorName: z.string().optional(),
+      logoUrl: z.string().optional(),
       morningStart: z.string().optional(),
       morningEnd: z.string().optional(),
       afternoonStart: z.string().optional(),
@@ -1431,9 +1449,12 @@ export const vehiclesRouter = t.router({
       crlvExpiry: z.string().optional(), ipvaExpiry: z.string().optional(), inspectionExpiry: z.string().optional(),
       insuranceCompany: z.string().optional(), insurancePolicy: z.string().optional(), insuranceExpiry: z.string().optional(),
       fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
+      lastMaintenanceAt: z.string().optional(), nextMaintenanceAt: z.string().optional(),
+      gpsDeviceId: z.string().optional(), gpsDeviceModel: z.string().optional(),
+      status: z.enum(['active', 'maintenance', 'inactive']).optional(),
     }))
     .mutation(async ({ input }) => {
-      const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...rest } = input;
+      const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...rest } = input;
       const [vehicle] = await db.insert(vehicles).values({
         ...rest,
         fuelType: fuel, chassi: chassis,
@@ -1442,6 +1463,8 @@ export const vehiclesRouter = t.router({
         inspectionExpiry: inspectionExpiry ? new Date(inspectionExpiry) : undefined,
         insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : undefined,
         fireExtinguisherExpiry: fireExtinguisherExpiry ? new Date(fireExtinguisherExpiry) : undefined,
+        lastMaintenanceAt: lastMaintenanceAt ? new Date(lastMaintenanceAt) : undefined,
+        nextMaintenanceAt: nextMaintenanceAt ? new Date(nextMaintenanceAt) : undefined,
       }).$returningId();
       return { success: true, id: vehicle.id };
     }),
@@ -1456,9 +1479,11 @@ export const vehiclesRouter = t.router({
       crlvExpiry: z.string().optional(), ipvaExpiry: z.string().optional(), inspectionExpiry: z.string().optional(),
       insuranceCompany: z.string().optional(), insurancePolicy: z.string().optional(), insuranceExpiry: z.string().optional(),
       fireExtinguisherExpiry: z.string().optional(), currentKm: z.number().optional(),
+      lastMaintenanceAt: z.string().optional(), nextMaintenanceAt: z.string().optional(),
+      gpsDeviceId: z.string().optional(), gpsDeviceModel: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...data } = input;
+      const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...data } = input;
       const ud: any = { ...data };
       if (fuel !== undefined) ud.fuelType = fuel;
       if (chassis !== undefined) ud.chassi = chassis;
@@ -1467,6 +1492,8 @@ export const vehiclesRouter = t.router({
       if (inspectionExpiry) ud.inspectionExpiry = new Date(inspectionExpiry);
       if (insuranceExpiry) ud.insuranceExpiry = new Date(insuranceExpiry);
       if (fireExtinguisherExpiry) ud.fireExtinguisherExpiry = new Date(fireExtinguisherExpiry);
+      if (lastMaintenanceAt) ud.lastMaintenanceAt = new Date(lastMaintenanceAt);
+      if (nextMaintenanceAt) ud.nextMaintenanceAt = new Date(nextMaintenanceAt);
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(vehicles).set(ud).where(eq(vehicles.id, id));
       return { success: true };
@@ -1522,6 +1549,7 @@ export const driversRouter = t.router({
       birthDate: z.string().optional(),
       address: z.string().optional(),
       city: z.string().optional(),
+      state: z.string().optional(),
       cnhNumber: z.string().optional(),
       cnhCategory: z.string().optional(),
       cnhExpiry: z.string().optional(),
@@ -1550,6 +1578,9 @@ export const driversRouter = t.router({
           cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
           cnhExpiresAt: input.cnhExpiry ? new Date(input.cnhExpiry) : undefined,
           vehicleId: input.vehicleId,
+          address: input.address, city: input.city, state: input.state,
+          birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+          experience: input.experience, photo: input.photo, observations: input.observations,
         }).$returningId();
 
         // Vincular rota se informada
@@ -1583,6 +1614,7 @@ export const driversRouter = t.router({
       isAvailable: z.boolean().optional(),
       address: z.string().optional(),
       city: z.string().optional(),
+      state: z.string().optional(),
       birthDate: z.string().optional(),
       experience: z.number().optional(),
       photo: z.string().optional(),
@@ -1590,10 +1622,17 @@ export const driversRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
-      const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, ...driverData } = input;
+      const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, ...driverData } = input;
       // Atualizar dados do driver
       const ud: any = { ...driverData };
       if (cnhExpiry) ud.cnhExpiresAt = new Date(cnhExpiry);
+      if (address !== undefined) ud.address = address;
+      if (city !== undefined) ud.city = city;
+      if (state !== undefined) ud.state = state;
+      if (birthDate) ud.birthDate = new Date(birthDate);
+      if (experience !== undefined) ud.experience = experience;
+      if (photo !== undefined) ud.photo = photo;
+      if (observations !== undefined) ud.observations = observations;
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(drivers).set(ud).where(eq(drivers.id, id));
       // Atualizar dados do user vinculado

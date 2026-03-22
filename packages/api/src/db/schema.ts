@@ -95,22 +95,33 @@ export const schools = mysqlTable("schools", {
   code: varchar("code", { length: 50 }), // Código INEP ou interno
   type: mysqlEnum("type", ["infantil", "fundamental", "medio", "tecnico", "especial"]).default("fundamental"),
   
-  // Endereço
-  address: text("address"),
+  // Documento
+  cnpj: varchar("cnpj", { length: 18 }),
+
+  // Endereço completo
+  cep: varchar("cep", { length: 9 }),
+  logradouro: varchar("logradouro", { length: 255 }),
+  numero: varchar("numero", { length: 10 }),
+  complemento: varchar("complemento", { length: 100 }),
+  bairro: varchar("bairro", { length: 100 }),
+  city: varchar("city", { length: 255 }),
+  state: varchar("state", { length: 2 }),
+  address: text("address"), // Endereço concatenado (legado)
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  
+
   // Contato
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
   directorName: varchar("directorName", { length: 255 }),
-  
+  logoUrl: text("logoUrl"),
+
   // Horários de funcionamento
   morningStart: varchar("morningStart", { length: 5 }), // "07:00"
   morningEnd: varchar("morningEnd", { length: 5 }),     // "12:00"
   afternoonStart: varchar("afternoonStart", { length: 5 }),
   afternoonEnd: varchar("afternoonEnd", { length: 5 }),
-  
+
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -201,7 +212,8 @@ export const vehicles = mysqlTable("vehicles", {
   
   // GPS Device
   gpsDeviceId: varchar("gpsDeviceId", { length: 100 }),
-  
+  gpsDeviceModel: varchar("gpsDeviceModel", { length: 100 }),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -221,13 +233,22 @@ export const drivers = mysqlTable("drivers", {
   
   // Veículo atual atribuído
   vehicleId: int("vehicleId").references(() => vehicles.id),
-  
+
+  // Dados pessoais adicionais
+  address: text("address"),
+  city: varchar("city", { length: 255 }),
+  state: varchar("state", { length: 2 }),
+  birthDate: timestamp("birthDate"),
+  experience: int("experience"), // Anos de experiencia
+  photo: text("photo"),
+  observations: text("observations"),
+
   // Status
   isAvailable: boolean("isAvailable").default(true),
   currentLatitude: decimal("currentLatitude", { precision: 10, scale: 8 }),
   currentLongitude: decimal("currentLongitude", { precision: 11, scale: 8 }),
   lastLocationUpdate: timestamp("lastLocationUpdate"),
-  
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -83,14 +83,17 @@ export default function SchoolsPage() {
   const openNew = () => { setForm(emptyForm); setEditId(null); setFormErr(''); setFormMsg(''); setShowModal(true); };
 
   const openEdit = (s: any) => {
-    // Parse address back into parts
+    // Load data from API response (DB columns) with fallback to localStorage for migration
     const extra = getSchoolExtra(s.id);
     setForm({
       ...emptyForm, ...s,
       phone: s.phone || '', latitude: s.latitude ? String(s.latitude) : '', longitude: s.longitude ? String(s.longitude) : '',
-      cnpj: extra.cnpj || '', cep: extra.cep || '', logradouro: extra.logradouro || s.address || '',
-      numero: extra.numero || '', complemento: extra.complemento || '', bairro: extra.bairro || '',
-      city: extra.city || '', state: extra.state || '', logoUrl: extra.logoUrl || '',
+      cnpj: s.cnpj || extra.cnpj || '', cep: s.cep || extra.cep || '',
+      logradouro: s.logradouro || extra.logradouro || '',
+      numero: s.numero || extra.numero || '', complemento: s.complemento || extra.complemento || '',
+      bairro: s.bairro || extra.bairro || '',
+      city: s.city || extra.city || '', state: s.state || extra.state || '',
+      logoUrl: s.logoUrl || extra.logoUrl || '',
     });
     setEditId(s.id);
     setFormErr('');
@@ -211,30 +214,27 @@ export default function SchoolsPage() {
     const fullAddress = [form.logradouro, form.numero, form.complemento, form.bairro, form.city, form.state].filter(Boolean).join(', ');
     const payload: any = {
       municipalityId, name: form.name, code: form.code || undefined, type: form.type || undefined,
+      cnpj: form.cnpj || undefined, cep: form.cep || undefined,
+      logradouro: form.logradouro || undefined, numero: form.numero || undefined,
+      complemento: form.complemento || undefined, bairro: form.bairro || undefined,
+      city: form.city || undefined, state: form.state || undefined,
       address: fullAddress || undefined, phone: form.phone || undefined, email: form.email || undefined,
-      directorName: form.directorName || undefined, morningStart: form.morningStart || undefined,
+      directorName: form.directorName || undefined, logoUrl: form.logoUrl || undefined,
+      morningStart: form.morningStart || undefined,
       morningEnd: form.morningEnd || undefined, afternoonStart: form.afternoonStart || undefined,
       afternoonEnd: form.afternoonEnd || undefined,
       latitude: form.latitude ? parseFloat(form.latitude) : undefined,
       longitude: form.longitude ? parseFloat(form.longitude) : undefined,
     };
 
-    const saveExtra = (id: number) => {
-      saveSchoolExtra(id, {
-        cnpj: form.cnpj, cep: form.cep, logradouro: form.logradouro, numero: form.numero,
-        complemento: form.complemento, bairro: form.bairro, city: form.city, state: form.state,
-        logoUrl: form.logoUrl,
-      });
-    };
-
     if (editId !== null) {
       update({ id: editId, ...payload }, {
-        onSuccess: () => { saveExtra(editId); refetch(); setShowModal(false); },
+        onSuccess: () => { refetch(); setShowModal(false); },
         onError: (e: any) => { setFormErr(e?.message || 'Erro'); },
       });
     } else {
       create(payload, {
-        onSuccess: (res: any) => { const newId = res?.id || Date.now(); saveExtra(newId); refetch(); setShowModal(false); },
+        onSuccess: () => { refetch(); setShowModal(false); },
         onError: (e: any) => { setFormErr(e?.message || 'Erro'); },
       });
     }

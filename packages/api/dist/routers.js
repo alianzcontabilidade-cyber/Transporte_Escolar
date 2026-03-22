@@ -428,12 +428,21 @@ exports.schoolsRouter = trpc_1.t.router({
         name: zod_1.z.string().min(3),
         code: zod_1.z.string().optional(),
         type: zod_1.z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
+        cnpj: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(),
+        logradouro: zod_1.z.string().optional(),
+        numero: zod_1.z.string().optional(),
+        complemento: zod_1.z.string().optional(),
+        bairro: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
         address: zod_1.z.string().optional(),
         latitude: zod_1.z.number().optional(),
         longitude: zod_1.z.number().optional(),
         phone: zod_1.z.string().optional(),
         email: zod_1.z.string().optional(),
         directorName: zod_1.z.string().optional(),
+        logoUrl: zod_1.z.string().optional(),
         morningStart: zod_1.z.string().optional(),
         morningEnd: zod_1.z.string().optional(),
         afternoonStart: zod_1.z.string().optional(),
@@ -454,12 +463,21 @@ exports.schoolsRouter = trpc_1.t.router({
         name: zod_1.z.string().optional(),
         code: zod_1.z.string().optional(),
         type: zod_1.z.enum(['infantil', 'fundamental', 'medio', 'tecnico', 'especial']).optional(),
+        cnpj: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(),
+        logradouro: zod_1.z.string().optional(),
+        numero: zod_1.z.string().optional(),
+        complemento: zod_1.z.string().optional(),
+        bairro: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
         address: zod_1.z.string().optional(),
         latitude: zod_1.z.number().optional(),
         longitude: zod_1.z.number().optional(),
         phone: zod_1.z.string().optional(),
         email: zod_1.z.string().optional(),
         directorName: zod_1.z.string().optional(),
+        logoUrl: zod_1.z.string().optional(),
         morningStart: zod_1.z.string().optional(),
         morningEnd: zod_1.z.string().optional(),
         afternoonStart: zod_1.z.string().optional(),
@@ -1349,9 +1367,12 @@ exports.vehiclesRouter = trpc_1.t.router({
         crlvExpiry: zod_1.z.string().optional(), ipvaExpiry: zod_1.z.string().optional(), inspectionExpiry: zod_1.z.string().optional(),
         insuranceCompany: zod_1.z.string().optional(), insurancePolicy: zod_1.z.string().optional(), insuranceExpiry: zod_1.z.string().optional(),
         fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
+        lastMaintenanceAt: zod_1.z.string().optional(), nextMaintenanceAt: zod_1.z.string().optional(),
+        gpsDeviceId: zod_1.z.string().optional(), gpsDeviceModel: zod_1.z.string().optional(),
+        status: zod_1.z.enum(['active', 'maintenance', 'inactive']).optional(),
     }))
         .mutation(async ({ input }) => {
-        const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...rest } = input;
+        const { crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...rest } = input;
         const [vehicle] = await index_1.db.insert(schema_1.vehicles).values({
             ...rest,
             fuelType: fuel, chassi: chassis,
@@ -1360,6 +1381,8 @@ exports.vehiclesRouter = trpc_1.t.router({
             inspectionExpiry: inspectionExpiry ? new Date(inspectionExpiry) : undefined,
             insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : undefined,
             fireExtinguisherExpiry: fireExtinguisherExpiry ? new Date(fireExtinguisherExpiry) : undefined,
+            lastMaintenanceAt: lastMaintenanceAt ? new Date(lastMaintenanceAt) : undefined,
+            nextMaintenanceAt: nextMaintenanceAt ? new Date(nextMaintenanceAt) : undefined,
         }).$returningId();
         return { success: true, id: vehicle.id };
     }),
@@ -1373,9 +1396,11 @@ exports.vehiclesRouter = trpc_1.t.router({
         crlvExpiry: zod_1.z.string().optional(), ipvaExpiry: zod_1.z.string().optional(), inspectionExpiry: zod_1.z.string().optional(),
         insuranceCompany: zod_1.z.string().optional(), insurancePolicy: zod_1.z.string().optional(), insuranceExpiry: zod_1.z.string().optional(),
         fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
+        lastMaintenanceAt: zod_1.z.string().optional(), nextMaintenanceAt: zod_1.z.string().optional(),
+        gpsDeviceId: zod_1.z.string().optional(), gpsDeviceModel: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
-        const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, ...data } = input;
+        const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...data } = input;
         const ud = { ...data };
         if (fuel !== undefined)
             ud.fuelType = fuel;
@@ -1391,6 +1416,10 @@ exports.vehiclesRouter = trpc_1.t.router({
             ud.insuranceExpiry = new Date(insuranceExpiry);
         if (fireExtinguisherExpiry)
             ud.fireExtinguisherExpiry = new Date(fireExtinguisherExpiry);
+        if (lastMaintenanceAt)
+            ud.lastMaintenanceAt = new Date(lastMaintenanceAt);
+        if (nextMaintenanceAt)
+            ud.nextMaintenanceAt = new Date(nextMaintenanceAt);
         Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.vehicles).set(ud).where((0, drizzle_orm_1.eq)(schema_1.vehicles.id, id));
@@ -1447,6 +1476,7 @@ exports.driversRouter = trpc_1.t.router({
         birthDate: zod_1.z.string().optional(),
         address: zod_1.z.string().optional(),
         city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
         cnhNumber: zod_1.z.string().optional(),
         cnhCategory: zod_1.z.string().optional(),
         cnhExpiry: zod_1.z.string().optional(),
@@ -1473,6 +1503,9 @@ exports.driversRouter = trpc_1.t.router({
                 cnhNumber: input.cnhNumber, cnhCategory: input.cnhCategory,
                 cnhExpiresAt: input.cnhExpiry ? new Date(input.cnhExpiry) : undefined,
                 vehicleId: input.vehicleId,
+                address: input.address, city: input.city, state: input.state,
+                birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+                experience: input.experience, photo: input.photo, observations: input.observations,
             }).$returningId();
             // Vincular rota se informada
             if (input.routeId) {
@@ -1506,6 +1539,7 @@ exports.driversRouter = trpc_1.t.router({
         isAvailable: zod_1.z.boolean().optional(),
         address: zod_1.z.string().optional(),
         city: zod_1.z.string().optional(),
+        state: zod_1.z.string().optional(),
         birthDate: zod_1.z.string().optional(),
         experience: zod_1.z.number().optional(),
         photo: zod_1.z.string().optional(),
@@ -1513,11 +1547,25 @@ exports.driversRouter = trpc_1.t.router({
     }))
         .mutation(async ({ input }) => {
         (0, trpc_1.validateOptionalCPF)(input.cpf);
-        const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, ...driverData } = input;
+        const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, ...driverData } = input;
         // Atualizar dados do driver
         const ud = { ...driverData };
         if (cnhExpiry)
             ud.cnhExpiresAt = new Date(cnhExpiry);
+        if (address !== undefined)
+            ud.address = address;
+        if (city !== undefined)
+            ud.city = city;
+        if (state !== undefined)
+            ud.state = state;
+        if (birthDate)
+            ud.birthDate = new Date(birthDate);
+        if (experience !== undefined)
+            ud.experience = experience;
+        if (photo !== undefined)
+            ud.photo = photo;
+        if (observations !== undefined)
+            ud.observations = observations;
         Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.drivers).set(ud).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, id));

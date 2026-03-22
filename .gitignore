@@ -23,3 +23,34 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Pastas pessoais do usuario (nao devem estar no repo)
+Downloads/
+OneDrive/
+AppData/
+Contacts/
+AbiSuite/
+.Icecream PDF Editor/
+.cache/
+.candex/
+.config/
+.criptocns/
+.local/
+.openjfx/
+.oracle_jre_usage/
+.pdfbox.cache
+.pjeoffice-pro/
+.railway/
+.receitanet/
+.rfb/
+.serpro/
+.signer/
+.vault-sign-plugin/
+.vscode/
+.gitconfig
+.lesshst
+.node_repl_history
+.viminfo
+.claude.json
+.claude/
+Application Data/

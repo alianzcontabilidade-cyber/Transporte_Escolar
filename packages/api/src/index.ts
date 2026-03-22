@@ -148,7 +148,7 @@ app.get('/api/health', async (_req, res) => {
   const mem = process.memoryUsage();
   res.json({
     status: dbStatus === 'connected' ? 'ok' : 'degraded',
-    version: '3.1.0',
+    version: '3.3.0',
     timestamp: new Date().toISOString(),
     uptime: Math.floor((Date.now() - startTime) / 1000),
     database: {

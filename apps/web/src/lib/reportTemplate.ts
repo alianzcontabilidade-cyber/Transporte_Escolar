@@ -321,10 +321,15 @@ export async function openReportAsPDF(html: string, filename?: string) {
       reportCSS += inner + '\n';
     }
   }
-  // Remove @media screen rules and body max-width that conflict with viewer
+  // Remove regras que conflitam com o viewer
   reportCSS = reportCSS
     .replace(/@media\s+screen\s*\{[^{}]*\{[^}]*\}[^}]*\}/g, '')
-    .replace(/@media\s+screen\s*\{[^}]*\}/g, '');
+    .replace(/@media\s+screen\s*\{[^}]*\}/g, '')
+    .replace(/@media\s+print\s*\{[\s\S]*?\}\s*\}/g, '')
+    .replace(/@page\s*\{[^}]*\}/g, '')
+    .replace(/body\s*\{[^}]*\}/g, '')
+    .replace(/html\s*,?\s*body\s*\{[^}]*\}/g, '')
+    .replace(/\.folha-a4\s*\{[^}]*\}/g, '.folha-a4{width:100%;min-height:auto;padding:0;margin:0;box-shadow:none;position:relative}');
 
   // Escape backticks and backslashes in content for safe embedding
   const safeBody = bodyContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
@@ -348,8 +353,8 @@ body{background:#525659!important;font-family:Arial,sans-serif;overflow-x:hidden
 .ne-div{width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px}
 #ne-zlabel{color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;min-width:40px;text-align:center}
 #ne-viewer{padding-top:56px;padding-bottom:20px;display:flex;justify-content:center}
-#ne-page{background:white;width:794px;min-height:500px;padding:30px 40px;box-shadow:0 2px 20px rgba(0,0,0,0.3);transform-origin:top center}
-@media print{#ne-toolbar{display:none!important}body{background:white!important}#ne-viewer{padding:0!important}#ne-page{width:100%!important;box-shadow:none!important;transform:none!important;padding:0!important}}
+#ne-page{background:white;width:794px;min-height:500px;padding:1.8cm 2cm 2.5cm 2cm;box-shadow:0 2px 20px rgba(0,0,0,0.3);transform-origin:top center}
+@media print{#ne-toolbar{display:none!important}body{background:white!important}#ne-viewer{padding:0!important}#ne-page{width:100%!important;box-shadow:none!important;transform:none!important;padding:1.5cm 2cm 2cm 2cm!important}}
 </style>
 <style>
 /* REPORT STYLES */

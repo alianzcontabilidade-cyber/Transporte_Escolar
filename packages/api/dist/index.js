@@ -116,8 +116,6 @@ const io = new socket_io_1.Server(httpServer, {
 // CORS
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
-// Test route (primeira rota registrada)
-app.get('/api/ping', (_req, res) => { res.json({ pong: true, ts: Date.now() }); });
 // Request timeout (30 seconds)
 app.use((_req, res, next) => {
     res.setTimeout(30000, () => {

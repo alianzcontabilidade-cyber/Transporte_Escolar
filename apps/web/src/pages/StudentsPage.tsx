@@ -61,9 +61,9 @@ const emptyForm = {
   guardian1Name:'', guardian1Phone:'', guardian1Relation:'',
   guardian2Name:'', guardian2Phone:'', guardian2Relation:'',
   // Filiacao
-  fatherName:'', fatherCpf:'', fatherRg:'', fatherPhone:'', fatherProfession:'', fatherWorkplace:'', fatherEducation:'',
+  fatherName:'', fatherCpf:'', fatherRg:'', fatherRgOrgao:'', fatherRgUf:'', fatherPhone:'', fatherProfession:'', fatherWorkplace:'', fatherEducation:'',
   fatherNaturalness:'', fatherNaturalnessUf:'',
-  motherName:'', motherCpf:'', motherRg:'', motherPhone:'', motherProfession:'', motherWorkplace:'', motherEducation:'',
+  motherName:'', motherCpf:'', motherRg:'', motherRgOrgao:'', motherRgUf:'', motherPhone:'', motherProfession:'', motherWorkplace:'', motherEducation:'',
   motherNaturalness:'', motherNaturalnessUf:'',
   familyIncome:'',
   // Procedencia
@@ -680,6 +680,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.fatherName} onChange={setField('fatherName')}/></div>
               <div><label className="label">CPF</label><input className="input" value={form.fatherCpf} onChange={e=>setForm((f:any)=>({...f,fatherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
               <div><label className="label">RG</label><input className="input" value={form.fatherRg} onChange={setField('fatherRg')}/></div>
+              <div><label className="label">Órgão Emissor</label><input className="input" placeholder="SSP, DETRAN..." value={form.fatherRgOrgao} onChange={setField('fatherRgOrgao')}/></div>
+              <div><label className="label">UF RG</label><select className="input" value={form.fatherRgUf} onChange={setField('fatherRgUf')}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
               <div><label className="label">Telefone</label><input className="input" value={form.fatherPhone} onChange={e=>setForm((f:any)=>({...f,fatherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
               <div><label className="label">Profissão</label><input className="input" value={form.fatherProfession} onChange={setField('fatherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.fatherWorkplace} onChange={setField('fatherWorkplace')}/></div>
@@ -691,6 +693,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               <div className="col-span-3"><label className="label">Nome completo</label><input className="input" value={form.motherName} onChange={setField('motherName')}/></div>
               <div><label className="label">CPF</label><input className="input" value={form.motherCpf} onChange={e=>setForm((f:any)=>({...f,motherCpf:maskCPF(e.target.value)}))} maxLength={14}/></div>
               <div><label className="label">RG</label><input className="input" value={form.motherRg} onChange={setField('motherRg')}/></div>
+              <div><label className="label">Órgão Emissor</label><input className="input" placeholder="SSP, DETRAN..." value={form.motherRgOrgao} onChange={setField('motherRgOrgao')}/></div>
+              <div><label className="label">UF RG</label><select className="input" value={form.motherRgUf} onChange={setField('motherRgUf')}><option value="">UF</option>{ESTADOS_BR.map(es=><option key={es.uf} value={es.uf}>{es.uf}</option>)}</select></div>
               <div><label className="label">Telefone</label><input className="input" value={form.motherPhone} onChange={e=>setForm((f:any)=>({...f,motherPhone:maskPhone(e.target.value)}))} maxLength={15}/></div>
               <div><label className="label">Profissão</label><input className="input" value={form.motherProfession} onChange={setField('motherProfession')}/></div>
               <div><label className="label">Local de Trabalho</label><input className="input" value={form.motherWorkplace} onChange={setField('motherWorkplace')}/></div>

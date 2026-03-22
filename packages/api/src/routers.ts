@@ -13,7 +13,7 @@ import {
   financialAccounts, financialTransactions,
   mealMenus, libraryBooks, libraryLoans, assets, inventoryItems, inventoryMovements,
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
-  municipalityResponsibles, formFieldConfigs, fuelRecords
+  municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -4045,6 +4045,62 @@ export const fuelRouter = t.router({
 });
 
 // ============================================
+// STUDENT HISTORY ROUTER (Histórico Escolar Anterior)
+// ============================================
+export const studentHistoryRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(studentHistory)
+        .where(eq(studentHistory.studentId, input.studentId))
+        .orderBy(studentHistory.year);
+    }),
+
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      studentId: z.number(),
+      year: z.number(),
+      grade: z.string(),
+      schoolName: z.string(),
+      schoolCity: z.string().optional(),
+      schoolState: z.string().optional(),
+      schoolType: z.string().optional(),
+      result: z.string(),
+      observations: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [result] = await db.insert(studentHistory).values(input as any).$returningId();
+      return { success: true, id: result.id };
+    }),
+
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      year: z.number().optional(),
+      grade: z.string().optional(),
+      schoolName: z.string().optional(),
+      schoolCity: z.string().optional(),
+      schoolState: z.string().optional(),
+      schoolType: z.string().optional(),
+      result: z.string().optional(),
+      observations: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(studentHistory).set(data).where(eq(studentHistory.id, id));
+      return { success: true };
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(studentHistory).where(eq(studentHistory.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -4054,6 +4110,7 @@ export const appRouter = t.router({
   routes: routesRouter,
   stops: stopsRouter,
   students: studentsRouter,
+  studentHistory: studentHistoryRouter,
   trips: tripsRouter,
   vehicles: vehiclesRouter,
   drivers: driversRouter,

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appRouter = exports.fuelRouter = exports.formConfigRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.appRouter = exports.studentHistoryRouter = exports.fuelRouter = exports.formConfigRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
 const server_1 = require("@trpc/server");
 const trpc_1 = require("./trpc");
 const zod_1 = require("zod");
@@ -3907,6 +3907,58 @@ exports.fuelRouter = trpc_1.t.router({
     }),
 });
 // ============================================
+// STUDENT HISTORY ROUTER (Histórico Escolar Anterior)
+// ============================================
+exports.studentHistoryRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.studentHistory)
+            .where((0, drizzle_orm_1.eq)(schema_1.studentHistory.studentId, input.studentId))
+            .orderBy(schema_1.studentHistory.year);
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        studentId: zod_1.z.number(),
+        year: zod_1.z.number(),
+        grade: zod_1.z.string(),
+        schoolName: zod_1.z.string(),
+        schoolCity: zod_1.z.string().optional(),
+        schoolState: zod_1.z.string().optional(),
+        schoolType: zod_1.z.string().optional(),
+        result: zod_1.z.string(),
+        observations: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [result] = await index_1.db.insert(schema_1.studentHistory).values(input).$returningId();
+        return { success: true, id: result.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(),
+        year: zod_1.z.number().optional(),
+        grade: zod_1.z.string().optional(),
+        schoolName: zod_1.z.string().optional(),
+        schoolCity: zod_1.z.string().optional(),
+        schoolState: zod_1.z.string().optional(),
+        schoolType: zod_1.z.string().optional(),
+        result: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await index_1.db.update(schema_1.studentHistory).set(data).where((0, drizzle_orm_1.eq)(schema_1.studentHistory.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.studentHistory).where((0, drizzle_orm_1.eq)(schema_1.studentHistory.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
 // MAIN ROUTER
 // ============================================
 exports.appRouter = trpc_1.t.router({
@@ -3916,6 +3968,7 @@ exports.appRouter = trpc_1.t.router({
     routes: exports.routesRouter,
     stops: exports.stopsRouter,
     students: exports.studentsRouter,
+    studentHistory: exports.studentHistoryRouter,
     trips: exports.tripsRouter,
     vehicles: exports.vehiclesRouter,
     drivers: exports.driversRouter,

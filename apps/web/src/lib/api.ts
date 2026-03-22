@@ -132,6 +132,12 @@ export const api = {
     delete: (input: any) => call('students.delete', input, 'mutation'),
     assignToStop: (input: any) => call('students.assignToStop', input, 'mutation'),
   },
+  studentHistory: {
+    list: (input: any) => call('studentHistory.list', input, 'query'),
+    create: (input: any) => call('studentHistory.create', input, 'mutation'),
+    update: (input: any) => call('studentHistory.update', input, 'mutation'),
+    delete: (input: any) => call('studentHistory.delete', input, 'mutation'),
+  },
   drivers: {
     list: (input: any) => call('drivers.list', input, 'query'),
     create: (input: any) => call('drivers.create', input, 'mutation'),

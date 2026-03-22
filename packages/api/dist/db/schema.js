@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
-exports.formFieldConfigs = exports.documents = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
+exports.formFieldConfigs = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -1202,6 +1202,24 @@ exports.waitingList = (0, mysql_core_1.mysqlTable)("waiting_list", {
     position: (0, mysql_core_1.int)("position"),
     status: (0, mysql_core_1.mysqlEnum)("waitingStatus", ["waiting", "called", "enrolled", "cancelled"]).default("waiting").notNull(),
     notes: (0, mysql_core_1.text)("notes"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: HISTÓRICO ESCOLAR ANTERIOR DO ALUNO
+// ============================================
+exports.studentHistory = (0, mysql_core_1.mysqlTable)("student_history", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    year: (0, mysql_core_1.int)("year").notNull(),
+    grade: (0, mysql_core_1.varchar)("grade", { length: 100 }).notNull(),
+    schoolName: (0, mysql_core_1.varchar)("schoolName", { length: 255 }).notNull(),
+    schoolCity: (0, mysql_core_1.varchar)("schoolCity", { length: 100 }),
+    schoolState: (0, mysql_core_1.varchar)("schoolState", { length: 2 }),
+    schoolType: (0, mysql_core_1.varchar)("schoolType", { length: 30 }),
+    result: (0, mysql_core_1.varchar)("result", { length: 50 }).notNull(),
+    observations: (0, mysql_core_1.text)("observations"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

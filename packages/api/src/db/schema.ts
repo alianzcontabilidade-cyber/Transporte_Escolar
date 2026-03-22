@@ -1466,6 +1466,25 @@ export type Message = typeof messages.$inferSelect;
 export type WaitingListEntry = typeof waitingList.$inferSelect;
 
 // ============================================
+// TABELA: HISTÓRICO ESCOLAR ANTERIOR DO ALUNO
+// ============================================
+export const studentHistory = mysqlTable("student_history", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  year: int("year").notNull(),
+  grade: varchar("grade", { length: 100 }).notNull(),
+  schoolName: varchar("schoolName", { length: 255 }).notNull(),
+  schoolCity: varchar("schoolCity", { length: 100 }),
+  schoolState: varchar("schoolState", { length: 2 }),
+  schoolType: varchar("schoolType", { length: 30 }),
+  result: varchar("result", { length: 50 }).notNull(),
+  observations: text("observations"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
 // TABELA: DOCUMENTOS GERADOS (Verificação + QR Code)
 // ============================================
 export const documents = mysqlTable("documents", {

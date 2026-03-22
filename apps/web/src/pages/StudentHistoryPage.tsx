@@ -22,6 +22,7 @@ export default function StudentHistoryPage() {
   const { data: enrollmentsData } = useQuery(() => selStudent ? api.enrollments.list({ municipalityId: mid, studentId: parseInt(selStudent) }) : Promise.resolve([]), [mid, selStudent]);
   const { data: yearsData } = useQuery(() => api.academicYears.list({ municipalityId: mid }), [mid]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
+  const { data: historyData } = useQuery(() => selStudent ? api.studentHistory.list({ studentId: parseInt(selStudent) }) : Promise.resolve([]), [selStudent]);
 
   const allSchools = (schoolsData as any) || [];
 
@@ -78,7 +79,16 @@ export default function StudentHistoryPage() {
     const school = loadSchoolData(student.schoolId, allSchools);
     const { municipality, secretaria } = munReport;
 
-    const history = allEnrollments.map((e: any) => {
+    // Histórico anterior (anos anteriores em outras escolas)
+    const previousHistory = ((historyData as any) || []).map((h: any) => ({
+      year: h.year,
+      grade: h.grade,
+      school: h.schoolName + (h.schoolCity ? ' – ' + h.schoolCity + '/' + (h.schoolState || '') : ''),
+      result: h.result,
+    }));
+
+    // Matrículas atuais no sistema
+    const currentHistory = allEnrollments.map((e: any) => {
       const year = allYears.find((y: any) => y.id === e.academicYearId);
       const classGrades = gradesMap[String(e.classId)] || [];
       return {
@@ -89,6 +99,9 @@ export default function StudentHistoryPage() {
         grades: classGrades,
       };
     });
+
+    // Combinar e ordenar por ano
+    const history = [...previousHistory, ...currentHistory].sort((a: any, b: any) => a.year - b.year);
 
     return generateHistoricoEscolar(student, history, school, municipality, secretaria, selectedSigs);
   };

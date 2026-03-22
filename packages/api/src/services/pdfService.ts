@@ -81,14 +81,20 @@ export async function generatePDF(html: string, options?: PDFOptions): Promise<B
       right: '15mm',
     };
 
+    // Rodapé padrão em todas as páginas
+    const defaultFooter = `<div style="width:100%;font-size:7px;color:#999;text-align:center;padding:5px 15mm;border-top:1px solid #ddd;font-family:Arial,sans-serif">
+      <span>NetEscol - Sistema de Gestão Escolar Municipal</span>
+      <span style="float:right">Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+    </div>`;
+
     const pdfBuffer = await page.pdf({
       format: (options?.format || 'A4') as any,
       landscape: isLandscape,
-      margin: margins,
+      margin: { ...margins, bottom: '20mm' },
       printBackground: true,
-      displayHeaderFooter: options?.displayHeaderFooter || false,
-      headerTemplate: options?.headerTemplate || '',
-      footerTemplate: options?.footerTemplate || '',
+      displayHeaderFooter: true,
+      headerTemplate: options?.headerTemplate || '<span></span>',
+      footerTemplate: options?.footerTemplate || defaultFooter,
       preferCSSPageSize: false,
     });
 

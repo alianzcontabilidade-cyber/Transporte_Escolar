@@ -87,14 +87,15 @@ export async function generatePDF(html: string, options?: PDFOptions): Promise<B
       <span style="float:right">Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
     </div>`;
 
+    const showFooter = options?.displayHeaderFooter !== false;
     const pdfBuffer = await page.pdf({
       format: (options?.format || 'A4') as any,
       landscape: isLandscape,
-      margin: { ...margins, bottom: '20mm' },
+      margin: showFooter ? { ...margins, bottom: '20mm' } : margins,
       printBackground: true,
-      displayHeaderFooter: true,
+      displayHeaderFooter: showFooter,
       headerTemplate: options?.headerTemplate || '<span></span>',
-      footerTemplate: options?.footerTemplate || defaultFooter,
+      footerTemplate: showFooter ? (options?.footerTemplate || defaultFooter) : '',
       preferCSSPageSize: false,
     });
 

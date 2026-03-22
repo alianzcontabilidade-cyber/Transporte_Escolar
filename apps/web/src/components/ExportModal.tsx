@@ -197,6 +197,32 @@ export function exportToWord(html: string, filename: string) {
   a.click();
 }
 
+// Extrair dados de tabela HTML para CSV
+function extractTableDataFromHTML(html: string): any[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const table = doc.querySelector('table');
+  if (!table) return [];
+  const headers: string[] = [];
+  table.querySelectorAll('thead th, tr:first-child th').forEach(th => headers.push(th.textContent?.trim() || ''));
+  if (headers.length === 0) {
+    const firstRow = table.querySelector('tr');
+    firstRow?.querySelectorAll('td, th').forEach(cell => headers.push(cell.textContent?.trim() || ''));
+  }
+  const rows: any[] = [];
+  const bodyRows = table.querySelectorAll('tbody tr');
+  const dataRows = bodyRows.length > 0 ? bodyRows : table.querySelectorAll('tr');
+  dataRows.forEach((tr, i) => {
+    if (i === 0 && headers.length > 0 && !table.querySelector('thead')) return;
+    const row: any = {};
+    tr.querySelectorAll('td').forEach((td, j) => {
+      row[headers[j] || `col${j}`] = td.textContent?.trim() || '';
+    });
+    if (Object.keys(row).length > 0) rows.push(row);
+  });
+  return rows;
+}
+
 // Handler unificado
 export async function handleExport(
   format: ExportFormat,
@@ -218,7 +244,15 @@ export async function handleExport(
       exportToWord(html, filename);
       break;
     case 'csv':
-      exportToCSV(data, filename);
+      if (data?.length) {
+        exportToCSV(data, filename);
+      } else if (html) {
+        // Extrair dados da tabela HTML quando data[] está vazio
+        const csvData = extractTableDataFromHTML(html);
+        exportToCSV(csvData, filename);
+      } else {
+        alert('Sem dados para exportar');
+      }
       break;
     case 'html':
       exportToHTML(html, filename, false);

@@ -38,9 +38,11 @@ export default function ContractsPage() {
     const [munReport, setMunReport] = useState<any>(null);
     useEffect(() => { if (municipalityId) loadMunicipalityData(municipalityId, api).then(setMunReport).catch(() => {}); }, [municipalityId]);
     const [contractExportModal, setContractExportModal] = useState<{title:string;data:any[];cols:string[];filename:string}|null>(null);
-    const doContractExport = (format: ExportFormat) => {
+    const doContractExport = async (format: ExportFormat) => {
       if (!contractExportModal) return;
-      handleExport(format, contractExportModal.data, buildContractHTML(contractExportModal.title, contractExportModal.data, contractExportModal.cols), contractExportModal.filename);
+      const { buildTableReportHTML, getMunicipalityReport } = await import('../lib/reportUtils');
+      const mr = municipalityId ? await getMunicipalityReport(municipalityId, api) : null;
+      handleExport(format, contractExportModal.data, buildTableReportHTML(contractExportModal.title, contractExportModal.data, contractExportModal.cols, mr), contractExportModal.filename);
     };
 
     const generateContractsReport = () => {

@@ -22,6 +22,8 @@ export default function ClassCouncilPage() {
   const [notes, setNotes] = useState<Record<number, { decision: string; observations: string }>>({});
   const [generalNotes, setGeneralNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [savingDb, setSavingDb] = useState(false);
+  const [dbMsg, setDbMsg] = useState('');
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
   const { data: enrollmentsData } = useQuery(() => selClass ? api.enrollments.list({ municipalityId: mid, classId: parseInt(selClass), status: 'active' }) : Promise.resolve([]), [mid, selClass]);
@@ -36,11 +38,30 @@ export default function ClassCouncilPage() {
 
   const getNote = (studentId: number) => notes[studentId] || { decision: 'aprovado', observations: '' };
 
-  const saveCouncil = () => {
+  const saveCouncil = async () => {
     const key = 'netescol_council_' + selClass + '_' + selBimester;
     localStorage.setItem(key, JSON.stringify({ notes, generalNotes, date: new Date().toISOString() }));
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setDbMsg('');
+    setSavingDb(true);
+
+    const statusMap: Record<string, string> = { aprovado: 'graduated', retido: 'retained' };
+    try {
+      for (const e of allEnrollments) {
+        const decision = getNote(e.studentId).decision;
+        const mappedStatus = statusMap[decision];
+        if (mappedStatus) {
+          await api.enrollments.updateStatus({ id: e.id, status: mappedStatus, statusNotes: `Conselho de classe - ${BIMESTERS.find(b => b.v === selBimester)?.l || ''}` });
+        }
+        // 'recuperacao' keeps status as 'active' (student stays enrolled for recovery)
+      }
+      setDbMsg('Decisoes salvas no banco de dados com sucesso!');
+    } catch (err: any) {
+      setDbMsg('Erro ao atualizar status no banco: ' + (err?.message || 'Falha desconhecida'));
+    } finally {
+      setSavingDb(false);
+      setTimeout(() => { setSaved(false); setDbMsg(''); }, 5000);
+    }
   };
 
   const loadCouncil = (classId: string, bim: string) => {
@@ -115,7 +136,8 @@ export default function ClassCouncilPage() {
         )}
       </div>
 
-      {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle size={16} /> Conselho de classe salvo!</div>}
+      {saved && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle size={16} /> Conselho de classe salvo! {savingDb && '(Atualizando banco de dados...)'}</div>}
+      {dbMsg && <div className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${dbMsg.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{dbMsg.includes('Erro') ? <AlertTriangle size={16} /> : <CheckCircle size={16} />} {dbMsg}</div>}
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 

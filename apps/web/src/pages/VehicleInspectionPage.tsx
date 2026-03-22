@@ -45,6 +45,26 @@ export default function VehicleInspectionPage() {
   const allVehicles = (vehiclesData as any) || [];
   const vehicle = allVehicles.find((v: any) => String(v.id) === selVehicle);
 
+  // Load inspection data from localStorage when vehicle changes
+  useEffect(() => {
+    if (!selVehicle) return;
+    const stored = localStorage.getItem(`inspection_${selVehicle}`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setChecks(parsed.checks || {});
+        setObservations(parsed.observations || '');
+        setInspector(parsed.inspector || user?.name || '');
+      } catch { /* ignore parse errors */ }
+    }
+  }, [selVehicle]);
+
+  // Save inspection data to localStorage when checks, observations, or inspector change
+  useEffect(() => {
+    if (!selVehicle) return;
+    localStorage.setItem(`inspection_${selVehicle}`, JSON.stringify({ checks, observations, inspector }));
+  }, [selVehicle, checks, observations, inspector]);
+
   const toggle = (id: string) => setChecks(prev => ({ ...prev, [id]: prev[id] === 'ok' ? 'nok' : 'ok' }));
   const total = CHECKLIST.length;
   const okCount = Object.values(checks).filter(v => v === 'ok').length;
@@ -108,7 +128,7 @@ export default function VehicleInspectionPage() {
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
       <div className="flex gap-3 mb-5">
-        <select className="input w-72" value={selVehicle} onChange={e => { setSelVehicle(e.target.value); setChecks({}); setObservations(''); }}><option value="">Selecione o veículo</option>{allVehicles.map((v: any) => <option key={v.id} value={v.id}>{v.plate} {v.nickname ? '- ' + v.nickname : ''} {v.brand ? '(' + v.brand + ')' : ''}</option>)}</select>
+        <select className="input w-72" value={selVehicle} onChange={e => { setSelVehicle(e.target.value); setChecks({}); setObservations(''); setInspector(user?.name || ''); }}><option value="">Selecione o veículo</option>{allVehicles.map((v: any) => <option key={v.id} value={v.id}>{v.plate} {v.nickname ? '- ' + v.nickname : ''} {v.brand ? '(' + v.brand + ')' : ''}</option>)}</select>
         <input className="input w-48" value={inspector} onChange={e => setInspector(e.target.value)} placeholder="Nome do inspetor" />
       </div>
 

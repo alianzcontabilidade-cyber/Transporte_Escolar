@@ -1,14 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
-import { BookOpen, CheckCircle, XCircle, Clock, AlertTriangle, Users, Save, Search, Calendar } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Clock, AlertTriangle, Users, Save, Search, Calendar, ArrowRight, FileText, Info } from 'lucide-react';
 
 const STATUS_ICONS: any = { present: CheckCircle, absent: XCircle, justified: AlertTriangle, late: Clock };
 const STATUS_LABELS: any = { present: 'Presente', absent: 'Ausente', justified: 'Justificado', late: 'Atrasado' };
 const STATUS_COLORS: any = { present: 'text-green-600 bg-green-50', absent: 'text-red-600 bg-red-50', justified: 'text-yellow-600 bg-yellow-50', late: 'text-orange-600 bg-orange-50' };
 
 export default function DiaryPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [tab, setTab] = useState<'attendance'|'grades'|'plans'>('attendance');
@@ -133,8 +135,9 @@ export default function DiaryPage() {
       {tab === 'grades' && (
         <div className="card text-center py-16">
           <BookOpen size={48} className="text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500 mb-2">Selecione uma turma e disciplina para lancar notas</p>
-          <p className="text-xs text-gray-400">Use a pagina de Avaliacoes para criar provas e lancar notas</p>
+          <p className="text-gray-500 mb-2">Lancamento de notas e avaliacoes</p>
+          <p className="text-sm text-gray-400 mb-4">Acesse a pagina de Lancamento de Notas para criar provas, trabalhos e lancar notas dos alunos.</p>
+          <button onClick={() => navigate('/lancamento-notas')} className="btn-primary inline-flex items-center gap-2 mx-auto"><FileText size={16} /> Ir para Lancamento de Notas <ArrowRight size={16} /></button>
         </div>
       )}
 
@@ -142,7 +145,24 @@ export default function DiaryPage() {
         <div className="card text-center py-16">
           <Calendar size={48} className="text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 mb-2">Planejamento de aulas</p>
-          <p className="text-xs text-gray-400">Selecione uma turma e disciplina para ver/criar planejamentos</p>
+          <div className="max-w-md mx-auto mt-4 p-4 bg-blue-50 rounded-xl">
+            <div className="flex items-start gap-2 text-left">
+              <Info size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-blue-700 font-medium">Informacao</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  {selClass && selSubject
+                    ? `O planejamento para a turma "${allClasses.find((c: any) => String(c.id) === selClass)?.fullName || ''}" na disciplina "${allSubjects.find((s: any) => String(s.id) === selSubject)?.name || ''}" pode ser registrado atraves do diario de classe impresso ou das atas de conselho.`
+                    : selClass
+                    ? `Selecione tambem uma disciplina para ver o contexto do planejamento da turma "${allClasses.find((c: any) => String(c.id) === selClass)?.fullName || ''}".`
+                    : 'Selecione uma turma e disciplina acima para ver o contexto do planejamento.'
+                  }
+                </p>
+                <p className="text-xs text-blue-500 mt-2">Utilize o Calendario Escolar para registrar datas de planejamento e reunioes pedagogicas.</p>
+                <button onClick={() => navigate('/calendario')} className="mt-3 text-sm text-blue-700 font-medium hover:underline inline-flex items-center gap-1">Ir para Calendario Escolar <ArrowRight size={14} /></button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -44,7 +44,7 @@ export default function ClassesPage() {
   const save = () => {
     if (!form.schoolId || !form.academicYearId || !form.classGradeId || !form.name) { setFormErr('Preencha escola, ano letivo, série e nome.'); return; }
     const payload = { municipalityId: mid, schoolId: parseInt(form.schoolId), academicYearId: parseInt(form.academicYearId), classGradeId: parseInt(form.classGradeId), name: form.name, shift: form.shift, maxStudents: parseInt(form.maxStudents) || 30, roomNumber: form.roomNumber || undefined, teacherUserId: form.teacherUserId ? parseInt(form.teacherUserId) : undefined };
-    if (editId) { update({ id: editId, name: form.name, shift: form.shift, maxStudents: parseInt(form.maxStudents), roomNumber: form.roomNumber || undefined, teacherUserId: form.teacherUserId ? parseInt(form.teacherUserId) : undefined }, { onSuccess: () => { refetch(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
+    if (editId) { update({ id: editId, name: form.name, shift: form.shift, maxStudents: parseInt(form.maxStudents), roomNumber: form.roomNumber || undefined, teacherUserId: form.teacherUserId ? parseInt(form.teacherUserId) : null }, { onSuccess: () => { refetch(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
     else { create(payload, { onSuccess: () => { refetch(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
   };
 

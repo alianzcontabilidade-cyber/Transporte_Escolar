@@ -51,14 +51,14 @@ export default function IndividualReportPage() {
   const { data: reportData } = useQuery(() => selClass && selStudent ? api.studentGrades.reportCard({ classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve([]), [selClass, selStudent]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
   const { data: descriptiveData } = useQuery(() => selClass && selStudent ? api.descriptiveReports.list({ classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve([]), [selClass, selStudent]);
-  const { data: attendanceData } = useQuery(() => selClass && selStudent ? api.diaryAttendance.studentSummary({ classId: parseInt(selClass), studentId: parseInt(selStudent) }) : Promise.resolve(null), [selClass, selStudent]);
+  const { data: attendanceRaw } = useQuery(() => selClass && selStudent ? api.diaryAttendance.studentSummary({ classId: parseInt(selClass), startDate: `${new Date().getFullYear()}-01-01`, endDate: `${new Date().getFullYear()}-12-31` }) : Promise.resolve(null), [selClass, selStudent]);
 
   const allClasses = (classesData as any) || [];
   const allEnrollments = (enrollmentsData as any) || [];
   const report = (reportData as any) || [];
   const allSchools = (schoolsData as any) || [];
   const descriptives = (descriptiveData as any) || [];
-  const attendance = attendanceData as any;
+  const attendance = Array.isArray(attendanceRaw) ? (attendanceRaw as any[]).find((a: any) => String(a.studentId) === selStudent) || null : attendanceRaw as any;
 
   useEffect(() => {
     if (!mid) return;

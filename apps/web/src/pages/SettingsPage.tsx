@@ -59,34 +59,12 @@ export default function SettingsPage(){
         </div>
       </div>)}
       {tab==='security'&&(<div className="card max-w-md space-y-4"><h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><Shield size={18} className="text-primary-500"/>Alterar Senha</h2>{sm&&<div className={'p-3 rounded-lg text-sm '+(sm.includes('sucesso')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200')}>{sm}</div>}<div><label className="label">Senha atual</label><div className="relative"><input type={sp?'text':'password'} className="input pr-10" value={sec.cur} onChange={e=>setSec(f=>({...f,cur:e.target.value}))}/><button type="button" onClick={()=>setSp(v=>!v)} className="absolute right-3 top-2.5 text-gray-400">{sp?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div><div><label className="label">Nova senha</label><input type="password" className="input" value={sec.nw} onChange={e=>setSec(f=>({...f,nw:e.target.value}))}/></div><div><label className="label">Confirmar nova senha</label><input type="password" className="input" value={sec.cf} onChange={e=>setSec(f=>({...f,cf:e.target.value}))}/></div><button onClick={()=>{if(!sec.cur||!sec.nw){setSm('Preencha todos os campos.');return;}if(sec.nw!==sec.cf){setSm('Senhas nao coincidem.');return;}if(sec.nw.length<6){setSm('Minimo 6 caracteres.');return;}api.auth.changePassword({currentPassword:sec.cur,newPassword:sec.nw}).then(()=>{setSm('Senha alterada com sucesso!');setSec({cur:'',nw:'',cf:''});}).catch((e:any)=>setSm(e.message||'Erro ao alterar senha')); }} className="btn-primary w-full">Alterar Senha</button></div>)}
-      {tab==='notifications'&&(<div className="card max-w-2xl space-y-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Bell size={18}/>Preferencias de Notificacao</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div><p className="font-medium">Notificacoes por email</p><p className="text-xs text-gray-500">Receber alertas por email</p></div>
-            <label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" defaultChecked className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-500"></div></label>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div><p className="font-medium">Notificacoes push</p><p className="text-xs text-gray-500">Alertas no navegador/celular</p></div>
-            <label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" defaultChecked className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-500"></div></label>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div><p className="font-medium">Som de notificacao</p><p className="text-xs text-gray-500">Tocar som ao receber alertas</p></div>
-            <label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" defaultChecked className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-500"></div></label>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div><p className="font-medium">Vibracao</p><p className="text-xs text-gray-500">Vibrar ao receber alertas (mobile)</p></div>
-            <label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" defaultChecked className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-500"></div></label>
-          </div>
-        </div>
-        <h3 className="font-semibold mt-6">Tipos de alerta</h3>
-        <div className="space-y-3">
-          {[['Viagem iniciada','Quando o onibus inicia a rota'],['Aluno embarcou','Quando seu filho(a) sobe no onibus'],['Aluno desembarcou','Quando seu filho(a) desce do onibus'],['Onibus chegou na parada','Quando o onibus chega na parada'],['Atrasos','Quando ha atraso na viagem'],['Avisos da escola','Comunicados gerais']].map(([title,desc]) => (
-          <div key={title} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div><p className="text-sm font-medium">{title}</p><p className="text-xs text-gray-400">{desc}</p></div>
-            <label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" defaultChecked className="sr-only peer"/><div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-500"></div></label>
-          </div>
-        ))}
+      {tab==='notifications'&&(<div className="card max-w-2xl">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Bell size={18}/>Notificacoes</h2>
+        <div className="p-6 bg-blue-50 rounded-xl text-center">
+          <Bell size={40} className="text-blue-300 mx-auto mb-3"/>
+          <p className="text-blue-800 font-medium mb-2">As configuracoes de notificacao sao gerenciadas automaticamente pelo sistema.</p>
+          <p className="text-sm text-blue-600">As notificacoes de viagem, embarque, desembarque e avisos escolares sao enviadas automaticamente conforme as configuracoes do municipio. Para alteracoes, entre em contato com o administrador do sistema.</p>
         </div>
       </div>)}
       {del&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3"><Trash2 size={24} className="text-red-500"/></div><h3 className="font-bold text-gray-900 mb-2">Excluir {del.name}?</h3><p className="text-sm text-gray-500 mb-5">Esta acao nao pode ser desfeita.</p><div className="flex gap-3"><button onClick={()=>setDel(null)} className="btn-secondary flex-1">Cancelar</button><button onClick={()=>du({id:del.id},{onSuccess:()=>{refetch();setDel(null);}})} className="btn-primary flex-1 bg-red-500 hover:bg-red-600">Excluir</button></div></div></div>)}

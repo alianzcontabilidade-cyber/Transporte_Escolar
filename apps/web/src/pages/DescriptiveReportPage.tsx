@@ -118,7 +118,7 @@ export default function DescriptiveReportPage() {
     const rows = allReports.map((r: any, i: number) => ({
       num: i + 1,
       aluno: r.studentName || '--',
-      parecer: (r.report || '--').substring(0, 100) + ((r.report || '').length > 100 ? '...' : ''),
+      parecer: (r.content || '--').substring(0, 100) + ((r.content || '').length > 100 ? '...' : ''),
     }));
     const cols = ['#', 'Aluno', 'Parecer'];
     const html = buildTableReportHTML('PARECER DESCRITIVO', rows, cols, munReport, { signatories: selectedSigs });

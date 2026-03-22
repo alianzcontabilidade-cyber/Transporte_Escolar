@@ -1898,7 +1898,7 @@ export const guardiansRouter = t.router({
           driverName: driverUser?.name || 'Motorista',
           driverPhone: driverUser?.phone || null,
           vehicle: vehicle ? { plate: vehicle.plate, nickname: vehicle.nickname } : null,
-          driverLocation: driver ? { lat: parseFloat(driver.currentLatitude as any || '0'), lng: parseFloat(driver.currentLongitude as any || '0'), updatedAt: driver.lastLocationUpdate } : null,
+          driverLocation: driver && driver.currentLatitude && driver.currentLongitude ? { lat: parseFloat(driver.currentLatitude as any), lng: parseFloat(driver.currentLongitude as any), updatedAt: driver.lastLocationUpdate } : null,
           stops: tripStops.map(s => ({
             ...s,
             arrived: stopLogs.some(l => l.stopId === s.id),
@@ -2180,7 +2180,39 @@ export const monitorsRouter = t.router({
         registeredByUserId: ctx.userId,
         notes: input.notes,
       });
-      return { success: true };
+
+      // Notificar responsáveis
+      const [student] = await db.select({ name: students.name }).from(students).where(eq(students.id, input.studentId)).limit(1);
+      const guardianList = await db.select({ userId: guardians.userId }).from(guardians).where(eq(guardians.studentId, input.studentId));
+      for (const g of guardianList) {
+        await db.insert(notifications).values({
+          userId: g.userId,
+          title: 'Aluno ausente',
+          body: (student?.name || 'Seu filho(a)') + ' foi registrado como ausente no transporte escolar.',
+          type: 'student_absent',
+          tripId: input.tripId,
+          stopId: input.stopId,
+          studentId: input.studentId,
+        });
+      }
+
+      // Emitir evento de ausência via Socket.IO
+      const [tripAbsent] = await db.select({ routeId: trips.routeId }).from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (tripAbsent) {
+        const [routeAbsent] = await db.select({ municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, tripAbsent.routeId)).limit(1);
+        if (routeAbsent) {
+          emitToMunicipality(routeAbsent.municipalityId, 'student:absent', {
+            tripId: input.tripId,
+            stopId: input.stopId,
+            studentId: input.studentId,
+            studentName: student?.name,
+            municipalityId: routeAbsent.municipalityId,
+            time: new Date().toISOString(),
+          });
+        }
+      }
+
+      return { success: true, studentName: student?.name };
     }),
 
   // Obter resumo da viagem para o monitor
@@ -2806,12 +2838,15 @@ export const classesRouter = t.router({
       shift: z.enum(['morning', 'afternoon', 'evening', 'full_time']).optional(),
       maxStudents: z.number().optional(),
       roomNumber: z.string().optional(),
-      teacherUserId: z.number().optional(),
+      teacherUserId: z.number().nullable().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
       const ud: any = {};
-      Object.entries(data).forEach(([k, v]) => { if (v !== undefined) ud[k] = v; });
+      Object.entries(data).forEach(([k, v]) => {
+        if (v !== undefined) ud[k] = v;
+        if (k === 'teacherUserId' && v === null) ud[k] = null;
+      });
       if (Object.keys(ud).length > 0) await db.update(classes).set(ud).where(eq(classes.id, id));
       return { success: true };
     }),

@@ -601,6 +601,7 @@ export const notifications = mysqlTable("notifications", {
     "arrived",          // Ônibus chegou
     "student_boarded",  // Aluno embarcou
     "student_dropped",  // Aluno desembarcou
+    "student_absent",   // Aluno ausente
     "trip_completed",   // Viagem concluída
     "delay",            // Atraso
     "alert",            // Alerta geral

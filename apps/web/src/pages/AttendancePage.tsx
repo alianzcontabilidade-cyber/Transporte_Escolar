@@ -105,7 +105,7 @@ export default function AttendancePage() {
           await api.monitors.dropStudent({ tripId: trip.trip?.id, studentId, stopId });
         }
       } catch (e) {
-        console.log('Registro local - erro ao persistir:', (e as any)?.message);
+        /* erro ao persistir frequência - registro mantido localmente */
       }
     }
   };

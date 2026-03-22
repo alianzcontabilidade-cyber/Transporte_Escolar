@@ -691,6 +691,15 @@ export const stopsRouter = t.router({
       }
       return { success: true };
     }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const [hasStudents] = await db.select({ c: sql`count(*)`.as('c') }).from(stopStudents).where(eq(stopStudents.stopId, input.id));
+      if (Number(hasStudents.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Parada possui ${hasStudents.c} aluno(s) vinculado(s)` });
+      await db.update(stops).set({ isActive: false }).where(eq(stops.id, input.id));
+      return { success: true };
+    }),
 });
 
 // ============================================
@@ -1060,9 +1069,18 @@ export const studentsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const [hasEnrollments] = await db.select({ c: sql`count(*)`.as('c') }).from(enrollments).where(and(eq(enrollments.studentId, input.id), eq(enrollments.isActive, true)));
-      if (Number(hasEnrollments.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Aluno possui ${hasEnrollments.c} matrícula(s) ativa(s)` });
-      await db.update(students).set({ isActive: false }).where(eq(students.id, input.id));
+      const [hasEnrollments] = await db.select({ c: sql`count(*)`.as('c') }).from(enrollments).where(and(eq(enrollments.studentId, input.id), eq(enrollments.status, 'active'), eq(enrollments.isActive, true)));
+      if (Number(hasEnrollments.c) > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Aluno possui ${hasEnrollments.c} matrícula(s) ativa(s). Altere o status da matrícula antes de excluir.` });
+
+      // Desativar aluno
+      await db.update(students).set({ isActive: false, studentStatus: 'inativo' }).where(eq(students.id, input.id));
+
+      // Limpar vínculos com paradas de rota
+      await db.delete(stopStudents).where(eq(stopStudents.studentId, input.id));
+
+      // Desativar matrículas que não estão ativas
+      await db.update(enrollments).set({ isActive: false }).where(and(eq(enrollments.studentId, input.id), eq(enrollments.isActive, true)));
+
       return { success: true };
     }),
 });
@@ -2856,10 +2874,31 @@ export const enrollmentsRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
+
+      // Buscar a matrícula para saber o studentId
+      const [enr] = await db.select({ studentId: enrollments.studentId }).from(enrollments).where(eq(enrollments.id, id)).limit(1);
+
+      // Atualizar status da matrícula
       await db.update(enrollments).set({
         ...data,
         statusChangedAt: new Date(),
       }).where(eq(enrollments.id, id));
+
+      // Sincronizar: atualizar studentStatus no cadastro do aluno
+      if (enr) {
+        const statusMap: Record<string, string> = {
+          active: 'ativo', transferred: 'transferido', cancelled: 'cancelado',
+          graduated: 'aprovado', retained: 'retido', evaded: 'evadido',
+        };
+        const studentStatus = statusMap[input.status] || input.status;
+        await db.update(students).set({ studentStatus }).where(eq(students.id, enr.studentId));
+
+        // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas
+        if (['transferred', 'cancelled', 'evaded'].includes(input.status)) {
+          await db.delete(stopStudents).where(eq(stopStudents.studentId, enr.studentId));
+        }
+      }
+
       return { success: true };
     }),
 

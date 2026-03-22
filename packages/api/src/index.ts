@@ -24,14 +24,19 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,ht
 
 const corsOptions = {
   origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Allow requests with no origin (same-origin, mobile apps, curl)
+    // Sem origin = mesma origem (frontend servido pelo mesmo servidor), mobile apps, curl
     if (!origin) return callback(null, true);
+    // Origens configuradas via variável de ambiente
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
-    // In production, allow same domain
+    // Domínio do Railway (produção)
     if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
-    // Allow any railway.app domain
-    if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) return callback(null, true);
-    callback(null, true); // Allow all for now - tighten in production
+    // Subdomínios do Railway (*.railway.app)
+    if (origin.endsWith('.railway.app') || origin.endsWith('.up.railway.app')) return callback(null, true);
+    // Localhost para desenvolvimento
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return callback(null, true);
+    // Bloquear origens desconhecidas
+    console.warn(`CORS bloqueado para origem: ${origin}`);
+    callback(new Error('Origem não permitida pelo CORS'));
   },
   credentials: true,
 };

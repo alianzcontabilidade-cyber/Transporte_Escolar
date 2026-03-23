@@ -1657,6 +1657,31 @@ export const classCouncilRecords = mysqlTable("class_council_records", {
 }));
 
 // ============================================
+// TABELA: CONVERSAS DO CHAT
+// ============================================
+export const chatConversations = mysqlTable("chat_conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  participant1Id: int("participant1Id").notNull().references(() => users.id),
+  participant2Id: int("participant2Id").notNull().references(() => users.id),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
+// TABELA: MENSAGENS DO CHAT
+// ============================================
+export const chatMessages = mysqlTable("chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull().references(() => chatConversations.id),
+  senderId: int("senderId").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isRead: boolean("isRead").default(false),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
 // TABELA: VISTORIAS DE VEÍCULOS
 // ============================================
 export const vehicleInspections = mysqlTable("vehicle_inspections", {
@@ -1674,3 +1699,9 @@ export const vehicleInspections = mysqlTable("vehicle_inspections", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+// Types - Chat
+export type ChatConversation = typeof chatConversations.$inferSelect;
+export type InsertChatConversation = typeof chatConversations.$inferInsert;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;

@@ -405,6 +405,11 @@ io.on('connection', (socket) => {
     socket.join(`municipality:${municipalityId}`);
   });
 
+  // Chat: usuario entra na sala pessoal para receber mensagens diretas
+  socket.on('join:user', (userId: number) => {
+    socket.join(`user:${userId}`);
+  });
+
   // Manter compatibilidade com emissões diretas do cliente
   socket.on('bus:location', (data: any) => {
     if (data.municipalityId) {

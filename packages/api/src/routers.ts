@@ -15,14 +15,111 @@ import {
   descriptiveReports, schoolCalendar, studentDocuments, messages, waitingList,
   municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory,
   studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections,
-  documents, documentSignatures
+  documents, documentSignatures,
+  chatConversations, chatMessages
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 import { createHash } from 'crypto';
-import { emitToMunicipality } from './socketInstance';
+import { emitToMunicipality, emitToUser } from './socketInstance';
 import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents } from './services/routeOptimizer';
+import { verifyGuardianAccess } from './helpers';
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    ROUTERS - TABLE OF CONTENTS                  ║
+// ╠══════════════════════════════════════════════════════════════════╣
+// ║                                                                  ║
+// ║  AUTENTICACAO                                                    ║
+// ║    authRouter .......................... linha ~42               ║
+// ║                                                                  ║
+// ║  MUNICIPIO E ESCOLAS                                             ║
+// ║    municipalitiesRouter ............... linha ~448               ║
+// ║    schoolsRouter ...................... linha ~665               ║
+// ║                                                                  ║
+// ║  TRANSPORTE                                                      ║
+// ║    routesRouter ....................... linha ~765               ║
+// ║    stopsRouter ........................ linha ~869               ║
+// ║    vehiclesRouter ..................... linha ~1672              ║
+// ║    driversRouter ...................... linha ~1758              ║
+// ║    tripsRouter ........................ linha ~1415              ║
+// ║    locationRouter ..................... linha ~3029              ║
+// ║    fuelRouter ......................... linha ~4779              ║
+// ║    maintenanceRouter .................. linha ~2947              ║
+// ║    vehicleInspectionsRouter ........... linha ~5165              ║
+// ║                                                                  ║
+// ║  ALUNOS E RESPONSAVEIS                                           ║
+// ║    studentsRouter ..................... linha ~950               ║
+// ║    guardiansRouter .................... linha ~2039              ║
+// ║    studentHistoryRouter ............... linha ~4822              ║
+// ║    studentOccurrencesRouter ........... linha ~4880              ║
+// ║    studentDocumentsRouter ............. linha ~4726              ║
+// ║    waitingListRouter .................. linha ~4705              ║
+// ║                                                                  ║
+// ║  MONITORES                                                       ║
+// ║    monitorsRouter ..................... linha ~2503              ║
+// ║    monitorStaffRouter ................. linha ~2777              ║
+// ║                                                                  ║
+// ║  MODULO ACADEMICO                                                ║
+// ║    academicYearsRouter ................ linha ~3143              ║
+// ║    classGradesRouter .................. linha ~3205              ║
+// ║    classesRouter ...................... linha ~3305              ║
+// ║    subjectsRouter ..................... linha ~3256              ║
+// ║    classSubjectsRouter ................ linha ~3766              ║
+// ║    enrollmentsRouter .................. linha ~3401              ║
+// ║    teachersRouter ..................... linha ~3658              ║
+// ║                                                                  ║
+// ║  DIARIO ESCOLAR E NOTAS                                          ║
+// ║    diaryAttendanceRouter .............. linha ~3829              ║
+// ║    assessmentsRouter .................. linha ~3908              ║
+// ║    studentGradesRouter ................ linha ~3970              ║
+// ║    lessonPlansRouter .................. linha ~4045              ║
+// ║    descriptiveReportsRouter ........... linha ~4512              ║
+// ║                                                                  ║
+// ║  RH                                                              ║
+// ║    positionsRouter .................... linha ~4111              ║
+// ║    departmentsRouter .................. linha ~4145              ║
+// ║    staffAllocationsRouter ............. linha ~4170              ║
+// ║    staffEvaluationsRouter ............. linha ~4213              ║
+// ║                                                                  ║
+// ║  FINANCEIRO E CONTRATOS                                          ║
+// ║    financialAccountsRouter ............ linha ~4255              ║
+// ║    financialTransactionsRouter ........ linha ~4270              ║
+// ║    contractsRouter .................... linha ~2863              ║
+// ║                                                                  ║
+// ║  RECURSOS OPERACIONAIS                                           ║
+// ║    mealMenusRouter .................... linha ~4290              ║
+// ║    libraryBooksRouter ................. linha ~4306              ║
+// ║    libraryLoansRouter ................. linha ~4325              ║
+// ║    assetsRouter ....................... linha ~4341              ║
+// ║    inventoryRouter .................... linha ~4356              ║
+// ║                                                                  ║
+// ║  DOCUMENTOS E ASSINATURAS                                        ║
+// ║    documentsRouter .................... linha ~5165              ║
+// ║    documentSignaturesRouter ........... linha ~5227              ║
+// ║                                                                  ║
+// ║  ADMINISTRACAO                                                   ║
+// ║    usersRouter ........................ linha ~1938              ║
+// ║    formConfigRouter ................... linha ~4745              ║
+// ║    schoolCalendarRouter ............... linha ~4532              ║
+// ║    messagesRouter ..................... linha ~4691              ║
+// ║    notificationsRouter ................ linha ~1905              ║
+// ║                                                                  ║
+// ║  INTEGRACOES E TRANSPARENCIA                                     ║
+// ║    educacensoRouter ................... linha ~4385              ║
+// ║    transparencyRouter ................. linha ~4456              ║
+// ║                                                                  ║
+// ║  EVENTOS E OCORRENCIAS                                           ║
+// ║    eventsRouter ....................... linha ~4920              ║
+// ║    quotationsRouter ................... linha ~4970              ║
+// ║    quotationItemsRouter ............... linha ~5018              ║
+// ║    classCouncilRouter ................. linha ~5065              ║
+// ║                                                                  ║
+// ║  IA E OTIMIZACAO                                                 ║
+// ║    aiRouter ........................... linha ~5355              ║
+// ║                                                                  ║
+// ║  APP ROUTER (composicao final) ........ linha ~5701              ║
+// ╚══════════════════════════════════════════════════════════════════╝
 
 // ============================================
 // AUTH ROUTER
@@ -2478,12 +2575,7 @@ export const guardiansRouter = t.router({
 });
 
 // Helper: verificar se responsável tem acesso ao aluno
-async function verifyGuardianAccess(userId: number, studentId: number): Promise<boolean> {
-  const [link] = await db.select().from(guardians)
-    .where(and(eq(guardians.userId, userId), eq(guardians.studentId, studentId)))
-    .limit(1);
-  return !!link;
-}
+// verifyGuardianAccess imported from ./helpers
 
 // ============================================
 // MONITORS ROUTER (APP MONITORES)
@@ -5684,6 +5776,215 @@ export const aiRouter = t.router({
 });
 
 // ============================================
+// CHAT ROUTER
+// ============================================
+export const chatRouter = t.router({
+  // Listar conversas do usuario
+  conversations: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.userId!;
+      const convos = await db.select({
+        id: chatConversations.id,
+        participant1Id: chatConversations.participant1Id,
+        participant2Id: chatConversations.participant2Id,
+        lastMessageAt: chatConversations.lastMessageAt,
+        municipalityId: chatConversations.municipalityId,
+      })
+        .from(chatConversations)
+        .where(or(
+          eq(chatConversations.participant1Id, userId),
+          eq(chatConversations.participant2Id, userId)
+        ))
+        .orderBy(desc(chatConversations.lastMessageAt));
+
+      // Buscar dados dos outros participantes e ultima mensagem
+      const results = [];
+      for (const c of convos) {
+        const otherUserId = c.participant1Id === userId ? c.participant2Id : c.participant1Id;
+        const [otherUser] = await db.select({ id: users.id, name: users.name, role: users.role, avatarUrl: users.avatarUrl })
+          .from(users).where(eq(users.id, otherUserId)).limit(1);
+        const [lastMsg] = await db.select({ content: chatMessages.content, senderId: chatMessages.senderId, createdAt: chatMessages.createdAt })
+          .from(chatMessages).where(eq(chatMessages.conversationId, c.id)).orderBy(desc(chatMessages.createdAt)).limit(1);
+        const [unreadResult] = await db.select({ count: sql<number>`count(*)` })
+          .from(chatMessages)
+          .where(and(
+            eq(chatMessages.conversationId, c.id),
+            eq(chatMessages.isRead, false),
+            sql`${chatMessages.senderId} != ${userId}`
+          ));
+        results.push({
+          id: c.id,
+          otherUser: otherUser || { id: otherUserId, name: 'Usuario', role: 'parent', avatarUrl: null },
+          lastMessage: lastMsg || null,
+          unreadCount: unreadResult?.count || 0,
+          lastMessageAt: c.lastMessageAt,
+        });
+      }
+      return results;
+    }),
+
+  // Historico de mensagens de uma conversa
+  history: protectedProcedure
+    .input(z.object({ conversationId: z.number(), limit: z.number().default(50) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.userId!;
+      // Verificar que o usuario participa da conversa
+      const [conv] = await db.select().from(chatConversations)
+        .where(and(
+          eq(chatConversations.id, input.conversationId),
+          or(eq(chatConversations.participant1Id, userId), eq(chatConversations.participant2Id, userId))
+        )).limit(1);
+      if (!conv) throw new TRPCError({ code: 'FORBIDDEN', message: 'Voce nao participa desta conversa' });
+
+      const msgs = await db.select({
+        id: chatMessages.id,
+        content: chatMessages.content,
+        senderId: chatMessages.senderId,
+        isRead: chatMessages.isRead,
+        createdAt: chatMessages.createdAt,
+      })
+        .from(chatMessages)
+        .where(eq(chatMessages.conversationId, input.conversationId))
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(input.limit);
+
+      // Marcar como lidas as mensagens do outro usuario
+      await db.update(chatMessages)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(
+          eq(chatMessages.conversationId, input.conversationId),
+          eq(chatMessages.isRead, false),
+          sql`${chatMessages.senderId} != ${userId}`
+        ));
+
+      return msgs.reverse();
+    }),
+
+  // Enviar mensagem
+  send: protectedProcedure
+    .input(z.object({
+      recipientId: z.number(),
+      content: z.string().min(1).max(2000),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.userId!;
+      const municipalityId = ctx.municipalityId || 1;
+
+      // Buscar ou criar conversa
+      let [conv] = await db.select().from(chatConversations)
+        .where(or(
+          and(eq(chatConversations.participant1Id, userId), eq(chatConversations.participant2Id, input.recipientId)),
+          and(eq(chatConversations.participant1Id, input.recipientId), eq(chatConversations.participant2Id, userId))
+        )).limit(1);
+
+      if (!conv) {
+        const [newConv] = await db.insert(chatConversations).values({
+          municipalityId,
+          participant1Id: userId,
+          participant2Id: input.recipientId,
+          lastMessageAt: new Date(),
+        }).$returningId();
+        [conv] = await db.select().from(chatConversations).where(eq(chatConversations.id, newConv.id)).limit(1);
+      }
+
+      // Inserir mensagem
+      const [msg] = await db.insert(chatMessages).values({
+        conversationId: conv.id,
+        senderId: userId,
+        content: input.content,
+      }).$returningId();
+
+      // Atualizar lastMessageAt da conversa
+      await db.update(chatConversations)
+        .set({ lastMessageAt: new Date() })
+        .where(eq(chatConversations.id, conv.id));
+
+      // Buscar nome do remetente para a notificacao
+      const [sender] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+
+      // Emitir via Socket.IO para o destinatario
+      emitToUser(input.recipientId, 'chat:message', {
+        conversationId: conv.id,
+        messageId: msg.id,
+        senderId: userId,
+        senderName: sender?.name || 'Usuario',
+        content: input.content,
+        createdAt: new Date().toISOString(),
+      });
+
+      return { success: true, conversationId: conv.id, messageId: msg.id };
+    }),
+
+  // Contar mensagens nao lidas totais
+  unreadTotal: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.userId!;
+      // Buscar conversas do usuario
+      const convos = await db.select({ id: chatConversations.id })
+        .from(chatConversations)
+        .where(or(
+          eq(chatConversations.participant1Id, userId),
+          eq(chatConversations.participant2Id, userId)
+        ));
+      if (convos.length === 0) return { count: 0 };
+      const convoIds = convos.map(c => c.id);
+      const [result] = await db.select({ count: sql<number>`count(*)` })
+        .from(chatMessages)
+        .where(and(
+          inArray(chatMessages.conversationId, convoIds),
+          eq(chatMessages.isRead, false),
+          sql`${chatMessages.senderId} != ${userId}`
+        ));
+      return { count: result?.count || 0 };
+    }),
+
+  // Buscar usuarios disponiveis para chat (staff da secretaria para pais, pais para staff)
+  availableContacts: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.userId!;
+      const [currentUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!currentUser) return [];
+
+      // Pais veem staff (secretary, school_admin, municipal_admin)
+      // Staff ve pais (parent)
+      const targetRoles = currentUser.role === 'parent'
+        ? ['secretary', 'school_admin', 'municipal_admin', 'super_admin']
+        : ['parent'];
+
+      const contacts = await db.select({
+        id: users.id, name: users.name, role: users.role, avatarUrl: users.avatarUrl
+      })
+        .from(users)
+        .where(and(
+          eq(users.municipalityId, input.municipalityId),
+          eq(users.isActive, true),
+          inArray(users.role, targetRoles as any),
+          sql`${users.id} != ${userId}`
+        ))
+        .orderBy(users.name)
+        .limit(100);
+
+      return contacts;
+    }),
+
+  // Marcar mensagens de uma conversa como lidas
+  markRead: protectedProcedure
+    .input(z.object({ conversationId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.userId!;
+      await db.update(chatMessages)
+        .set({ isRead: true, readAt: new Date() })
+        .where(and(
+          eq(chatMessages.conversationId, input.conversationId),
+          eq(chatMessages.isRead, false),
+          sql`${chatMessages.senderId} != ${userId}`
+        ));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -5757,6 +6058,8 @@ export const appRouter = t.router({
   documentSignatures: documentSignaturesRouter,
   // IA e Otimização
   ai: aiRouter,
+  // Chat em tempo real
+  chat: chatRouter,
 });
 
 export type AppRouter = typeof appRouter;

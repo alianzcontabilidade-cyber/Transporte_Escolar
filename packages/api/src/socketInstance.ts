@@ -16,3 +16,10 @@ export function emitToMunicipality(municipalityId: number, event: string, data: 
     io.to(`municipality:${municipalityId}`).emit(event, data);
   }
 }
+
+// Emitir evento para um usuário específico (chat, notificações diretas)
+export function emitToUser(userId: number, event: string, data: any) {
+  if (io) {
+    io.to(`user:${userId}`).emit(event, data);
+  }
+}

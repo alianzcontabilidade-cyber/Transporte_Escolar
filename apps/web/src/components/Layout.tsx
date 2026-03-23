@@ -15,6 +15,7 @@ import {
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
 import PageHeader from './PageHeader';
+import ChatWidget from './ChatWidget';
 import { getFavorites as getFavoritesFunc, getHistory as getHistoryFunc } from './PageHeader';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -647,6 +648,8 @@ export default function Layout() {
             <Outlet />
           )}
         </main>
+        {/* Chat Widget para comunicacao entre staff e responsaveis */}
+        <ChatWidget />
       </div>
     </div>
   );

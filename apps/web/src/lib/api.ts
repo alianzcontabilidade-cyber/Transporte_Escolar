@@ -476,4 +476,13 @@ export const api = {
     studentRiskAnalysis: (input: any) => call('ai.studentRiskAnalysis', input, 'query'),
   },
 
+  chat: {
+    conversations: () => call('chat.conversations', {}, 'query'),
+    history: (input: any) => call('chat.history', input, 'query'),
+    send: (input: any) => call('chat.send', input, 'mutation'),
+    unreadTotal: () => call('chat.unreadTotal', {}, 'query'),
+    availableContacts: (input: any) => call('chat.availableContacts', input, 'query'),
+    markRead: (input: any) => call('chat.markRead', input, 'mutation'),
+  },
+
 };

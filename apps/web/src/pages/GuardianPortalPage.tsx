@@ -3,6 +3,8 @@ import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
 import { notifyUser, usePWAInstall } from '../lib/pwa';
+import { requestNotificationPermission } from '../lib/pushNotifications';
+import ChatWidget from '../components/ChatWidget';
 import {
   GraduationCap, Calendar, ClipboardList, AlertTriangle,
   UtensilsCrossed, MessageCircle, FileText, Bus, User,
@@ -145,6 +147,8 @@ export default function GuardianPortalPage() {
     loadStudents();
     loadNotifications();
     loadUnreadMessages();
+    // Solicitar permissao para notificacoes push
+    requestNotificationPermission();
   }, []);
 
   async function loadStudents() {
@@ -1227,6 +1231,8 @@ function TransporteView({ student, activeTrip, busLocation, connected, notifs, o
           </div>
         )}
       </div>
+      {/* Chat Widget - comunicacao direta com a escola */}
+      <ChatWidget />
     </>
   );
 }

@@ -3446,6 +3446,31 @@ export const enrollmentsRouter = t.router({
         ...rest,
         enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
       }).$returningId();
+
+      // Sync student record with class data
+      const [cls] = await db.select({
+        name: classes.name, fullName: classes.fullName,
+        shift: classes.shift, schoolId: classes.schoolId,
+        gradeId: classes.classGradeId,
+      }).from(classes).where(eq(classes.id, input.classId)).limit(1);
+
+      if (cls) {
+        let gradeName = '';
+        if (cls.gradeId) {
+          const [cg] = await db.select({ name: classGrades.name }).from(classGrades).where(eq(classGrades.id, cls.gradeId)).limit(1);
+          if (cg) gradeName = cg.name;
+        }
+        const su: any = {};
+        if (cls.name) su.classRoom = cls.name;
+        if (gradeName) su.grade = gradeName;
+        if (cls.shift) su.shift = cls.shift;
+        if (cls.schoolId) su.schoolId = cls.schoolId;
+        su.studentStatus = 'ativo';
+        if (Object.keys(su).length > 0) {
+          await db.update(students).set(su).where(eq(students.id, input.studentId));
+        }
+      }
+
       return { success: true, id: result.id };
     }),
 
@@ -3459,6 +3484,7 @@ export const enrollmentsRouter = t.router({
     .mutation(async ({ input }) => {
       let created = 0;
       let skipped = 0;
+      const createdStudentIds: number[] = [];
       for (const studentId of input.studentIds) {
         const existing = await db.select().from(enrollments)
           .where(and(eq(enrollments.studentId, studentId), eq(enrollments.academicYearId, input.academicYearId), eq(enrollments.status, 'active')))
@@ -3471,9 +3497,10 @@ export const enrollmentsRouter = t.router({
           academicYearId: input.academicYearId,
         });
         created++;
+        createdStudentIds.push(studentId);
       }
 
-      // Sincronizar: atualizar grade, classRoom e shift nos alunos matriculados
+      // Sincronizar: atualizar grade, classRoom e shift APENAS nos alunos realmente matriculados
       if (created > 0) {
         try {
           const [cls] = await db.select({
@@ -3489,8 +3516,10 @@ export const enrollmentsRouter = t.router({
             if (cls.name) su.classRoom = cls.name;
             if (gradeName) su.grade = gradeName;
             if (cls.shift) su.shift = cls.shift;
+            if (cls.schoolId) su.schoolId = cls.schoolId;
+            su.studentStatus = 'ativo';
             if (Object.keys(su).length > 0) {
-              for (const sid of input.studentIds) {
+              for (const sid of createdStudentIds) {
                 try { await db.update(students).set(su).where(eq(students.id, sid)); } catch { /* skip */ }
               }
             }
@@ -3575,9 +3604,13 @@ export const enrollmentsRouter = t.router({
         const studentStatus = statusMap[input.status] || input.status;
         await db.update(students).set({ studentStatus }).where(eq(students.id, enr.studentId));
 
-        // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas
+        // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas e campos acadêmicos
         if (['transferred', 'cancelled', 'evaded'].includes(input.status)) {
           await db.delete(stopStudents).where(eq(stopStudents.studentId, enr.studentId));
+          // Also clear academic fields
+          await db.update(students).set({
+            grade: null, classRoom: null
+          }).where(eq(students.id, enr.studentId));
         }
       }
 
@@ -3587,7 +3620,24 @@ export const enrollmentsRouter = t.router({
   delete: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      // Fetch student before soft-deleting
+      const [enr] = await db.select({ studentId: enrollments.studentId }).from(enrollments).where(eq(enrollments.id, input.id)).limit(1);
+
       await db.update(enrollments).set({ isActive: false }).where(eq(enrollments.id, input.id));
+
+      // Check if student has other active enrollments
+      if (enr) {
+        const otherActive = await db.select({ id: enrollments.id }).from(enrollments)
+          .where(and(eq(enrollments.studentId, enr.studentId), eq(enrollments.isActive, true), sql`${enrollments.id} != ${input.id}`))
+          .limit(1);
+        if (otherActive.length === 0) {
+          // No other active enrollment - clear student fields
+          await db.update(students).set({
+            grade: null, classRoom: null, studentStatus: 'sem_matricula'
+          }).where(eq(students.id, enr.studentId));
+        }
+      }
+
       return { success: true };
     }),
 });

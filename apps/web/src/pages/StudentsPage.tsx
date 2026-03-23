@@ -366,6 +366,10 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
       observations:form.observations||undefined,
     };
     if (editId!==null) {
+      // Don't send grade/classRoom/shift - managed by enrollments
+      delete payload.grade;
+      delete payload.classRoom;
+      delete payload.shift;
       update({id:editId,...payload},{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});
     } else {
       create(payload,{onSuccess:function(){refetch();setShowModal(false);},onError:function(e:any){setFormErr(e?.message||'Erro');}});

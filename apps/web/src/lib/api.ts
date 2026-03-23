@@ -13,7 +13,7 @@ function getApiUrl(): string {
     // Railway produção → usa mesmo domínio
     if (h.includes('railway.app') || h.includes('up.railway.app')) return '';
     // Qualquer outro caso (Capacitor, file://, etc) → Railway direto
-    return 'https://transporteescolar-production.up.railway.app';
+    return 'https://endearing-radiance-production-b08a.up.railway.app';
   }
   return '';
 }

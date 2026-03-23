@@ -10,7 +10,7 @@ import {
   UtensilsCrossed, MessageCircle, FileText, Bus, User,
   ChevronLeft, BookOpen, BarChart3, Clock, Loader2,
   Plus, Shield, Download, Navigation, MapPin, Phone,
-  RefreshCw, CheckCircle, Bell, History, ChevronRight, X
+  RefreshCw, CheckCircle, Bell, History, ChevronRight, X, LogOut
 } from 'lucide-react';
 
 type PortalView = 'home' | 'boletim' | 'frequencia' | 'parecer' | 'ocorrencias' | 'calendario' | 'merenda' | 'mensagens' | 'declaracoes' | 'transporte' | 'vincular';
@@ -122,7 +122,7 @@ function EmptyState({ icon: Icon, title, description }: { icon: any; title: stri
 // MAIN PORTAL COMPONENT
 // =============================================
 export default function GuardianPortalPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { socket, connected } = useSocket();
   const [view, setView] = useState<PortalView>('home');
   const [myStudents, setMyStudents] = useState<any[]>([]);
@@ -137,6 +137,12 @@ export default function GuardianPortalPage() {
   const [notifs, setNotifs] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Notification permission banner
+  const [notifBannerVisible, setNotifBannerVisible] = useState(() => {
+    if (!('Notification' in window)) return false;
+    return Notification.permission === 'default';
+  });
+
   // Vincular aluno state
   const [addEnrollment, setAddEnrollment] = useState('');
   const [addRelationship, setAddRelationship] = useState('other');
@@ -147,8 +153,6 @@ export default function GuardianPortalPage() {
     loadStudents();
     loadNotifications();
     loadUnreadMessages();
-    // Solicitar permissao para notificacoes push
-    requestNotificationPermission();
   }, []);
 
   async function loadStudents() {
@@ -310,12 +314,31 @@ export default function GuardianPortalPage() {
       {/* ========== HOME VIEW ========== */}
       {view === 'home' && myStudents.length > 0 && (
         <>
-          <div className="mb-5">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Ola, {user?.name?.split(' ')[0]}!
-            </h1>
-            <p className="text-gray-500 text-sm">Portal do Responsavel - NetEscol</p>
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Ola, {user?.name?.split(' ')[0]}!
+              </h1>
+              <p className="text-gray-500 text-sm">Portal do Responsavel - NetEscol</p>
+            </div>
+            <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Sair">
+              <LogOut size={20} />
+            </button>
           </div>
+
+          {/* Notification permission banner */}
+          {notifBannerVisible && (
+            <div className="card mb-4 p-3 bg-amber-50 border-amber-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-amber-700">
+                <Bell size={16} />
+                <span>Ative as notificacoes para receber alertas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={async () => { const ok = await requestNotificationPermission(); setNotifBannerVisible(!ok && Notification.permission === 'default'); }} className="bg-amber-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-amber-600">Ativar</button>
+                <button onClick={() => setNotifBannerVisible(false)} className="text-amber-400 hover:text-amber-600"><X size={16} /></button>
+              </div>
+            </div>
+          )}
 
           {/* Active trip alert */}
           {activeTrip && (

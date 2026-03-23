@@ -8,13 +8,13 @@ import {
   Navigation, Play, Square, Users, Route, Clock, Bus, Fuel,
   MessageCircle, MapPin, CheckCircle, XCircle, ChevronRight,
   AlertTriangle, User, Phone, ArrowLeft, Calendar, Gauge,
-  FileText, Timer, Circle, Loader2
+  FileText, Timer, Circle, Loader2, LogOut
 } from 'lucide-react';
 
 type View = 'home' | 'trip' | 'students' | 'route' | 'history' | 'vehicle' | 'fuel' | 'chat';
 
 export default function DriverPortalPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { socket } = useSocket();
   const [view, setView] = useState<View>('home');
   const [activeTrip, setActiveTrip] = useState<any>(null);
@@ -160,9 +160,14 @@ export default function DriverPortalPage() {
             <p className="text-primary-200 text-sm">Bem-vindo de volta</p>
             <h1 className="text-2xl font-bold">Ola, {user?.name?.split(' ')[0]}!</h1>
           </div>
-          <div className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${gpsActive ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>
-            <div className={`w-2 h-2 rounded-full ${gpsActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            GPS {gpsActive ? 'Ativo' : 'Inativo'}
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${gpsActive ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>
+              <div className={`w-2 h-2 rounded-full ${gpsActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+              GPS {gpsActive ? 'Ativo' : 'Inativo'}
+            </div>
+            <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-white/60 hover:text-red-300 hover:bg-white/10 rounded-lg" title="Sair">
+              <LogOut size={20} />
+            </button>
           </div>
         </div>
 

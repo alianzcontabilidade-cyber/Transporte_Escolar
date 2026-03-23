@@ -7,13 +7,13 @@ import jsQR from 'jsqr';
 import {
   ClipboardCheck, QrCode, Users, MessageCircle, ArrowLeft,
   CheckCircle, XCircle, User, Phone, Timer, Bus, MapPin,
-  Camera, Loader2, ChevronRight, Circle
+  Camera, Loader2, ChevronRight, Circle, LogOut
 } from 'lucide-react';
 
 type View = 'home' | 'checklist' | 'scanner' | 'contacts' | 'chat';
 
 export default function MonitorPortalPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { socket } = useSocket();
   const [view, setView] = useState<View>('home');
   const [activeTrip, setActiveTrip] = useState<any>(null);
@@ -129,12 +129,17 @@ export default function MonitorPortalPage() {
             <p className="text-indigo-200 text-sm">Portal do Monitor</p>
             <h1 className="text-2xl font-bold">Ola, {user?.name?.split(' ')[0]}!</h1>
           </div>
-          {hasTripActive && (
-            <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              Viagem Ativa
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {hasTripActive && (
+              <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                Viagem Ativa
+              </div>
+            )}
+            <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-white/60 hover:text-red-300 hover:bg-white/10 rounded-lg" title="Sair">
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Trip status card */}

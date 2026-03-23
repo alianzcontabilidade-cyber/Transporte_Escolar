@@ -3464,6 +3464,37 @@ export const classesRouter = t.router({
         if (k === 'teacherUserId' && v === null) ud[k] = null;
       });
       if (Object.keys(ud).length > 0) await db.update(classes).set(ud).where(eq(classes.id, id));
+
+      // Sincronizar todos os alunos matriculados nesta turma
+      const [cls] = await db.select({
+        name: classes.name, fullName: classes.fullName,
+        shift: classes.shift, schoolId: classes.schoolId,
+        gradeId: classes.classGradeId,
+      }).from(classes).where(eq(classes.id, id)).limit(1);
+
+      if (cls) {
+        let gradeName = '';
+        if (cls.gradeId) {
+          const [cg] = await db.select({ name: classGrades.name }).from(classGrades).where(eq(classGrades.id, cls.gradeId)).limit(1);
+          if (cg) gradeName = cg.name;
+        }
+        const su: any = {};
+        if (cls.name) su.classRoom = cls.name;
+        if (gradeName) su.grade = gradeName;
+        if (cls.shift) su.shift = cls.shift;
+        if (cls.schoolId) su.schoolId = cls.schoolId;
+
+        if (Object.keys(su).length > 0) {
+          // Buscar todos os alunos matriculados nesta turma
+          const activeEnrollments = await db.select({ studentId: enrollments.studentId })
+            .from(enrollments)
+            .where(and(eq(enrollments.classId, id), eq(enrollments.isActive, true)));
+          for (const e of activeEnrollments) {
+            await db.update(students).set(su).where(eq(students.id, e.studentId));
+          }
+        }
+      }
+
       return { success: true };
     }),
 

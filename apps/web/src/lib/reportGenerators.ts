@@ -22,7 +22,7 @@ function field(label: string, value: string | undefined | null): string {
 }
 
 function shiftLabel(s: string): string {
-  return s === 'morning' ? 'MATUTINO' : s === 'afternoon' ? 'VESPERTINO' : s === 'evening' ? 'NOTURNO' : (s || '--');
+  return s === 'morning' ? 'MATUTINO' : s === 'afternoon' ? 'VESPERTINO' : s === 'evening' ? 'NOTURNO' : s === 'full_time' ? 'INTEGRAL' : (s || '--');
 }
 
 // ==========================================

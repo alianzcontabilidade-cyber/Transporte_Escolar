@@ -293,7 +293,7 @@ export const students = mysqlTable("students", {
   grade: varchar("grade", { length: 50 }),          // "5º Ano", "1ª Série"
   classRoom: varchar("classRoom", { length: 50 }), // "Turma A"
   enrollment: varchar("enrollment", { length: 50 }), // Numero de Matricula
-  shift: mysqlEnum("shift", ["morning", "afternoon", "evening"]).default("morning"),
+  shift: mysqlEnum("shift", ["morning", "afternoon", "evening", "full_time"]).default("morning"),
 
   // Foto
   photoUrl: text("photoUrl"),

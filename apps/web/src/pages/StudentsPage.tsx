@@ -29,7 +29,7 @@ function PhotoUpload({ value, onChange }: any) {
   );
 }
 
-const SHIFTS = [{ v:'morning', l:'Manha' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
+const SHIFTS = [{ v:'morning', l:'Manha' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
 const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 const RACES = ['Branca','Negra','Parda','Amarela','Indígena','Não Declarada'];
 const EDUCATION_LEVELS = ['Não Alfabetizado','Fundamental Incompleto','Fundamental Completo','Médio Incompleto','Médio Completo','Superior Incompleto','Superior Completo','Pós-Graduação'];

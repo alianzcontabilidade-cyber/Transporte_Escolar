@@ -43,7 +43,7 @@ export default function EnrollmentsPage() {
   const allStudents = (studentsData as any) || [];
   const allSchools = (schoolsData as any) || [];
   const getSchoolName = (schoolId: number) => allSchools.find((s: any) => s.id === schoolId)?.name || '--';
-  const shiftLabel = (s: string) => s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : '--';
+  const shiftLabel = (s: string) => s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : s === 'full_time' ? 'Integral' : '--';
   const getClassFullName = (e: any) => {
     if (e.classFullName) return e.classFullName;
     if (e.className) return e.className;

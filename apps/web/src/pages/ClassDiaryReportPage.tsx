@@ -8,7 +8,7 @@ import ReportSignatureSelector, { Signatory } from '../components/ReportSignatur
 import ExportModal, { handleExport } from '../components/ExportModal';
 
 function shiftLabel(s: string): string {
-  return s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : (s || '--');
+  return s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : s === 'full_time' ? 'Integral' : (s || '--');
 }
 
 const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];

@@ -18,7 +18,13 @@ export default function LoginPage() {
     setError('');
     try {
       await login({ identifier, password });
-      navigate('/');
+      // Redirect based on role
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = savedUser?.role;
+      if (role === 'parent') navigate('/portal-responsavel');
+      else if (role === 'driver') navigate('/portal-motorista');
+      else if (role === 'monitor') navigate('/portal-monitor');
+      else navigate('/');
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login');
     } finally {

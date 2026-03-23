@@ -95,6 +95,8 @@ const EducacensoReportPage = lazy(() => import('./pages/EducacensoReportPage'));
 const DocumentVerifyPage = lazy(() => import('./pages/DocumentVerifyPage'));
 const DocumentManagementPage = lazy(() => import('./pages/DocumentManagementPage'));
 const StudentRiskPage = lazy(() => import('./pages/StudentRiskPage'));
+const DriverPortalPage = lazy(() => import('./pages/DriverPortalPage'));
+const MonitorPortalPage = lazy(() => import('./pages/MonitorPortalPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -119,7 +121,8 @@ function HomeRedirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'parent') return <Navigate to="/portal-responsavel" replace />;
-  if (user.role === 'driver' || user.role === 'monitor') return <Navigate to="/monitor" replace />;
+  if (user.role === 'driver') return <Navigate to="/portal-motorista" replace />;
+  if (user.role === 'monitor') return <Navigate to="/portal-monitor" replace />;
   return <ModulesPage />;
 }
 
@@ -236,6 +239,12 @@ export default function App() {
         {/* Portal do Responsavel */}
         <Route path="portal-responsavel" element={<Guard roles={ALL_USERS}><GuardianPortalPage /></Guard>} />
         <Route path="portal-responsavel-antigo" element={<Guard roles={ALL_USERS}><GuardianPage /></Guard>} />
+
+        {/* Portal do Motorista */}
+        <Route path="portal-motorista" element={<Guard roles={DRIVER_MONITOR}><DriverPortalPage /></Guard>} />
+
+        {/* Portal do Monitor */}
+        <Route path="portal-monitor" element={<Guard roles={DRIVER_MONITOR}><MonitorPortalPage /></Guard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

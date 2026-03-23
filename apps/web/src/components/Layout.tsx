@@ -180,6 +180,8 @@ export default function Layout() {
     { code: '307', to: '/rastreamento', text: 'Rastreamento GPS', module: 'Frota e Rotas', desc: 'Transmissão de posição do motorista', tags: 'gps rastrear posicao transmitir motorista', color: '#f97316' },
     { code: '308', to: '/frequencia', text: 'Frequência Transporte', module: 'Frota e Rotas', desc: 'Embarque e desembarque de alunos', tags: 'embarque desembarque qr code presenca', color: '#f97316' },
     { code: '309', to: '/portal-responsavel', text: 'Portal Responsável', module: 'Frota e Rotas', desc: 'Acompanhamento pelos pais', tags: 'pai mae responsavel filho acompanhar', color: '#f97316' },
+    { code: '316', to: '/portal-motorista', text: 'Portal Motorista', module: 'Frota e Rotas', desc: 'Portal mobile do motorista com viagem e GPS', tags: 'motorista portal viagem gps embarque veiculo', color: '#f97316' },
+    { code: '317', to: '/portal-monitor', text: 'Portal Monitor', module: 'Frota e Rotas', desc: 'Portal mobile do monitor com checklist e QR', tags: 'monitor portal checklist qr scanner chamada', color: '#f97316' },
     { code: '310', to: '/relatorio-transporte', text: 'Relatório Transporte', module: 'Frota e Rotas', desc: 'Relatório de viagens e frota', tags: 'relatorio viagem frota transporte', color: '#f97316' },
     // Administrativo
     { code: '401', to: '/recursos-humanos', text: 'Recursos Humanos', module: 'Gestão e Recursos', desc: 'Cargos, lotações e avaliações', tags: 'rh cargo lotacao avaliacao servidor funcionario', color: '#0ea5e9' },
@@ -338,6 +340,19 @@ export default function Layout() {
 
   const driverMenu = [
     { label: 'MOTORISTA', items: [
+      { to: '/portal-motorista', icon: Bus, text: 'Meu Portal' },
+      { to: '/monitor', icon: Navigation, text: 'Minha Viagem' },
+      { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
+      { to: '/rotas', icon: Route, text: 'Rotas' },
+      { to: '/frequencia', icon: ClipboardList, text: 'Frequência' },
+      { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
+      { to: '/portal-responsavel', icon: Heart, text: 'Portal Responsável' },
+    ]},
+  ];
+
+  const monitorMenu = [
+    { label: 'MOTORISTA', items: [
+      { to: '/portal-monitor', icon: ClipboardList, text: 'Meu Portal' },
       { to: '/monitor', icon: Navigation, text: 'Minha Viagem' },
       { to: '/rastreamento', icon: Locate, text: 'Rastreamento GPS' },
       { to: '/rotas', icon: Route, text: 'Rotas' },
@@ -354,7 +369,7 @@ export default function Layout() {
     ]},
   ];
 
-  const menuSections = isParent ? parentMenu : isDriver ? driverMenu : adminMenu;
+  const menuSections = isParent ? parentMenu : role === 'monitor' ? monitorMenu : isDriver ? driverMenu : adminMenu;
 
   const NavLink = ({ to, icon: Icon, text }: { to: string; icon: any; text: string }) => {
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));

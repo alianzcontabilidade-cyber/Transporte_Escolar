@@ -54,3 +54,5 @@ AbiSuite/
 .claude.json
 .claude/
 Application Data/
+packages/api/seed-test-data.js
+packages/api/vitest.config.ts

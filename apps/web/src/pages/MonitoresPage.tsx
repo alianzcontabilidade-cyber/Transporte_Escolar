@@ -21,7 +21,7 @@ function PhotoUpload({ value, onChange }: any) {
 }
 
 const emptyForm = { name:'', cpf:'', birthDate:'', phone:'', email:'', address:'', state:'', city:'', routeName:'', shift:'morning', observations:'', password:'', confirmPassword:'', photo:'' };
-const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full', l:'Integral' }];
+const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
 
 export default function MonitoresPage() {
   const { user } = useAuth();

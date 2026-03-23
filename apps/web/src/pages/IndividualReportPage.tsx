@@ -18,7 +18,7 @@ function formatDate(d: string | Date | undefined): string {
 }
 
 function shiftLabel(s: string): string {
-  return s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : (s || '--');
+  return s === 'morning' ? 'Matutino' : s === 'afternoon' ? 'Vespertino' : s === 'evening' ? 'Noturno' : s === 'full_time' ? 'Integral' : (s || '--');
 }
 
 // BNCC Competências Gerais

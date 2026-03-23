@@ -554,7 +554,7 @@ export default function MonitorPage() {
                   <button key={route.id} onClick={() => handleStartTrip(route.id)}
                     className="w-full flex items-center gap-3 p-3 border rounded-xl hover:border-green-300 hover:bg-green-50 transition-all">
                     <Play size={18} className="text-green-500" />
-                    <div className="text-left"><p className="font-medium">{route.name}</p><p className="text-xs text-gray-500">{route.shift === 'morning' ? 'Manhã' : route.shift === 'afternoon' ? 'Tarde' : 'Noite'} · {route.scheduledStartTime || ''}</p></div>
+                    <div className="text-left"><p className="font-medium">{route.name}</p><p className="text-xs text-gray-500">{route.shift === 'morning' ? 'Manhã' : route.shift === 'afternoon' ? 'Tarde' : route.shift === 'full_time' ? 'Integral' : 'Noite'} · {route.scheduledStartTime || ''}</p></div>
                   </button>
                 ))}
               </div>

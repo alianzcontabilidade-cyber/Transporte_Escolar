@@ -263,11 +263,11 @@ export default function AttendancePage() {
       {tab === 'summary' && (
         <div className="grid gap-4">
           <div className="card"><h3 className="font-semibold text-gray-800 mb-3">Resumo por turno</h3>
-            {['Manhã','Tarde','Noite'].map(turno => (
+            {['Manhã','Tarde','Noite','Integral'].map(turno => (
               <div key={turno} className="flex items-center justify-between py-2 border-b last:border-0">
                 <span className="text-sm text-gray-700">{turno}</span>
                 <div className="flex gap-4">
-                  <span className="text-sm text-green-600">{allStudents.filter((s: any) => ({ morning:'Manhã',afternoon:'Tarde',evening:'Noite' }[s.shift as string]===turno)).length} alunos</span>
+                  <span className="text-sm text-green-600">{allStudents.filter((s: any) => ({ morning:'Manhã',afternoon:'Tarde',evening:'Noite',full_time:'Integral' }[s.shift as string]===turno)).length} alunos</span>
                 </div>
               </div>
             ))}

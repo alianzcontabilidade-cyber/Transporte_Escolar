@@ -8,7 +8,7 @@ import { generateRelacaoAlunosTurma } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
-const SHIFTS: Record<string, string> = { morning: 'Manhã', afternoon: 'Tarde', evening: 'Noite' };
+const SHIFTS: Record<string, string> = { morning: 'Manhã', afternoon: 'Tarde', evening: 'Noite', full_time: 'Integral' };
 
 export default function ClassRosterPage() {
   const { user } = useAuth();

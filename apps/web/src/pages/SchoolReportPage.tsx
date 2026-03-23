@@ -37,7 +37,7 @@ export default function SchoolReportPage() {
   const allTeachers = ((teachersData as any) || []).map((t: any) => t.user ? { name: t.user.name, ...t.teacher } : t);
 
   const school = allSchools.find((s: any) => String(s.id) === selSchool);
-  const shiftLabel = (s: string) => s === 'afternoon' ? 'Tarde' : s === 'evening' ? 'Noite' : 'Manhã';
+  const shiftLabel = (s: string) => s === 'afternoon' ? 'Tarde' : s === 'evening' ? 'Noite' : s === 'full_time' ? 'Integral' : 'Manhã';
 
   const printReport = () => {
     if (!school) return;

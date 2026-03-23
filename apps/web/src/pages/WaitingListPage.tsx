@@ -7,7 +7,7 @@ import { ListOrdered, Plus, X, Trash2, Search, UserPlus, CheckCircle, XCircle, P
 
 const STATUS_LABELS: any = { waiting:'Aguardando', called:'Convocado', enrolled:'Matriculado', cancelled:'Cancelado' };
 const STATUS_COLORS: any = { waiting:'bg-yellow-100 text-yellow-700', called:'bg-blue-100 text-blue-700', enrolled:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-600' };
-const SHIFTS: any = { morning:'Manhã', afternoon:'Tarde', evening:'Noite' };
+const SHIFTS: any = { morning:'Manhã', afternoon:'Tarde', evening:'Noite', full_time:'Integral' };
 
 export default function WaitingListPage() {
   const { user } = useAuth();

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle, Pencil, Eye } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
-const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' }];
+const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
 const TYPES = [{ v:'pickup', l:'Ida' },{ v:'dropoff', l:'Volta' },{ v:'both', l:'Ida e Volta' }];
 
 function LeafletMap({ stops, onAddStop, readonly }: { stops: any[]; onAddStop: (s: any) => void; readonly?: boolean }) {

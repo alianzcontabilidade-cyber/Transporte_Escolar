@@ -24,6 +24,8 @@ const shiftLabel = (shift?: string | number | null): string => {
     morning: 'Manhã',
     afternoon: 'Tarde',
     evening: 'Noite',
+    full_time: 'Integral',
+    integral: 'Integral',
     manha: 'Manhã',
     tarde: 'Tarde',
     noite: 'Noite',

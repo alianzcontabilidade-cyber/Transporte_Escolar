@@ -674,7 +674,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                       <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase mb-1">Situação Acadêmica</p>
                       <p className="text-sm font-medium text-green-800 dark:text-green-300">
                         {form.enrollment ? 'Mat. ' + form.enrollment + ' | ' : ''}
-                        {form.grade || '--'} {form.className ? '- Turma ' + form.className : ''} {form.shift ? '| ' + (form.shift==='morning'?'Manhã':form.shift==='afternoon'?'Tarde':'Noite') : ''}
+                        {form.grade || '--'} {form.className ? '- Turma ' + form.className : ''} {form.shift ? '| ' + (form.shift==='morning'?'Manhã':form.shift==='afternoon'?'Tarde':form.shift==='full_time'?'Integral':'Noite') : ''}
                       </p>
                     </div>
                     <QuickActionButton icon={GraduationCap} label="Ir para Matrículas" to="/matriculas" />

@@ -497,6 +497,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                 </div>
               </div>
 
+              {/* DADOS ESCOLARES */}
               <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Dados Escolares</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Escola</p><p className="text-sm font-medium">{allSchools.find(function(sc:any){return sc.id===viewStudent.schoolId;})?.name || viewStudent.school || '--'}</p></div>
@@ -504,23 +505,133 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turma</p><p className="text-sm font-medium">{viewStudent.classRoom || viewStudent.className || '--'}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Turno</p><p className="text-sm font-medium">{shiftLabel(viewStudent.shift)}</p></div>
                 <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Matrícula</p><p className="text-sm font-medium">{viewStudent.enrollment || '--'}</p></div>
-                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Nascimento</p><p className="text-sm font-medium">{viewStudent.birthDate ? new Date(viewStudent.birthDate).toLocaleDateString('pt-BR') : '--'}</p></div>
+                <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Situação</p><p className="text-sm font-medium">{viewStudent.studentStatus || 'ativo'}</p></div>
               </div>
 
-              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3">Endereço</h2>
-              <div className="p-3 bg-gray-50 rounded-lg mb-5"><p className="text-sm font-medium">{viewStudent.address || '--'}</p></div>
+              {/* DADOS PESSOAIS */}
+              <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3 flex items-center gap-1"><User size={14}/> Dados Pessoais</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-blue-50 rounded-xl">
+                <div><p className="text-xs text-gray-400">Nascimento</p><p className="text-sm font-medium">{viewStudent.birthDate ? new Date(viewStudent.birthDate).toLocaleDateString('pt-BR') : '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Sexo</p><p className="text-sm font-medium">{viewStudent.sex === 'M' ? 'Masculino' : viewStudent.sex === 'F' ? 'Feminino' : '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Cor/Raça</p><p className="text-sm font-medium">{viewStudent.race || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Nacionalidade</p><p className="text-sm font-medium">{viewStudent.nationality || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Naturalidade</p><p className="text-sm font-medium">{viewStudent.naturalness || '--'}{viewStudent.naturalnessUf ? '/'+viewStudent.naturalnessUf : ''}</p></div>
+                <div><p className="text-xs text-gray-400">CPF</p><p className="text-sm font-medium">{viewStudent.cpf || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">RG</p><p className="text-sm font-medium">{viewStudent.rg || '--'}{viewStudent.rgOrgao ? ' - '+viewStudent.rgOrgao : ''}{viewStudent.rgUf ? '/'+viewStudent.rgUf : ''}</p></div>
+                <div><p className="text-xs text-gray-400">NIS</p><p className="text-sm font-medium">{viewStudent.nis || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Cartão SUS</p><p className="text-sm font-medium">{viewStudent.cartaoSus || '--'}</p></div>
+              </div>
 
-              <h2 className="text-sm font-bold text-red-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Heart size={14}/> Saude</h2>
+              {/* CERTIDÃO */}
+              {(viewStudent.certidaoNumero || viewStudent.certidaoCartorio) && (
+                <div className="mb-5">
+                  <h2 className="text-sm font-bold text-amber-600 uppercase tracking-wide mb-3">Certidão de Nascimento</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-amber-50 rounded-xl">
+                    <div><p className="text-xs text-gray-400">Tipo</p><p className="text-sm font-medium">{viewStudent.certidaoTipo === 'nascimento' ? 'Nascimento' : viewStudent.certidaoTipo === 'casamento' ? 'Casamento' : viewStudent.certidaoTipo || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Número</p><p className="text-sm font-medium">{viewStudent.certidaoNumero || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Folha</p><p className="text-sm font-medium">{viewStudent.certidaoFolha || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Livro</p><p className="text-sm font-medium">{viewStudent.certidaoLivro || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Data Emissão</p><p className="text-sm font-medium">{viewStudent.certidaoData || '--'}</p></div>
+                    <div className="col-span-2 md:col-span-1"><p className="text-xs text-gray-400">Cartório</p><p className="text-sm font-medium">{viewStudent.certidaoCartorio || '--'}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* ENDEREÇO */}
+              <h2 className="text-sm font-bold text-accent-600 uppercase tracking-wide mb-3 flex items-center gap-1"><MapPin size={14}/> Endereço</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-gray-50 rounded-xl">
+                <div className="col-span-2"><p className="text-xs text-gray-400">Logradouro</p><p className="text-sm font-medium">{viewStudent.address || '--'}{viewStudent.addressNumber ? ', '+viewStudent.addressNumber : ''}{viewStudent.addressComplement ? ' - '+viewStudent.addressComplement : ''}</p></div>
+                <div><p className="text-xs text-gray-400">Bairro</p><p className="text-sm font-medium">{viewStudent.neighborhood || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">CEP</p><p className="text-sm font-medium">{viewStudent.cep || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Cidade/UF</p><p className="text-sm font-medium">{viewStudent.city || '--'}{viewStudent.state ? '/'+viewStudent.state : ''}</p></div>
+                <div><p className="text-xs text-gray-400">Zona</p><p className="text-sm font-medium">{viewStudent.zone === 'urbana' ? 'Urbana' : viewStudent.zone === 'rural' ? 'Rural' : viewStudent.zone || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Telefone Fixo</p><p className="text-sm font-medium">{viewStudent.phone || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Celular</p><p className="text-sm font-medium">{viewStudent.cellPhone || '--'}</p></div>
+              </div>
+
+              {/* FILIAÇÃO - PAI */}
+              <h2 className="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-3 flex items-center gap-1"><Users size={14}/> Filiação</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div className="p-4 bg-indigo-50 rounded-xl">
+                  <p className="text-xs font-semibold text-indigo-600 mb-2 uppercase">Pai</p>
+                  <div className="space-y-1.5">
+                    <div><p className="text-xs text-gray-400">Nome</p><p className="text-sm font-medium">{viewStudent.fatherName || '--'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">CPF</p><p className="text-sm font-medium">{viewStudent.fatherCpf || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">RG</p><p className="text-sm font-medium">{viewStudent.fatherRg || '--'}{viewStudent.fatherRgOrgao ? ' '+viewStudent.fatherRgOrgao : ''}{viewStudent.fatherRgUf ? '/'+viewStudent.fatherRgUf : ''}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">Telefone</p><p className="text-sm font-medium">{viewStudent.fatherPhone || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">Profissão</p><p className="text-sm font-medium">{viewStudent.fatherProfession || '--'}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">Local de Trabalho</p><p className="text-sm font-medium">{viewStudent.fatherWorkplace || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">Escolaridade</p><p className="text-sm font-medium">{viewStudent.fatherEducation || '--'}</p></div>
+                    </div>
+                    <div><p className="text-xs text-gray-400">Naturalidade</p><p className="text-sm font-medium">{viewStudent.fatherNaturalness || '--'}{viewStudent.fatherNaturalnessUf ? '/'+viewStudent.fatherNaturalnessUf : ''}</p></div>
+                  </div>
+                </div>
+                <div className="p-4 bg-pink-50 rounded-xl">
+                  <p className="text-xs font-semibold text-pink-600 mb-2 uppercase">Mãe</p>
+                  <div className="space-y-1.5">
+                    <div><p className="text-xs text-gray-400">Nome</p><p className="text-sm font-medium">{viewStudent.motherName || '--'}</p></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">CPF</p><p className="text-sm font-medium">{viewStudent.motherCpf || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">RG</p><p className="text-sm font-medium">{viewStudent.motherRg || '--'}{viewStudent.motherRgOrgao ? ' '+viewStudent.motherRgOrgao : ''}{viewStudent.motherRgUf ? '/'+viewStudent.motherRgUf : ''}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">Telefone</p><p className="text-sm font-medium">{viewStudent.motherPhone || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">Profissão</p><p className="text-sm font-medium">{viewStudent.motherProfession || '--'}</p></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><p className="text-xs text-gray-400">Local de Trabalho</p><p className="text-sm font-medium">{viewStudent.motherWorkplace || '--'}</p></div>
+                      <div><p className="text-xs text-gray-400">Escolaridade</p><p className="text-sm font-medium">{viewStudent.motherEducation || '--'}</p></div>
+                    </div>
+                    <div><p className="text-xs text-gray-400">Naturalidade</p><p className="text-sm font-medium">{viewStudent.motherNaturalness || '--'}{viewStudent.motherNaturalnessUf ? '/'+viewStudent.motherNaturalnessUf : ''}</p></div>
+                  </div>
+                </div>
+              </div>
+              {viewStudent.familyIncome && <div className="mb-5 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Renda Familiar</p><p className="text-sm font-medium">R$ {viewStudent.familyIncome}</p></div>}
+
+              {/* TRANSPORTE */}
+              <h2 className="text-sm font-bold text-primary-600 uppercase tracking-wide mb-3 flex items-center gap-1"><Bus size={14}/> Transporte</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-primary-50 rounded-xl">
+                <div><p className="text-xs text-gray-400">Necessita Transporte</p><p className="text-sm font-medium">{viewStudent.needsTransport ? 'Sim' : 'Não'}</p></div>
+                <div><p className="text-xs text-gray-400">Tipo</p><p className="text-sm font-medium">{viewStudent.transportType || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Distância</p><p className="text-sm font-medium">{viewStudent.transportDistance ? viewStudent.transportDistance + ' km' : '--'}</p></div>
+                <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-400">Rota</p><p className="text-sm font-medium">{viewStudent.routeName || '--'}</p></div>
+              </div>
+
+              {/* PROGRAMAS SOCIAIS */}
+              <h2 className="text-sm font-bold text-green-600 uppercase tracking-wide mb-3">Programas Sociais</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 p-4 bg-green-50 rounded-xl">
+                <div><p className="text-xs text-gray-400">Bolsa Família</p><p className="text-sm font-medium">{viewStudent.bolsaFamilia ? '✅ Sim' : '— Não'}</p></div>
+                <div><p className="text-xs text-gray-400">BPC</p><p className="text-sm font-medium">{viewStudent.bpc ? '✅ Sim' : '— Não'}</p></div>
+                <div><p className="text-xs text-gray-400">PETI</p><p className="text-sm font-medium">{viewStudent.peti ? '✅ Sim' : '— Não'}</p></div>
+                <div><p className="text-xs text-gray-400">Outros</p><p className="text-sm font-medium">{viewStudent.otherPrograms || '—'}</p></div>
+              </div>
+
+              {/* SAÚDE + NECESSIDADES ESPECIAIS */}
+              <h2 className="text-sm font-bold text-red-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Heart size={14}/> Saúde e Necessidades Especiais</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5 p-4 bg-red-50 rounded-xl">
                 <div><p className="text-xs text-gray-400">Tipo Sanguíneo</p><p className="text-sm font-medium">{viewStudent.bloodType || '--'}</p></div>
-                <div><p className="text-xs text-gray-400">Necessidades Especiais</p><p className="text-sm font-medium">{viewStudent.hasSpecialNeeds ? 'Sim' : 'Nao'}</p></div>
                 <div><p className="text-xs text-gray-400">Alergias</p><p className="text-sm font-medium">{viewStudent.allergies || '--'}</p></div>
                 <div><p className="text-xs text-gray-400">Medicamentos</p><p className="text-sm font-medium">{viewStudent.medications || '--'}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">Observações de saúde</p><p className="text-sm font-medium">{viewStudent.healthNotes || '--'}</p></div>
-                {viewStudent.hasSpecialNeeds && viewStudent.specialNeedsNotes && <div className="col-span-3"><p className="text-xs text-gray-400">Detalhes nec. especiais</p><p className="text-sm font-medium">{viewStudent.specialNeedsNotes}</p></div>}
+                <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-400">Observações de Saúde</p><p className="text-sm font-medium">{viewStudent.healthNotes || '--'}</p></div>
+                <div><p className="text-xs text-gray-400">Nec. Especiais</p><p className="text-sm font-medium">{viewStudent.hasSpecialNeeds ? 'Sim' : 'Não'}</p></div>
+                {viewStudent.hasSpecialNeeds && <>
+                  <div><p className="text-xs text-gray-400">Tipo Deficiência</p><p className="text-sm font-medium">{viewStudent.deficiencyType || '--'}</p></div>
+                  <div><p className="text-xs text-gray-400">TGD</p><p className="text-sm font-medium">{viewStudent.tgd || '--'}</p></div>
+                  <div><p className="text-xs text-gray-400">Superdotação</p><p className="text-sm font-medium">{viewStudent.superdotacao ? 'Sim' : 'Não'}</p></div>
+                  <div><p className="text-xs text-gray-400">Sala de Recursos</p><p className="text-sm font-medium">{viewStudent.salaRecursos ? 'Sim' : 'Não'}</p></div>
+                  <div><p className="text-xs text-gray-400">Acompanhamento</p><p className="text-sm font-medium">{viewStudent.acompanhamento || '--'}</p></div>
+                  <div><p className="text-xs text-gray-400">Encaminhamento</p><p className="text-sm font-medium">{viewStudent.encaminhamento || '--'}</p></div>
+                  <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-400">Detalhes</p><p className="text-sm font-medium">{viewStudent.specialNeedsNotes || '--'}</p></div>
+                </>}
               </div>
 
-              <h2 className="text-sm font-bold text-orange-500 uppercase tracking-wide mb-3 flex items-center gap-1"><AlertTriangle size={14}/> Contatos de Emergencia</h2>
+              {/* CONTATOS DE EMERGÊNCIA */}
+              <h2 className="text-sm font-bold text-orange-500 uppercase tracking-wide mb-3 flex items-center gap-1"><AlertTriangle size={14}/> Contatos de Emergência</h2>
               <div className="grid grid-cols-2 gap-4 mb-5">
                 <div className="p-4 bg-orange-50 rounded-xl">
                   <p className="text-xs font-semibold text-orange-600 mb-2">Contato 1</p>
@@ -535,16 +646,34 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                   <p className="text-xs text-gray-500">{viewStudent.emergencyContact2Relation || '--'}</p>
                 </div>
               </div>
-              {(viewStudent.emergencyContact1Phone || viewStudent.guardian1Phone) && (
-                <div className="mt-4 flex gap-2">
-                  <button onClick={function(){ const phone = (viewStudent.emergencyContact1Phone || viewStudent.guardian1Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors">
-                    <MessageCircle size={16} /> WhatsApp Responsável 1
-                  </button>
-                  {(viewStudent.emergencyContact2Phone || viewStudent.guardian2Phone) && (
-                    <button onClick={function(){ const phone = (viewStudent.emergencyContact2Phone || viewStudent.guardian2Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors">
-                      <MessageCircle size={16} /> WhatsApp Responsável 2
-                    </button>
-                  )}
+
+              {/* PROCEDÊNCIA */}
+              {(viewStudent.previousSchool || viewStudent.enrollmentType) && (
+                <div className="mb-5">
+                  <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-3">Procedência</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="col-span-2 md:col-span-3"><p className="text-xs text-gray-400">Escola Anterior</p><p className="text-sm font-medium">{viewStudent.previousSchool || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Rede</p><p className="text-sm font-medium">{viewStudent.previousSchoolType || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Zona</p><p className="text-sm font-medium">{viewStudent.previousSchoolZone || '--'}</p></div>
+                    <div><p className="text-xs text-gray-400">Cidade/UF</p><p className="text-sm font-medium">{viewStudent.previousCity || '--'}{viewStudent.previousState ? '/'+viewStudent.previousState : ''}</p></div>
+                    <div><p className="text-xs text-gray-400">Tipo Matrícula</p><p className="text-sm font-medium">{viewStudent.enrollmentType || '--'}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* OBSERVAÇÕES */}
+              {viewStudent.observations && (
+                <div className="mb-5">
+                  <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-3">Observações</h2>
+                  <div className="p-4 bg-yellow-50 rounded-xl"><p className="text-sm">{viewStudent.observations}</p></div>
+                </div>
+              )}
+
+              {/* WHATSAPP BUTTONS */}
+              {(viewStudent.emergencyContact1Phone || viewStudent.guardian1Phone || viewStudent.fatherPhone || viewStudent.motherPhone) && (
+                <div className="flex gap-2 mb-3">
+                  {(viewStudent.fatherPhone || viewStudent.emergencyContact1Phone) && <button onClick={function(){ const phone = (viewStudent.fatherPhone || viewStudent.emergencyContact1Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors"><MessageCircle size={16} /> WhatsApp Pai</button>}
+                  {(viewStudent.motherPhone || viewStudent.emergencyContact2Phone) && <button onClick={function(){ const phone = (viewStudent.motherPhone || viewStudent.emergencyContact2Phone || '').replace(/\D/g,''); const whatsPhone = phone.length===11?'55'+phone:phone; window.open('https://wa.me/'+whatsPhone+'?text='+encodeURIComponent('Olá! Informação sobre '+viewStudent.name+' - NetEscol'), '_blank'); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors"><MessageCircle size={16} /> WhatsApp Mãe</button>}
                 </div>
               )}
             </div>

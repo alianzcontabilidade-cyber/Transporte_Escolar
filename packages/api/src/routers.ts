@@ -1556,7 +1556,7 @@ export const studentsRouter = t.router({
           }
           await db.insert(students).values({
             municipalityId: input.municipalityId,
-            schoolId: input.schoolId || undefined,
+            schoolId: input.schoolId || 1,
             name: s.name,
             enrollment: s.enrollment || undefined,
             grade: s.grade || undefined,

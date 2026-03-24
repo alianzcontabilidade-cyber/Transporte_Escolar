@@ -13,13 +13,10 @@ async function migrate() {
   console.log('Connected to database for migration...');
 
   try {
-    // Alter users role enum to add teacher and coordinator (safe - no truncate needed)
+    // Alter users role enum (safe - no truncate)
     try {
       await conn.execute(`ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','municipal_admin','secretary','school_admin','driver','monitor','parent','teacher','coordinator') NOT NULL DEFAULT 'parent'`);
-      console.log('Updated users.role enum');
-    } catch (e: any) {
-      if (!e.message?.includes('Duplicate')) console.log('users.role enum already up to date or:', e.message);
-    }
+    } catch { /* already up to date */ }
 
     // Municipality extra columns (v3.2 - dados prefeito, secretaria, responsaveis)
     const munCols = [
@@ -32,9 +29,8 @@ async function migrate() {
       "secretarioCargo VARCHAR(100)", "secretarioDecreto VARCHAR(100)",
     ];
     for (const col of munCols) {
-      const colName = col.split(' ')[0];
-      try { await conn.execute(`ALTER TABLE municipalities ADD COLUMN ${col}`); console.log(`Added municipalities.${colName}`); }
-      catch (e: any) { if (!e.message?.includes('Duplicate column')) console.log(`municipalities.${colName}: ${e.message?.substring(0,60)}`); }
+      try { await conn.execute(`ALTER TABLE municipalities ADD COLUMN ${col}`); }
+      catch { /* already exists */ }
     }
 
     // Responsibles table
@@ -49,8 +45,7 @@ async function migrate() {
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (municipalityId) REFERENCES municipalities(id)
       )`);
-      console.log('Created municipality_responsibles table');
-    } catch (e: any) { console.log('municipality_responsibles:', e.message?.substring(0,60)); }
+    } catch { /* already exists */ }
 
     // Create new tables if they don't exist
     const tables = [
@@ -274,16 +269,11 @@ async function migrate() {
     ];
 
     for (const sql of tables) {
-      try {
-        await conn.execute(sql);
-      } catch (e: any) {
-        // Table might already exist with slightly different structure - that's ok
-        if (!e.message?.includes('already exists')) {
-          console.log('Warning:', e.message?.substring(0, 100));
-        }
-      }
+      try { await conn.execute(sql); }
+      catch { /* already exists */ }
     }
-    // Add new student columns (v3.1 - campos completos para relatorios)
+
+    // Student columns
     const newStudentCols = [
       "cpf VARCHAR(14)", "rg VARCHAR(20)", "rgOrgao VARCHAR(20)", "rgUf VARCHAR(2)", "rgDate VARCHAR(10)",
       "sex VARCHAR(1)", "race VARCHAR(20)", "nationality VARCHAR(50)", "naturalness VARCHAR(100)", "naturalnessUf VARCHAR(2)",
@@ -309,17 +299,11 @@ async function migrate() {
       "studentStatus VARCHAR(30)",
     ];
     for (const col of newStudentCols) {
-      const colName = col.split(' ')[0];
-      try {
-        await conn.execute(`ALTER TABLE students ADD COLUMN ${col}`);
-        console.log(`Added students.${colName}`);
-      } catch (e: any) {
-        if (!e.message?.includes('Duplicate column')) console.log(`students.${colName}: ${e.message?.substring(0,60)}`);
-      }
+      try { await conn.execute(`ALTER TABLE students ADD COLUMN ${col}`); }
+      catch { /* already exists */ }
     }
-    console.log('Student columns migration complete');
 
-    console.log('Migration complete - all tables created/verified');
+    console.log('Migration complete');
 
   } catch (err: any) {
     console.error('Migration error:', err.message);

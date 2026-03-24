@@ -151,7 +151,7 @@ app.get('/api/health', async (_req, res) => {
   const mem = process.memoryUsage();
   res.json({
     status: dbStatus === 'connected' ? 'ok' : 'degraded',
-    version: '3.3.0',
+    version: '4.0.0',
     timestamp: new Date().toISOString(),
     uptime: Math.floor((Date.now() - startTime) / 1000),
     database: {
@@ -399,7 +399,7 @@ app.use('/api/trpc', trpcExpress.createExpressMiddleware({
 
 // Socket.IO events
 io.on('connection', (socket) => {
-  console.log('🔌 Socket conectado:', socket.id);
+  // Socket conectado (sem log para reduzir ruído)
 
   socket.on('join:municipality', (municipalityId: number) => {
     socket.join(`municipality:${municipalityId}`);
@@ -430,7 +430,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 Socket desconectado:', socket.id);
+    // Socket desconectado
   });
 });
 
@@ -480,9 +480,5 @@ process.on('uncaughtException', (err) => {
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 NetEscol API v3.1.0 rodando na porta ${PORT}`);
-  console.log(`📡 Socket.IO ativo`);
-  console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
-  console.log(`🖨️ PDF endpoint: /api/pdf/generate`);
-  console.log(`❤️ Health: /api/health`);
+  console.log(`🚀 NetEscol API v4.0.0 | porta ${PORT} | Socket.IO ativo`);
 });

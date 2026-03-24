@@ -90,10 +90,11 @@ export default function MunicipalitySettingsPage() {
       api.municipalities.listResponsibles({ municipalityId: mid }).then((r: any) => {
         if (Array.isArray(r)) setResponsibles(r);
       }).catch(() => {});
-      // Load custom roles from localStorage (small data, ok to keep here)
+      // Load custom roles from database
       try {
-        const roles = JSON.parse(localStorage.getItem('netescol_custom_roles_' + mid) || '[]');
-        setCustomRoles(roles);
+        if (m?.customRoles) {
+          setCustomRoles(JSON.parse(m.customRoles));
+        }
       } catch {}
     }).catch(() => {}).finally(() => setLoading(false));
   }, [mid]);
@@ -172,12 +173,14 @@ export default function MunicipalitySettingsPage() {
     catch {}
   };
 
-  const addCustomRole = () => {
+  const addCustomRole = async () => {
     if (!newRole.trim() || allRoles.includes(newRole.trim())) return;
     const next = [...customRoles, newRole.trim()];
     setCustomRoles(next);
-    localStorage.setItem('netescol_custom_roles_' + mid, JSON.stringify(next));
     setNewRole('');
+    try {
+      await api.municipalities.update({ id: mid, customRoles: JSON.stringify(next) });
+    } catch {}
   };
 
   const saveAll = async () => {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
+import { showErrorToast } from '../lib/hooks';
 import { Ticket, Plus, X, Search, Clock, CheckCircle, AlertTriangle, Printer , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -10,6 +11,7 @@ interface Protocol {
   id: number;
   number: string;
   date: string;
+  createdAt: string;
   requester: string;
   type: string;
   subject: string;
@@ -28,9 +30,8 @@ export default function ProtocolPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [form, setForm] = useState({ requester: '', type: 'Requerimento', subject: '', description: '' });
-  const [protocols, setProtocols] = useState<Protocol[]>(() => {
-    try { return JSON.parse(localStorage.getItem('netescol_protocols_' + mid) || '[]'); } catch { return []; }
-  });
+  const [protocols, setProtocols] = useState<Protocol[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewProtocol, setViewProtocol] = useState<Protocol | null>(null);
   const [responseText, setResponseText] = useState('');
   const [protoExportModal, setProtoExportModal] = useState<{html:string;filename:string}|null>(null);
@@ -39,25 +40,53 @@ export default function ProtocolPage() {
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
 
-  const saveProtocols = (p: Protocol[]) => { setProtocols(p); localStorage.setItem('netescol_protocols_' + mid, JSON.stringify(p)); };
+  const loadProtocols = async () => {
+    if (!mid) return;
+    try {
+      const data = await api.protocols.list({ municipalityId: mid });
+      setProtocols(Array.isArray(data) ? data : []);
+    } catch { setProtocols([]); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadProtocols(); }, [mid]);
+
   const sf = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const generateNumber = () => {
-    const year = new Date().getFullYear();
-    const seq = protocols.filter(p => p.number.includes(String(year))).length + 1;
-    return String(seq).padStart(4, '0') + '/' + year;
-  };
-
-  const addProtocol = () => {
+  const addProtocol = async () => {
     if (!form.requester || !form.subject) return;
-    const p: Protocol = { id: Date.now(), number: generateNumber(), date: new Date().toISOString(), requester: form.requester, type: form.type, subject: form.subject, description: form.description, status: 'aberto', response: '' };
-    saveProtocols([p, ...protocols]);
-    setShowModal(false);
-    setForm({ requester: '', type: 'Requerimento', subject: '', description: '' });
+    try {
+      await api.protocols.create({
+        municipalityId: mid,
+        requester: form.requester,
+        type: form.type,
+        subject: form.subject,
+        description: form.description,
+      });
+      setShowModal(false);
+      setForm({ requester: '', type: 'Requerimento', subject: '', description: '' });
+      await loadProtocols();
+    } catch (e: any) {
+      showErrorToast('Erro ao criar protocolo: ' + (e.message || ''));
+    }
   };
 
-  const updateStatus = (id: number, status: string) => saveProtocols(protocols.map(p => p.id === id ? { ...p, status } : p));
-  const addResponse = (id: number) => { saveProtocols(protocols.map(p => p.id === id ? { ...p, response: responseText, status: 'concluido' } : p)); setViewProtocol(null); setResponseText(''); };
+  const updateStatus = async (id: number, status: string) => {
+    try {
+      await api.protocols.updateStatus({ id, status });
+      await loadProtocols();
+      if (viewProtocol?.id === id) setViewProtocol(prev => prev ? { ...prev, status } : null);
+    } catch {}
+  };
+
+  const addResponse = async (id: number) => {
+    try {
+      await api.protocols.addResponse({ id, response: responseText });
+      setViewProtocol(null);
+      setResponseText('');
+      await loadProtocols();
+    } catch {}
+  };
 
   const filtered = protocols.filter(p => {
     if (filterStatus && p.status !== filterStatus) return false;
@@ -67,8 +96,10 @@ export default function ProtocolPage() {
 
   const counts = { aberto: protocols.filter(p => p.status === 'aberto').length, andamento: protocols.filter(p => p.status === 'andamento').length, concluido: protocols.filter(p => p.status === 'concluido').length };
 
+  const getDate = (p: Protocol) => p.date || p.createdAt;
+
   const printProtocol = (p: Protocol) => {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Protocolo ${p.number}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}.field{padding:10px;background:#f8f9fa;border-radius:6px;font-size:13px}.field-label{font-size:10px;color:#999}.field-value{font-weight:500;margin-top:3px}.desc{padding:15px;background:#f8f9fa;border-radius:8px;margin:15px 0;font-size:13px;line-height:1.6}.signatures{display:flex;justify-content:space-between;margin-top:60px}.sig{text-align:center;width:200px;border-top:1px solid #333;padding-top:5px;font-size:11px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999}@media print{body{padding:15px}}</style></head><body><h1>PROTOCOLO N\u00BA ${p.number}</h1><div class="grid"><div class="field"><div class="field-label">Data</div><div class="field-value">${new Date(p.date).toLocaleDateString('pt-BR')}</div></div><div class="field"><div class="field-label">Tipo</div><div class="field-value">${p.type}</div></div><div class="field"><div class="field-label">Requerente</div><div class="field-value">${p.requester}</div></div><div class="field"><div class="field-label">Status</div><div class="field-value">${STATUS_MAP[p.status]?.label || p.status}</div></div></div><div class="field"><div class="field-label">Assunto</div><div class="field-value">${p.subject}</div></div><div class="desc"><b>Descri\u00E7\u00E3o:</b><br>${p.description || '--'}</div>${p.response ? '<div class="desc"><b>Resposta/Parecer:</b><br>'+p.response+'</div>' : ''}<div class="signatures"><div class="sig">Requerente</div><div class="sig">Respons\u00E1vel</div></div><div class="footer">NetEscol - ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Protocolo ${p.number}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}.field{padding:10px;background:#f8f9fa;border-radius:6px;font-size:13px}.field-label{font-size:10px;color:#999}.field-value{font-weight:500;margin-top:3px}.desc{padding:15px;background:#f8f9fa;border-radius:8px;margin:15px 0;font-size:13px;line-height:1.6}.signatures{display:flex;justify-content:space-between;margin-top:60px}.sig{text-align:center;width:200px;border-top:1px solid #333;padding-top:5px;font-size:11px}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999}@media print{body{padding:15px}}</style></head><body><h1>PROTOCOLO N\u00BA ${p.number}</h1><div class="grid"><div class="field"><div class="field-label">Data</div><div class="field-value">${new Date(getDate(p)).toLocaleDateString('pt-BR')}</div></div><div class="field"><div class="field-label">Tipo</div><div class="field-value">${p.type}</div></div><div class="field"><div class="field-label">Requerente</div><div class="field-value">${p.requester}</div></div><div class="field"><div class="field-label">Status</div><div class="field-value">${STATUS_MAP[p.status]?.label || p.status}</div></div></div><div class="field"><div class="field-label">Assunto</div><div class="field-value">${p.subject}</div></div><div class="desc"><b>Descri\u00E7\u00E3o:</b><br>${p.description || '--'}</div>${p.response ? '<div class="desc"><b>Resposta/Parecer:</b><br>'+p.response+'</div>' : ''}<div class="signatures"><div class="sig">Requerente</div><div class="sig">Respons\u00E1vel</div></div><div class="footer">NetEscol - ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
     const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
@@ -91,21 +122,21 @@ export default function ProtocolPage() {
 
       <div className="space-y-3">
         {filtered.map(p => (
-          <div key={p.id} className="card flex items-center gap-4 hover:border-primary-200 cursor-pointer" onClick={() => { setViewProtocol(p); setResponseText(p.response); }}>
+          <div key={p.id} className="card flex items-center gap-4 hover:border-primary-200 cursor-pointer" onClick={() => { setViewProtocol(p); setResponseText(p.response || ''); }}>
             <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0"><Ticket size={18} className="text-purple-600" /></div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5"><span className="font-bold text-gray-800">#{p.number}</span><span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_MAP[p.status]?.color || ''}`}>{STATUS_MAP[p.status]?.label || p.status}</span><span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">{p.type}</span></div>
               <p className="text-sm text-gray-700 font-medium truncate">{p.subject}</p>
-              <p className="text-xs text-gray-500">{p.requester} \u00B7 {new Date(p.date).toLocaleDateString('pt-BR')}</p>
+              <p className="text-xs text-gray-500">{p.requester} \u00B7 {new Date(getDate(p)).toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
         ))}
-        {!filtered.length && <div className="card text-center py-16"><Ticket size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum protocolo encontrado</p></div>}
+        {!filtered.length && !loading && <div className="card text-center py-16"><Ticket size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum protocolo encontrado</p></div>}
       </div>
 
       {/* View/Respond Modal */}
       {viewProtocol && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b"><div><h3 className="text-lg font-semibold">Protocolo #{viewProtocol.number}</h3><p className="text-sm text-gray-500">{viewProtocol.type} \u00B7 {new Date(viewProtocol.date).toLocaleDateString('pt-BR')}</p></div><div className="flex gap-2"><button onClick={() => printProtocol(viewProtocol)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Imprimir"><Printer size={18} /></button><button onClick={() => { const rows = [{ numero: viewProtocol.number, data: new Date(viewProtocol.date).toLocaleDateString('pt-BR'), tipo: viewProtocol.type, requerente: viewProtocol.requester, assunto: viewProtocol.subject, status: STATUS_MAP[viewProtocol.status]?.label || viewProtocol.status, descricao: viewProtocol.description || '--', resposta: viewProtocol.response || '--' }]; const cols = ['Numero', 'Data', 'Tipo', 'Requerente', 'Assunto', 'Status', 'Descricao', 'Resposta']; const html = buildTableReportHTML('PROTOCOLO N ' + viewProtocol.number, rows, cols, munReport, { orientation: 'portrait', signatories: selectedSigs }); if (html) setProtoExportModal({ html, filename: 'Protocolo_' + viewProtocol.number.replace('/', '-') }); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Exportar"><Download size={18} /></button><button onClick={() => setViewProtocol(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div></div>
+        <div className="flex items-center justify-between p-5 border-b"><div><h3 className="text-lg font-semibold">Protocolo #{viewProtocol.number}</h3><p className="text-sm text-gray-500">{viewProtocol.type} \u00B7 {new Date(getDate(viewProtocol)).toLocaleDateString('pt-BR')}</p></div><div className="flex gap-2"><button onClick={() => printProtocol(viewProtocol)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Imprimir"><Printer size={18} /></button><button onClick={() => { const rows = [{ numero: viewProtocol.number, data: new Date(getDate(viewProtocol)).toLocaleDateString('pt-BR'), tipo: viewProtocol.type, requerente: viewProtocol.requester, assunto: viewProtocol.subject, status: STATUS_MAP[viewProtocol.status]?.label || viewProtocol.status, descricao: viewProtocol.description || '--', resposta: viewProtocol.response || '--' }]; const cols = ['Numero', 'Data', 'Tipo', 'Requerente', 'Assunto', 'Status', 'Descricao', 'Resposta']; const html = buildTableReportHTML('PROTOCOLO N ' + viewProtocol.number, rows, cols, munReport, { orientation: 'portrait', signatories: selectedSigs }); if (html) setProtoExportModal({ html, filename: 'Protocolo_' + viewProtocol.number.replace('/', '-') }); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Exportar"><Download size={18} /></button><button onClick={() => setViewProtocol(null)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button></div></div>
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3"><div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Requerente</p><p className="text-sm font-medium">{viewProtocol.requester}</p></div><div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Status</p><p className="text-sm font-medium">{STATUS_MAP[viewProtocol.status]?.label}</p></div></div>
           <div className="p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-400">Assunto</p><p className="text-sm font-medium">{viewProtocol.subject}</p></div>
@@ -128,7 +159,7 @@ export default function ProtocolPage() {
           <div><label className="label">Requerente *</label><input className="input" value={form.requester} onChange={sf('requester')} placeholder="Nome do requerente" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">Tipo</label><select className="input" value={form.type} onChange={sf('type')}>{TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
-            <div><label className="label">N\u00FAmero</label><input className="input bg-gray-50" value={generateNumber()} readOnly /></div>
+            <div><label className="label">N\u00FAmero</label><input className="input bg-gray-50" value="Gerado automaticamente" readOnly /></div>
           </div>
           <div><label className="label">Assunto *</label><input className="input" value={form.subject} onChange={sf('subject')} placeholder="Assunto do protocolo" /></div>
           <div><label className="label">Descri\u00E7\u00E3o</label><textarea className="input" rows={4} value={form.description} onChange={sf('description')} placeholder="Descri\u00E7\u00E3o detalhada..." /></div>

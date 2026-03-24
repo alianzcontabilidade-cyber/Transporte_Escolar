@@ -9,7 +9,7 @@ import ReportSignatureSelector, { Signatory } from '../components/ReportSignatur
 
 interface Bulletin {
   id: number;
-  date: string;
+  createdAt: string;
   title: string;
   content: string;
   category: string;
@@ -33,27 +33,60 @@ export default function DailyBulletinPage() {
   const [munReport, setMunReport] = useState<any>(null);
   const [form, setForm] = useState({ title: '', content: '', category: 'aviso' });
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
+  const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
-  const [bulletins, setBulletins] = useState<Bulletin[]>(() => { try { return JSON.parse(localStorage.getItem('netescol_bulletins_' + mid) || '[]'); } catch { return []; } });
 
-  const saveBulletins = (b: Bulletin[]) => { setBulletins(b); localStorage.setItem('netescol_bulletins_' + mid, JSON.stringify(b)); };
-  const sf = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
-
-  const add = () => {
-    if (!form.title || !form.content) return;
-    const b: Bulletin = { id: Date.now(), date: new Date().toISOString(), title: form.title, content: form.content, category: form.category, pinned: false, author: user?.name || '' };
-    saveBulletins([b, ...bulletins]);
-    setShowModal(false); setForm({ title: '', content: '', category: 'aviso' });
+  const loadBulletins = async () => {
+    if (!mid) return;
+    try {
+      const data = await api.bulletins.list({ municipalityId: mid });
+      setBulletins(Array.isArray(data) ? data : []);
+    } catch { setBulletins([]); }
+    finally { setLoading(false); }
   };
 
-  const togglePin = (id: number) => saveBulletins(bulletins.map(b => b.id === id ? { ...b, pinned: !b.pinned } : b));
-  const remove = (id: number) => saveBulletins(bulletins.filter(b => b.id !== id));
+  useEffect(() => { loadBulletins(); }, [mid]);
 
-  const sorted = [...bulletins].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sf = (k: string) => (e: any) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const add = async () => {
+    if (!form.title || !form.content) return;
+    try {
+      await api.bulletins.create({
+        municipalityId: mid,
+        title: form.title,
+        content: form.content,
+        category: form.category,
+        author: user?.name || '',
+      });
+      setShowModal(false);
+      setForm({ title: '', content: '', category: 'aviso' });
+      await loadBulletins();
+    } catch (e: any) {
+      showErrorToast('Erro ao publicar: ' + (e.message || ''));
+    }
+  };
+
+  const togglePin = async (id: number) => {
+    try {
+      await api.bulletins.togglePin({ id });
+      await loadBulletins();
+    } catch {}
+  };
+
+  const remove = async (id: number) => {
+    try {
+      await api.bulletins.delete({ id });
+      await loadBulletins();
+    } catch {}
+  };
+
+  const sorted = [...bulletins].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const printBulletin = () => {
-    const today = bulletins.filter(b => new Date(b.date).toDateString() === new Date().toDateString() || b.pinned);
+    const today = bulletins.filter(b => new Date(b.createdAt).toDateString() === new Date().toDateString() || b.pinned);
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Mural do Dia - NetEscol</title>
     <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;text-align:center;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
     .item{margin:15px 0;padding:15px;border:1px solid #ddd;border-radius:8px;page-break-inside:avoid}
@@ -69,7 +102,7 @@ export default function DailyBulletinPage() {
 
   const handleExportClick = () => {
     const rows = sorted.map((b: any) => ({
-      data: new Date(b.date).toLocaleDateString('pt-BR'),
+      data: new Date(b.createdAt).toLocaleDateString('pt-BR'),
       titulo: b.title || '--',
       categoria: CATEGORIES.find(c => c.v === b.category)?.l || b.category,
       conteudo: b.content || '--',
@@ -104,11 +137,11 @@ export default function DailyBulletinPage() {
                 <div className="flex gap-1"><button onClick={() => togglePin(b.id)} className={`p-1.5 rounded-lg transition-colors ${b.pinned ? 'text-accent-500 bg-accent-50' : 'text-gray-400 hover:text-accent-500'}`} title={b.pinned ? 'Desafixar' : 'Fixar'}><Pin size={14} /></button><button onClick={() => remove(b.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></div>
               </div>
               <p className="text-sm text-gray-600 whitespace-pre-line">{b.content}</p>
-              <p className="text-xs text-gray-400 mt-2">{b.author} · {new Date(b.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-xs text-gray-400 mt-2">{b.author} · {new Date(b.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           );
         })}
-        {!bulletins.length && <div className="card text-center py-16"><Newspaper size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhuma publicação no mural</p></div>}
+        {!bulletins.length && !loading && <div className="card text-center py-16"><Newspaper size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhuma publicação no mural</p></div>}
       </div>
 
       {showModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg">
@@ -120,7 +153,7 @@ export default function DailyBulletinPage() {
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={add} className="btn-primary flex-1">Publicar</button></div>
       </div></div>)}
-    
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

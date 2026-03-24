@@ -16,7 +16,8 @@ import {
   municipalityResponsibles, formFieldConfigs, fuelRecords, studentHistory,
   studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections,
   documents, documentSignatures,
-  chatConversations, chatMessages
+  chatConversations, chatMessages,
+  classSchedules, bulletins, protocols
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -569,6 +570,7 @@ export const municipalitiesRouter = t.router({
       secretarioCpf: z.string().optional(),
       secretarioCargo: z.string().optional(),
       secretarioDecreto: z.string().optional(),
+      customRoles: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
@@ -6016,6 +6018,137 @@ export const chatRouter = t.router({
 });
 
 // ============================================
+// GRADE HORÁRIA ROUTER
+// ============================================
+export const classSchedulesRouter = t.router({
+  get: protectedProcedure
+    .input(z.object({ classId: z.number() }))
+    .query(async ({ input }) => {
+      const [row] = await db.select().from(classSchedules)
+        .where(eq(classSchedules.classId, input.classId))
+        .limit(1);
+      if (!row) return null;
+      return { ...row, schedule: row.scheduleJson ? JSON.parse(row.scheduleJson) : {} };
+    }),
+
+  save: protectedProcedure
+    .input(z.object({
+      classId: z.number(),
+      municipalityId: z.number(),
+      schedule: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const [existing] = await db.select().from(classSchedules)
+        .where(eq(classSchedules.classId, input.classId))
+        .limit(1);
+      if (existing) {
+        await db.update(classSchedules)
+          .set({ scheduleJson: input.schedule })
+          .where(eq(classSchedules.classId, input.classId));
+      } else {
+        await db.insert(classSchedules).values({
+          classId: input.classId,
+          municipalityId: input.municipalityId,
+          scheduleJson: input.schedule,
+        });
+      }
+      return { success: true };
+    }),
+});
+
+// ============================================
+// MURAL INFORMATIVO ROUTER
+// ============================================
+export const bulletinsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(bulletins)
+        .where(eq(bulletins.municipalityId, input.municipalityId))
+        .orderBy(desc(bulletins.pinned), desc(bulletins.createdAt));
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      title: z.string().min(1),
+      content: z.string().min(1),
+      category: z.string().optional(),
+      author: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [r] = await db.insert(bulletins).values(input).$returningId();
+      return { success: true, id: r.id };
+    }),
+
+  togglePin: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const [row] = await db.select().from(bulletins).where(eq(bulletins.id, input.id)).limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      await db.update(bulletins).set({ pinned: !row.pinned }).where(eq(bulletins.id, input.id));
+      return { success: true, pinned: !row.pinned };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(bulletins).where(eq(bulletins.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// PROTOCOLOS ROUTER
+// ============================================
+export const protocolsRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(protocols)
+        .where(eq(protocols.municipalityId, input.municipalityId))
+        .orderBy(desc(protocols.createdAt));
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      requester: z.string().min(1),
+      type: z.string().optional(),
+      subject: z.string().min(1),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const year = new Date().getFullYear();
+      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(protocols)
+        .where(and(
+          eq(protocols.municipalityId, input.municipalityId),
+          gte(protocols.date, new Date(year, 0, 1)),
+          lte(protocols.date, new Date(year, 11, 31, 23, 59, 59))
+        ));
+      const seq = Number(countResult?.count || 0) + 1;
+      const number = String(seq).padStart(4, '0') + '/' + year;
+      const [r] = await db.insert(protocols).values({ ...input, number }).$returningId();
+      return { success: true, id: r.id, number };
+    }),
+
+  updateStatus: protectedProcedure
+    .input(z.object({ id: z.number(), status: z.string() }))
+    .mutation(async ({ input }) => {
+      await db.update(protocols).set({ status: input.status }).where(eq(protocols.id, input.id));
+      return { success: true };
+    }),
+
+  addResponse: protectedProcedure
+    .input(z.object({ id: z.number(), response: z.string() }))
+    .mutation(async ({ input }) => {
+      await db.update(protocols).set({ response: input.response, status: 'concluido' }).where(eq(protocols.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -6091,6 +6224,10 @@ export const appRouter = t.router({
   ai: aiRouter,
   // Chat em tempo real
   chat: chatRouter,
+  // Grade Horária, Mural e Protocolos
+  classSchedules: classSchedulesRouter,
+  bulletins: bulletinsRouter,
+  protocols: protocolsRouter,
 });
 
 export type AppRouter = typeof appRouter;

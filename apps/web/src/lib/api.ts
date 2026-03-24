@@ -485,4 +485,23 @@ export const api = {
     markRead: (input: any) => call('chat.markRead', input, 'mutation'),
   },
 
+  classSchedules: {
+    get: (input: any) => call('classSchedules.get', input, 'query'),
+    save: (input: any) => call('classSchedules.save', input, 'mutation'),
+  },
+
+  bulletins: {
+    list: (input: any) => call('bulletins.list', input, 'query'),
+    create: (input: any) => call('bulletins.create', input, 'mutation'),
+    togglePin: (input: any) => call('bulletins.togglePin', input, 'mutation'),
+    delete: (input: any) => call('bulletins.delete', input, 'mutation'),
+  },
+
+  protocols: {
+    list: (input: any) => call('protocols.list', input, 'query'),
+    create: (input: any) => call('protocols.create', input, 'mutation'),
+    updateStatus: (input: any) => call('protocols.updateStatus', input, 'mutation'),
+    addResponse: (input: any) => call('protocols.addResponse', input, 'mutation'),
+  },
+
 };

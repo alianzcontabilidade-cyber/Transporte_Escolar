@@ -69,6 +69,9 @@ export const municipalities = mysqlTable("municipalities", {
   secretarioCargo: varchar("secretarioCargo", { length: 100 }),
   secretarioDecreto: varchar("secretarioDecreto", { length: 100 }),
 
+  // Cargos customizados (JSON array de strings)
+  customRoles: text("customRoles"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1695,6 +1698,51 @@ export const vehicleInspections = mysqlTable("vehicle_inspections", {
   approvedCount: int("approvedCount").default(0),
   rejectedCount: int("rejectedCount").default(0),
   pendingCount: int("pendingCount").default(0),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: GRADE HORÁRIA
+// ============================================
+export const classSchedules = mysqlTable("class_schedules", {
+  id: int("id").autoincrement().primaryKey(),
+  classId: int("classId").notNull().references(() => classes.id),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  scheduleJson: text("scheduleJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
+// TABELA: MURAL INFORMATIVO
+// ============================================
+export const bulletins = mysqlTable("bulletins", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 50 }).default("informativo"),
+  pinned: boolean("pinned").default(false).notNull(),
+  author: varchar("author", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
+// TABELA: PROTOCOLOS
+// ============================================
+export const protocols = mysqlTable("protocols", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  number: varchar("number", { length: 20 }).notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  requester: varchar("requester", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).default("Requerimento"),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 30 }).default("aberto"),
+  response: text("response"),
   createdById: int("createdById"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

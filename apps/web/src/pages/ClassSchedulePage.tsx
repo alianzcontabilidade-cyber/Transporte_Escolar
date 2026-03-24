@@ -21,6 +21,7 @@ export default function ClassSchedulePage() {
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { data: classesData } = useQuery(() => api.classes.list({ municipalityId: mid }), [mid]);
   const { data: subjectsData } = useQuery(() => api.subjects.list({ municipalityId: mid }), [mid]);
@@ -36,18 +37,37 @@ export default function ClassSchedulePage() {
     setSaved(false);
   };
 
-  const saveSchedule = () => {
-    localStorage.setItem('netescol_schedule_' + selClass, JSON.stringify(schedule));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const saveSchedule = async () => {
+    if (!selClass) return;
+    setSaving(true);
+    try {
+      await api.classSchedules.save({
+        classId: Number(selClass),
+        municipalityId: mid,
+        schedule: JSON.stringify(schedule),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e: any) {
+      showErrorToast('Erro ao salvar grade: ' + (e.message || ''));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const loadSchedule = (classId: string) => {
+  const loadSchedule = async (classId: string) => {
     setSelClass(classId);
+    if (!classId) { setSchedule({}); return; }
     try {
-      const saved = localStorage.getItem('netescol_schedule_' + classId);
-      setSchedule(saved ? JSON.parse(saved) : {});
-    } catch { setSchedule({}); }
+      const result = await api.classSchedules.get({ classId: Number(classId) });
+      if (result && result.schedule) {
+        setSchedule(result.schedule);
+      } else {
+        setSchedule({});
+      }
+    } catch {
+      setSchedule({});
+    }
   };
 
   const printSchedule = () => {
@@ -100,7 +120,7 @@ export default function ClassSchedulePage() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center"><Clock size={20} className="text-violet-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Grade Horária</h1><p className="text-gray-500">Configure o horário de aulas por turma</p></div></div>
         {selClass && (
           <div className="flex gap-2">
-            <button onClick={saveSchedule} className="btn-secondary flex items-center gap-2"><Save size={16} /> Salvar</button>
+            <button onClick={saveSchedule} disabled={saving} className="btn-secondary flex items-center gap-2"><Save size={16} /> {saving ? 'Salvando...' : 'Salvar'}</button>
             <button onClick={printSchedule} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir</button><button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
           </div>
         )}
@@ -145,7 +165,7 @@ export default function ClassSchedulePage() {
       ) : (
         <div className="card text-center py-16"><Clock size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para configurar a grade horária</p></div>
       )}
-    
+
       <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
     </div>
   );

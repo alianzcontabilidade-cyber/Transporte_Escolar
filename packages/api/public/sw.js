@@ -1,5 +1,5 @@
-const CACHE_NAME = 'netescol-v8';
-const API_CACHE_NAME = 'netescol-api-v1';
+const CACHE_NAME = 'netescol-v10';
+const API_CACHE_NAME = 'netescol-api-v2';
 
 const STATIC_ASSETS = [
   '/',

@@ -9,4 +9,4 @@ cmds = ["npm install"]
 cmds = ["npm run build --workspace=apps/web && npm run build --workspace=packages/api && mkdir -p packages/api/public && cp -r apps/web/dist/* packages/api/public/"]
 
 [start]
-cmd = "cd packages/api && npx tsx src/migrate.ts && node dist/index.js"
+cmd = "cd packages/api && node dist/migrate.js && node dist/index.js"

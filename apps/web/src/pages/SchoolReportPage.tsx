@@ -39,39 +39,8 @@ export default function SchoolReportPage() {
   const school = allSchools.find((s: any) => String(s.id) === selSchool);
   const shiftLabel = (s: string) => s === 'afternoon' ? 'Tarde' : s === 'evening' ? 'Noite' : s === 'full_time' ? 'Integral' : 'Manhã';
 
-  const printReport = () => {
-    if (!school) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório - ${school.name}</title>
-    <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
-    h2{color:#1B3A5C;font-size:16px;margin-top:25px;border-bottom:1px solid #ddd;padding-bottom:5px}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:15px 0}
-    .stat{padding:15px;background:#f8f9fa;border-radius:8px;text-align:center}
-    .stat-value{font-size:24px;font-weight:bold;color:#1B3A5C}
-    .stat-label{font-size:11px;color:#666;margin-top:4px}
-    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
-    th{background:#1B3A5C;color:white;padding:8px;text-align:left}td{padding:6px 8px;border:1px solid #ddd}
-    tr:nth-child(even){background:#f8f9fa}
-    .footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
-    @media print{body{padding:15px}}</style></head><body>
-    <h1>${school.name}</h1>
-    <p style="color:#666;font-size:13px">${school.address || ''} | ${school.phone || ''} | ${school.email || ''}</p>
-    <p style="color:#666;font-size:13px">Diretor(a): ${school.directorName || '--'} | Código INEP: ${school.code || '--'} | Tipo: ${school.type || '--'}</p>
-    <div class="stats">
-      <div class="stat"><div class="stat-value">${allStudents.length}</div><div class="stat-label">Alunos</div></div>
-      <div class="stat"><div class="stat-value">${allClasses.length}</div><div class="stat-label">Turmas</div></div>
-      <div class="stat"><div class="stat-value">${allTeachers.length}</div><div class="stat-label">Professores</div></div>
-      <div class="stat"><div class="stat-value">${school.morningStart || '--'} - ${school.morningEnd || '--'}</div><div class="stat-label">Horário Manhã</div></div>
-    </div>
-    <h2>Alunos Matriculados (${allStudents.length})</h2>
-    <table><thead><tr><th>Nº</th><th>Nome</th><th>Matrícula</th><th>Série</th><th>Turma</th><th>Turno</th></tr></thead>
-    <tbody>${allStudents.map((s: any, i: number) => '<tr><td>'+(i+1)+'</td><td>'+s.name+'</td><td>'+(s.enrollment||'--')+'</td><td>'+(s.grade||'--')+'</td><td>'+(s.classRoom||'--')+'</td><td>'+(s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manhã')+'</td></tr>').join('')}</tbody></table>
-    ${allClasses.length > 0 ? '<h2>Turmas ('+allClasses.length+')</h2><table><thead><tr><th>Turma</th><th>Série</th><th>Turno</th><th>Alunos</th><th>Máximo</th></tr></thead><tbody>'+allClasses.map((c: any) => '<tr><td>'+(c.fullName||c.name)+'</td><td>'+(c.gradeName||'--')+'</td><td>'+(c.shift === 'afternoon' ? 'Tarde' : c.shift === 'evening' ? 'Noite' : 'Manhã')+'</td><td>'+(c.enrolledStudents||0)+'</td><td>'+(c.maxStudents||30)+'</td></tr>').join('')+'</tbody></table>' : ''}
-    <div class="footer">Relatório gerado por NetEscol em ${new Date().toLocaleString('pt-BR')}</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
-  };
-
-  const handleExportClick = () => {
+  const buildExportHTML = (): string => {
+    const schoolName = school?.name || 'Escola';
     const rows = allStudents.map((s: any, i: number) => ({
       num: i + 1,
       nome: s.name || '--',
@@ -81,11 +50,22 @@ export default function SchoolReportPage() {
       turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
     }));
     const cols = ['N', 'Nome', 'Matricula', 'Serie', 'Turma', 'Turno'];
-    const html = buildTableReportHTML('RELATORIO POR ESCOLA - ' + (school?.name || ''), rows, cols, munReport, {
-      subtitle: school?.name || '',
+    return buildTableReportHTML('RELATORIO POR ESCOLA - ' + schoolName, rows, cols, munReport, {
+      subtitle: schoolName,
       orientation: 'landscape',
       signatories: selectedSigs,
     });
+  };
+
+  const printReport = () => {
+    const html = buildExportHTML();
+    if (!html) { showInfoToast('Nenhum dado para imprimir'); return; }
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
+  };
+
+  const handleExportClick = () => {
+    const html = buildExportHTML();
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_escola' });
   };

@@ -36,24 +36,29 @@ export default function AttendanceReportPage() {
 
   const totalDays = summary.length > 0 ? (summary[0]?.total || 0) : 0;
 
-  const printReport = () => {
+  const buildExportHTML = (): string => {
+    const rows = summary.map((s: any, i: number) => ({
+      num: i + 1,
+      aluno: s.studentName || '--',
+      presencas: s.present || 0,
+      faltas: s.absent || 0,
+      justificadas: s.justified || 0,
+      atrasos: s.late || 0,
+      total: s.total || 0,
+      percentual: s.total > 0 ? Math.round(((s.present + (s.justified || 0)) / s.total) * 100) + '%' : '0%',
+    }));
+    const cols = ['N', 'Aluno', 'Presencas', 'Faltas', 'Justificadas', 'Atrasos', 'Total', '% Presenca'];
     const cls = allClasses.find((c: any) => String(c.id) === selClass);
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Frequência - NetEscol</title>
-    <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
-    table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th{background:#1B3A5C;color:white;padding:8px;text-align:center}
-    td{padding:6px 8px;border:1px solid #ddd;text-align:center}tr:nth-child(even){background:#f8f9fa}
-    .low{color:#dc2626;font-weight:bold}.ok{color:#16a34a}
-    .footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
-    @media print{body{padding:15px}}</style></head><body>
-    <h1>Relatório de Frequência</h1>
-    <p><b>Turma:</b> ${cls?.fullName || ''} | <b>Escola:</b> ${cls?.schoolName || ''}</p>
-    <p><b>Período:</b> ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}</p>
-    <table><thead><tr><th>Nº</th><th>Aluno</th><th>Presenças</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Total</th><th>% Presença</th></tr></thead>
-    <tbody>${summary.map((s: any, i: number) => {
-      const pct = s.total > 0 ? Math.round(((s.present + s.justified) / s.total) * 100) : 0;
-      return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+s.studentName+'</td><td>'+s.present+'</td><td>'+(s.absent||0)+'</td><td>'+(s.justified||0)+'</td><td>'+(s.late||0)+'</td><td>'+s.total+'</td><td class="'+(pct<75?'low':'ok')+'">'+pct+'%</td></tr>';
-    }).join('')}</tbody></table>
-    <div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
+    return buildTableReportHTML('RELATORIO DE FREQUENCIA', rows, cols, munReport, {
+      subtitle: `Turma: ${cls?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
+      orientation: 'landscape',
+      signatories: selectedSigs,
+    });
+  };
+
+  const printReport = () => {
+    const html = buildExportHTML();
+    if (!html) { showInfoToast('Nenhum dado para imprimir'); return; }
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
@@ -67,23 +72,7 @@ export default function AttendanceReportPage() {
   };
 
   const handleExportClick = () => {
-    const rows = summary.map((s: any, i: number) => ({
-      num: i + 1,
-      aluno: s.studentName || '--',
-      presencas: s.present || 0,
-      faltas: s.absent || 0,
-      justificadas: s.justified || 0,
-      atrasos: s.late || 0,
-      total: s.total || 0,
-      percentual: s.total > 0 ? Math.round(((s.present + (s.justified || 0)) / s.total) * 100) + '%' : '0%',
-    }));
-    const cols = ['N', 'Aluno', 'Presencas', 'Faltas', 'Justificadas', 'Atrasos', 'Total', '% Presenca'];
-    const cls = allClasses.find((c: any) => String(c.id) === selClass);
-    const html = buildTableReportHTML('RELATORIO DE FREQUENCIA', rows, cols, munReport, {
-      subtitle: `Turma: ${cls?.fullName || ''} | ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
-      orientation: 'landscape',
-      signatories: selectedSigs,
-    });
+    const html = buildExportHTML();
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_frequencia' });
   };

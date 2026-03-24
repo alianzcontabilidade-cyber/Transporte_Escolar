@@ -4,7 +4,6 @@ import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast 
 import { api } from '../lib/api';
 import { FileEdit, Save, CheckCircle, Users, BookOpen, Printer, Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, generateReportHTML, printReportHTML } from '../lib/reportTemplate';
-import { buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 
@@ -115,14 +114,25 @@ export default function DescriptiveReportPage() {
   };
 
   const handleExportClick = () => {
-    const rows = allReports.map((r: any, i: number) => ({
-      num: i + 1,
-      aluno: r.studentName || '--',
-      parecer: (r.content || '--').substring(0, 100) + ((r.content || '').length > 100 ? '...' : ''),
-    }));
-    const cols = ['#', 'Aluno', 'Parecer'];
-    const html = buildTableReportHTML('PARECER DESCRITIVO', rows, cols, munReport, { signatories: selectedSigs });
-    if (!html) { showInfoToast('Nenhum parecer para exportar'); return; }
+    if (!allEnrollments.length) { showInfoToast('Nenhum parecer para exportar'); return; }
+    const cls = allClasses.find((c: any) => String(c.id) === selClass);
+    const bimLabel = BIMESTERS.find(b => b.v === selBimester)?.l || '';
+    const content = allEnrollments.map((e: any) => {
+      const report = getReport(e.studentId);
+      return `<div style="margin:20px 0;padding:15px;border:1px solid #ddd;border-radius:8px;page-break-inside:avoid">
+        <h3 style="color:#1B3A5C;margin:0 0 8px">${e.studentName}</h3>
+        <p style="font-size:14px;line-height:1.6">${report?.content || '<em style="color:#999">Sem parecer registrado.</em>'}</p>
+      </div>`;
+    }).join('');
+    if (!munReport) { showInfoToast('Dados do municipio nao carregados'); return; }
+    const html = generateReportHTML({
+      municipality: munReport.municipality,
+      secretaria: munReport.secretaria,
+      title: 'PARECER DESCRITIVO - ' + bimLabel.toUpperCase(),
+      subtitle: cls?.fullName || '',
+      content: `<p><b>Turma:</b> ${cls?.fullName || ''} | <b>Escola:</b> ${cls?.schoolName || ''} | <b>Periodo:</b> ${bimLabel}</p>${content}`,
+      signatories: selectedSigs,
+    });
     setPgExportModal({ html, filename: 'Parecer_Descritivo' });
   };
 

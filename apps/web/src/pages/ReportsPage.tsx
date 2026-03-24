@@ -4,21 +4,12 @@ import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../li
 import { api } from '../lib/api';
 import { FileText, Calendar, CheckCircle, XCircle, Download, BarChart2, TrendingUp, Users, MapPin, Bus, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
-import { loadMunicipalityData, generateReportHTML } from '../lib/reportTemplate';
+import { loadMunicipalityData } from '../lib/reportTemplate';
+import { buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
 const COLORS = ['#10b981','#ef4444','#f97316','#3b82f6','#8b5cf6'];
-
-function buildReportHTML(title: string, data: any[], cols: string[], munReport: any): string {
-  if (!data?.length) return '';
-  const rows = data.map(row => '<tr>' + Object.values(row).map(v => '<td>' + (v ?? '') + '</td>').join('') + '</tr>').join('');
-  const content = '<table><thead><tr>' + cols.map(c => '<th style="text-align:left">' + c + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table><p style="margin-top:15px;font-size:11px;color:#666">Total: ' + data.length + ' registro(s)</p>';
-  if (munReport) {
-    return generateReportHTML({ municipality: munReport.municipality, secretaria: munReport.secretaria, title: title.toUpperCase(), subtitle: data.length + ' registro(s)', content, fontFamily: 'sans-serif', fontSize: 11 });
-  }
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px;font-size:18px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f8f9fa}.footer{margin-top:20px;text-align:center;font-size:10px;color:#999}@media print{@page{margin:10mm;size:A4}}</style></head><body><h1>' + title + '</h1>' + content + '<div class="footer">Gerado por NetEscol em ' + new Date().toLocaleDateString('pt-BR') + '</div></body></html>';
-}
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -80,7 +71,7 @@ export default function ReportsPage() {
 
   const doExport = (format: ExportFormat) => {
     if (!exportModal) return;
-    const html = buildReportHTML(exportModal.title, exportModal.data, exportModal.cols, munReport);
+    const html = buildTableReportHTML(exportModal.title.toUpperCase(), exportModal.data, exportModal.cols, munReport, { signatories: selectedSigs });
     if (!html && format !== 'csv') { showInfoToast('Sem dados para exportar'); return; }
     handleExport(format, exportModal.data, html, exportModal.filename);
   };

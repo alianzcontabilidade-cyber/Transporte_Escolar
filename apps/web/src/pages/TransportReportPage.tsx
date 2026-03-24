@@ -51,23 +51,13 @@ export default function TransportReportPage() {
   };
 
   const printReport = () => {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatorio de Transporte - NetEscol</title>
-    <style>body{font-family:Arial,sans-serif;padding:30px;color:#333}h1{color:#1B3A5C;border-bottom:3px solid #2DB5B0;padding-bottom:10px}
-    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:20px 0}.kpi{padding:15px;background:#f8f9fa;border-radius:8px;text-align:center}
-    .kpi-value{font-size:24px;font-weight:bold;color:#1B3A5C}.kpi-label{font-size:12px;color:#666;margin-top:4px}
-    table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}th{background:#1B3A5C;color:white;padding:8px}td{padding:6px 8px;border:1px solid #ddd}
-    tr:nth-child(even){background:#f8f9fa}.footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
-    @media print{body{padding:15px}}</style></head><body>
-    <h1>RELATORIO DE TRANSPORTE ESCOLAR</h1>
-    <div class="kpis"><div class="kpi"><div class="kpi-value">${allRoutes.length}</div><div class="kpi-label">Rotas</div></div><div class="kpi"><div class="kpi-value">${activeVehicles.length}</div><div class="kpi-label">Veiculos</div></div><div class="kpi"><div class="kpi-value">${allDrivers.length}</div><div class="kpi-label">Motoristas</div></div><div class="kpi"><div class="kpi-value">${completed.length}</div><div class="kpi-label">Viagens concluidas</div></div></div>
-    <table><thead><tr><th>Rota</th><th>Data</th><th>Inicio</th><th>Fim</th><th>Status</th></tr></thead>
-    <tbody>${allTrips.slice(0, 50).map((t: any) => '<tr><td>'+(t.route?.name||'')+'</td><td>'+(t.trip?.tripDate?new Date(t.trip.tripDate).toLocaleDateString('pt-BR'):'')+'</td><td>'+(t.trip?.startedAt?new Date(t.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</td><td>'+(t.trip?.completedAt?new Date(t.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</td><td>'+(t.trip?.status==='completed'?'Concluida':t.trip?.status||'')+'</td></tr>').join('')}</tbody></table>
-    <div class="footer">Gerado por NetEscol em ${new Date().toLocaleDateString('pt-BR')}</div></body></html>`;
+    const html = buildExportHTML();
+    if (!html) { showInfoToast('Nenhum dado para imprimir'); return; }
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
   };
 
-  const handleExportClick = () => {
+  const buildExportHTML = (): string => {
     const rows = allTrips.map((t: any) => ({
       rota: t.route?.name || '--',
       data: t.trip?.tripDate ? new Date(t.trip.tripDate).toLocaleDateString('pt-BR') : '--',
@@ -76,7 +66,11 @@ export default function TransportReportPage() {
       status: t.trip?.status === 'completed' ? 'Concluida' : t.trip?.status || '--',
     }));
     const cols = ['Rota', 'Data', 'Inicio', 'Fim', 'Status'];
-    const html = buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
+    return buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
+  };
+
+  const handleExportClick = () => {
+    const html = buildExportHTML();
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_transporte' });
   };

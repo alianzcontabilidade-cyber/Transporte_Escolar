@@ -119,7 +119,10 @@ import { verifyGuardianAccess } from './helpers';
 // ║  IA E OTIMIZACAO                                                 ║
 // ║    aiRouter ........................... linha ~5355              ║
 // ║                                                                  ║
-// ║  APP ROUTER (composicao final) ........ linha ~5701              ║
+// ║  BACKUP DE DADOS                                                  ║
+// ║    backupRouter ....................... linha ~6240              ║
+// ║                                                                  ║
+// ║  APP ROUTER (composicao final) ........ linha ~6360              ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 // ============================================
@@ -1493,6 +1496,96 @@ export const studentsRouter = t.router({
       await db.update(enrollments).set({ isActive: false }).where(and(eq(enrollments.studentId, input.id), eq(enrollments.isActive, true)));
 
       return { success: true };
+    }),
+
+  bulkImport: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      schoolId: z.number().optional(),
+      students: z.array(z.object({
+        name: z.string(),
+        enrollment: z.string().optional(),
+        grade: z.string().optional(),
+        className: z.string().optional(),
+        shift: z.string().optional(),
+        birthDate: z.string().optional(),
+        cpf: z.string().optional(),
+        address: z.string().optional(),
+        neighborhood: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        phone: z.string().optional(),
+        fatherName: z.string().optional(),
+        motherName: z.string().optional(),
+        sex: z.string().optional(),
+        race: z.string().optional(),
+        nis: z.string().optional(),
+        rg: z.string().optional(),
+        cep: z.string().optional(),
+        observations: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      let created = 0, skipped = 0, errors = 0;
+      const errorDetails: string[] = [];
+      for (const s of input.students) {
+        try {
+          // Check if enrollment already exists
+          if (s.enrollment) {
+            const existing = await db.select({ id: students.id }).from(students)
+              .where(and(eq(students.municipalityId, input.municipalityId), eq(students.enrollment, s.enrollment), eq(students.isActive, true)))
+              .limit(1);
+            if (existing.length > 0) { skipped++; continue; }
+          }
+          // Parse shift
+          const shiftVal = s.shift?.toLowerCase();
+          const shift = shiftVal === 'tarde' || shiftVal === 'afternoon' ? 'afternoon'
+            : shiftVal === 'noite' || shiftVal === 'evening' ? 'evening'
+            : 'morning';
+          // Parse birthDate
+          let birthDate: Date | undefined;
+          if (s.birthDate) {
+            // Try dd/mm/yyyy format first
+            const parts = s.birthDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+            if (parts) {
+              birthDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+            } else {
+              birthDate = new Date(s.birthDate);
+            }
+            if (isNaN(birthDate.getTime())) birthDate = undefined;
+          }
+          await db.insert(students).values({
+            municipalityId: input.municipalityId,
+            schoolId: input.schoolId || undefined,
+            name: s.name,
+            enrollment: s.enrollment || undefined,
+            grade: s.grade || undefined,
+            classRoom: s.className || undefined,
+            shift: shift as any,
+            birthDate,
+            cpf: s.cpf || undefined,
+            address: s.address || undefined,
+            neighborhood: s.neighborhood || undefined,
+            city: s.city || undefined,
+            state: s.state || undefined,
+            phone: s.phone || undefined,
+            fatherName: s.fatherName || undefined,
+            motherName: s.motherName || undefined,
+            sex: s.sex || undefined,
+            race: s.race || undefined,
+            nis: s.nis || undefined,
+            rg: s.rg || undefined,
+            cep: s.cep || undefined,
+            observations: s.observations || undefined,
+            isActive: true,
+          });
+          created++;
+        } catch (err: any) {
+          errors++;
+          errorDetails.push(`${s.name}: ${err.message || 'erro desconhecido'}`);
+        }
+      }
+      return { created, skipped, errors, total: input.students.length, errorDetails: errorDetails.slice(0, 10) };
     }),
 });
 
@@ -6149,6 +6242,201 @@ export const protocolsRouter = t.router({
 });
 
 // ============================================
+// BACKUP DE DADOS (JSON)
+// ============================================
+const backupRouter = t.router({
+  // Estatísticas de registros por tabela
+  stats: adminProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const mid = input.municipalityId;
+      const countQuery = async (table: any) => {
+        const result = await db.select({ count: sql<number>`count(*)` }).from(table).where(eq(table.municipalityId, mid));
+        return Number(result[0]?.count || 0);
+      };
+      return {
+        schools: await countQuery(schools),
+        students: await countQuery(students),
+        routes: await countQuery(routes),
+        vehicles: await countQuery(vehicles),
+        drivers: await countQuery(drivers),
+        guardians: await db.select({ count: sql<number>`count(*)` }).from(guardians)
+          .innerJoin(students, eq(guardians.studentId, students.id))
+          .where(eq(students.municipalityId, mid))
+          .then(r => Number(r[0]?.count || 0)),
+        enrollments: await countQuery(enrollments),
+        classes: await countQuery(classes),
+        subjects: await countQuery(subjects),
+        classGrades: await countQuery(classGrades),
+        academicYears: await countQuery(academicYears),
+        teachers: await countQuery(teachers),
+        monitorStaff: await countQuery(monitorStaff),
+        contracts: await countQuery(contracts),
+        fuelRecords: await countQuery(fuelRecords),
+        maintenanceRecords: await countQuery(maintenanceRecords),
+        mealMenus: await countQuery(mealMenus),
+        libraryBooks: await countQuery(libraryBooks),
+        assets: await countQuery(assets),
+        inventoryItems: await countQuery(inventoryItems),
+        financialAccounts: await countQuery(financialAccounts),
+        financialTransactions: await countQuery(financialTransactions),
+        positions: await countQuery(positions),
+        departments: await countQuery(departments),
+        staffAllocations: await countQuery(staffAllocations),
+        events: await countQuery(events),
+        messages: await countQuery(messages),
+        schoolCalendar: await countQuery(schoolCalendar),
+        bulletins: await countQuery(bulletins),
+        protocols: await countQuery(protocols),
+        documents: await countQuery(documents),
+        quotations: await countQuery(quotations),
+        vehicleInspections: await countQuery(vehicleInspections),
+      };
+    }),
+
+  // Exportar todos os dados do município como JSON
+  exportAll: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      tables: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const mid = input.municipalityId;
+      const selectedTables = input.tables; // se undefined, exporta tudo
+
+      const shouldExport = (name: string) => !selectedTables || selectedTables.includes(name);
+
+      const q = async (table: any) => db.select().from(table).where(eq(table.municipalityId, mid));
+
+      const data: Record<string, any> = {};
+
+      // Município
+      if (shouldExport('municipality')) {
+        data.municipality = await db.select().from(municipalities).where(eq(municipalities.id, mid));
+      }
+      if (shouldExport('municipalityResponsibles')) {
+        data.municipalityResponsibles = await db.select().from(municipalityResponsibles).where(eq(municipalityResponsibles.municipalityId, mid));
+      }
+      // Escolas e Ensino
+      if (shouldExport('schools')) data.schools = await q(schools);
+      if (shouldExport('students')) data.students = await q(students);
+      // guardians não tem municipalityId - exportar via join com students
+      if (shouldExport('guardians')) {
+        data.guardians = await db.select().from(guardians)
+          .innerJoin(students, eq(guardians.studentId, students.id))
+          .where(eq(students.municipalityId, mid))
+          .then(rows => rows.map(r => r.guardians));
+      }
+      if (shouldExport('enrollments')) data.enrollments = await q(enrollments);
+      if (shouldExport('classes')) data.classes = await q(classes);
+      if (shouldExport('classGrades')) data.classGrades = await q(classGrades);
+      if (shouldExport('subjects')) data.subjects = await q(subjects);
+      // classSubjects não tem municipalityId - exportar via join com classes
+      if (shouldExport('classSubjects')) {
+        data.classSubjects = await db.select().from(classSubjects)
+          .innerJoin(classes, eq(classSubjects.classId, classes.id))
+          .where(eq(classes.municipalityId, mid))
+          .then(rows => rows.map(r => r.class_subjects));
+      }
+      if (shouldExport('academicYears')) data.academicYears = await q(academicYears);
+      if (shouldExport('teachers')) data.teachers = await q(teachers);
+      // dailyAttendance não tem municipalityId - via students
+      if (shouldExport('dailyAttendance')) {
+        data.dailyAttendance = await db.select().from(dailyAttendance)
+          .innerJoin(students, eq(dailyAttendance.studentId, students.id))
+          .where(eq(students.municipalityId, mid))
+          .then(rows => rows.map(r => r.daily_attendance));
+      }
+      if (shouldExport('assessments')) data.assessments = await q(assessments);
+      // studentGrades não tem municipalityId - via assessments
+      if (shouldExport('studentGrades')) {
+        data.studentGrades = await db.select().from(studentGrades)
+          .innerJoin(assessments, eq(studentGrades.assessmentId, assessments.id))
+          .where(eq(assessments.municipalityId, mid))
+          .then(rows => rows.map(r => r.student_grades));
+      }
+      if (shouldExport('lessonPlans')) data.lessonPlans = await q(lessonPlans);
+      if (shouldExport('descriptiveReports')) data.descriptiveReports = await q(descriptiveReports);
+      if (shouldExport('classCouncilRecords')) data.classCouncilRecords = await q(classCouncilRecords);
+      if (shouldExport('classSchedules')) data.classSchedules = await q(classSchedules);
+      // Transporte
+      if (shouldExport('routes')) data.routes = await q(routes);
+      // stops não tem municipalityId - exportar via join com routes
+      if (shouldExport('stops')) {
+        data.stops = await db.select().from(stops)
+          .innerJoin(routes, eq(stops.routeId, routes.id))
+          .where(eq(routes.municipalityId, mid))
+          .then(rows => rows.map(r => r.stops));
+      }
+      if (shouldExport('vehicles')) data.vehicles = await q(vehicles);
+      if (shouldExport('drivers')) data.drivers = await q(drivers);
+      if (shouldExport('monitorStaff')) data.monitorStaff = await q(monitorStaff);
+      if (shouldExport('fuelRecords')) data.fuelRecords = await q(fuelRecords);
+      if (shouldExport('maintenanceRecords')) data.maintenanceRecords = await q(maintenanceRecords);
+      if (shouldExport('vehicleInspections')) data.vehicleInspections = await q(vehicleInspections);
+      if (shouldExport('contracts')) data.contracts = await q(contracts);
+      // RH
+      if (shouldExport('positions')) data.positions = await q(positions);
+      if (shouldExport('departments')) data.departments = await q(departments);
+      if (shouldExport('staffAllocations')) data.staffAllocations = await q(staffAllocations);
+      if (shouldExport('staffEvaluations')) data.staffEvaluations = await q(staffEvaluations);
+      // Financeiro
+      if (shouldExport('financialAccounts')) data.financialAccounts = await q(financialAccounts);
+      if (shouldExport('financialTransactions')) data.financialTransactions = await q(financialTransactions);
+      // Operacional
+      if (shouldExport('mealMenus')) data.mealMenus = await q(mealMenus);
+      if (shouldExport('libraryBooks')) data.libraryBooks = await q(libraryBooks);
+      // libraryLoans não tem municipalityId - via libraryBooks
+      if (shouldExport('libraryLoans')) {
+        data.libraryLoans = await db.select().from(libraryLoans)
+          .innerJoin(libraryBooks, eq(libraryLoans.bookId, libraryBooks.id))
+          .where(eq(libraryBooks.municipalityId, mid))
+          .then(rows => rows.map(r => r.library_loans));
+      }
+      if (shouldExport('assets')) data.assets = await q(assets);
+      if (shouldExport('inventoryItems')) data.inventoryItems = await q(inventoryItems);
+      // Comunicação e Documentos
+      if (shouldExport('messages')) data.messages = await q(messages);
+      if (shouldExport('events')) data.events = await q(events);
+      if (shouldExport('documents')) data.documents = await q(documents);
+      if (shouldExport('schoolCalendar')) data.schoolCalendar = await q(schoolCalendar);
+      if (shouldExport('waitingList')) data.waitingList = await q(waitingList);
+      // studentDocuments não tem municipalityId - via students
+      if (shouldExport('studentDocuments')) {
+        data.studentDocuments = await db.select().from(studentDocuments)
+          .innerJoin(students, eq(studentDocuments.studentId, students.id))
+          .where(eq(students.municipalityId, mid))
+          .then(rows => rows.map(r => r.student_documents));
+      }
+      if (shouldExport('studentHistory')) data.studentHistory = await q(studentHistory);
+      if (shouldExport('studentOccurrences')) data.studentOccurrences = await q(studentOccurrences);
+      if (shouldExport('bulletins')) data.bulletins = await q(bulletins);
+      if (shouldExport('protocols')) data.protocols = await q(protocols);
+      if (shouldExport('quotations')) data.quotations = await q(quotations);
+      // quotationItems não tem municipalityId - via quotations
+      if (shouldExport('quotationItems')) {
+        data.quotationItems = await db.select().from(quotationItems)
+          .innerJoin(quotations, eq(quotationItems.quotationId, quotations.id))
+          .where(eq(quotations.municipalityId, mid))
+          .then(rows => rows.map(r => r.quotation_items));
+      }
+      if (shouldExport('formFieldConfigs')) data.formFieldConfigs = await q(formFieldConfigs);
+
+      // Metadados
+      data._metadata = {
+        exportedAt: new Date().toISOString(),
+        version: '3.9.0',
+        system: 'NetEscol',
+        municipalityId: mid,
+        tableCount: Object.keys(data).filter(k => k !== '_metadata').length,
+        totalRecords: Object.entries(data).filter(([k]) => k !== '_metadata').reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0),
+      };
+
+      return data;
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -6228,6 +6516,8 @@ export const appRouter = t.router({
   classSchedules: classSchedulesRouter,
   bulletins: bulletinsRouter,
   protocols: protocolsRouter,
+  // Backup de Dados
+  backup: backupRouter,
 });
 
 export type AppRouter = typeof appRouter;

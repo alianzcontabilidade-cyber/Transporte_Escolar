@@ -454,24 +454,77 @@ export function generateFichaMatricula(
       ${field('Naturalidade', (student.motherNaturalness || '') + (student.motherNaturalnessUf ? ' – ' + student.motherNaturalnessUf : ''))}
     </div>
 
-    <div class="section-title">INFORMAÇÕES COMPLEMENTARES</div>
+    <div class="section-title">SAÚDE DO ALUNO</div>
     <div class="field-grid">
-      ${field('Renda Familiar', student.familyIncome)}
       ${field('Tipo Sanguíneo', student.bloodType)}
       ${field('Alergias', student.allergies)}
       ${field('Medicamentos de Uso Contínuo', student.medications)}
-      ${field('Transporte Escolar', student.needsTransport ? 'Sim – ' + (student.transportType || '') + ' ' + (student.transportDistance ? '(' + student.transportDistance + ' km)' : '') : 'Não')}
+      ${field('Observações de Saúde', student.healthNotes)}
+    </div>
+
+    <div class="section-title">NECESSIDADES ESPECIAIS</div>
+    <div class="field-grid">
+      ${field('Pessoa com Deficiência', student.hasSpecialNeeds ? 'Sim' : 'Não')}
+      ${student.hasSpecialNeeds ? field('Tipo de Deficiência', student.deficiencyType) : ''}
+      ${student.hasSpecialNeeds ? field('TGD (Transtorno Global do Desenvolvimento)', student.tgd) : ''}
+      ${student.hasSpecialNeeds ? field('Altas Habilidades/Superdotação', student.superdotacao ? 'Sim' : 'Não') : ''}
+      ${student.hasSpecialNeeds ? field('Sala de Recursos Multifuncionais', student.salaRecursos ? 'Sim' : 'Não') : ''}
+      ${student.hasSpecialNeeds ? field('Acompanhamento Especializado', student.acompanhamento) : ''}
+      ${student.hasSpecialNeeds ? field('Encaminhamento', student.encaminhamento) : ''}
+      ${student.hasSpecialNeeds ? field('Detalhes', student.specialNeedsNotes) : ''}
+    </div>
+
+    <div class="section-title">TRANSPORTE ESCOLAR</div>
+    <div class="field-grid">
+      ${field('Necessita Transporte Escolar', student.needsTransport ? 'Sim' : 'Não')}
+      ${student.needsTransport ? field('Tipo de Transporte', student.transportType) : ''}
+      ${student.needsTransport ? field('Distância Residência–Escola', student.transportDistance ? student.transportDistance + ' km' : '--') : ''}
+      ${student.needsTransport ? field('Rota', student.routeName) : ''}
+    </div>
+
+    <div class="section-title">PROGRAMAS SOCIAIS</div>
+    <div class="field-grid">
       ${field('Bolsa Família', student.bolsaFamilia ? 'Sim' : 'Não')}
       ${field('BPC (Benefício de Prestação Continuada)', student.bpc ? 'Sim' : 'Não')}
-      ${field('Pessoa com Deficiência', student.hasSpecialNeeds ? (student.deficiencyType || 'Sim') : 'Não')}
+      ${field('PETI (Programa de Erradicação do Trabalho Infantil)', student.peti ? 'Sim' : 'Não')}
+      ${field('Outros Programas', student.otherPrograms)}
+      ${field('Renda Familiar Mensal', student.familyIncome ? 'R$ ' + student.familyIncome : '--')}
+    </div>
+
+    <div class="section-title">CONTATOS DE EMERGÊNCIA</div>
+    <div class="field-grid">
+      ${field('Contato 1 – Nome', student.emergencyContact1Name)}
+      ${field('Contato 1 – Telefone', student.emergencyContact1Phone)}
+      ${field('Contato 1 – Parentesco', student.emergencyContact1Relation)}
+      ${field('Contato 2 – Nome', student.emergencyContact2Name)}
+      ${field('Contato 2 – Telefone', student.emergencyContact2Phone)}
+      ${field('Contato 2 – Parentesco', student.emergencyContact2Relation)}
     </div>
 
     <div class="section-title">PROCEDÊNCIA ESCOLAR</div>
     <div class="field-grid">
       ${field('Escola Anterior', student.previousSchool)}
-      ${field('Rede', student.previousSchoolType)}
-      ${field('Zona', student.previousSchoolZone)}
+      ${field('Rede', student.previousSchoolType === 'municipal' ? 'Municipal' : student.previousSchoolType === 'estadual' ? 'Estadual' : student.previousSchoolType === 'federal' ? 'Federal' : student.previousSchoolType === 'particular' ? 'Particular' : student.previousSchoolType)}
+      ${field('Zona', student.previousSchoolZone === 'urbana' ? 'Urbana' : student.previousSchoolZone === 'rural' ? 'Rural' : student.previousSchoolZone)}
       ${field('Cidade/UF', (student.previousCity || '') + (student.previousState ? '/' + student.previousState : ''))}
+    </div>
+
+    ${student.observations ? `<div class="section-title">OBSERVAÇÕES</div><div class="field-grid"><div style="grid-column:1/-1;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:11px;min-height:40px">${student.observations}</div></div>` : ''}
+
+    <div style="margin-top:25px;padding:15px;border:2px solid #1B3A5C;border-radius:8px;background:#f8f9fa;font-size:10px;line-height:1.6">
+      <p style="font-weight:bold;text-align:center;margin-bottom:10px;font-size:11px;color:#1B3A5C">TERMO DE RESPONSABILIDADE</p>
+      <p>Eu, pai/mãe ou responsável legal pelo(a) aluno(a) acima identificado(a), declaro que as informações prestadas nesta ficha de matrícula são verdadeiras e completas, e me comprometo a comunicar à escola qualquer alteração nos dados cadastrais.</p>
+      <p>Declaro estar ciente das normas da instituição de ensino e do calendário escolar, comprometendo-me a zelar pela frequência e pontualidade do(a) aluno(a), bem como participar das reuniões escolares quando convocado(a).</p>
+      <div style="display:flex;gap:40px;margin-top:25px">
+        <div style="flex:1;text-align:center">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10px">Assinatura do Pai/Mãe ou Responsável Legal</div>
+          <div style="font-size:9px;color:#666;margin-top:3px">CPF: ___.___.___-__</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10px">Data</div>
+          <div style="font-size:9px;color:#666;margin-top:3px">____/____/________</div>
+        </div>
+      </div>
     </div>
   `;
 

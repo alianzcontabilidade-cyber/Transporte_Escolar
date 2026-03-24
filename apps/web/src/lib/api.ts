@@ -155,6 +155,7 @@ export const api = {
     update: (input: any) => call('students.update', input, 'mutation'),
     delete: (input: any) => call('students.delete', input, 'mutation'),
     assignToStop: (input: any) => call('students.assignToStop', input, 'mutation'),
+    bulkImport: (input: any) => call('students.bulkImport', input, 'mutation'),
   },
   studentHistory: {
     list: (input: any) => call('studentHistory.list', input, 'query'),
@@ -502,6 +503,11 @@ export const api = {
     create: (input: any) => call('protocols.create', input, 'mutation'),
     updateStatus: (input: any) => call('protocols.updateStatus', input, 'mutation'),
     addResponse: (input: any) => call('protocols.addResponse', input, 'mutation'),
+  },
+
+  backup: {
+    stats: (input: any) => call('backup.stats', input, 'query'),
+    exportAll: (input: any) => call('backup.exportAll', input, 'mutation'),
   },
 
 };

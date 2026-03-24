@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
@@ -209,63 +210,150 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
   const [showDocs, setShowDocs] = useState<any>(null);
   const [quickAdd, setQuickAdd] = useState<string | null>(null);
 
-  const handleCSVUpload = function(e: any) {
+  const mapHeaderToField = function(header: string): string | null {
+    const h = header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (['nome', 'name', 'nome do aluno', 'aluno', 'nome_aluno'].includes(h)) return 'name';
+    if (['matricula', 'enrollment', 'numero matricula', 'mat', 'codigo'].includes(h)) return 'enrollment';
+    if (['serie', 'grade', 'ano', 'ano/serie', 'serie/ano', 'ano_serie'].includes(h)) return 'grade';
+    if (['turma', 'class', 'classname', 'classe', 'sala'].includes(h)) return 'className';
+    if (['turno', 'shift', 'periodo'].includes(h)) return 'shift';
+    if (['data nascimento', 'data_nasc', 'data de nascimento', 'birthdate', 'nascimento', 'dt_nasc', 'dt nascimento'].includes(h)) return 'birthDate';
+    if (['cpf', 'cpf aluno', 'cpf_aluno'].includes(h)) return 'cpf';
+    if (['rg', 'rg aluno'].includes(h)) return 'rg';
+    if (['endereco', 'address', 'logradouro', 'rua', 'endereco aluno'].includes(h)) return 'address';
+    if (['bairro', 'neighborhood'].includes(h)) return 'neighborhood';
+    if (['cidade', 'city', 'municipio'].includes(h)) return 'city';
+    if (['uf', 'estado', 'state', 'sigla_uf'].includes(h)) return 'state';
+    if (['telefone', 'phone', 'tel', 'fone', 'celular', 'contato'].includes(h)) return 'phone';
+    if (['nome do pai', 'pai', 'fathername', 'nome_pai', 'filiacao pai'].includes(h)) return 'fatherName';
+    if (['nome da mae', 'mae', 'mothername', 'nome_mae', 'filiacao mae', 'nome da me'].includes(h)) return 'motherName';
+    if (['sexo', 'sex', 'genero'].includes(h)) return 'sex';
+    if (['raca', 'cor', 'raca/cor', 'cor/raca', 'race'].includes(h)) return 'race';
+    if (['nis', 'numero nis'].includes(h)) return 'nis';
+    if (['cep', 'codigo postal'].includes(h)) return 'cep';
+    if (['observacao', 'observacoes', 'obs', 'observations'].includes(h)) return 'observations';
+    return null;
+  };
+
+  const parseFileRows = function(headers: string[], dataRows: string[][]): any[] {
+    const fieldMap: Record<number, string> = {};
+    headers.forEach(function(h, idx) {
+      const field = mapHeaderToField(h);
+      if (field) fieldMap[idx] = field;
+    });
+    setColumnMapping(fieldMap);
+    setFileHeaders(headers);
+    const rows: any[] = [];
+    for (const vals of dataRows) {
+      const row: any = {};
+      Object.entries(fieldMap).forEach(function([idxStr, field]) {
+        const idx = parseInt(idxStr);
+        if (vals[idx] !== undefined) row[field] = vals[idx]?.trim();
+      });
+      if (row.name && row.name.trim()) rows.push(row);
+    }
+    return rows;
+  };
+
+  const [fileHeaders, setFileHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<number, string>>({});
+  const [importSchoolId, setImportSchoolId] = useState<string>('');
+  const [rawDataRows, setRawDataRows] = useState<string[][]>([]);
+
+  const handleFileUpload = function(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      const text = ev.target?.result as string;
-      const lines = text.split('\n').filter(function(l) { return l.trim(); });
-      if (lines.length < 2) { setImportResult('Arquivo vazio ou sem dados'); return; }
-      const headers = lines[0].split(';').map(function(h) { return h.trim().toLowerCase().replace(/"/g, ''); });
-      const rows: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].split(';').map(function(v) { return v.trim().replace(/"/g, ''); });
-        if (vals.length < 2) continue;
-        const row: any = {};
-        headers.forEach(function(h, idx) {
-          if (h === 'nome' || h === 'name') row.name = vals[idx];
-          else if (h === 'matricula' || h === 'enrollment') row.enrollment = vals[idx];
-          else if (h === 'serie' || h === 'grade' || h === 'ano') row.grade = vals[idx];
-          else if (h === 'turma' || h === 'class') row.className = vals[idx];
-          else if (h === 'turno' || h === 'shift') {
-            const v = vals[idx]?.toLowerCase();
-            row.shift = v === 'tarde' ? 'afternoon' : v === 'noite' ? 'evening' : 'morning';
-          }
-          else if (h === 'nascimento' || h === 'birthdate') row.birthDate = vals[idx];
-        });
-        if (row.name) rows.push(row);
-      }
-      setCsvData(rows);
-      setImportResult('');
-    };
-    reader.readAsText(file, 'UTF-8');
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'xlsx' || ext === 'xls') {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const jsonData: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          if (jsonData.length < 2) { setImportResult('Arquivo vazio ou sem dados'); return; }
+          const headers = jsonData[0].map(function(h: any) { return String(h); });
+          const dataRows = jsonData.slice(1).filter(function(r: any[]) { return r.some(function(c) { return String(c).trim(); }); })
+            .map(function(r: any[]) { return r.map(function(c: any) { return String(c); }); });
+          setRawDataRows(dataRows);
+          const rows = parseFileRows(headers, dataRows);
+          setCsvData(rows);
+          setImportResult('');
+        } catch (err: any) {
+          setImportResult('Erro ao ler arquivo Excel: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const text = ev.target?.result as string;
+        const lines = text.split('\n').filter(function(l) { return l.trim(); });
+        if (lines.length < 2) { setImportResult('Arquivo vazio ou sem dados'); return; }
+        const headers = lines[0].split(';').map(function(h) { return h.trim().replace(/"/g, ''); });
+        const dataRows = lines.slice(1).map(function(l) { return l.split(';').map(function(v) { return v.trim().replace(/"/g, ''); }); })
+          .filter(function(r) { return r.length >= 2; });
+        setRawDataRows(dataRows);
+        const rows = parseFileRows(headers, dataRows);
+        setCsvData(rows);
+        setImportResult('');
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
   };
+
+  const updateColumnMap = function(colIdx: number, field: string) {
+    const newMap = { ...columnMapping };
+    if (field === '') { delete newMap[colIdx]; } else { newMap[colIdx] = field; }
+    setColumnMapping(newMap);
+    // Re-parse rows with new mapping
+    const rows: any[] = [];
+    for (const vals of rawDataRows) {
+      const row: any = {};
+      Object.entries(newMap).forEach(function([idxStr, f]) {
+        const idx = parseInt(idxStr);
+        if (vals[idx] !== undefined) row[f] = vals[idx]?.trim();
+      });
+      if (row.name && row.name.trim()) rows.push(row);
+    }
+    setCsvData(rows);
+  };
+
+  const FIELD_OPTIONS = [
+    { v: '', l: '-- Ignorar --' },
+    { v: 'name', l: 'Nome' }, { v: 'enrollment', l: 'Matrícula' },
+    { v: 'grade', l: 'Série' }, { v: 'className', l: 'Turma' },
+    { v: 'shift', l: 'Turno' }, { v: 'birthDate', l: 'Data Nascimento' },
+    { v: 'cpf', l: 'CPF' }, { v: 'rg', l: 'RG' },
+    { v: 'address', l: 'Endereço' }, { v: 'neighborhood', l: 'Bairro' },
+    { v: 'city', l: 'Cidade' }, { v: 'state', l: 'UF' },
+    { v: 'cep', l: 'CEP' }, { v: 'phone', l: 'Telefone' },
+    { v: 'fatherName', l: 'Nome do Pai' }, { v: 'motherName', l: 'Nome da Mãe' },
+    { v: 'sex', l: 'Sexo' }, { v: 'race', l: 'Raça/Cor' },
+    { v: 'nis', l: 'NIS' }, { v: 'observations', l: 'Observações' },
+  ];
 
   const doImport = async function() {
     if (!csvData.length) return;
     setImporting(true);
-    let ok = 0, fail = 0;
-    for (const row of csvData) {
-      try {
-        const schoolId = allSchools.length > 0 ? allSchools[0].id : undefined;
-        await api.students.create({
-          municipalityId,
-          name: row.name,
-          enrollment: row.enrollment || undefined,
-          grade: row.grade || undefined,
-          classRoom: row.className || undefined,
-          shift: row.shift || 'morning',
-          birthDate: row.birthDate || undefined,
-          schoolId: schoolId,
-          school: schoolId ? String(schoolId) : undefined,
-        });
-        ok++;
-      } catch { fail++; }
+    try {
+      const schoolId = importSchoolId ? parseInt(importSchoolId) : (allSchools.length > 0 ? allSchools[0].id : undefined);
+      const result: any = await api.students.bulkImport({
+        municipalityId,
+        schoolId: schoolId,
+        students: csvData,
+      });
+      let msg = `Criados: ${result.created}`;
+      if (result.skipped > 0) msg += ` | Duplicados ignorados: ${result.skipped}`;
+      if (result.errors > 0) msg += ` | Erros: ${result.errors}`;
+      setImportResult(msg);
+      if (result.created > 0) refetch();
+    } catch (err: any) {
+      setImportResult('Erro na importação: ' + (err.message || 'erro desconhecido'));
     }
     setImporting(false);
-    setImportResult(`Importados: ${ok} | Erros: ${fail}`);
-    if (ok > 0) refetch();
   };
 
   const downloadTemplate = function() {
@@ -412,7 +500,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div>
-        <div className="flex gap-2"><button onClick={function(){printStudentQRCodes(allStudents, window.location.origin);}} className="btn-secondary flex items-center gap-2"><QrCode size={16}/> QR Codes</button><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
+        <div className="flex gap-2"><button onClick={function(){printStudentQRCodes(allStudents, window.location.origin);}} className="btn-secondary flex items-center gap-2"><QrCode size={16}/> QR Codes</button><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');setFileHeaders([]);setColumnMapping({});setRawDataRows([]);setImportSchoolId(allSchools.length>0?String(allSchools[0].id):'');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
       </div>
       <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
       <div className="grid gap-3">
@@ -1030,27 +1118,46 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowModal(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Aluno'}</button></div>
       </div></div>)}
 
-      {showImport&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold flex items-center gap-2"><FileUp size={18} className="text-primary-500"/> Importar Alunos via CSV</h3><button onClick={function(){setShowImport(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
+      {showImport&&(<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100"><h3 className="text-lg font-semibold flex items-center gap-2"><FileUp size={18} className="text-primary-500"/> Importar Alunos</h3><button onClick={function(){setShowImport(false);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20}/></button></div>
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="p-4 bg-blue-50 rounded-xl">
-            <p className="text-sm text-blue-700 mb-2">Formato esperado: arquivo CSV com separador <strong>;</strong> (ponto e virgula)</p>
-            <p className="text-xs text-blue-600">Colunas: nome, matricula, serie, turma, turno, nascimento</p>
+            <p className="text-sm text-blue-700 mb-2">Aceita arquivos <strong>.xlsx</strong> (Excel) ou <strong>.csv</strong> (separador <strong>;</strong>)</p>
+            <p className="text-xs text-blue-600">As colunas serao detectadas automaticamente. Voce pode ajustar o mapeamento abaixo.</p>
             <button onClick={downloadTemplate} className="mt-2 text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200">Baixar modelo CSV</button>
           </div>
-          <div><label className="label">Selecione o arquivo CSV</label><input type="file" accept=".csv,.txt" onChange={handleCSVUpload} className="input"/></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="label">Selecione o arquivo</label><input type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleFileUpload} className="input"/></div>
+            <div><label className="label">Escola destino</label><select value={importSchoolId} onChange={function(e){setImportSchoolId(e.target.value);}} className="input">{allSchools.length === 0 ? <option value="">Nenhuma escola</option> : <><option value="">Selecione...</option>{allSchools.map(function(s: any){return <option key={s.id} value={s.id}>{s.name}</option>;})}</>}</select></div>
+          </div>
+          {fileHeaders.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Mapeamento de colunas:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {fileHeaders.map(function(h, idx) { return (
+                  <div key={idx} className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 truncate" title={h}>{h}</span>
+                    <select value={columnMapping[idx] || ''} onChange={function(e){updateColumnMap(idx, e.target.value);}} className="input text-xs py-1">
+                      {FIELD_OPTIONS.map(function(o) { return <option key={o.v} value={o.v}>{o.l}</option>; })}
+                    </select>
+                  </div>
+                ); })}
+              </div>
+            </div>
+          )}
           {csvData.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">{csvData.length} aluno(s) encontrado(s):</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">{csvData.length} aluno(s) encontrado(s) — primeiros 5:</p>
               <div className="max-h-48 overflow-y-auto border rounded-lg">
-                <table className="w-full text-xs"><thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left">Nome</th><th className="px-3 py-2 text-left">Matrícula</th><th className="px-3 py-2 text-left">Serie</th><th className="px-3 py-2 text-left">Turma</th><th className="px-3 py-2 text-left">Turno</th></tr></thead>
-                <tbody className="divide-y">{csvData.map(function(r,i){return <tr key={i}><td className="px-3 py-1.5">{r.name}</td><td className="px-3 py-1.5">{r.enrollment||'—'}</td><td className="px-3 py-1.5">{r.grade||'—'}</td><td className="px-3 py-1.5">{r.className||'—'}</td><td className="px-3 py-1.5">{r.shift==='afternoon'?'Tarde':r.shift==='evening'?'Noite':'Manha'}</td></tr>;})}</tbody></table>
+                <table className="w-full text-xs"><thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left">Nome</th><th className="px-3 py-2 text-left">Matricula</th><th className="px-3 py-2 text-left">Serie</th><th className="px-3 py-2 text-left">Turma</th><th className="px-3 py-2 text-left">Turno</th><th className="px-3 py-2 text-left">CPF</th><th className="px-3 py-2 text-left">Mae</th></tr></thead>
+                <tbody className="divide-y">{csvData.slice(0, 5).map(function(r,i){return <tr key={i}><td className="px-3 py-1.5">{r.name}</td><td className="px-3 py-1.5">{r.enrollment||'--'}</td><td className="px-3 py-1.5">{r.grade||'--'}</td><td className="px-3 py-1.5">{r.className||'--'}</td><td className="px-3 py-1.5">{r.shift||'--'}</td><td className="px-3 py-1.5">{r.cpf||'--'}</td><td className="px-3 py-1.5">{r.motherName||'--'}</td></tr>;})}</tbody></table>
               </div>
+              {csvData.length > 5 && <p className="text-xs text-gray-400 mt-1">...e mais {csvData.length - 5} aluno(s)</p>}
             </div>
           )}
           {importResult && <div className={`p-3 rounded-lg text-sm ${importResult.includes('Erro')||importResult.includes('vazio')?'bg-red-50 text-red-700':'bg-green-50 text-green-700'}`}>{importResult}</div>}
         </div>
-        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowImport(false);}} className="btn-secondary flex-1">Fechar</button><button onClick={doImport} disabled={!csvData.length||importing} className="btn-primary flex-1">{importing?'Importando...':'Importar '+csvData.length+' aluno(s)'}</button></div>
+        <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShowImport(false);}} className="btn-secondary flex-1">Fechar</button><button onClick={doImport} disabled={!csvData.length||importing||(!importSchoolId&&allSchools.length>0)} className="btn-primary flex-1">{importing?'Importando...':'Importar '+csvData.length+' aluno(s)'}</button></div>
       </div></div>)}
 
       {showDocs && <StudentDocumentsModal studentId={showDocs.id} studentName={showDocs.name} onClose={() => setShowDocs(null)} />}

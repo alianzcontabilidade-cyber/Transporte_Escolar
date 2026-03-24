@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Download, Printer, Users, Award } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
@@ -176,9 +176,9 @@ export default function FinalResultsPage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!selClass) { alert('Selecione uma turma'); return; }
-    if (!gradesByStudent.length) { alert('Nenhum aluno encontrado nesta turma'); return; }
-    if (!munReport) { alert('Aguarde o carregamento dos dados'); return; }
+    if (!selClass) { showInfoToast('Selecione uma turma'); return; }
+    if (!gradesByStudent.length) { showInfoToast('Nenhum aluno encontrado nesta turma'); return; }
+    if (!munReport) { showInfoToast('Aguarde o carregamento dos dados'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: 'Ata_Resultados_Finais_' + (cls?.name || '') });

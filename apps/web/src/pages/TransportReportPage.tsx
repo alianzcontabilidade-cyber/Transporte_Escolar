@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Bus, Printer, Download, MapPin, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 
@@ -77,7 +77,7 @@ export default function TransportReportPage() {
     }));
     const cols = ['Rota', 'Data', 'Inicio', 'Fim', 'Status'];
     const html = buildTableReportHTML('RELATORIO DE TRANSPORTE ESCOLAR', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_transporte' });
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { AlertTriangle, Download, Printer, Users, School } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
@@ -132,8 +132,8 @@ export default function LowPerformancePage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!lowStudents.length) { alert('Nenhum dado disponível'); return; }
-    if (!munReport) { alert('Aguarde o carregamento'); return; }
+    if (!lowStudents.length) { showInfoToast('Nenhum dado disponível'); return; }
+    if (!munReport) { showInfoToast('Aguarde o carregamento'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: 'Alunos_Baixo_Rendimento' });

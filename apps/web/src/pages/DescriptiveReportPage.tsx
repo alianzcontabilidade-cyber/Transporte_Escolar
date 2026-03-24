@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileEdit, Save, CheckCircle, Users, BookOpen, Printer, Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, generateReportHTML, printReportHTML } from '../lib/reportTemplate';
@@ -122,7 +122,7 @@ export default function DescriptiveReportPage() {
     }));
     const cols = ['#', 'Aluno', 'Parecer'];
     const html = buildTableReportHTML('PARECER DESCRITIVO', rows, cols, munReport, { signatories: selectedSigs });
-    if (!html) { alert('Nenhum parecer para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum parecer para exportar'); return; }
     setPgExportModal({ html, filename: 'Parecer_Descritivo' });
   };
 

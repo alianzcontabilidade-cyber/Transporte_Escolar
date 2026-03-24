@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Gauge, Download, Printer, Bus, Truck, MapPin } from 'lucide-react';
 import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
@@ -119,7 +119,7 @@ export default function MileageReportPage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!mileageData.length) { alert('Nenhum dado disponível'); return; }
+    if (!mileageData.length) { showInfoToast('Nenhum dado disponível'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: 'Relatorio_Quilometragem' });

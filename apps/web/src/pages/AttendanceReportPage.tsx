@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BarChart3, Users, Printer, Download, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 
@@ -84,7 +84,7 @@ export default function AttendanceReportPage() {
       orientation: 'landscape',
       signatories: selectedSigs,
     });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_frequencia' });
   };
 

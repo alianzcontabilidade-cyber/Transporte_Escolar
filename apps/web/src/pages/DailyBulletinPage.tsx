@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { Newspaper, Plus, X, Trash2, Pin, Printer , Download } from 'lucide-react';
@@ -77,7 +78,7 @@ export default function DailyBulletinPage() {
     }));
     const cols = ['Data', 'Titulo', 'Categoria', 'Conteudo', 'Autor', 'Fixado'];
     const html = buildTableReportHTML('MURAL INFORMATIVO', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'mural_informativo' });
   };
 

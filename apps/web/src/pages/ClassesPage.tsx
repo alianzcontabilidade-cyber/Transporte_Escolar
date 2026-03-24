@@ -67,18 +67,25 @@ export default function ClassesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((c: any) => (
           <div key={c.id} className="card hover:border-primary-200 transition-colors">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center"><GraduationCap size={18} className="text-violet-600" /></div>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center"><GraduationCap size={18} className="text-violet-600" /></div>
+                <div>
+                  <p className="font-bold text-gray-900">{c.fullName || `${c.gradeName || ''} ${c.name}`}</p>
+                  {c.schoolName && <p className="text-xs text-gray-500 flex items-center gap-1"><School size={10} />{c.schoolName}</p>}
+                </div>
+              </div>
               <div className="flex gap-1"><button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-500 rounded-lg"><Pencil size={14} /></button><button onClick={() => setConfirmDelete(c)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={14} /></button></div>
             </div>
-            <p className="font-bold text-gray-900">{c.fullName || `${c.gradeName || ''} ${c.name}`}</p>
-            <div className="mt-1 space-y-0.5 text-xs text-gray-500">
-              {c.schoolName && <p className="flex items-center gap-1"><School size={10} />{c.schoolName}</p>}
-              <p>{SHIFTS[c.shift] || c.shift}{c.roomNumber ? ` · Sala ${c.roomNumber}` : ''}</p>
+            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+              <div className="p-2 bg-gray-50 rounded-lg"><p className="text-gray-400 text-[10px]">Turno</p><p className="font-medium text-gray-700">{SHIFTS[c.shift] || c.shift}</p></div>
+              <div className="p-2 bg-gray-50 rounded-lg"><p className="text-gray-400 text-[10px]">Sala</p><p className="font-medium text-gray-700">{c.roomNumber || '—'}</p></div>
+              <div className="p-2 bg-gray-50 rounded-lg"><p className="text-gray-400 text-[10px]">Alunos</p><p className="font-medium text-gray-700">{c.enrolledStudents || 0} / {c.maxStudents || 30}</p></div>
+              <div className="p-2 bg-gray-50 rounded-lg"><p className="text-gray-400 text-[10px]">Professor</p><p className="font-medium text-gray-700 truncate">{allTeachers.find((t:any) => t.id === c.teacherUserId)?.name || '—'}</p></div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full flex items-center gap-1"><Users size={10} />{c.enrolledStudents || 0}/{c.maxStudents || 30}</span>
-              {c.gradeLevel && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{c.gradeName}</span>}
+            <div className="flex gap-2">
+              <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (c.enrolledStudents >= (c.maxStudents||30) ? 'bg-red-50 text-red-600' : c.enrolledStudents >= (c.maxStudents||30)*0.8 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600')}>{c.enrolledStudents >= (c.maxStudents||30) ? 'Lotada' : c.enrolledStudents >= (c.maxStudents||30)*0.8 ? 'Quase lotada' : 'Vagas disponíveis'}</span>
+              {c.gradeName && <span className="text-[10px] bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full">{c.gradeName}</span>}
             </div>
           </div>
         ))}

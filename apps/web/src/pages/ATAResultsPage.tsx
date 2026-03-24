@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileSpreadsheet, Printer, Users, Download } from 'lucide-react';
 import { loadMunicipalityData, printReportHTML, generateReportHTML, ReportMunicipality, ReportSecretaria } from '../lib/reportTemplate';
@@ -57,7 +57,7 @@ export default function ATAResultsPage() {
 
   const handleExportClick = () => {
     const html = buildATAHtml();
-    if (!html) { alert('Selecione uma turma e bimestre para exportar'); return; }
+    if (!html) { showInfoToast('Selecione uma turma e bimestre para exportar'); return; }
     setPgExportModal({ html, filename: 'ATA_Resultados' });
   };
 

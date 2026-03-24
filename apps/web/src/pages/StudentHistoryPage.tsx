@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { History, Search, Printer, Download, Users, BookOpen, CheckCircle } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
@@ -114,7 +114,7 @@ export default function StudentHistoryPage() {
 
   const handleExportClick = () => {
     const html = buildHistoricoHTML();
-    if (!html) { alert('Selecione um aluno com matriculas para exportar'); return; }
+    if (!html) { showInfoToast('Selecione um aluno com matriculas para exportar'); return; }
     setPgExportModal({ html, filename: 'Historico_' + (student?.name || 'aluno') });
   };
 

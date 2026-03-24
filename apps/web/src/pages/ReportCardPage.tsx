@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Printer, Search, Download, Users } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
@@ -86,10 +86,10 @@ export default function ReportCardPage() {
   };
 
   const handleExportClick = () => {
-    if (!selStudent) { alert('Selecione um aluno para exportar o boletim'); return; }
-    if (!munReport) { alert('Aguarde o carregamento dos dados do municipio'); return; }
+    if (!selStudent) { showInfoToast('Selecione um aluno para exportar o boletim'); return; }
+    if (!munReport) { showInfoToast('Aguarde o carregamento dos dados do municipio'); return; }
     const html = buildReportHTML();
-    if (!html) { alert('Erro ao gerar o boletim. Verifique se o aluno tem notas lancadas.'); return; }
+    if (!html) { showErrorToast('Erro ao gerar o boletim. Verifique se o aluno tem notas lancadas.'); return; }
     const studentName = allEnrollments.find((e: any) => String(e.studentId) === selStudent)?.studentName || 'aluno';
     setPgExportModal({ html, filename: 'Boletim_' + studentName });
   };

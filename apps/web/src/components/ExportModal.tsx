@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { showInfoToast } from '../lib/hooks';
 import { X, Printer, Download, FileText, FileSpreadsheet, Globe, Check, FileDown, Lock } from 'lucide-react';
 
 export type ExportFormat = 'print' | 'pdf' | 'pdf-download' | 'docx' | 'csv' | 'html' | 'html-download';
@@ -157,7 +158,7 @@ export default function ExportModal({ open, onClose, onExport, title, allowSign 
 // ============================================
 
 export function exportToCSV(data: any[], filename: string) {
-  if (!data?.length) { alert('Sem dados para exportar'); return; }
+  if (!data?.length) { showInfoToast('Sem dados para exportar'); return; }
   const keys = Object.keys(data[0]);
   const csv = [keys.join(';'), ...data.map(row => keys.map(k => '"' + (row[k] ?? '') + '"').join(';'))].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -307,7 +308,7 @@ export async function handleExport(
         const csvData = extractTableDataFromHTML(html);
         exportToCSV(csvData, filename);
       } else {
-        alert('Sem dados para exportar');
+        showInfoToast('Sem dados para exportar');
       }
       break;
     case 'html':

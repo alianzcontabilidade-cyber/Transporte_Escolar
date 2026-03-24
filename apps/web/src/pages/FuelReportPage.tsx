@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Fuel, Download, Printer, Truck, Plus, Trash2, X } from 'lucide-react';
 import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
@@ -33,7 +33,7 @@ export default function FuelReportPage() {
   }, [mid]);
 
   const handleSubmit = async () => {
-    if (!form.vehicleId || !form.liters || !form.totalCost) { alert('Preencha veículo, litros e valor total'); return; }
+    if (!form.vehicleId || !form.liters || !form.totalCost) { showInfoToast('Preencha veículo, litros e valor total'); return; }
     try {
       await api.fuel.create({
         municipalityId: mid, vehicleId: parseInt(form.vehicleId),
@@ -45,12 +45,12 @@ export default function FuelReportPage() {
       setShowForm(false);
       setForm({ vehicleId: '', fuelDate: new Date().toISOString().split('T')[0], fuelType: 'Diesel', liters: '', pricePerLiter: '', totalCost: '', kmAtFueling: '', gasStation: '', invoiceNumber: '', notes: '' });
       setRefreshKey(k => k + 1);
-    } catch (e) { alert('Erro ao registrar: ' + (e as any)?.message); }
+    } catch (e) { showErrorToast((e as any)?.message || 'Erro ao registrar'); }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Excluir este registro?')) return;
-    try { await api.fuel.delete({ id }); setRefreshKey(k => k + 1); } catch (e) { alert('Erro: ' + (e as any)?.message); }
+    try { await api.fuel.delete({ id }); setRefreshKey(k => k + 1); } catch (e) { showErrorToast((e as any)?.message || 'Erro desconhecido'); }
   };
 
   // Auto-calc totalCost
@@ -106,7 +106,7 @@ export default function FuelReportPage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!allFuel.length) { alert('Nenhum dado disponível'); return; }
+    if (!allFuel.length) { showInfoToast('Nenhum dado disponível'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: 'Relatorio_Abastecimento' });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BookOpen, Download, Printer, Users, Calendar } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
@@ -163,8 +163,8 @@ export default function ClassDiaryReportPage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!selClass) { alert('Selecione uma turma'); return; }
-    if (!diaryData.length) { alert('Nenhum dado disponível'); return; }
+    if (!selClass) { showInfoToast('Selecione uma turma'); return; }
+    if (!diaryData.length) { showInfoToast('Nenhum dado disponível'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: `Diario_Classe_${MONTH_NAMES[month]}_${year}` });

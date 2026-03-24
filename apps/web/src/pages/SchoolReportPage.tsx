@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { School, Printer, Users, GraduationCap, Bus, Download } from 'lucide-react';
 
@@ -86,7 +86,7 @@ export default function SchoolReportPage() {
       orientation: 'landscape',
       signatories: selectedSigs,
     });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'relatorio_escola' });
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Package, Plus, X, ArrowDown, ArrowUp, AlertTriangle, Printer, Search , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -78,7 +78,7 @@ export default function MealStockPage() {
       orientation: 'portrait',
       signatories: selectedSigs,
     });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'estoque_merenda' });
   };
 

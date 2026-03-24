@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showInfoToast } from '../lib/hooks';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Star, ArrowLeft } from 'lucide-react';
 
@@ -154,7 +155,7 @@ function exportPage(format: string, title: string) {
   if (format === 'excel') {
     // Extract tables from the page
     const tables = document.querySelectorAll('main table');
-    if (tables.length === 0) { alert('Nenhuma tabela encontrada nesta página para exportar'); return; }
+    if (tables.length === 0) { showInfoToast('Nenhuma tabela encontrada nesta página para exportar'); return; }
     let csv = '';
     tables.forEach(table => {
       const rows = table.querySelectorAll('tr');

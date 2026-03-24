@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ClipboardList, Plus, X, Search, UserPlus, Users, CheckCircle, XCircle, ArrowRight, Loader2, School, Trash2 } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
@@ -82,7 +82,7 @@ export default function EnrollmentsPage() {
       refetch();
       setClassModal(null);
       setNewClassId('');
-    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao alterar turma')); }
+    } catch (e: any) { showErrorToast(e.message || 'Falha ao alterar turma'); }
   };
 
   const doIndividualEnroll = async () => {
@@ -93,7 +93,7 @@ export default function EnrollmentsPage() {
       refetch();
       setShowIndividual(false);
       setIndForm({ studentId: '', classId: '', academicYearId: '', enrollmentNumber: '' });
-    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao matricular')); }
+    } catch (e: any) { showErrorToast(e.message || 'Falha ao matricular'); }
     finally { setIndSaving(false); }
   };
 
@@ -102,7 +102,7 @@ export default function EnrollmentsPage() {
     try {
       await api.enrollments.delete({ id: enrollment.id });
       refetch();
-    } catch (e: any) { alert('Erro: ' + (e.message || 'Falha ao excluir')); }
+    } catch (e: any) { showErrorToast(e.message || 'Falha ao excluir'); }
   };
 
   const activeYear = allYears.find((y: any) => y.status === 'active');

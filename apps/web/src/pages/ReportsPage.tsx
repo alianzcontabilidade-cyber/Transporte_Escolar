@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Calendar, CheckCircle, XCircle, Download, BarChart2, TrendingUp, Users, MapPin, Bus, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
@@ -81,7 +81,7 @@ export default function ReportsPage() {
   const doExport = (format: ExportFormat) => {
     if (!exportModal) return;
     const html = buildReportHTML(exportModal.title, exportModal.data, exportModal.cols, munReport);
-    if (!html && format !== 'csv') { alert('Sem dados para exportar'); return; }
+    if (!html && format !== 'csv') { showInfoToast('Sem dados para exportar'); return; }
     handleExport(format, exportModal.data, html, exportModal.filename);
   };
 

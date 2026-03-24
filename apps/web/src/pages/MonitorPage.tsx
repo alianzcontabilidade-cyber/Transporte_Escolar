@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { useSocket } from '../lib/socket';
 import { api } from '../lib/api';
@@ -179,7 +180,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
       await api.monitors.boardStudent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { showErrorToast(e.message); }
     finally { setProcessingId(null); }
   }
 
@@ -189,7 +190,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
       await api.monitors.dropStudent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { showErrorToast(e.message); }
     finally { setProcessingId(null); }
   }
 
@@ -199,7 +200,7 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
       await api.monitors.markAbsent({ tripId: tripData.trip?.id, studentId, stopId });
       onRefresh();
       loadSummary();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { showErrorToast(e.message); }
     finally { setProcessingId(null); }
   }
 
@@ -220,12 +221,12 @@ function StudentChecklist({ tripData, onRefresh }: { tripData: any, onRefresh: (
   async function handleCompleteTrip() {
     if (!confirm('Finalizar esta viagem?')) return;
     const tid = tripData.trip?.id || tripData.id;
-    if (!tid) { alert('ID da viagem não encontrado. Tente recarregar a página.'); return; }
+    if (!tid) { showInfoToast('ID da viagem não encontrado. Tente recarregar a página.'); return; }
     try {
       await api.trips.complete({ tripId: tid });
-      alert('Viagem finalizada com sucesso!');
+      showSuccessToast('Viagem finalizada com sucesso!');
       onRefresh();
-    } catch (e: any) { alert('Erro ao finalizar: ' + (e.message || 'Tente novamente')); }
+    } catch (e: any) { showErrorToast(e.message || 'Erro ao finalizar. Tente novamente'); }
   }
 
   const stopsData = tripData?.stops || [];
@@ -473,13 +474,13 @@ export default function MonitorPage() {
 
   async function handleStartTrip(routeId: number) {
     if (!availableRoutes?.driver?.id || !availableRoutes?.vehicle?.id) {
-      alert('Nenhum veículo atribuído. Contate o administrador.');
+      showInfoToast('Nenhum veículo atribuído. Contate o administrador.');
       return;
     }
     try {
       await api.trips.start({ routeId, driverId: availableRoutes.driver.id, vehicleId: availableRoutes.vehicle.id });
       loadData();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { showErrorToast(e.message); }
   }
 
   const sl = (s: string) => ({ started: 'Em rota', completed: 'Concluída', cancelled: 'Cancelada', scheduled: 'Agendada' }[s] || s);
@@ -509,9 +510,9 @@ export default function MonitorPage() {
               if (!confirm('Finalizar TODAS as viagens ativas? (' + activeTrips.length + ' viagem(ns))')) return;
               try {
                 const result = await api.trips.completeAll({ municipalityId });
-                alert('Finalizadas ' + (result as any).finalized + ' viagem(ns)');
+                showSuccessToast('Finalizadas ' + (result as any).finalized + ' viagem(ns)');
                 loadData();
-              } catch (e: any) { alert(e.message); }
+              } catch (e: any) { showErrorToast(e.message); }
             }} className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600">
               Finalizar Todas ({activeTrips.length})
             </button>

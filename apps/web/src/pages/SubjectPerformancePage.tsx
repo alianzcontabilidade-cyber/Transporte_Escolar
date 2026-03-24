@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { BarChart3, Download, Printer, Users, GraduationCap } from 'lucide-react';
 import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
@@ -104,7 +104,7 @@ export default function SubjectPerformancePage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!perfData.length) { alert('Nenhum dado'); return; }
+    if (!perfData.length) { showInfoToast('Nenhum dado'); return; }
     const html = buildReportHTML(); if (!html) return;
     setPgExportModal({ html, filename: 'Desempenho_Disciplina' });
   };

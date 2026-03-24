@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Users, Search, Printer, GraduationCap, School, Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
@@ -77,7 +77,7 @@ export default function ClassRosterPage() {
   };
 
   const handleExportClick = () => {
-    const html = buildHTML(); if (!html) { alert("Selecione um registro para exportar"); return; }
+    const html = buildHTML(); if (!html) { showInfoToast("Selecione um registro para exportar"); return; }
     setPgExportModal({ html, filename: "ClassRoster" });
   };
 

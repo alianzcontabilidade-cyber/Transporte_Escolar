@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Download, Printer, Users, BookOpen } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML, generateReportHTML } from '../lib/reportTemplate';
@@ -217,10 +217,10 @@ export default function IndividualReportPage() {
   };
 
   const handleExportClick = () => {
-    if (!selStudent) { alert('Selecione um aluno para gerar o relatório'); return; }
-    if (!munReport) { alert('Aguarde o carregamento dos dados do município'); return; }
+    if (!selStudent) { showInfoToast('Selecione um aluno para gerar o relatório'); return; }
+    if (!munReport) { showInfoToast('Aguarde o carregamento dos dados do município'); return; }
     const html = buildReportHTML();
-    if (!html) { alert('Erro ao gerar o relatório.'); return; }
+    if (!html) { showErrorToast('Erro ao gerar o relatório'); return; }
     setPgExportModal({ html, filename: 'Relatorio_Individual_' + (student?.studentName || 'aluno') });
   };
 

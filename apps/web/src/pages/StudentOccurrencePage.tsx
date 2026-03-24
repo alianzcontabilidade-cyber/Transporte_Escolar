@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { AlertTriangle, Plus, Search, Printer, Trash2, X , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -96,7 +96,7 @@ export default function StudentOccurrencePage() {
     }));
     const cols = ['Data', 'Aluno', 'Tipo', 'Descricao', 'Providencia'];
     const html = buildTableReportHTML('REGISTRO DE OCORRENCIAS', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'ocorrencias' });
   };
 

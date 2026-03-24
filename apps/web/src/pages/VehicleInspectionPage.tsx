@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ClipboardCheck, Printer, CheckCircle, XCircle, AlertTriangle, Bus, Download, Save, History, Trash2 } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -88,7 +88,7 @@ export default function VehicleInspectionPage() {
       onSuccess: () => {
         refetchInsp();
         if (showHistory) refetchHistory();
-        alert('Vistoria salva com sucesso!');
+        showSuccessToast('Vistoria salva com sucesso!');
       },
     });
   };
@@ -142,7 +142,7 @@ export default function VehicleInspectionPage() {
       orientation: 'portrait',
       signatories: selectedSigs,
     });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'vistoria_veicular' });
   };
 

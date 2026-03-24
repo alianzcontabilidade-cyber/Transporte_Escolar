@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import { UserCheck, Plus, X, Pencil, Trash2, Search, Phone, Mail, FileText, GraduationCap, KeyRound } from 'lucide-react';
@@ -43,15 +43,15 @@ export default function TeachersPage() {
     const payload: any = { municipalityId: mid, name: form.name, cpf: form.cpf || undefined, phone: form.phone || undefined, email: form.email || undefined, registrationNumber: form.registrationNumber || undefined, degree: form.degree || undefined, specialization: form.specialization || undefined, hireDate: form.hireDate || undefined, contractType: form.contractType, weeklyWorkload: parseInt(form.weeklyWorkload) || 40 };
     if (!editId && form.password) payload.password = form.password;
     if (editId) { update({ id: editId, ...payload }, { onSuccess: () => { refetch(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
-    else { create(payload, { onSuccess: (r: any) => { refetch(); setShowModal(false); if (r?.generatedPassword) alert('Senha gerada: ' + r.generatedPassword); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
+    else { create(payload, { onSuccess: (r: any) => { refetch(); setShowModal(false); if (r?.generatedPassword) showSuccessToast('Senha gerada: ' + r.generatedPassword); }, onError: (e: any) => setFormErr(e || 'Erro') }); }
   };
 
   const handleResetPassword = (teacher: any) => {
-    if (!teacher.userId) { alert('Professor sem usuario vinculado'); return; }
+    if (!teacher.userId) { showInfoToast('Professor sem usuario vinculado'); return; }
     if (!confirm(`Resetar a senha de ${teacher.name}? Uma nova senha sera gerada.`)) return;
     resetPwd({ userId: teacher.userId }, {
-      onSuccess: (r: any) => { alert('Nova senha gerada: ' + r.generatedPassword + '\n\nAnote esta senha, ela nao sera exibida novamente.'); },
-      onError: (e: any) => alert('Erro ao resetar senha: ' + (e || 'Erro desconhecido')),
+      onSuccess: (r: any) => { showSuccessToast('Nova senha gerada: ' + r.generatedPassword + ' - Anote esta senha, ela nao sera exibida novamente.'); },
+      onError: (e: any) => showErrorToast('Erro ao resetar senha: ' + (e || 'Erro desconhecido')),
     });
   };
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ShoppingCart, Plus, X, Trash2, Printer, Download, Upload, FileSpreadsheet, Send, Save, FolderOpen, ChevronDown } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -258,7 +258,7 @@ export default function PurchaseQuotationPage() {
       orientation: 'landscape',
       signatories: selectedSigs,
     });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'cotacao_compras' });
   };
 

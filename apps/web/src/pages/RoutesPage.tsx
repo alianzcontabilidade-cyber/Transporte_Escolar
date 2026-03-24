@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery, useMutation } from '../lib/hooks';
+import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle, Pencil, Eye } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
@@ -109,7 +109,7 @@ export default function RoutesPage() {
   };
 
   const handleStartTrip = () => {
-    if(!tripForm.driverId||!tripForm.vehicleId){ alert('Selecione motorista e veiculo'); return; }
+    if(!tripForm.driverId||!tripForm.vehicleId){ showInfoToast('Selecione motorista e veiculo'); return; }
     const rId = tripModal.route?.id || tripModal.id;
     startTrip({ routeId: rId, driverId: parseInt(tripForm.driverId), vehicleId: parseInt(tripForm.vehicleId), municipalityId }, { onSuccess: function(){ refetchTrips(); setTripModal(null); } });
   };

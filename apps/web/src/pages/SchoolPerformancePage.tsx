@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { TrendingUp, Download, Printer, School, Filter } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
@@ -111,8 +111,8 @@ export default function SchoolPerformancePage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!performanceData.length) { alert('Nenhum dado disponível para exportar'); return; }
-    if (!munReport) { alert('Aguarde o carregamento dos dados'); return; }
+    if (!performanceData.length) { showInfoToast('Nenhum dado disponível para exportar'); return; }
+    if (!munReport) { showInfoToast('Aguarde o carregamento dos dados'); return; }
     const html = buildReportHTML();
     if (!html) return;
     setPgExportModal({ html, filename: 'Quadro_Rendimento_Escolar' });

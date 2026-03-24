@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Database, Download, School, Users, GraduationCap, BookOpen, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 
@@ -29,7 +29,7 @@ export default function EducacensoPage() {
       else if (type === 'teachers') { data = await api.educacenso.exportTeachers({ municipalityId: mid }); filename = 'educacenso_docentes.csv'; }
       else { data = await api.educacenso.exportClasses({ municipalityId: mid }); filename = 'educacenso_turmas.csv'; }
       exportCSV(data, filename);
-    } catch (e: any) { alert('Erro: ' + e.message); }
+    } catch (e: any) { showErrorToast(e.message); }
     finally { setExporting(''); }
   };
 

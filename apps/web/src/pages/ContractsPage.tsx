@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { FileText, Plus, X, Building, CheckCircle, AlertTriangle, Clock, Download, Search, Pencil, Trash2, Loader2, Eye, Printer, FileDown } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -116,12 +117,12 @@ export default function ContractsPage() {
     };
   
     const save = async () => {
-          if (!form.number||!form.supplier||!form.startDate||!form.endDate) { alert('Preencha os campos obrigatórios'); return; }
-          if (!municipalityId) { alert('Erro: município não identificado. Faça login novamente.'); return; }
-          if (cnpjError) { alert('Corrija o CNPJ antes de salvar.'); return; }
+          if (!form.number||!form.supplier||!form.startDate||!form.endDate) { showInfoToast('Preencha os campos obrigatórios'); return; }
+          if (!municipalityId) { showErrorToast('Município não identificado. Faça login novamente.'); return; }
+          if (cnpjError) { showErrorToast('Corrija o CNPJ antes de salvar.'); return; }
           const cnpjDigits = (form.cnpj || '').replace(/\D/g, '');
-          if (cnpjDigits.length > 0 && cnpjDigits.length !== 14) { alert('CNPJ incompleto. Preencha todos os 14 dígitos.'); return; }
-          if (cnpjDigits.length === 14 && !validateCNPJ(cnpjDigits)) { alert('CNPJ inválido.'); return; }
+          if (cnpjDigits.length > 0 && cnpjDigits.length !== 14) { showErrorToast('CNPJ incompleto. Preencha todos os 14 dígitos.'); return; }
+          if (cnpjDigits.length === 14 && !validateCNPJ(cnpjDigits)) { showErrorToast('CNPJ inválido.'); return; }
       
           setSaving(true);
           try {
@@ -132,7 +133,7 @@ export default function ContractsPage() {
                             await api.contracts.create({ municipalityId, number: form.number, type: form.type, supplier: form.supplier, cnpj: form.cnpj, object: form.object, value: numericValue, startDate: form.startDate, endDate: form.endDate, responsibleName: form.responsibleName, responsiblePhone: form.responsiblePhone, notes: form.notes });
                   }
                   setShowModal(false); setForm(emptyForm); setEditId(null); setCnpjError(''); await loadContracts();
-          } catch (err: any) { alert(err.message || 'Erro ao salvar'); } finally { setSaving(false); }
+          } catch (err: any) { showErrorToast(err.message || 'Erro ao salvar'); } finally { setSaving(false); }
     };
   
     const doDelete = async (id: number) => {

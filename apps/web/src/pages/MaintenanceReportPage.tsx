@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Wrench, Download, Printer, Truck } from 'lucide-react';
 import { loadMunicipalityData, printReportHTML } from '../lib/reportTemplate';
@@ -67,7 +67,7 @@ export default function MaintenanceReportPage() {
 
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
-    if (!filtered.length) { alert('Nenhum dado'); return; }
+    if (!filtered.length) { showInfoToast('Nenhum dado'); return; }
     const html = buildReportHTML(); if (!html) return;
     setPgExportModal({ html, filename: 'Relatorio_Manutencoes' });
   };

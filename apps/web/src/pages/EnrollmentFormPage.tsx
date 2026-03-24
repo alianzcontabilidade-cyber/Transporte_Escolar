@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useQuery } from '../lib/hooks';
+import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
 import { FileText, Search, Printer, Users , Download } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -164,7 +164,7 @@ export default function EnrollmentFormPage() {
     }));
     const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Escola'];
     const html = buildTableReportHTML('LISTA DE ALUNOS MATRICULADOS', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
-    if (!html) { alert('Nenhum dado para exportar'); return; }
+    if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'ficha_matricula' });
   };
 

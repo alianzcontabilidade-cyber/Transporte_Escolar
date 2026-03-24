@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { Wrench, Plus, X, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, Bus, Calendar, Loader2, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -56,7 +57,7 @@ export default function PredictivePage() {
   };
 
   const save = async () => {
-    if (!form.vehicleId || !form.componentName) { alert('Veículo e componente são obrigatórios'); return; }
+    if (!form.vehicleId || !form.componentName) { showInfoToast('Veículo e componente são obrigatórios'); return; }
     setSaving(true);
     try {
       const payload: any = { componentName: form.componentName, type: form.type, description: form.description, supplier: form.supplier, notes: form.notes, status: form.status };
@@ -73,7 +74,7 @@ export default function PredictivePage() {
         await api.maintenance.create({ municipalityId, vehicleId: parseInt(form.vehicleId), ...payload });
       }
       setShowModal(false); setForm(emptyForm); setEditId(null); await loadData();
-    } catch (err: any) { alert(err.message || 'Erro ao salvar'); } finally { setSaving(false); }
+    } catch (err: any) { showErrorToast(err.message || 'Erro ao salvar'); } finally { setSaving(false); }
   };
 
   const doDelete = async (id: number) => { try { await api.maintenance.delete({ id }); setConfirmDelete(null); await loadData(); } catch (err) { console.error(err); } };

@@ -60,8 +60,8 @@ const corsOptions = {
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
     // Domínio do Railway (produção)
     if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
-    // Subdomínios do Railway (*.railway.app)
-    if (origin.endsWith('.railway.app') || origin.endsWith('.up.railway.app')) return callback(null, true);
+    // Domínios específicos do Railway (produção)
+    if (origin.includes('endearing-radiance-production') || origin.includes('transporteescolar-production')) return callback(null, true);
     // Localhost para desenvolvimento e Capacitor (https://localhost)
     if (origin.startsWith('http://localhost') || origin.startsWith('https://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'capacitor://localhost') return callback(null, true);
     // Bloquear origens desconhecidas

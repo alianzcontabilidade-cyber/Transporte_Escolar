@@ -32,7 +32,7 @@ export default function EnrollmentFormPage() {
   const printForm = (student?: any) => {
     const s = student || {};
     const school = getSchool(s.schoolId);
-    const shift = s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift ? 'Manha' : '________';
+    const shift = s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift ? 'Manhã' : '________';
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('pt-BR') : '____/____/________';
     const line = (label: string, value: string, width?: string) => `<div class="field" style="${width ? 'width:'+width : ''}"><div class="field-label">${label}</div><div class="field-value">${value || '_'.repeat(40)}</div></div>`;
 
@@ -143,7 +143,7 @@ export default function EnrollmentFormPage() {
     <div style="text-align:right;font-size:11px;margin:20px 0">${mun?.city || '_________'}, ______ de _________________ de ${new Date().getFullYear()}</div>
 
     <div class="signatures">
-      <div class="sig">Responsavel Legal</div>
+      <div class="sig">Responsável Legal</div>
       <div class="sig">Secretario(a) Escolar</div>
       <div class="sig">Diretor(a)</div>
     </div>
@@ -166,10 +166,10 @@ export default function EnrollmentFormPage() {
       // Sem aluno selecionado: exportar lista de todos os matriculados
       const rows = allStudents.map((s: any) => ({
         nome: s.name || '--',
-        matricula: s.enrollment || '--',
+        matrícula: s.enrollment || '--',
         serie: s.grade || '--',
         turma: s.classRoom || '--',
-        turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manha',
+        turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manhã',
         escola: getSchool(s.schoolId)?.name || '--',
       }));
       const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Escola'];
@@ -224,7 +224,7 @@ export default function EnrollmentFormPage() {
         </div>
       </div>
     
-      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatório" : undefined} />
     </div>
   );
 }

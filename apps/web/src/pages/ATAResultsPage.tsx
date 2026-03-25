@@ -100,7 +100,7 @@ export default function ATAResultsPage() {
       {selClass && !allEnrollments.length && <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhuma matr\u00edcula encontrada</p></div>}
       {!selClass && <div className="card text-center py-16"><FileSpreadsheet size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para gerar a ATA</p></div>}
     
-      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatório" : undefined} />
     </div>
   );
 }

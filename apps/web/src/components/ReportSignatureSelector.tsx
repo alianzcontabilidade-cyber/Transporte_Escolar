@@ -130,7 +130,7 @@ const SOURCE_COLORS: Record<string, string> = {
 const SOURCE_LABELS: Record<string, string> = {
   prefeito: 'Prefeitura',
   secretario: 'Sec. Educacao',
-  responsavel: 'Responsavel',
+  responsavel: 'Responsável',
   diretor: 'Escola',
 };
 
@@ -164,7 +164,7 @@ export default function ReportSignatureSelector({ selected, onChange, maxSignato
         <div className="flex items-center gap-2">
           <UserCheck size={16} className="text-accent-500" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Assinaturas do Relatorio
+            Assinaturas do Relatório
           </span>
           {selected.length > 0 && (
             <span className="text-xs bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400 px-2 py-0.5 rounded-full">

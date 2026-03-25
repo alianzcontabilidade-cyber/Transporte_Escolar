@@ -131,7 +131,7 @@ export default function HRPage() {
         <div className="grid gap-3">{allDept.map((d: any) => (
           <div key={d.id} className="card flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><Building size={16} className="text-purple-600" /></div>
-            <div className="flex-1"><p className="font-semibold text-gray-800">{d.name}</p>{d.headName && <p className="text-xs text-gray-500">Responsavel: {d.headName}</p>}{d.description && <p className="text-xs text-gray-400 mt-0.5">{d.description}</p>}</div>
+            <div className="flex-1"><p className="font-semibold text-gray-800">{d.name}</p>{d.headName && <p className="text-xs text-gray-500">Responsável: {d.headName}</p>}{d.description && <p className="text-xs text-gray-400 mt-0.5">{d.description}</p>}</div>
             <div className="flex gap-1"><button onClick={() => { setTab('departments'); openEditDept(d); }} className="p-2 text-gray-400 hover:text-primary-500 rounded-lg"><Pencil size={15} /></button><button onClick={() => setConfirmDelete(d)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 size={15} /></button></div>
           </div>
         ))}{!allDept.length && <div className="card text-center py-12"><Building size={40} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum departamento</p></div>}</div>
@@ -182,7 +182,7 @@ export default function HRPage() {
           </div>)}
           {tab === 'departments' && (<div className="space-y-4">
             <div><label className="label">Nome *</label><input className="input" value={form.name || ''} onChange={sf('name')} /></div>
-            <div><label className="label">Responsavel</label><select className="input" value={form.headUserId || ''} onChange={sf('headUserId')}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+            <div><label className="label">Responsável</label><select className="input" value={form.headUserId || ''} onChange={sf('headUserId')}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
             <div><label className="label">Descricao</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
           </div>)}
           {tab === 'allocations' && (<div className="grid grid-cols-2 gap-4">

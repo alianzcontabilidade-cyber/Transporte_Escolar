@@ -30,7 +30,7 @@ function PhotoUpload({ value, onChange }: any) {
   );
 }
 
-const SHIFTS = [{ v:'morning', l:'Manha' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
+const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
 const BLOOD_TYPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 const RACES = ['Branca','Negra','Parda','Amarela','Indígena','Não Declarada'];
 const EDUCATION_LEVELS = ['Não Alfabetizado','Fundamental Incompleto','Fundamental Completo','Médio Incompleto','Médio Completo','Superior Incompleto','Superior Completo','Pós-Graduação'];
@@ -125,10 +125,10 @@ export default function StudentsPage() {
     const rows = allStudents.map(function(s: any) {
       return {
         nome: s.name || '',
-        matricula: s.enrollment || '',
+        matrícula: s.enrollment || '',
         serie: s.grade || '',
         turma: s.classRoom || s.className || '',
-        turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+        turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manhã',
         escola: s.school || '',
         nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '',
         endereco: s.address || '',
@@ -155,15 +155,15 @@ export default function StudentsPage() {
   const generateWhatsAppLink = function(student: any, phone?: string) {
     const enrollment = student.enrollment || '';
     const studentName = student.name || 'seu filho(a)';
-    const msg = `Ola! Voce foi convidado(a) para acompanhar o transporte escolar de *${studentName}* pelo aplicativo *NetEscol*.
+    const msg = `Ola! Você foi convidado(a) para acompanhar o transporte escolar de *${studentName}* pelo aplicativo *NetEscol*.
 
 Para instalar:
 1. Acesse: ${appUrl}/cadastro
-2. Escolha "Sou Pai/Responsavel"
-3. Use a matricula: *${enrollment}*
+2. Escolha "Sou Pai/Responsável"
+3. Use a matrícula: *${enrollment}*
 4. Crie sua conta e acompanhe em tempo real!
 
-Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.`;
+Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido.`;
 
     const cleanPhone = (phone || '').replace(/\D/g, '');
     const whatsPhone = cleanPhone.length === 11 ? '55' + cleanPhone : cleanPhone.length === 13 ? cleanPhone : '';
@@ -794,12 +794,12 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         </div>
       )}
 
-      {/* Modal Convidar Responsavel */}
+      {/* Modal Convidar Responsável */}
       {inviteStudent&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2"><MessageCircle size={20} className="text-green-500"/> Convidar Responsavel</h3>
+              <h3 className="text-lg font-semibold flex items-center gap-2"><MessageCircle size={20} className="text-green-500"/> Convidar Responsável</h3>
               <button onClick={function(){setInviteStudent(null);}} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={18}/></button>
             </div>
 
@@ -817,7 +817,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                   className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors">
                   <MessageCircle size={20}/>
                   <div className="text-left flex-1">
-                    <p className="font-medium text-sm">{inviteStudent.guardian1Name || 'Responsavel 1'}</p>
+                    <p className="font-medium text-sm">{inviteStudent.guardian1Name || 'Responsável 1'}</p>
                     <p className="text-xs text-green-100">{inviteStudent.guardian1Phone}</p>
                   </div>
                   <Share2 size={16}/>
@@ -829,7 +829,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                   className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors">
                   <MessageCircle size={20}/>
                   <div className="text-left flex-1">
-                    <p className="font-medium text-sm">{inviteStudent.guardian2Name || 'Responsavel 2'}</p>
+                    <p className="font-medium text-sm">{inviteStudent.guardian2Name || 'Responsável 2'}</p>
                     <p className="text-xs text-green-100">{inviteStudent.guardian2Phone}</p>
                   </div>
                   <Share2 size={16}/>
@@ -1124,7 +1124,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="p-4 bg-blue-50 rounded-xl">
             <p className="text-sm text-blue-700 mb-2">Aceita arquivos <strong>.xlsx</strong> (Excel) ou <strong>.csv</strong> (separador <strong>;</strong>)</p>
-            <p className="text-xs text-blue-600">As colunas serao detectadas automaticamente. Voce pode ajustar o mapeamento abaixo.</p>
+            <p className="text-xs text-blue-600">As colunas serao detectadas automaticamente. Você pode ajustar o mapeamento abaixo.</p>
             <button onClick={downloadTemplate} className="mt-2 text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200">Baixar modelo CSV</button>
           </div>
           <div className="grid grid-cols-2 gap-4">

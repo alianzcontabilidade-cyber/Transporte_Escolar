@@ -7,7 +7,7 @@ import { maskPhone } from '../lib/utils';
 import { searchSchoolsByMunicipality } from '../lib/inepData';
 import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText, Printer } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText, Printer, Navigation, Crosshair } from 'lucide-react';
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -42,6 +42,10 @@ export default function SchoolsPage() {
   const [inepSelected, setInepSelected] = useState<Set<string>>(new Set());
   const [munCityName, setMunCityName] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
+  const schoolMapRef = useRef<HTMLDivElement>(null);
+  const schoolMapInstanceRef = useRef<any>(null);
+  const schoolMarkerRef = useRef<any>(null);
+  const [collectingGps, setCollectingGps] = useState(false);
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { data: allStudents } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const { data: allClasses } = useQuery(() => api.classes?.list?.({ municipalityId }) || Promise.resolve([]), [municipalityId]);
@@ -201,6 +205,64 @@ export default function SchoolsPage() {
     finally { setLookingUp(''); }
   };
 
+  // Mapa interativo para localização da escola
+  useEffect(() => {
+    if (!showModal || !schoolMapRef.current) return;
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L || !schoolMapRef.current) return;
+      if (schoolMapInstanceRef.current) { schoolMapInstanceRef.current.remove(); schoolMapInstanceRef.current = null; }
+      const lat = parseFloat(form.latitude) || -10.18;
+      const lng = parseFloat(form.longitude) || -48.33;
+      const hasCoords = form.latitude && form.longitude && parseFloat(form.latitude) !== 0;
+      const map = L.map(schoolMapRef.current, { zoomControl: true }).setView([lat, lng], hasCoords ? 16 : 12);
+      const sa = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
+      const hl = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const st = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
+      sa.addTo(map); hl.addTo(map);
+      L.control.layers({ 'Ruas': st, 'Satélite': sa }, {}, { position: 'topright', collapsed: true }).addTo(map);
+      // Marker
+      if (hasCoords) {
+        const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+        schoolMarkerRef.current = L.marker([lat, lng], { icon }).addTo(map);
+      }
+      // Click to set location
+      map.on('click', (e: any) => {
+        const newLat = e.latlng.lat.toFixed(8);
+        const newLng = e.latlng.lng.toFixed(8);
+        setForm((f: any) => ({ ...f, latitude: newLat, longitude: newLng }));
+        if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
+        const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+        schoolMarkerRef.current = L.marker([e.latlng.lat, e.latlng.lng], { icon }).addTo(map);
+      });
+      schoolMapInstanceRef.current = map;
+      setTimeout(() => map.invalidateSize(), 200);
+    };
+    // Load Leaflet if not loaded
+    if ((window as any).L) { setTimeout(initMap, 100); }
+    else {
+      if (!document.getElementById('leaflet-css-sch')) {
+        const lk = document.createElement('link'); lk.id = 'leaflet-css-sch'; lk.rel = 'stylesheet';
+        lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk);
+      }
+      const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      sc.onload = () => setTimeout(initMap, 100); document.head.appendChild(sc);
+    }
+    return () => { if (schoolMapInstanceRef.current) { schoolMapInstanceRef.current.remove(); schoolMapInstanceRef.current = null; } };
+  }, [showModal]);
+
+  // Update marker when lat/lng changes from input/GPS
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!L || !schoolMapInstanceRef.current) return;
+    const lat = parseFloat(form.latitude), lng = parseFloat(form.longitude);
+    if (isNaN(lat) || isNaN(lng) || lat === 0) return;
+    if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
+    const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+    schoolMarkerRef.current = L.marker([lat, lng], { icon }).addTo(schoolMapInstanceRef.current);
+    schoolMapInstanceRef.current.setView([lat, lng], 16);
+  }, [form.latitude, form.longitude]);
+
   const handleLogoUpload = (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -330,14 +392,14 @@ export default function SchoolsPage() {
               <button onClick={() => {
                 const s = viewSchool;
                 const rows = [{ nome: s.name||'--', tipo: s.type||'--', inep: s.code||'--', diretor: s.directorName||'--', telefone: s.phone||'--', email: s.email||'--', endereco: s.address||'--', manha: (s.morningStart||'--')+' - '+(s.morningEnd||'--'), tarde: (s.afternoonStart||'--')+' - '+(s.afternoonEnd||'--') }];
-                const html = buildTableReportHTML('FICHA DA ESCOLA', rows, ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], munReport, { orientation: 'landscape', signatories: selectedSigs });
+                const html = buildTableReportHTML('FICHA DA ESCOLA', rows, ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manhã','Tarde'], munReport, { orientation: 'landscape', signatories: selectedSigs });
                 if (html) { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); w.print(); } }
               }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Printer size={14} /> Imprimir</button>
               <button onClick={() => {
                 const s = viewSchool;
                 const rows = [{ nome: s.name||'--', tipo: s.type||'--', inep: s.code||'--', diretor: s.directorName||'--', telefone: s.phone||'--', email: s.email||'--', endereco: s.address||'--', manha: (s.morningStart||'--')+' - '+(s.morningEnd||'--'), tarde: (s.afternoonStart||'--')+' - '+(s.afternoonEnd||'--') }];
                 setViewSchool(null);
-                setTimeout(() => { setSchExportModal({ title: 'Ficha da Escola', data: rows, cols: ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manha','Tarde'], filename: 'Ficha_Escola_' + (s.name || '') }); }, 100);
+                setTimeout(() => { setSchExportModal({ title: 'Ficha da Escola', data: rows, cols: ['Nome','Tipo','INEP','Diretor(a)','Telefone','Email','Endereco','Manhã','Tarde'], filename: 'Ficha_Escola_' + (s.name || '') }); }, 100);
               }} className="btn-secondary flex-1 flex items-center justify-center gap-1"><Download size={14} /> Exportar</button>
               <button onClick={() => { setViewSchool(null); openEdit(viewSchool); }} className="btn-primary flex-1">Editar</button>
             </div>
@@ -452,14 +514,28 @@ export default function SchoolsPage() {
                     </div>
                   </div>
 
-                  {/* Coordenadas */}
+                  {/* Localização no Mapa */}
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                    <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2"><MapPin size={14} /> Coordenadas (para o mapa)</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><label className="label text-xs">Latitude</label><input className="input" value={form.latitude} onChange={sf('latitude')} placeholder="-10.1234" /></div>
-                      <div><label className="label text-xs">Longitude</label><input className="input" value={form.longitude} onChange={sf('longitude')} placeholder="-48.5678" /></div>
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2"><MapPin size={14} /> Localização no Mapa</p>
+                    <div className="flex gap-2 mb-3">
+                      <button type="button" onClick={() => {
+                        if (!navigator.geolocation) return;
+                        setCollectingGps(true);
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                          setForm((f: any) => ({ ...f, latitude: pos.coords.latitude.toFixed(8), longitude: pos.coords.longitude.toFixed(8) }));
+                          setCollectingGps(false);
+                        }, () => setCollectingGps(false), { enableHighAccuracy: true, timeout: 15000 });
+                      }} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5" disabled={collectingGps}>
+                        {collectingGps ? <Loader2 size={12} className="animate-spin" /> : <Crosshair size={12} />}
+                        {collectingGps ? 'Obtendo GPS...' : 'Usar GPS Atual'}
+                      </button>
+                      <span className="text-xs text-green-600 self-center">ou clique no mapa para marcar o ponto</span>
                     </div>
-                    <p className="text-xs text-green-600 mt-2">Dica: Abra o Google Maps, clique com botao direito no local e copie as coordenadas.</p>
+                    <div ref={schoolMapRef} className="w-full h-48 rounded-lg border border-green-200 mb-3" style={{ minHeight: 192 }} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className="label text-xs">Latitude</label><input className="input text-xs" value={form.latitude} onChange={sf('latitude')} placeholder="-10.1234" /></div>
+                      <div><label className="label text-xs">Longitude</label><input className="input text-xs" value={form.longitude} onChange={sf('longitude')} placeholder="-48.5678" /></div>
+                    </div>
                   </div>
                 </div>
 

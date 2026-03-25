@@ -128,7 +128,7 @@ export default function RegisterPage() {
               className="w-full p-5 bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 hover:shadow-lg transition-all text-left flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0"><Heart size={22} className="text-pink-500" /></div>
               <div>
-                <h3 className="font-bold text-gray-900">Sou Pai/Responsavel</h3>
+                <h3 className="font-bold text-gray-900">Sou Pai/Responsável</h3>
                 <p className="text-sm text-gray-500 mt-1">Quero acompanhar o transporte escolar do meu filho(a)</p>
               </div>
             </button>
@@ -173,7 +173,7 @@ export default function RegisterPage() {
             <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mx-auto mb-3">
               <Heart size={22} className="text-pink-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Cadastro de Responsavel</h2>
+            <h2 className="text-xl font-bold text-gray-900">Cadastro de Responsável</h2>
             <p className="text-gray-500 text-sm mt-1">
               {guardianStep === 1 ? 'Informe seu CPF para localizar seus filhos' : 'Finalize seu cadastro'}
             </p>
@@ -262,7 +262,7 @@ export default function RegisterPage() {
                       <span className="font-medium text-amber-800 text-sm">CPF nao encontrado</span>
                     </div>
                     <p className="text-xs text-amber-700">
-                      Seu CPF nao foi localizado no cadastro de alunos. Voce pode se cadastrar informando a matricula do aluno.
+                      Seu CPF não foi localizado no cadastro de alunos. Você pode se cadastrar informando a matricula do aluno.
                     </p>
                   </div>
 
@@ -326,7 +326,7 @@ export default function RegisterPage() {
               <div className="bg-gray-50 rounded-xl p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <Users size={16} className="text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Responsavel</span>
+                  <span className="text-sm font-medium text-gray-700">Responsável</span>
                 </div>
                 <p className="font-semibold text-gray-900">{gForm.name}</p>
                 <p className="text-xs text-gray-500">CPF: {cpfInput} {gForm.phone ? `| Tel: ${gForm.phone}` : ''}</p>

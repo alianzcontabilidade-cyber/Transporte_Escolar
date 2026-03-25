@@ -73,7 +73,7 @@ export default function ExportModal({ open, onClose, onExport, title, allowSign 
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Download size={18} className="text-accent-500" />
-            {title || 'Exportar Relatorio'}
+            {title || 'Exportar Relatório'}
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400">
             <X size={20} />

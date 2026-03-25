@@ -194,7 +194,7 @@ export default function ServiceOrdersPage() {
       status: STATUS_LABELS[o.status] || o.status || '',
     };
   });
-  const exportCols = ['Numero', 'Veiculo', 'Tipo', 'Prioridade', 'Fornecedor', 'Custo Total', 'Status'];
+  const exportCols = ['Numero', 'Veículo', 'Tipo', 'Prioridade', 'Fornecedor', 'Custo Total', 'Status'];
   const doExport = function (format: ExportFormat) {
     if (!exportModal) return;
     handleExport(format, exportModal.data, buildTableReportHTML(exportModal.title, exportModal.data, exportModal.cols, null), exportModal.filename);

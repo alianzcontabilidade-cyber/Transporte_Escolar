@@ -30,7 +30,7 @@ interface Contact {
 type ChatView = 'closed' | 'list' | 'conversation' | 'contacts';
 
 const roleLabels: Record<string, string> = {
-  parent: 'Responsavel',
+  parent: 'Responsável',
   secretary: 'Secretaria',
   school_admin: 'Gestao Escolar',
   municipal_admin: 'Administrador',
@@ -55,7 +55,7 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Carregar contagem de nao lidas
+  // Carregar contagem de não lidas
   const loadUnread = useCallback(async () => {
     try {
       const data = await api.chat.unreadTotal();
@@ -126,7 +126,7 @@ export default function ChatWidget() {
         // Marcar como lida imediatamente
         api.chat.markRead({ conversationId: data.conversationId }).catch(() => {});
       } else {
-        // Atualizar contagem de nao lidas
+        // Atualizar contagem de não lidas
         loadUnread();
       }
       // Atualizar lista de conversas se aberta
@@ -333,7 +333,7 @@ export default function ChatWidget() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs text-gray-500 truncate">
                             {c.lastMessage
-                              ? (c.lastMessage.senderId === user!.id ? 'Voce: ' : '') + c.lastMessage.content
+                              ? (c.lastMessage.senderId === user!.id ? 'Você: ' : '') + c.lastMessage.content
                               : roleLabels[c.otherUser.role] || c.otherUser.role
                             }
                           </p>

@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { Package, Plus, X, Pencil, Trash2, Search, Box, ArrowDown, ArrowUp } from 'lucide-react';
 
-const CATS: any = { movel: 'Movel', imovel: 'Imovel', equipamento: 'Equipamento', veiculo: 'Veiculo', tecnologia: 'Tecnologia', outro: 'Outro' };
+const CATS: any = { movel: 'Movel', imovel: 'Imovel', equipamento: 'Equipamento', veiculo: 'Veículo', tecnologia: 'Tecnologia', outro: 'Outro' };
 const CONDS: any = { otimo: 'Otimo', bom: 'Bom', regular: 'Regular', ruim: 'Ruim', inservivel: 'Inservivel' };
 const COND_COLORS: any = { otimo: 'bg-green-100 text-green-700', bom: 'bg-blue-100 text-blue-700', regular: 'bg-yellow-100 text-yellow-700', ruim: 'bg-orange-100 text-orange-700', inservivel: 'bg-red-100 text-red-700' };
 

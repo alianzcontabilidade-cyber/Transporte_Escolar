@@ -74,10 +74,10 @@ export default function StudentCardPage() {
   const handleExportClick = () => {
     const rows = allStudents.map((s: any) => ({
       nome: s.name || '--',
-      matricula: s.enrollment || '--',
+      matrícula: s.enrollment || '--',
       serie: s.grade || '--',
       turma: s.classRoom || '--',
-      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manhã',
       nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '--',
     }));
     const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Nascimento'];
@@ -130,7 +130,7 @@ export default function StudentCardPage() {
         {!allStudents.length && <div className="col-span-3 card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum aluno encontrado</p></div>}
       </div>
     
-      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatório" : undefined} />
     </div>
   );
 }

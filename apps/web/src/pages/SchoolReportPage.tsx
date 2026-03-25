@@ -44,10 +44,10 @@ export default function SchoolReportPage() {
     const rows = allStudents.map((s: any, i: number) => ({
       num: i + 1,
       nome: s.name || '--',
-      matricula: s.enrollment || '--',
+      matrícula: s.enrollment || '--',
       serie: s.grade || '--',
       turma: s.classRoom || '--',
-      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manha',
+      turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manhã',
     }));
     const cols = ['N', 'Nome', 'Matricula', 'Serie', 'Turma', 'Turno'];
     return buildTableReportHTML('RELATORIO POR ESCOLA - ' + schoolName, rows, cols, munReport, {
@@ -120,7 +120,7 @@ export default function SchoolReportPage() {
         <div className="card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma escola para ver o relatório</p></div>
       )}
     
-      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatorio" : undefined} />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any, opts?: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename, opts); } setPgExportModal(null); }} title={pgExportModal ? "Exportar Relatório" : undefined} />
     </div>
   );
 }

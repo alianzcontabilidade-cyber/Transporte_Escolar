@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  report: 'Relatorio',
+  report: 'Relatório',
   certificate: 'Certidao',
   declaration: 'Declaracao',
   report_card: 'Boletim',
@@ -513,7 +513,7 @@ export default function DocumentManagementPage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Voce esta prestes a revogar o documento:
+                Você está prestes a revogar o documento:
               </p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 {revokeModal.title}

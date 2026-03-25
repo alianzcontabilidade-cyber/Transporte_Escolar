@@ -63,8 +63,8 @@ export default function ReportsPage() {
 
   const sl = (s: string) => ({ started:'Em andamento', completed:'Concluida', cancelled:'Cancelada', scheduled:'Agendada' }[s]||s);
   const tripRows = trips.map((h: any) => ({ rota:h.route?.name||'--', data:h.trip?.tripDate?new Date(h.trip.tripDate).toLocaleDateString('pt-BR'):'--', inicio:h.trip?.startedAt?new Date(h.trip.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--', fim:h.trip?.completedAt?new Date(h.trip.completedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--', status:sl(h.trip?.status) }));
-  const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matricula:s.enrollment||'--', serie:s.grade||'--', turma:s.classRoom||s.className||'--', turno:{ morning:'Manha', afternoon:'Tarde', evening:'Noite', full_time:'Integral' }[s.shift as string]||'--', escola:s.school||'--' }));
-  const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutencao', inactive:'Inativo' }[s]||s);
+  const studentRows = ((students as any)||[]).map((s: any) => ({ nome:s.name, matrícula:s.enrollment||'--', serie:s.grade||'--', turma:s.classRoom||s.className||'--', turno:{ morning:'Manhã', afternoon:'Tarde', evening:'Noite', full_time:'Integral' }[s.shift as string]||'--', escola:s.school||'--' }));
+  const statusLabel = (s: string) => ({ active:'Ativo', maintenance:'Manutenção', inactive:'Inativo' }[s]||s);
   const vehicleRows = ((vehiclesData as any)||[]).map((v: any) => ({ placa:v.plate||'--', apelido:v.nickname||'--', marca_modelo:[v.brand,v.model,v.year].filter(Boolean).join(' ')||'--', capacidade:v.capacity?`${v.capacity} lugares`:'--', km_atual:v.currentKm?Number(v.currentKm).toLocaleString('pt-BR')+' km':'--', status:statusLabel(v.status) }));
   const clearFilter = () => { setDateFrom(''); setDateTo(''); };
   const [exportModal, setExportModal] = useState<{ title: string; data: any[]; cols: string[]; filename: string } | null>(null);

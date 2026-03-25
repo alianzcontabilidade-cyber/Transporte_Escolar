@@ -323,7 +323,7 @@ export default function GuardianPortalPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Ola, {user?.name?.split(' ')[0]}!
               </h1>
-              <p className="text-gray-500 text-sm">Portal do Responsavel - NetEscol</p>
+              <p className="text-gray-500 text-sm">Portal do Responsável - NetEscol</p>
             </div>
             <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Sair">
               <LogOut size={20} />
@@ -363,7 +363,7 @@ export default function GuardianPortalPage() {
           {unreadCount > 0 && (
             <div className="card mb-4 p-3 bg-orange-50 border-orange-200 flex items-center gap-3">
               <Bell size={18} className="text-orange-500" />
-              <p className="text-orange-700 text-sm flex-1">Voce tem <strong>{unreadCount}</strong> notificacao(oes) nao lida(s)</p>
+              <p className="text-orange-700 text-sm flex-1">Você tem <strong>{unreadCount}</strong> notificacao(oes) não lida(s)</p>
             </div>
           )}
 
@@ -508,7 +508,7 @@ function BoletimView({ student, onBack }: { student: any; onBack: () => void }) 
     return (
       <>
         <BackButton onClick={onBack} />
-        <EmptyState icon={GraduationCap} title="Sem matricula ativa" description="O aluno nao possui matricula ativa no momento." />
+        <EmptyState icon={GraduationCap} title="Sem matricula ativa" description="O aluno não possui matricula ativa no momento." />
       </>
     );
   }
@@ -1095,7 +1095,7 @@ function MensagensView({ onBack }: { onBack: () => void }) {
           })}
         </div>
       ) : (
-        <EmptyState icon={MessageCircle} title="Nenhuma mensagem" description="Voce nao possui mensagens no momento." />
+        <EmptyState icon={MessageCircle} title="Nenhuma mensagem" description="Você não possui mensagens no momento." />
       )}
     </>
   );

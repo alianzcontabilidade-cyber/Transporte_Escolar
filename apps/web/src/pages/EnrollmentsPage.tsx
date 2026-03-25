@@ -63,7 +63,7 @@ export default function EnrollmentsPage() {
     setImporting(true);
     try {
       const result = await api.enrollments.bulkCreate({ municipalityId: mid, classId: parseInt(bulkClassId), academicYearId: parseInt(filterYear), studentIds: selectedStudents });
-      setImportResult(`Matriculados: ${result.created} | Ja matriculados: ${result.skipped}`);
+      setImportResult(`Matriculados: ${result.created} | Já matriculados: ${result.skipped}`);
       setSelectedStudents([]);
       refetch();
     } catch (e: any) { setImportResult('Erro: ' + (e.message || 'Falha')); }
@@ -198,7 +198,7 @@ export default function EnrollmentsPage() {
                   {s.grade && <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{s.grade}</span>}
                 </label>
               ))}
-              {!availableStudents.length && <p className="p-4 text-center text-gray-400 text-sm">Todos os alunos ja estao matriculados</p>}
+              {!availableStudents.length && <p className="p-4 text-center text-gray-400 text-sm">Todos os alunos já estão matriculados</p>}
             </div>
           </div>
           {importResult && <div className={`p-3 rounded-lg text-sm ${importResult.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{importResult}</div>}

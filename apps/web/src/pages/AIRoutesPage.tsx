@@ -144,7 +144,7 @@ export default function AIRoutesPage() {
       <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         <button onClick={() => setTab('routes')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'routes' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}>
-          <Route size={14} /> Analise de Rotas
+          <Route size={14} /> Análise de Rotas
         </button>
         <button onClick={() => setTab('clarke')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'clarke' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -156,7 +156,7 @@ export default function AIRoutesPage() {
         </button>
       </div>
 
-      {/* ====== TAB: Analise de Rotas (NN + 2-opt) ====== */}
+      {/* ====== TAB: Análise de Rotas (NN + 2-opt) ====== */}
       {tab === 'routes' && (
         <>
           {analyzing && (
@@ -173,9 +173,9 @@ export default function AIRoutesPage() {
           {!analyzing && routes.length === 0 && (
             <div className="card text-center py-16 border-dashed border-2 border-gray-200">
               <Brain size={56} className="text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Analise IA nao executada</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Análise IA nao executada</h3>
               <p className="text-gray-500 text-sm mb-4 max-w-md mx-auto">Clique em "Analisar Rotas" para calcular a melhor sequencia de paradas usando Nearest-Neighbor + 2-opt local search.</p>
-              <button onClick={() => runAnalysis()} className="btn-primary flex items-center gap-2 mx-auto"><Play size={16} /> Iniciar Analise</button>
+              <button onClick={() => runAnalysis()} className="btn-primary flex items-center gap-2 mx-auto"><Play size={16} /> Iniciar Análise</button>
             </div>
           )}
 
@@ -429,7 +429,7 @@ export default function AIRoutesPage() {
             ) : (
               <div className="flex items-center gap-4">
                 <div>
-                  <label className="label">Numero de clusters</label>
+                  <label className="label">Número de clusters</label>
                   <select value={numClusters} onChange={e => setNumClusters(Number(e.target.value))} className="input w-24">
                     {[3, 5, 8, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>

@@ -127,7 +127,7 @@ export default function DriverPortalPage() {
             {view === 'students' && 'Alunos da Rota'}
             {view === 'route' && 'Paradas da Rota'}
             {view === 'history' && 'Historico de Viagens'}
-            {view === 'vehicle' && 'Meu Veiculo'}
+            {view === 'vehicle' && 'Meu Veículo'}
             {view === 'fuel' && 'Abastecimento'}
             {view === 'chat' && 'Mensagens'}
           </h2>
@@ -227,7 +227,7 @@ export default function DriverPortalPage() {
             { key: 'students' as View, icon: Users, label: 'Alunos', color: 'bg-blue-500' },
             { key: 'route' as View, icon: Route, label: 'Rota', color: 'bg-purple-500' },
             { key: 'history' as View, icon: Clock, label: 'Historico', color: 'bg-amber-500' },
-            { key: 'vehicle' as View, icon: Bus, label: 'Veiculo', color: 'bg-teal-500' },
+            { key: 'vehicle' as View, icon: Bus, label: 'Veículo', color: 'bg-teal-500' },
             { key: 'fuel' as View, icon: Fuel, label: 'Abastecimento', color: 'bg-orange-500' },
             { key: 'chat' as View, icon: MessageCircle, label: 'Chat', color: 'bg-indigo-500' },
           ].map(mod => (

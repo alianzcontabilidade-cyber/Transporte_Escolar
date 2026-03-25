@@ -96,7 +96,7 @@ export default function StudentCertificatesPage() {
                   <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">{selStudent.name?.[0]}</div>
                   <div>
                     <h2 className="text-lg font-bold">{selStudent.name}</h2>
-                    <p className="text-indigo-200">{selStudent.enrollment ? 'Mat. ' + selStudent.enrollment : ''} {selStudent.grade ? ' | ' + selStudent.grade : ''} {selStudent.shift ? ' | ' + (selStudent.shift === 'morning' ? 'Manha' : selStudent.shift === 'afternoon' ? 'Tarde' : 'Noite') : ''}</p>
+                    <p className="text-indigo-200">{selStudent.enrollment ? 'Mat. ' + selStudent.enrollment : ''} {selStudent.grade ? ' | ' + selStudent.grade : ''} {selStudent.shift ? ' | ' + (selStudent.shift === 'morning' ? 'Manhã' : selStudent.shift === 'afternoon' ? 'Tarde' : 'Noite') : ''}</p>
                     <p className="text-indigo-300 text-sm">{allSchools.find((sc: any) => sc.id === selStudent.schoolId)?.name || ''}</p>
                   </div>
                 </div>

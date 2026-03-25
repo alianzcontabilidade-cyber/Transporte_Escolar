@@ -7,7 +7,8 @@ import { maskPhone } from '../lib/utils';
 import { searchSchoolsByMunicipality } from '../lib/inepData';
 import CNPJField from '../components/CNPJField';
 import SchoolINEPAutocomplete from '../components/SchoolINEPAutocomplete';
-import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText, Printer, Navigation, Crosshair } from 'lucide-react';
+import { School, Plus, X, Phone, Mail, MapPin, Pencil, Trash2, Search, Users, Clock, Loader2, Eye, Download, Upload, Image, CheckCircle, AlertTriangle, DatabaseZap, BookOpen, GraduationCap, Bus, FileText, Printer } from 'lucide-react';
+import GoogleMapPicker from '../components/GoogleMapPicker';
 import { CrossNavPanel, QuickNavButton } from '../components/CrossNavPanel';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
@@ -42,38 +43,6 @@ export default function SchoolsPage() {
   const [inepSelected, setInepSelected] = useState<Set<string>>(new Set());
   const [munCityName, setMunCityName] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
-  const schoolMapRef = useRef<HTMLDivElement>(null);
-  const schoolMapInstanceRef = useRef<any>(null);
-  const schoolMarkerRef = useRef<any>(null);
-  const [collectingGps, setCollectingGps] = useState(false);
-  const [mapSearch, setMapSearch] = useState('');
-  const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
-  const [mapSearching, setMapSearching] = useState(false);
-  const searchMarkerRef = useRef<any>(null);
-
-  const doMapSearch = (q: string) => {
-    setMapSearch(q);
-    if (q.length < 3) { setMapSuggestions([]); return; }
-    setMapSearching(true);
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=br&limit=6', { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'NetEscol/1.0' } })
-      .then(r => r.json()).then(d => { setMapSuggestions(d); setMapSearching(false); })
-      .catch(() => { setMapSuggestions([]); setMapSearching(false); });
-  };
-
-  const selectMapPlace = (place: any) => {
-    const L = (window as any).L;
-    if (!L || !schoolMapInstanceRef.current) return;
-    const la = parseFloat(place.lat), ln = parseFloat(place.lon);
-    // Set form coordinates
-    setForm((f: any) => ({ ...f, latitude: la.toFixed(8), longitude: ln.toFixed(8) }));
-    // Move map and set marker
-    schoolMapInstanceRef.current.setView([la, ln], 17);
-    if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
-    const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-    schoolMarkerRef.current = L.marker([la, ln], { icon }).addTo(schoolMapInstanceRef.current);
-    setMapSearch(place.display_name.split(',').slice(0, 3).join(', '));
-    setMapSuggestions([]);
-  };
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { data: allStudents } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const { data: allClasses } = useQuery(() => api.classes?.list?.({ municipalityId }) || Promise.resolve([]), [municipalityId]);
@@ -232,64 +201,6 @@ export default function SchoolsPage() {
     } catch (e: any) { setFormMsg('Erro: ' + e.message); }
     finally { setLookingUp(''); }
   };
-
-  // Mapa interativo para localização da escola
-  useEffect(() => {
-    if (!showModal || !schoolMapRef.current) return;
-    const initMap = () => {
-      const L = (window as any).L;
-      if (!L || !schoolMapRef.current) return;
-      if (schoolMapInstanceRef.current) { schoolMapInstanceRef.current.remove(); schoolMapInstanceRef.current = null; }
-      const lat = parseFloat(form.latitude) || -10.18;
-      const lng = parseFloat(form.longitude) || -48.33;
-      const hasCoords = form.latitude && form.longitude && parseFloat(form.latitude) !== 0;
-      const map = L.map(schoolMapRef.current, { zoomControl: true }).setView([lat, lng], hasCoords ? 16 : 12);
-      const sa = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
-      const hl = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-      const st = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
-      sa.addTo(map); hl.addTo(map);
-      L.control.layers({ 'Ruas': st, 'Satélite': sa }, {}, { position: 'topright', collapsed: true }).addTo(map);
-      // Marker
-      if (hasCoords) {
-        const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-        schoolMarkerRef.current = L.marker([lat, lng], { icon }).addTo(map);
-      }
-      // Click to set location
-      map.on('click', (e: any) => {
-        const newLat = e.latlng.lat.toFixed(8);
-        const newLng = e.latlng.lng.toFixed(8);
-        setForm((f: any) => ({ ...f, latitude: newLat, longitude: newLng }));
-        if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
-        const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-        schoolMarkerRef.current = L.marker([e.latlng.lat, e.latlng.lng], { icon }).addTo(map);
-      });
-      schoolMapInstanceRef.current = map;
-      setTimeout(() => map.invalidateSize(), 200);
-    };
-    // Load Leaflet if not loaded
-    if ((window as any).L) { setTimeout(initMap, 100); }
-    else {
-      if (!document.getElementById('leaflet-css-sch')) {
-        const lk = document.createElement('link'); lk.id = 'leaflet-css-sch'; lk.rel = 'stylesheet';
-        lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk);
-      }
-      const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      sc.onload = () => setTimeout(initMap, 100); document.head.appendChild(sc);
-    }
-    return () => { if (schoolMapInstanceRef.current) { schoolMapInstanceRef.current.remove(); schoolMapInstanceRef.current = null; } };
-  }, [showModal]);
-
-  // Update marker when lat/lng changes from input/GPS
-  useEffect(() => {
-    const L = (window as any).L;
-    if (!L || !schoolMapInstanceRef.current) return;
-    const lat = parseFloat(form.latitude), lng = parseFloat(form.longitude);
-    if (isNaN(lat) || isNaN(lng) || lat === 0) return;
-    if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
-    const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-    schoolMarkerRef.current = L.marker([lat, lng], { icon }).addTo(schoolMapInstanceRef.current);
-    schoolMapInstanceRef.current.setView([lat, lng], 16);
-  }, [form.latitude, form.longitude]);
 
   const handleLogoUpload = (e: any) => {
     const file = e.target.files?.[0];
@@ -542,47 +453,17 @@ export default function SchoolsPage() {
                     </div>
                   </div>
 
-                  {/* Localização no Mapa */}
+                  {/* Localização no Mapa - Google Maps */}
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
                     <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2"><MapPin size={14} /> Localização no Mapa</p>
-                    {/* Busca por endereço */}
-                    <div className="relative mb-3">
-                      <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="input pl-9 pr-10 text-xs" placeholder="Pesquise o endereço ou nome da escola..." value={mapSearch} onChange={e => doMapSearch(e.target.value)} />
-                        {mapSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />}
-                      </div>
-                      {mapSuggestions.length > 0 && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                          {mapSuggestions.map((s: any, i: number) => (
-                            <button key={i} type="button" onClick={() => selectMapPlace(s)}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-green-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 flex items-start gap-2">
-                              <MapPin size={12} className="text-green-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-700 dark:text-gray-300">{s.display_name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2 mb-3">
-                      <button type="button" onClick={() => {
-                        if (!navigator.geolocation) return;
-                        setCollectingGps(true);
-                        navigator.geolocation.getCurrentPosition((pos) => {
-                          setForm((f: any) => ({ ...f, latitude: pos.coords.latitude.toFixed(8), longitude: pos.coords.longitude.toFixed(8) }));
-                          setCollectingGps(false);
-                        }, () => setCollectingGps(false), { enableHighAccuracy: true, timeout: 15000 });
-                      }} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5" disabled={collectingGps}>
-                        {collectingGps ? <Loader2 size={12} className="animate-spin" /> : <Crosshair size={12} />}
-                        {collectingGps ? 'Obtendo GPS...' : 'Usar GPS Atual'}
-                      </button>
-                      <span className="text-xs text-green-600 self-center">ou clique no mapa para marcar o ponto</span>
-                    </div>
-                    <div ref={schoolMapRef} className="w-full h-48 rounded-lg border border-green-200 mb-3" style={{ minHeight: 192 }} />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><label className="label text-xs">Latitude</label><input className="input text-xs" value={form.latitude} onChange={sf('latitude')} placeholder="-10.1234" /></div>
-                      <div><label className="label text-xs">Longitude</label><input className="input text-xs" value={form.longitude} onChange={sf('longitude')} placeholder="-48.5678" /></div>
-                    </div>
+                    <GoogleMapPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onLocationChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
+                      height={250}
+                      placeholder="Pesquise o nome da escola ou endereço..."
+                      showGpsButton={true}
+                    />
                   </div>
                 </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import * as XLSX from 'xlsx';
+// xlsx importado dinamicamente quando necessário (evita crash no carregamento)
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
@@ -267,8 +267,9 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
 
     if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader();
-      reader.onload = function(ev) {
+      reader.onload = async function(ev) {
         try {
+          const XLSX = await import('xlsx');
           const data = new Uint8Array(ev.target?.result as ArrayBuffer);
           const wb = XLSX.read(data, { type: 'array' });
           const ws = wb.Sheets[wb.SheetNames[0]];

@@ -234,7 +234,7 @@ export default function MileageReportPage() {
         <div className="card text-center py-16"><Gauge size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum dado para os filtros selecionados</p></div>
       )}
 
-      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title="Exportar Relatório de Quilometragem" />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title="Exportar Relatório de Quilometragem" />
     </div>
   );
 }

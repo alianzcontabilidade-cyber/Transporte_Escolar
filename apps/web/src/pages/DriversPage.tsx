@@ -185,7 +185,7 @@ export default function DriversPage() {
                     <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setShow(false);}} className="btn-secondary flex-1">Cancelar</button><button onClick={save} disabled={creating||updating} className="btn-primary flex-1">{creating||updating?'Salvando...':editId?'Salvar alterações':'Salvar Motorista'}</button></div>
             </div></div>)}
 
-          <ExportModal open={!!drvExportModal} onClose={function(){setDrvExportModal(null)}} onExport={doDrvExport} title={drvExportModal?'Exportar: '+drvExportModal.title:undefined}/>
+          <ExportModal allowSign={true} open={!!drvExportModal} onClose={function(){setDrvExportModal(null)}} onExport={doDrvExport} title={drvExportModal?'Exportar: '+drvExportModal.title:undefined}/>
 
           {/* Quick Add Modal */}
           {quickAdd && (

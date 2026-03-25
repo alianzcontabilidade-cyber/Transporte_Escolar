@@ -158,7 +158,7 @@ export default function VehiclesPage() {
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={function(){setViewVehicle(null);}} className="btn-secondary flex-1">Fechar</button><button onClick={function(){setViewVehicle(null);openEdit(viewVehicle);}} className="btn-primary flex-1">Editar</button></div>
       </div></div>)}
 
-      <ExportModal open={!!vehExportModal} onClose={function(){setVehExportModal(null)}} onExport={doVehExport} title={vehExportModal?'Exportar: '+vehExportModal.title:undefined}/>
+      <ExportModal allowSign={true} open={!!vehExportModal} onClose={function(){setVehExportModal(null)}} onExport={doVehExport} title={vehExportModal?'Exportar: '+vehExportModal.title:undefined}/>
 
       {confirmDelete&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

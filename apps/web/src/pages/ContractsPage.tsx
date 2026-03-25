@@ -215,7 +215,7 @@ export default function ContractsPage() {
                 </div>
         )}
 
-        <ExportModal open={!!contractExportModal} onClose={() => setContractExportModal(null)} onExport={doContractExport} title={contractExportModal?'Exportar: '+contractExportModal.title:undefined}/>
+        <ExportModal allowSign={true} open={!!contractExportModal} onClose={() => setContractExportModal(null)} onExport={doContractExport} title={contractExportModal?'Exportar: '+contractExportModal.title:undefined}/>
 
         {confirmDelete && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

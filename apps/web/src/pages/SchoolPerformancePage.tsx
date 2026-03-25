@@ -203,7 +203,7 @@ export default function SchoolPerformancePage() {
         <div className="card text-center py-16"><School size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Nenhum dado de rendimento disponível</p><p className="text-xs text-gray-400 mt-1">Verifique se há matrículas e turmas cadastradas</p></div>
       )}
 
-      <ExportModal open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title="Exportar Quadro de Rendimento" />
+      <ExportModal allowSign={true} open={!!pgExportModal} onClose={() => setPgExportModal(null)} onExport={(fmt: any) => { if (pgExportModal?.html) { handleExport(fmt, [], pgExportModal.html, pgExportModal.filename); } setPgExportModal(null); }} title="Exportar Quadro de Rendimento" />
     </div>
   );
 }

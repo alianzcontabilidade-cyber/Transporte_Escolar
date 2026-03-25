@@ -299,7 +299,7 @@ export default function SchoolsPage() {
         {!filtered.length && search && <div className="col-span-3 card text-center py-8"><p className="text-gray-500">Nenhum resultado para "{search}"</p></div>}
       </div>
 
-      <ExportModal open={!!schExportModal} onClose={() => setSchExportModal(null)} onExport={doSchExport} title={schExportModal?'Exportar: '+schExportModal.title:undefined}/>
+      <ExportModal allowSign={true} open={!!schExportModal} onClose={() => setSchExportModal(null)} onExport={doSchExport} title={schExportModal?'Exportar: '+schExportModal.title:undefined}/>
 
       {/* View details modal */}
       {viewSchool && (

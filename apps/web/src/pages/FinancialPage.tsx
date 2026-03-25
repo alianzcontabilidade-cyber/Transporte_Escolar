@@ -170,7 +170,7 @@ export default function FinancialPage() {
 
       <div className="mt-4"><ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} /></div>
 
-      <ExportModal open={!!finExportModal} onClose={() => setFinExportModal(null)} onExport={(fmt: ExportFormat) => { if (finExportModal?.html) { handleExport(fmt, [], finExportModal.html, finExportModal.filename); } setFinExportModal(null); }} title="Exportar Relatorio Financeiro" />
+      <ExportModal allowSign={true} open={!!finExportModal} onClose={() => setFinExportModal(null)} onExport={(fmt: ExportFormat) => { if (finExportModal?.html) { handleExport(fmt, [], finExportModal.html, finExportModal.filename); } setFinExportModal(null); }} title="Exportar Relatorio Financeiro" />
     </div>
   );
 }

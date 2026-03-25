@@ -182,7 +182,6 @@ app.post('/api/pdf/generate', async (req, res) => {
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
     const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures } = req.body;
-    console.log('[PDF] signAfterGenerate:', signAfterGenerate, 'hasPwd:', !!signerPassword, 'sigs:', signatures?.length || 0);
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();
@@ -218,9 +217,17 @@ app.post('/api/pdf/generate', async (req, res) => {
       allSigners.push({ signerName: autoSignUser.name, signerRole: roleMap[autoSignUser.role] || autoSignUser.role, signerCpf: autoSignUser.cpf });
     }
 
-    // Injetar blocos de assinatura no HTML
-    console.log('[PDF] autoSignUser:', autoSignUser?.name, 'allSigners:', allSigners.length, allSigners.map((s:any)=>s.signerName));
     let htmlClean = html;
+
+    // PRIMEIRO: Extrair rodapé institucional ANTES de inserir assinaturas
+    let footerContent = '';
+    const footerMatch = htmlClean.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>\s*<\/div>/);
+    if (footerMatch) {
+      footerContent = footerMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>/, '');
+    }
+
+    // DEPOIS: Injetar bloco de assinatura eletrônica
     if (allSigners.length > 0) {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -244,23 +251,11 @@ app.post('/api/pdf/generate', async (req, res) => {
             A autenticidade deste documento pode ser conferida acessando <strong>${verifyUrl}</strong>, informando o c&oacute;digo verificador <strong>${verificationCode}</strong>. Assinatura eletr&ocirc;nica conforme MP 2.200-2/2001.
           </div>
         </div>`;
-      // Insert before </body> or at the end
-      const hasBody = htmlClean.includes('</body>');
-      console.log('[PDF] Inserindo bloco assinatura. hasBody:', hasBody, 'blockLen:', sigBlocksHtml.length);
-      if (hasBody) {
+      if (htmlClean.includes('</body>')) {
         htmlClean = htmlClean.replace('</body>', sigBlocksHtml + '</body>');
       } else {
         htmlClean += sigBlocksHtml;
       }
-    }
-
-    // Extrair rodapé institucional do HTML para colocar em todas as páginas
-    let footerContent = '';
-    const footerMatch = htmlClean.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>\s*<\/div>/);
-    if (footerMatch) {
-      footerContent = footerMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-      // Remover o footer do HTML
-      htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>\s*(<\/body>)/, '$1');
     }
 
     // Rodapé com QR Code + informações institucionais em TODAS as páginas

@@ -226,6 +226,9 @@ export const vehicles = mysqlTable("vehicles", {
   gpsDeviceId: varchar("gpsDeviceId", { length: 100 }),
   gpsDeviceModel: varchar("gpsDeviceModel", { length: 100 }),
 
+  // Garagem (SETE)
+  garageId: int("garageId"),
+
   observations: text("observations"),
 
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1776,3 +1779,90 @@ export type ChatConversation = typeof chatConversations.$inferSelect;
 export type InsertChatConversation = typeof chatConversations.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+// ============================================
+// SETE (FNDE) - FORNECEDORES
+// ============================================
+export const suppliers = mysqlTable("suppliers", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("supplierType", ["mecanica", "posto_combustivel", "seguradora", "autopecas", "borracharia", "eletrica", "funilaria", "outro"]).default("outro").notNull(),
+  cnpj: varchar("cnpj", { length: 18 }),
+  cpf: varchar("cpf", { length: 14 }),
+  contactName: varchar("contactName", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  address: text("address"),
+  city: varchar("city", { length: 255 }),
+  state: varchar("state", { length: 2 }),
+  cep: varchar("cep", { length: 9 }),
+  specialties: text("specialties"), // JSON array de especialidades
+  rating: int("rating"), // 1-5 estrelas
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = typeof suppliers.$inferInsert;
+
+// ============================================
+// SETE (FNDE) - ORDENS DE SERVICO
+// ============================================
+export const serviceOrders = mysqlTable("service_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  vehicleId: int("vehicleId").notNull().references(() => vehicles.id),
+  supplierId: int("supplierId").references(() => suppliers.id),
+  number: varchar("number", { length: 20 }).notNull(), // OS-001
+  type: mysqlEnum("serviceType", ["preventiva", "corretiva", "preditiva", "emergencial"]).default("corretiva").notNull(),
+  priority: mysqlEnum("servicePriority", ["baixa", "media", "alta", "urgente"]).default("media").notNull(),
+  description: text("description").notNull(),
+  diagnosis: text("diagnosis"),
+  solution: text("solution"),
+  parts: text("parts"), // JSON array de pecas usadas
+  laborCost: decimal("laborCost", { precision: 10, scale: 2 }).default("0"),
+  partsCost: decimal("partsCost", { precision: 10, scale: 2 }).default("0"),
+  totalCost: decimal("totalCost", { precision: 10, scale: 2 }).default("0"),
+  kmAtService: int("kmAtService"),
+  openedAt: timestamp("openedAt").defaultNow().notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  estimatedCompletionAt: timestamp("estimatedCompletionAt"),
+  requestedById: int("requestedById").references(() => users.id),
+  approvedById: int("approvedById").references(() => users.id),
+  invoiceNumber: varchar("invoiceNumber", { length: 50 }),
+  notes: text("notes"),
+  status: mysqlEnum("serviceOrderStatus", ["aberta", "aprovada", "em_andamento", "concluida", "cancelada"]).default("aberta").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ServiceOrder = typeof serviceOrders.$inferSelect;
+export type InsertServiceOrder = typeof serviceOrders.$inferInsert;
+
+// ============================================
+// SETE (FNDE) - GARAGENS
+// ============================================
+export const garages = mysqlTable("garages", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: text("address"),
+  city: varchar("city", { length: 255 }),
+  state: varchar("state", { length: 2 }),
+  cep: varchar("cep", { length: 9 }),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  capacity: int("capacity").default(10), // Capacidade de veiculos
+  contactName: varchar("contactName", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  type: mysqlEnum("garageType", ["propria", "alugada", "cedida", "conveniada"]).default("propria").notNull(),
+  notes: text("notes"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
-exports.formFieldConfigs = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
+exports.garages = exports.serviceOrders = exports.suppliers = exports.protocols = exports.bulletins = exports.classSchedules = exports.vehicleInspections = exports.chatMessages = exports.chatConversations = exports.classCouncilRecords = exports.quotationItems = exports.quotations = exports.events = exports.studentOccurrences = exports.formFieldConfigs = exports.documentSignatures = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -51,6 +51,8 @@ exports.municipalities = (0, mysql_core_1.mysqlTable)("municipalities", {
     secretarioCpf: (0, mysql_core_1.varchar)("secretarioCpf", { length: 14 }),
     secretarioCargo: (0, mysql_core_1.varchar)("secretarioCargo", { length: 100 }),
     secretarioDecreto: (0, mysql_core_1.varchar)("secretarioDecreto", { length: 100 }),
+    // Cargos customizados (JSON array de strings)
+    customRoles: (0, mysql_core_1.text)("customRoles"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -130,6 +132,12 @@ exports.users = (0, mysql_core_1.mysqlTable)("users", {
         "teacher", // Professor
         "coordinator", // Coordenador pedagógico
     ]).default("parent").notNull(),
+    // Dados profissionais (assinatura eletrônica)
+    jobTitle: (0, mysql_core_1.varchar)("jobTitle", { length: 255 }),
+    registrationNumber: (0, mysql_core_1.varchar)("registrationNumber", { length: 50 }),
+    decree: (0, mysql_core_1.varchar)("decree", { length: 255 }),
+    department: (0, mysql_core_1.varchar)("department", { length: 255 }),
+    qualification: (0, mysql_core_1.varchar)("qualification", { length: 255 }),
     // Status
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
     emailVerified: (0, mysql_core_1.boolean)("emailVerified").default(false),
@@ -174,6 +182,9 @@ exports.vehicles = (0, mysql_core_1.mysqlTable)("vehicles", {
     // GPS Device
     gpsDeviceId: (0, mysql_core_1.varchar)("gpsDeviceId", { length: 100 }),
     gpsDeviceModel: (0, mysql_core_1.varchar)("gpsDeviceModel", { length: 100 }),
+    // Garagem (SETE)
+    garageId: (0, mysql_core_1.int)("garageId"),
+    observations: (0, mysql_core_1.text)("observations"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -239,7 +250,7 @@ exports.students = (0, mysql_core_1.mysqlTable)("students", {
     grade: (0, mysql_core_1.varchar)("grade", { length: 50 }), // "5º Ano", "1ª Série"
     classRoom: (0, mysql_core_1.varchar)("classRoom", { length: 50 }), // "Turma A"
     enrollment: (0, mysql_core_1.varchar)("enrollment", { length: 50 }), // Numero de Matricula
-    shift: (0, mysql_core_1.mysqlEnum)("shift", ["morning", "afternoon", "evening"]).default("morning"),
+    shift: (0, mysql_core_1.mysqlEnum)("shift", ["morning", "afternoon", "evening", "full_time"]).default("morning"),
     // Foto
     photoUrl: (0, mysql_core_1.text)("photoUrl"),
     // Endereco completo
@@ -363,6 +374,20 @@ exports.routes = (0, mysql_core_1.mysqlTable)("routes", {
     operatingDays: (0, mysql_core_1.int)("operatingDays").default(31), // Seg-Sex
     // Distância total
     totalDistanceKm: (0, mysql_core_1.decimal)("totalDistanceKm", { precision: 10, scale: 2 }),
+    // Condições da Estrada (SETE)
+    hasGate: (0, mysql_core_1.boolean)("hasGate").default(false),
+    hasCattleGuard: (0, mysql_core_1.boolean)("hasCattleGuard").default(false),
+    hasLatch: (0, mysql_core_1.boolean)("hasLatch").default(false),
+    hasMudhole: (0, mysql_core_1.boolean)("hasMudhole").default(false),
+    hasRusticBridge: (0, mysql_core_1.boolean)("hasRusticBridge").default(false),
+    roadSurface: (0, mysql_core_1.varchar)("roadSurface", { length: 50 }).default("paved"),
+    // Custos mensais da rota
+    monthlyCostFuel: (0, mysql_core_1.decimal)("monthlyCostFuel", { precision: 10, scale: 2 }).default("0"),
+    monthlyCostMaintenance: (0, mysql_core_1.decimal)("monthlyCostMaintenance", { precision: 10, scale: 2 }).default("0"),
+    monthlyCostDriver: (0, mysql_core_1.decimal)("monthlyCostDriver", { precision: 10, scale: 2 }).default("0"),
+    monthlyCostMonitor: (0, mysql_core_1.decimal)("monthlyCostMonitor", { precision: 10, scale: 2 }).default("0"),
+    monthlyCostInsurance: (0, mysql_core_1.decimal)("monthlyCostInsurance", { precision: 10, scale: 2 }).default("0"),
+    costPerStudent: (0, mysql_core_1.decimal)("costPerStudent", { precision: 10, scale: 2 }).default("0"),
     // Status
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
@@ -489,6 +514,7 @@ exports.notifications = (0, mysql_core_1.mysqlTable)("notifications", {
         "arrived", // Ônibus chegou
         "student_boarded", // Aluno embarcou
         "student_dropped", // Aluno desembarcou
+        "student_absent", // Aluno ausente
         "trip_completed", // Viagem concluída
         "delay", // Atraso
         "alert", // Alerta geral
@@ -786,6 +812,7 @@ exports.classes = (0, mysql_core_1.mysqlTable)("classes", {
     roomNumber: (0, mysql_core_1.varchar)("roomNumber", { length: 20 }),
     teacherUserId: (0, mysql_core_1.int)("teacherUserId").references(() => exports.users.id),
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    generalNotes: (0, mysql_core_1.text)("generalNotes"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1270,6 +1297,20 @@ exports.documents = (0, mysql_core_1.mysqlTable)("documents", {
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
 });
 // ============================================
+// TABELA: ASSINATURAS ELETRÔNICAS DE DOCUMENTOS
+// ============================================
+exports.documentSignatures = (0, mysql_core_1.mysqlTable)("document_signatures", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    documentId: (0, mysql_core_1.int)("documentId").notNull().references(() => exports.documents.id),
+    signerId: (0, mysql_core_1.int)("signerId").notNull().references(() => exports.users.id),
+    signerName: (0, mysql_core_1.varchar)("signerName", { length: 255 }).notNull(),
+    signerRole: (0, mysql_core_1.varchar)("signerRole", { length: 255 }),
+    signerCpf: (0, mysql_core_1.varchar)("signerCpf", { length: 14 }),
+    signatureHash: (0, mysql_core_1.varchar)("signatureHash", { length: 64 }).notNull(), // SHA-256 of document hash + signer data
+    ipAddress: (0, mysql_core_1.varchar)("ipAddress", { length: 45 }),
+    signedAt: (0, mysql_core_1.timestamp)("signedAt").defaultNow().notNull(),
+});
+// ============================================
 // TABELA: CONFIGURAÇÃO DE CAMPOS OBRIGATÓRIOS
 // ============================================
 exports.formFieldConfigs = (0, mysql_core_1.mysqlTable)("form_field_configs", {
@@ -1279,4 +1320,248 @@ exports.formFieldConfigs = (0, mysql_core_1.mysqlTable)("form_field_configs", {
     fieldName: (0, mysql_core_1.varchar)("fieldName", { length: 100 }).notNull(), // cpf, rg, fatherName, etc
     isRequired: (0, mysql_core_1.boolean)("isRequired").default(false).notNull(),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: OCORRÊNCIAS DE ALUNOS
+// ============================================
+exports.studentOccurrences = (0, mysql_core_1.mysqlTable)("student_occurrences", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull(),
+    studentName: (0, mysql_core_1.varchar)("studentName", { length: 255 }),
+    date: (0, mysql_core_1.date)("date").notNull(),
+    type: (0, mysql_core_1.varchar)("type", { length: 50 }).notNull().default("outro"),
+    description: (0, mysql_core_1.text)("description").notNull(),
+    action: (0, mysql_core_1.text)("action"),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: EVENTOS
+// ============================================
+exports.events = (0, mysql_core_1.mysqlTable)("events", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    date: (0, mysql_core_1.date)("date").notNull(),
+    endDate: (0, mysql_core_1.date)("endDate"),
+    type: (0, mysql_core_1.varchar)("type", { length: 100 }).default("Outro"),
+    location: (0, mysql_core_1.varchar)("location", { length: 255 }),
+    description: (0, mysql_core_1.text)("description"),
+    responsible: (0, mysql_core_1.varchar)("responsible", { length: 255 }),
+    estimatedParticipants: (0, mysql_core_1.int)("estimatedParticipants").default(0),
+    budget: (0, mysql_core_1.decimal)("budget", { precision: 12, scale: 2 }).default("0"),
+    status: (0, mysql_core_1.varchar)("status", { length: 50 }).default("planejado"),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: COTAÇÕES
+// ============================================
+exports.quotations = (0, mysql_core_1.mysqlTable)("quotations", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    supplier1Name: (0, mysql_core_1.varchar)("supplier1Name", { length: 255 }).default("Fornecedor 1"),
+    supplier2Name: (0, mysql_core_1.varchar)("supplier2Name", { length: 255 }).default("Fornecedor 2"),
+    supplier3Name: (0, mysql_core_1.varchar)("supplier3Name", { length: 255 }).default("Fornecedor 3"),
+    winnerSupplier: (0, mysql_core_1.varchar)("winnerSupplier", { length: 255 }),
+    status: (0, mysql_core_1.varchar)("status", { length: 50 }).default("draft"),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: ITENS DE COTAÇÃO
+// ============================================
+exports.quotationItems = (0, mysql_core_1.mysqlTable)("quotation_items", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    quotationId: (0, mysql_core_1.int)("quotationId").notNull().references(() => exports.quotations.id),
+    description: (0, mysql_core_1.varchar)("description", { length: 255 }).notNull(),
+    unit: (0, mysql_core_1.varchar)("unit", { length: 10 }).default("un"),
+    quantity: (0, mysql_core_1.int)("quantity").default(1),
+    supplier1Price: (0, mysql_core_1.decimal)("supplier1Price", { precision: 12, scale: 2 }).default("0"),
+    supplier2Price: (0, mysql_core_1.decimal)("supplier2Price", { precision: 12, scale: 2 }).default("0"),
+    supplier3Price: (0, mysql_core_1.decimal)("supplier3Price", { precision: 12, scale: 2 }).default("0"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: CONSELHO DE CLASSE
+// ============================================
+exports.classCouncilRecords = (0, mysql_core_1.mysqlTable)("class_council_records", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    classId: (0, mysql_core_1.int)("classId").notNull(),
+    bimester: (0, mysql_core_1.int)("bimester").notNull().default(1),
+    studentId: (0, mysql_core_1.int)("studentId").notNull(),
+    decision: (0, mysql_core_1.varchar)("decision", { length: 30 }).default("aprovado"),
+    observations: (0, mysql_core_1.text)("observations"),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+    uqCouncil: (0, mysql_core_1.uniqueIndex)("uq_council").on(table.classId, table.bimester, table.studentId),
+}));
+// ============================================
+// TABELA: CONVERSAS DO CHAT
+// ============================================
+exports.chatConversations = (0, mysql_core_1.mysqlTable)("chat_conversations", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    participant1Id: (0, mysql_core_1.int)("participant1Id").notNull().references(() => exports.users.id),
+    participant2Id: (0, mysql_core_1.int)("participant2Id").notNull().references(() => exports.users.id),
+    lastMessageAt: (0, mysql_core_1.timestamp)("lastMessageAt").defaultNow().notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: MENSAGENS DO CHAT
+// ============================================
+exports.chatMessages = (0, mysql_core_1.mysqlTable)("chat_messages", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    conversationId: (0, mysql_core_1.int)("conversationId").notNull().references(() => exports.chatConversations.id),
+    senderId: (0, mysql_core_1.int)("senderId").notNull().references(() => exports.users.id),
+    content: (0, mysql_core_1.text)("content").notNull(),
+    isRead: (0, mysql_core_1.boolean)("isRead").default(false),
+    readAt: (0, mysql_core_1.timestamp)("readAt"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: VISTORIAS DE VEÍCULOS
+// ============================================
+exports.vehicleInspections = (0, mysql_core_1.mysqlTable)("vehicle_inspections", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    vehicleId: (0, mysql_core_1.int)("vehicleId").notNull().references(() => exports.vehicles.id),
+    inspectorName: (0, mysql_core_1.varchar)("inspectorName", { length: 255 }),
+    inspectionDate: (0, mysql_core_1.date)("inspectionDate").notNull(),
+    checks: (0, mysql_core_1.json)("checks"),
+    observations: (0, mysql_core_1.text)("observations"),
+    approvedCount: (0, mysql_core_1.int)("approvedCount").default(0),
+    rejectedCount: (0, mysql_core_1.int)("rejectedCount").default(0),
+    pendingCount: (0, mysql_core_1.int)("pendingCount").default(0),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: GRADE HORÁRIA
+// ============================================
+exports.classSchedules = (0, mysql_core_1.mysqlTable)("class_schedules", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    classId: (0, mysql_core_1.int)("classId").notNull().references(() => exports.classes.id),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    scheduleJson: (0, mysql_core_1.text)("scheduleJson"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: MURAL INFORMATIVO
+// ============================================
+exports.bulletins = (0, mysql_core_1.mysqlTable)("bulletins", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    title: (0, mysql_core_1.varchar)("title", { length: 255 }).notNull(),
+    content: (0, mysql_core_1.text)("content").notNull(),
+    category: (0, mysql_core_1.varchar)("category", { length: 50 }).default("informativo"),
+    pinned: (0, mysql_core_1.boolean)("pinned").default(false).notNull(),
+    author: (0, mysql_core_1.varchar)("author", { length: 255 }),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: PROTOCOLOS
+// ============================================
+exports.protocols = (0, mysql_core_1.mysqlTable)("protocols", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    number: (0, mysql_core_1.varchar)("number", { length: 20 }).notNull(),
+    date: (0, mysql_core_1.timestamp)("date").defaultNow().notNull(),
+    requester: (0, mysql_core_1.varchar)("requester", { length: 255 }).notNull(),
+    type: (0, mysql_core_1.varchar)("type", { length: 50 }).default("Requerimento"),
+    subject: (0, mysql_core_1.varchar)("subject", { length: 255 }).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    status: (0, mysql_core_1.varchar)("status", { length: 30 }).default("aberto"),
+    response: (0, mysql_core_1.text)("response"),
+    createdById: (0, mysql_core_1.int)("createdById"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// SETE (FNDE) - FORNECEDORES
+// ============================================
+exports.suppliers = (0, mysql_core_1.mysqlTable)("suppliers", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    type: (0, mysql_core_1.mysqlEnum)("supplierType", ["mecanica", "posto_combustivel", "seguradora", "autopecas", "borracharia", "eletrica", "funilaria", "outro"]).default("outro").notNull(),
+    cnpj: (0, mysql_core_1.varchar)("cnpj", { length: 18 }),
+    cpf: (0, mysql_core_1.varchar)("cpf", { length: 14 }),
+    contactName: (0, mysql_core_1.varchar)("contactName", { length: 255 }),
+    phone: (0, mysql_core_1.varchar)("phone", { length: 20 }),
+    email: (0, mysql_core_1.varchar)("email", { length: 320 }),
+    address: (0, mysql_core_1.text)("address"),
+    city: (0, mysql_core_1.varchar)("city", { length: 255 }),
+    state: (0, mysql_core_1.varchar)("state", { length: 2 }),
+    cep: (0, mysql_core_1.varchar)("cep", { length: 9 }),
+    specialties: (0, mysql_core_1.text)("specialties"), // JSON array de especialidades
+    rating: (0, mysql_core_1.int)("rating"), // 1-5 estrelas
+    notes: (0, mysql_core_1.text)("notes"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// SETE (FNDE) - ORDENS DE SERVICO
+// ============================================
+exports.serviceOrders = (0, mysql_core_1.mysqlTable)("service_orders", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    vehicleId: (0, mysql_core_1.int)("vehicleId").notNull().references(() => exports.vehicles.id),
+    supplierId: (0, mysql_core_1.int)("supplierId").references(() => exports.suppliers.id),
+    number: (0, mysql_core_1.varchar)("number", { length: 20 }).notNull(), // OS-001
+    type: (0, mysql_core_1.mysqlEnum)("serviceType", ["preventiva", "corretiva", "preditiva", "emergencial"]).default("corretiva").notNull(),
+    priority: (0, mysql_core_1.mysqlEnum)("servicePriority", ["baixa", "media", "alta", "urgente"]).default("media").notNull(),
+    description: (0, mysql_core_1.text)("description").notNull(),
+    diagnosis: (0, mysql_core_1.text)("diagnosis"),
+    solution: (0, mysql_core_1.text)("solution"),
+    parts: (0, mysql_core_1.text)("parts"), // JSON array de pecas usadas
+    laborCost: (0, mysql_core_1.decimal)("laborCost", { precision: 10, scale: 2 }).default("0"),
+    partsCost: (0, mysql_core_1.decimal)("partsCost", { precision: 10, scale: 2 }).default("0"),
+    totalCost: (0, mysql_core_1.decimal)("totalCost", { precision: 10, scale: 2 }).default("0"),
+    kmAtService: (0, mysql_core_1.int)("kmAtService"),
+    openedAt: (0, mysql_core_1.timestamp)("openedAt").defaultNow().notNull(),
+    startedAt: (0, mysql_core_1.timestamp)("startedAt"),
+    completedAt: (0, mysql_core_1.timestamp)("completedAt"),
+    estimatedCompletionAt: (0, mysql_core_1.timestamp)("estimatedCompletionAt"),
+    requestedById: (0, mysql_core_1.int)("requestedById").references(() => exports.users.id),
+    approvedById: (0, mysql_core_1.int)("approvedById").references(() => exports.users.id),
+    invoiceNumber: (0, mysql_core_1.varchar)("invoiceNumber", { length: 50 }),
+    notes: (0, mysql_core_1.text)("notes"),
+    status: (0, mysql_core_1.mysqlEnum)("serviceOrderStatus", ["aberta", "aprovada", "em_andamento", "concluida", "cancelada"]).default("aberta").notNull(),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// SETE (FNDE) - GARAGENS
+// ============================================
+exports.garages = (0, mysql_core_1.mysqlTable)("garages", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    address: (0, mysql_core_1.text)("address"),
+    city: (0, mysql_core_1.varchar)("city", { length: 255 }),
+    state: (0, mysql_core_1.varchar)("state", { length: 2 }),
+    cep: (0, mysql_core_1.varchar)("cep", { length: 9 }),
+    latitude: (0, mysql_core_1.decimal)("latitude", { precision: 10, scale: 8 }),
+    longitude: (0, mysql_core_1.decimal)("longitude", { precision: 11, scale: 8 }),
+    capacity: (0, mysql_core_1.int)("capacity").default(10), // Capacidade de veiculos
+    contactName: (0, mysql_core_1.varchar)("contactName", { length: 255 }),
+    phone: (0, mysql_core_1.varchar)("phone", { length: 20 }),
+    type: (0, mysql_core_1.mysqlEnum)("garageType", ["propria", "alugada", "cedida", "conveniada"]).default("propria").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

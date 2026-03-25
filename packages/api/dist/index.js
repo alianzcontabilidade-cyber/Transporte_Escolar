@@ -52,7 +52,10 @@ const index_1 = require("./db/index");
 const drizzle_orm_1 = require("drizzle-orm");
 const pdfService_1 = require("./services/pdfService");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const bcryptjs_1 = require("bcryptjs");
+const crypto_1 = require("crypto");
 const schema_1 = require("./db/schema");
+const drizzle_orm_2 = require("drizzle-orm");
 dotenv.config();
 // ============================================
 // SENTRY - MONITORAMENTO DE ERROS
@@ -95,11 +98,11 @@ const corsOptions = {
         // Domínio do Railway (produção)
         if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN))
             return callback(null, true);
-        // Subdomínios do Railway (*.railway.app)
-        if (origin.endsWith('.railway.app') || origin.endsWith('.up.railway.app'))
+        // Domínios específicos do Railway (produção)
+        if (origin.includes('endearing-radiance-production') || origin.includes('transporteescolar-production'))
             return callback(null, true);
-        // Localhost para desenvolvimento
-        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
+        // Localhost para desenvolvimento e Capacitor (https://localhost)
+        if (origin.startsWith('http://localhost') || origin.startsWith('https://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'capacitor://localhost')
             return callback(null, true);
         // Bloquear origens desconhecidas
         console.warn(`CORS bloqueado para origem: ${origin}`);
@@ -179,7 +182,7 @@ app.get('/api/health', async (_req, res) => {
     const mem = process.memoryUsage();
     res.json({
         status: dbStatus === 'connected' ? 'ok' : 'degraded',
-        version: '3.1.0',
+        version: '4.0.0',
         timestamp: new Date().toISOString(),
         uptime: Math.floor((Date.now() - startTime) / 1000),
         database: {
@@ -211,7 +214,7 @@ app.post('/api/pdf/generate', async (req, res) => {
         catch {
             return res.status(401).json({ error: 'Token inválido' });
         }
-        const { html, orientation, filename, docType, docTitle, studentId, schoolId } = req.body;
+        const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures } = req.body;
         if (!html)
             return res.status(400).json({ error: 'HTML é obrigatório' });
         const pdfStatus = await (0, pdfService_1.isPuppeteerAvailable)();
@@ -223,15 +226,74 @@ app.post('/api/pdf/generate', async (req, res) => {
             ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://transporteescolar-production.up.railway.app';
         const verifyUrl = `${baseUrl}/verificar/${verificationCode}`;
         const qrDataURL = await (0, pdfService_1.generateQRCodeDataURL)(verifyUrl);
-        // NÃO injetar QR no corpo do HTML - vai no rodapé de todas as páginas
+        // Se signAfterGenerate, buscar dados do usuário logado e verificar senha ANTES de gerar PDF
+        let autoSignUser = null;
+        if (signAfterGenerate && signerPassword) {
+            const [user] = await index_1.db.select({
+                id: schema_1.users.id, name: schema_1.users.name, cpf: schema_1.users.cpf, passwordHash: schema_1.users.passwordHash,
+                role: schema_1.users.role, jobTitle: schema_1.users.jobTitle, registrationNumber: schema_1.users.registrationNumber,
+                decree: schema_1.users.decree, department: schema_1.users.department,
+            }).from(schema_1.users).where((0, drizzle_orm_2.eq)(schema_1.users.id, tokenData.userId)).limit(1);
+            if (!user || !user.passwordHash)
+                return res.status(401).json({ error: 'Usuário não encontrado' });
+            const isValid = await (0, bcryptjs_1.compare)(signerPassword, user.passwordHash);
+            if (!isValid)
+                return res.status(401).json({ error: 'Senha incorreta' });
+            autoSignUser = user;
+        }
+        // Montar lista de assinantes (do request OU do usuário logado se signAfterGenerate)
+        let allSigners = [];
+        if (signatures && Array.isArray(signatures) && signatures.length > 0) {
+            allSigners = signatures;
+        }
+        if (autoSignUser) {
+            const roleMap = { super_admin: 'Administrador do Sistema', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a) Escolar', teacher: 'Professor(a)', driver: 'Motorista', monitor: 'Monitor(a)' };
+            allSigners.push({
+                signerName: autoSignUser.name,
+                signerRole: autoSignUser.jobTitle || roleMap[autoSignUser.role] || autoSignUser.role,
+                signerCpf: autoSignUser.cpf,
+                signerRegistration: autoSignUser.registrationNumber,
+                signerDecree: autoSignUser.decree,
+            });
+        }
         let htmlClean = html;
-        // Extrair rodapé institucional do HTML para colocar em todas as páginas
+        // PRIMEIRO: Extrair rodapé institucional ANTES de inserir assinaturas
         let footerContent = '';
         const footerMatch = htmlClean.match(/<div class="report-footer-bar">([\s\S]*?)<\/div>\s*<\/div>/);
         if (footerMatch) {
             footerContent = footerMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-            // Remover o footer do HTML
-            htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>\s*(<\/body>)/, '$1');
+            htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>/, '');
+        }
+        // DEPOIS: Injetar bloco de assinatura eletrônica
+        if (allSigners.length > 0) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const sigBlocksHtml = `
+        <div style="page-break-inside:avoid;margin-top:30px;border:1px solid #ccc;border-radius:4px;font-family:Arial,sans-serif;">
+          <div style="background:#f0f4f8;padding:8px 12px;border-bottom:1px solid #ccc;text-align:center;">
+            <strong style="font-size:11px;color:#1B3A5C;">Assinaturas Eletr&ocirc;nicas</strong>
+          </div>
+          ${allSigners.map((s, i) => {
+                const sigHash = verificationCode + '-' + (i + 1);
+                return `
+            <div style="padding:10px 15px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
+              <img src="${qrDataURL}" style="width:45px;height:45px;flex-shrink:0;"/>
+              <div style="flex:1;font-size:9px;line-height:1.5;color:#333;">
+                <div>Documento assinado eletronicamente por <strong>${s.signerName || ''}</strong>, <strong>${s.signerRole || ''}</strong>${s.signerDecree ? ` (${s.signerDecree})` : ''}${s.signerRegistration ? `, Mat. ${s.signerRegistration}` : ''}, em ${dateStr}.</div>
+                <div style="color:#666;margin-top:2px;">C&oacute;digo de verifica&ccedil;&atilde;o: <strong style="color:#1B3A5C;">${sigHash}</strong></div>
+              </div>
+            </div>`;
+            }).join('')}
+          <div style="padding:8px 15px;background:#f8f9fa;font-size:8px;color:#666;line-height:1.4;">
+            A autenticidade deste documento pode ser conferida acessando <strong>${verifyUrl}</strong>, informando o c&oacute;digo verificador <strong>${verificationCode}</strong>. Assinatura eletr&ocirc;nica avan&ccedil;ada conforme Art. 4&ordm; da Lei n&ordm; 14.063/2020 e MP 2.200-2/2001.
+          </div>
+        </div>`;
+            if (htmlClean.includes('</body>')) {
+                htmlClean = htmlClean.replace('</body>', sigBlocksHtml + '</body>');
+            }
+            else {
+                htmlClean += sigBlocksHtml;
+            }
         }
         // Rodapé com QR Code + informações institucionais em TODAS as páginas
         const footerTemplate = `<div style="width:100%;font-size:7px;color:#555;padding:2px 12mm;border-top:1px solid #ccc;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:space-between;gap:8px">
@@ -252,8 +314,9 @@ app.post('/api/pdf/generate', async (req, res) => {
         });
         // Registrar documento no banco
         const pdfHash = (0, pdfService_1.computePdfHash)(pdfBuffer);
+        let documentId = null;
         try {
-            await index_1.db.insert(schema_1.documents).values({
+            const [inserted] = await index_1.db.insert(schema_1.documents).values({
                 municipalityId: tokenData.municipalityId || 1,
                 verificationCode,
                 type: docType || 'documento',
@@ -263,16 +326,51 @@ app.post('/api/pdf/generate', async (req, res) => {
                 generatedById: tokenData.userId || 1,
                 pdfHash,
                 pdfSize: pdfBuffer.length,
-            });
+            }).$returningId();
+            documentId = inserted.id;
         }
         catch (dbErr) {
             console.warn('Aviso: não foi possível registrar documento:', dbErr.message);
+        }
+        // Auto-sign after generation (senha já verificada acima)
+        let signatureResult = null;
+        if (autoSignUser && documentId) {
+            try {
+                const now = new Date();
+                const signatureHash = (0, crypto_1.createHash)('sha256')
+                    .update(`${pdfHash}:${autoSignUser.id}:${now.toISOString()}`)
+                    .digest('hex');
+                const roleMap = { super_admin: 'Administrador do Sistema', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a) Escolar' };
+                const [sigResult] = await index_1.db.insert(schema_1.documentSignatures).values({
+                    documentId,
+                    signerId: autoSignUser.id,
+                    signerName: autoSignUser.name,
+                    signerRole: autoSignUser.jobTitle || roleMap[autoSignUser.role] || autoSignUser.role,
+                    signerCpf: autoSignUser.cpf || null,
+                    signatureHash,
+                    ipAddress: req.ip || req.socket.remoteAddress || null,
+                    signedAt: now,
+                }).$returningId();
+                signatureResult = {
+                    id: sigResult.id,
+                    signatureHash,
+                    signerName: autoSignUser.name,
+                    signedAt: now.toISOString(),
+                };
+            }
+            catch (sigErr) {
+                console.warn('Aviso: não foi possível assinar automaticamente:', sigErr.message);
+            }
         }
         const safeName = (filename || 'documento').replace(/[^a-zA-Z0-9\u00C0-\u024F_-]/g, '_') + '.pdf';
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.setHeader('X-Verification-Code', verificationCode);
+        if (documentId)
+            res.setHeader('X-Document-Id', String(documentId));
+        if (signatureResult)
+            res.setHeader('X-Signature-Hash', signatureResult.signatureHash);
         res.send(pdfBuffer);
     }
     catch (e) {
@@ -302,6 +400,17 @@ app.get('/api/documents/verify/:code', async (req, res) => {
         const { users: usersTable, municipalities } = await Promise.resolve().then(() => __importStar(require('./db/schema')));
         const [generator] = await index_1.db.select({ name: usersTable.name }).from(usersTable).where((0, drizzle_orm_1.sql) `${usersTable.id} = (SELECT generatedById FROM documents WHERE verificationCode = ${code})`).limit(1);
         const [mun] = await index_1.db.select({ name: municipalities.name }).from(municipalities).where((0, drizzle_orm_1.sql) `${municipalities.id} = (SELECT municipalityId FROM documents WHERE verificationCode = ${code})`).limit(1);
+        // Buscar assinaturas eletrônicas do documento
+        const sigs = await index_1.db.select({
+            id: schema_1.documentSignatures.id,
+            signerName: schema_1.documentSignatures.signerName,
+            signerRole: schema_1.documentSignatures.signerRole,
+            signerCpf: schema_1.documentSignatures.signerCpf,
+            signatureHash: schema_1.documentSignatures.signatureHash,
+            signedAt: schema_1.documentSignatures.signedAt,
+        }).from(schema_1.documentSignatures)
+            .where((0, drizzle_orm_2.eq)(schema_1.documentSignatures.documentId, doc.id))
+            .orderBy(schema_1.documentSignatures.signedAt);
         res.json({
             valid: doc.status === 'valid',
             code: doc.verificationCode,
@@ -313,6 +422,10 @@ app.get('/api/documents/verify/:code', async (req, res) => {
             municipality: mun?.name || '',
             pdfHash: doc.pdfHash,
             pdfSize: doc.pdfSize,
+            signatures: sigs.map(s => ({
+                ...s,
+                signerCpf: s.signerCpf ? s.signerCpf.replace(/(\d{3})\d{6}(\d{2})/, '$1.***.**$2') : null,
+            })),
         });
     }
     catch (e) {
@@ -330,9 +443,13 @@ app.use('/api/trpc', trpcExpress.createExpressMiddleware({
 }));
 // Socket.IO events
 io.on('connection', (socket) => {
-    console.log('🔌 Socket conectado:', socket.id);
+    // Socket conectado (sem log para reduzir ruído)
     socket.on('join:municipality', (municipalityId) => {
         socket.join(`municipality:${municipalityId}`);
+    });
+    // Chat: usuario entra na sala pessoal para receber mensagens diretas
+    socket.on('join:user', (userId) => {
+        socket.join(`user:${userId}`);
     });
     // Manter compatibilidade com emissões diretas do cliente
     socket.on('bus:location', (data) => {
@@ -351,7 +468,7 @@ io.on('connection', (socket) => {
         }
     });
     socket.on('disconnect', () => {
-        console.log('🔌 Socket desconectado:', socket.id);
+        // Socket desconectado
     });
 });
 // Serve frontend estático (produção)
@@ -399,9 +516,5 @@ process.on('uncaughtException', (err) => {
 // ============================================
 const PORT = parseInt(process.env.PORT || '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 NetEscol API v3.1.0 rodando na porta ${PORT}`);
-    console.log(`📡 Socket.IO ativo`);
-    console.log(`🌐 Frontend servido de: ${finalFrontendPath}`);
-    console.log(`🖨️ PDF endpoint: /api/pdf/generate`);
-    console.log(`❤️ Health: /api/health`);
+    console.log(`🚀 NetEscol API v4.0.0 | porta ${PORT} | Socket.IO ativo`);
 });

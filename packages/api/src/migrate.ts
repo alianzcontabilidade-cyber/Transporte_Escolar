@@ -303,6 +303,62 @@ async function migrate() {
       catch { /* already exists */ }
     }
 
+    // SETE (FNDE) - Fornecedores
+    const seteTables = [
+      `CREATE TABLE IF NOT EXISTS suppliers (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        supplierType ENUM('mecanica','posto_combustivel','seguradora','autopecas','borracharia','eletrica','funilaria','outro') NOT NULL DEFAULT 'outro',
+        cnpj VARCHAR(18), cpf VARCHAR(14), contactName VARCHAR(255),
+        phone VARCHAR(20), email VARCHAR(320), address TEXT,
+        city VARCHAR(255), state VARCHAR(2), cep VARCHAR(9),
+        specialties TEXT, rating INT, notes TEXT,
+        isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
+      `CREATE TABLE IF NOT EXISTS service_orders (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        vehicleId INT NOT NULL, supplierId INT,
+        number VARCHAR(20) NOT NULL,
+        serviceType ENUM('preventiva','corretiva','preditiva','emergencial') NOT NULL DEFAULT 'corretiva',
+        servicePriority ENUM('baixa','media','alta','urgente') NOT NULL DEFAULT 'media',
+        description TEXT NOT NULL, diagnosis TEXT, solution TEXT,
+        parts TEXT, laborCost DECIMAL(10,2) DEFAULT 0, partsCost DECIMAL(10,2) DEFAULT 0,
+        totalCost DECIMAL(10,2) DEFAULT 0, kmAtService INT,
+        openedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        startedAt TIMESTAMP NULL, completedAt TIMESTAMP NULL,
+        estimatedCompletionAt TIMESTAMP NULL,
+        requestedById INT, approvedById INT,
+        invoiceNumber VARCHAR(50), notes TEXT,
+        serviceOrderStatus ENUM('aberta','aprovada','em_andamento','concluida','cancelada') NOT NULL DEFAULT 'aberta',
+        isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+        FOREIGN KEY (vehicleId) REFERENCES vehicles(id))`,
+      `CREATE TABLE IF NOT EXISTS garages (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL, address TEXT,
+        city VARCHAR(255), state VARCHAR(2), cep VARCHAR(9),
+        latitude DECIMAL(10,8), longitude DECIMAL(11,8),
+        capacity INT DEFAULT 10, contactName VARCHAR(255),
+        phone VARCHAR(20),
+        garageType ENUM('propria','alugada','cedida','conveniada') NOT NULL DEFAULT 'propria',
+        notes TEXT, isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
+    ];
+    for (const sql of seteTables) {
+      try { await conn.execute(sql); }
+      catch { /* already exists */ }
+    }
+
+    // Add garageId to vehicles
+    try { await conn.execute(`ALTER TABLE vehicles ADD COLUMN garageId INT`); }
+    catch { /* already exists */ }
+
     console.log('Migration complete');
 
   } catch (err: any) {

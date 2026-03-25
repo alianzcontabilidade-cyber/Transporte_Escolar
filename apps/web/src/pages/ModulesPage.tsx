@@ -54,6 +54,8 @@ const MODULES = [
       { to: '/rotas', text: 'Rotas' }, { to: '/veiculos', text: 'Veículos' },
       { to: '/monitor', text: 'Monitoramento' }, { to: '/mapa-tempo-real', text: 'Mapa GPS' },
       { to: '/motoristas', text: 'Motoristas' }, { to: '/portal-responsavel', text: 'Portal Pais' },
+      { to: '/fornecedores', text: 'Fornecedores' }, { to: '/ordens-servico', text: 'Ordens de Servico' },
+      { to: '/garagens', text: 'Garagens' },
     ],
   },
   {

@@ -10,7 +10,7 @@ import {
   Bell, Shield, Brain, Wrench, UserCheck, ChevronRight, Navigation,
   Locate, MapPinned, Download, Calendar, BookOpen, Briefcase,
   GraduationCap, DollarSign, Package, Database, Moon, Sun, AlertTriangle,
-  Search, PanelLeftClose, PanelLeft, Star, Clock, FileCheck
+  Search, PanelLeftClose, PanelLeft, Star, Clock, FileCheck, Building2, Warehouse
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
@@ -232,6 +232,9 @@ export default function Layout() {
     { code: '417', to: '/relatorio-rh', text: 'Relatório RH', module: 'Gestão e Recursos', desc: 'Quadro de pessoal por cargo e departamento', tags: 'rh pessoal servidor cargo departamento vinculo', color: '#0ea5e9' },
     { code: '418', to: '/relatorio-patrimonio', text: 'Relatório Patrimônio', module: 'Gestão e Recursos', desc: 'Inventário de bens patrimoniais', tags: 'patrimonio bem inventario tombamento valor ativo', color: '#0ea5e9' },
     { code: '419', to: '/relatorio-educacenso', text: 'Relatório EDUCACENSO', module: 'Gestão e Recursos', desc: 'Dados consolidados para o Censo Escolar', tags: 'educacenso censo escolar inep aluno turma rural transporte', color: '#0ea5e9' },
+    { code: '316', to: '/fornecedores', text: 'Fornecedores', module: 'Frota e Rotas', desc: 'Mecanicas, postos de combustivel, seguradoras', tags: 'fornecedor mecanica posto seguradora autopeca borracharia', color: '#f97316' },
+    { code: '317', to: '/ordens-servico', text: 'Ordens de Servico', module: 'Frota e Rotas', desc: 'OS de manutencao preventiva e corretiva', tags: 'ordem servico os manutencao veiculo mecanica reparo', color: '#f97316' },
+    { code: '318', to: '/garagens', text: 'Garagens', module: 'Frota e Rotas', desc: 'Locais de guarda e estacionamento da frota', tags: 'garagem estacionamento frota veiculo guarda local', color: '#f97316' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -291,6 +294,9 @@ export default function Layout() {
       { to: '/quilometragem', icon: BarChart3, text: 'Quilometragem' },
       { to: '/abastecimento', icon: BarChart3, text: 'Abastecimento' },
       { to: '/relatorio-manutencoes', icon: ClipboardList, text: 'Manutenções' },
+      { to: '/fornecedores', icon: Building2, text: 'Fornecedores' },
+      { to: '/ordens-servico', icon: ClipboardList, text: 'Ordens de Servico' },
+      { to: '/garagens', icon: Warehouse, text: 'Garagens' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },

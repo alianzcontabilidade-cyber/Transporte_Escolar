@@ -17,7 +17,8 @@ import {
   studentOccurrences, events, quotations, quotationItems, classCouncilRecords, vehicleInspections,
   documents, documentSignatures,
   chatConversations, chatMessages,
-  classSchedules, bulletins, protocols
+  classSchedules, bulletins, protocols,
+  suppliers, serviceOrders, garages
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -6304,6 +6305,163 @@ export const protocolsRouter = t.router({
 });
 
 // ============================================
+// SETE (FNDE) - FORNECEDORES
+// ============================================
+const suppliersRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(suppliers)
+        .where(and(eq(suppliers.municipalityId, input.municipalityId), eq(suppliers.isActive, true)))
+        .orderBy(suppliers.name);
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), name: z.string(), type: z.string().optional(),
+      cnpj: z.string().optional(), cpf: z.string().optional(),
+      contactName: z.string().optional(), phone: z.string().optional(),
+      email: z.string().optional(), address: z.string().optional(),
+      city: z.string().optional(), state: z.string().optional(), cep: z.string().optional(),
+      specialties: z.string().optional(), rating: z.number().optional(), notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [r] = await db.insert(suppliers).values(input as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), name: z.string().optional(), type: z.string().optional(),
+      cnpj: z.string().optional(), cpf: z.string().optional(),
+      contactName: z.string().optional(), phone: z.string().optional(),
+      email: z.string().optional(), address: z.string().optional(),
+      city: z.string().optional(), state: z.string().optional(), cep: z.string().optional(),
+      specialties: z.string().optional(), rating: z.number().optional(), notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(suppliers).set(data as any).where(eq(suppliers.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(suppliers).set({ isActive: false }).where(eq(suppliers.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
+// SETE (FNDE) - ORDENS DE SERVICO
+// ============================================
+const serviceOrdersRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(serviceOrders)
+        .where(and(eq(serviceOrders.municipalityId, input.municipalityId), eq(serviceOrders.isActive, true)))
+        .orderBy(desc(serviceOrders.openedAt));
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), vehicleId: z.number(), supplierId: z.number().optional(),
+      number: z.string(), type: z.string().optional(), priority: z.string().optional(),
+      description: z.string(), diagnosis: z.string().optional(), solution: z.string().optional(),
+      parts: z.string().optional(), laborCost: z.string().optional(), partsCost: z.string().optional(),
+      totalCost: z.string().optional(), kmAtService: z.number().optional(),
+      estimatedCompletionAt: z.string().optional(), invoiceNumber: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { estimatedCompletionAt, ...rest } = input;
+      const [r] = await db.insert(serviceOrders).values({
+        ...rest, requestedById: ctx.userId,
+        estimatedCompletionAt: estimatedCompletionAt ? new Date(estimatedCompletionAt) : undefined,
+      } as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), supplierId: z.number().optional(),
+      type: z.string().optional(), priority: z.string().optional(),
+      description: z.string().optional(), diagnosis: z.string().optional(), solution: z.string().optional(),
+      parts: z.string().optional(), laborCost: z.string().optional(), partsCost: z.string().optional(),
+      totalCost: z.string().optional(), kmAtService: z.number().optional(),
+      status: z.string().optional(), invoiceNumber: z.string().optional(),
+      notes: z.string().optional(),
+      startedAt: z.string().optional(), completedAt: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, startedAt, completedAt, ...rest } = input;
+      const data: any = { ...rest };
+      if (startedAt) data.startedAt = new Date(startedAt);
+      if (completedAt) data.completedAt = new Date(completedAt);
+      if (input.status === 'aprovada') data.approvedById = ctx.userId;
+      await db.update(serviceOrders).set(data).where(eq(serviceOrders.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(serviceOrders).set({ isActive: false }).where(eq(serviceOrders.id, input.id));
+      return { success: true };
+    }),
+  nextNumber: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      const [last] = await db.select({ number: serviceOrders.number }).from(serviceOrders)
+        .where(eq(serviceOrders.municipalityId, input.municipalityId))
+        .orderBy(desc(serviceOrders.id)).limit(1);
+      if (!last) return 'OS-001';
+      const num = parseInt(last.number.replace(/\D/g, '') || '0') + 1;
+      return `OS-${String(num).padStart(3, '0')}`;
+    }),
+});
+
+// ============================================
+// SETE (FNDE) - GARAGENS
+// ============================================
+const garagesRouter = t.router({
+  list: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(garages)
+        .where(and(eq(garages.municipalityId, input.municipalityId), eq(garages.isActive, true)))
+        .orderBy(garages.name);
+    }),
+  create: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), name: z.string(),
+      address: z.string().optional(), city: z.string().optional(), state: z.string().optional(),
+      cep: z.string().optional(), latitude: z.string().optional(), longitude: z.string().optional(),
+      capacity: z.number().optional(), contactName: z.string().optional(),
+      phone: z.string().optional(), type: z.string().optional(), notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [r] = await db.insert(garages).values(input as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+  update: adminProcedure
+    .input(z.object({
+      id: z.number(), name: z.string().optional(),
+      address: z.string().optional(), city: z.string().optional(), state: z.string().optional(),
+      cep: z.string().optional(), latitude: z.string().optional(), longitude: z.string().optional(),
+      capacity: z.number().optional(), contactName: z.string().optional(),
+      phone: z.string().optional(), type: z.string().optional(), notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(garages).set(data as any).where(eq(garages.id, id));
+      return { success: true };
+    }),
+  delete: adminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(garages).set({ isActive: false }).where(eq(garages.id, input.id));
+      return { success: true };
+    }),
+});
+
+// ============================================
 // BACKUP DE DADOS (JSON)
 // ============================================
 const backupRouter = t.router({
@@ -6580,6 +6738,10 @@ export const appRouter = t.router({
   protocols: protocolsRouter,
   // Backup de Dados
   backup: backupRouter,
+  // SETE (FNDE) - Fornecedores, OS, Garagens
+  suppliers: suppliersRouter,
+  serviceOrders: serviceOrdersRouter,
+  garages: garagesRouter,
 });
 
 export type AppRouter = typeof appRouter;

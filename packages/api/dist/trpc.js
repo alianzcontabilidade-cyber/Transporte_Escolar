@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.academicProcedure = exports.staffProcedure = exports.adminProcedure = exports.protectedProcedure = exports.publicProcedure = exports.t = exports.JWT_SECRET = void 0;
+exports.academicProcedure = exports.staffProcedure = exports.superAdminProcedure = exports.adminProcedure = exports.protectedProcedure = exports.publicProcedure = exports.t = exports.JWT_SECRET = void 0;
 exports.validateCPF = validateCPF;
 exports.validateCNPJ = validateCNPJ;
 exports.validateOptionalCPF = validateOptionalCPF;
@@ -98,6 +98,12 @@ exports.protectedProcedure = exports.t.procedure.use(async ({ ctx, next }) => {
 exports.adminProcedure = exports.protectedProcedure.use(async ({ ctx, next }) => {
     if (!['super_admin', 'municipal_admin', 'secretary'].includes(ctx.role || '')) {
         throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão de administrador' });
+    }
+    return next({ ctx });
+});
+exports.superAdminProcedure = exports.protectedProcedure.use(async ({ ctx, next }) => {
+    if (ctx.role !== 'super_admin') {
+        throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a super administrador' });
     }
     return next({ ctx });
 });

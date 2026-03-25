@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appRouter = exports.studentHistoryRouter = exports.fuelRouter = exports.formConfigRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.eventsRouter = exports.studentOccurrencesRouter = exports.studentHistoryRouter = exports.fuelRouter = exports.formConfigRouter = exports.studentDocumentsRouter = exports.waitingListRouter = exports.messagesRouter = exports.schoolCalendarRouter = exports.descriptiveReportsRouter = exports.transparencyRouter = exports.educacensoRouter = exports.inventoryRouter = exports.assetsRouter = exports.libraryLoansRouter = exports.libraryBooksRouter = exports.mealMenusRouter = exports.financialTransactionsRouter = exports.financialAccountsRouter = exports.staffEvaluationsRouter = exports.staffAllocationsRouter = exports.departmentsRouter = exports.positionsRouter = exports.lessonPlansRouter = exports.studentGradesRouter = exports.assessmentsRouter = exports.diaryAttendanceRouter = exports.classSubjectsRouter = exports.teachersRouter = exports.enrollmentsRouter = exports.classesRouter = exports.subjectsRouter = exports.classGradesRouter = exports.academicYearsRouter = exports.maintenanceRouter = exports.contractsRouter = exports.monitorStaffRouter = exports.monitorsRouter = exports.guardiansRouter = exports.usersRouter = exports.notificationsRouter = exports.driversRouter = exports.vehiclesRouter = exports.tripsRouter = exports.studentsRouter = exports.stopsRouter = exports.routesRouter = exports.schoolsRouter = exports.municipalitiesRouter = exports.authRouter = void 0;
+exports.appRouter = exports.protocolsRouter = exports.bulletinsRouter = exports.classSchedulesRouter = exports.chatRouter = exports.aiRouter = exports.documentSignaturesRouter = exports.documentsRouter = exports.vehicleInspectionsRouter = exports.classCouncilRouter = exports.quotationItemsRouter = exports.quotationsRouter = void 0;
 const server_1 = require("@trpc/server");
 const trpc_1 = require("./trpc");
 const zod_1 = require("zod");
@@ -9,7 +10,107 @@ const schema_1 = require("./db/schema");
 const drizzle_orm_1 = require("drizzle-orm");
 const bcryptjs_1 = require("bcryptjs");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const crypto_1 = require("crypto");
 const socketInstance_1 = require("./socketInstance");
+const routeOptimizer_1 = require("./services/routeOptimizer");
+const helpers_1 = require("./helpers");
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    ROUTERS - TABLE OF CONTENTS                  ║
+// ╠══════════════════════════════════════════════════════════════════╣
+// ║                                                                  ║
+// ║  AUTENTICACAO                                                    ║
+// ║    authRouter .......................... linha ~42               ║
+// ║                                                                  ║
+// ║  MUNICIPIO E ESCOLAS                                             ║
+// ║    municipalitiesRouter ............... linha ~448               ║
+// ║    schoolsRouter ...................... linha ~665               ║
+// ║                                                                  ║
+// ║  TRANSPORTE                                                      ║
+// ║    routesRouter ....................... linha ~765               ║
+// ║    stopsRouter ........................ linha ~869               ║
+// ║    vehiclesRouter ..................... linha ~1672              ║
+// ║    driversRouter ...................... linha ~1758              ║
+// ║    tripsRouter ........................ linha ~1415              ║
+// ║    locationRouter ..................... linha ~3029              ║
+// ║    fuelRouter ......................... linha ~4779              ║
+// ║    maintenanceRouter .................. linha ~2947              ║
+// ║    vehicleInspectionsRouter ........... linha ~5165              ║
+// ║                                                                  ║
+// ║  ALUNOS E RESPONSAVEIS                                           ║
+// ║    studentsRouter ..................... linha ~950               ║
+// ║    guardiansRouter .................... linha ~2039              ║
+// ║    studentHistoryRouter ............... linha ~4822              ║
+// ║    studentOccurrencesRouter ........... linha ~4880              ║
+// ║    studentDocumentsRouter ............. linha ~4726              ║
+// ║    waitingListRouter .................. linha ~4705              ║
+// ║                                                                  ║
+// ║  MONITORES                                                       ║
+// ║    monitorsRouter ..................... linha ~2503              ║
+// ║    monitorStaffRouter ................. linha ~2777              ║
+// ║                                                                  ║
+// ║  MODULO ACADEMICO                                                ║
+// ║    academicYearsRouter ................ linha ~3143              ║
+// ║    classGradesRouter .................. linha ~3205              ║
+// ║    classesRouter ...................... linha ~3305              ║
+// ║    subjectsRouter ..................... linha ~3256              ║
+// ║    classSubjectsRouter ................ linha ~3766              ║
+// ║    enrollmentsRouter .................. linha ~3401              ║
+// ║    teachersRouter ..................... linha ~3658              ║
+// ║                                                                  ║
+// ║  DIARIO ESCOLAR E NOTAS                                          ║
+// ║    diaryAttendanceRouter .............. linha ~3829              ║
+// ║    assessmentsRouter .................. linha ~3908              ║
+// ║    studentGradesRouter ................ linha ~3970              ║
+// ║    lessonPlansRouter .................. linha ~4045              ║
+// ║    descriptiveReportsRouter ........... linha ~4512              ║
+// ║                                                                  ║
+// ║  RH                                                              ║
+// ║    positionsRouter .................... linha ~4111              ║
+// ║    departmentsRouter .................. linha ~4145              ║
+// ║    staffAllocationsRouter ............. linha ~4170              ║
+// ║    staffEvaluationsRouter ............. linha ~4213              ║
+// ║                                                                  ║
+// ║  FINANCEIRO E CONTRATOS                                          ║
+// ║    financialAccountsRouter ............ linha ~4255              ║
+// ║    financialTransactionsRouter ........ linha ~4270              ║
+// ║    contractsRouter .................... linha ~2863              ║
+// ║                                                                  ║
+// ║  RECURSOS OPERACIONAIS                                           ║
+// ║    mealMenusRouter .................... linha ~4290              ║
+// ║    libraryBooksRouter ................. linha ~4306              ║
+// ║    libraryLoansRouter ................. linha ~4325              ║
+// ║    assetsRouter ....................... linha ~4341              ║
+// ║    inventoryRouter .................... linha ~4356              ║
+// ║                                                                  ║
+// ║  DOCUMENTOS E ASSINATURAS                                        ║
+// ║    documentsRouter .................... linha ~5165              ║
+// ║    documentSignaturesRouter ........... linha ~5227              ║
+// ║                                                                  ║
+// ║  ADMINISTRACAO                                                   ║
+// ║    usersRouter ........................ linha ~1938              ║
+// ║    formConfigRouter ................... linha ~4745              ║
+// ║    schoolCalendarRouter ............... linha ~4532              ║
+// ║    messagesRouter ..................... linha ~4691              ║
+// ║    notificationsRouter ................ linha ~1905              ║
+// ║                                                                  ║
+// ║  INTEGRACOES E TRANSPARENCIA                                     ║
+// ║    educacensoRouter ................... linha ~4385              ║
+// ║    transparencyRouter ................. linha ~4456              ║
+// ║                                                                  ║
+// ║  EVENTOS E OCORRENCIAS                                           ║
+// ║    eventsRouter ....................... linha ~4920              ║
+// ║    quotationsRouter ................... linha ~4970              ║
+// ║    quotationItemsRouter ............... linha ~5018              ║
+// ║    classCouncilRouter ................. linha ~5065              ║
+// ║                                                                  ║
+// ║  IA E OTIMIZACAO                                                 ║
+// ║    aiRouter ........................... linha ~5355              ║
+// ║                                                                  ║
+// ║  BACKUP DE DADOS                                                  ║
+// ║    backupRouter ....................... linha ~6240              ║
+// ║                                                                  ║
+// ║  APP ROUTER (composicao final) ........ linha ~6360              ║
+// ╚══════════════════════════════════════════════════════════════════╝
 // ============================================
 // AUTH ROUTER
 // ============================================
@@ -48,6 +149,49 @@ exports.authRouter = trpc_1.t.router({
             role: 'municipal_admin',
         }).$returningId();
         return { success: true, municipalityId: municipality.id, userId: user.id, message: 'Prefeitura cadastrada com sucesso!' };
+    }),
+    // Buscar dados do responsável pelo CPF (público, para tela de cadastro)
+    lookupGuardianByCpf: trpc_1.publicProcedure
+        .input(zod_1.z.object({ cpf: zod_1.z.string() }))
+        .query(async ({ input }) => {
+        const cpfClean = input.cpf.replace(/\D/g, '');
+        if (cpfClean.length !== 11)
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'CPF inválido' });
+        // Format CPF variations for matching
+        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        // Search in students table for fatherCpf or motherCpf
+        const matchingStudents = await index_1.db.select({
+            id: schema_1.students.id,
+            name: schema_1.students.name,
+            enrollment: schema_1.students.enrollment,
+            grade: schema_1.students.grade,
+            schoolId: schema_1.students.schoolId,
+            fatherName: schema_1.students.fatherName,
+            fatherCpf: schema_1.students.fatherCpf,
+            fatherPhone: schema_1.students.fatherPhone,
+            motherName: schema_1.students.motherName,
+            motherCpf: schema_1.students.motherCpf,
+            motherPhone: schema_1.students.motherPhone,
+        }).from(schema_1.students)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.students.fatherCpf, cpfClean), (0, drizzle_orm_1.eq)(schema_1.students.fatherCpf, cpfFormatted), (0, drizzle_orm_1.eq)(schema_1.students.motherCpf, cpfClean), (0, drizzle_orm_1.eq)(schema_1.students.motherCpf, cpfFormatted)));
+        if (matchingStudents.length === 0) {
+            return { found: false, guardianName: null, guardianPhone: null, relationship: null, students: [] };
+        }
+        // Determine if father or mother
+        const first = matchingStudents[0];
+        const isFather = first.fatherCpf?.replace(/\D/g, '') === cpfClean;
+        return {
+            found: true,
+            guardianName: isFather ? first.fatherName : first.motherName,
+            guardianPhone: isFather ? first.fatherPhone : first.motherPhone,
+            relationship: isFather ? 'father' : 'mother',
+            students: matchingStudents.map(s => ({
+                id: s.id,
+                name: s.name,
+                enrollment: s.enrollment,
+                grade: s.grade,
+            })),
+        };
     }),
     registerGuardian: trpc_1.publicProcedure
         .input(zod_1.z.object({
@@ -105,29 +249,55 @@ exports.authRouter = trpc_1.t.router({
             }).$returningId();
             userId = user.id;
         }
-        // Check if guardian relationship already exists
+        // Create guardian link for the first student (by enrollment)
         const existingGuardian = await index_1.db.select().from(schema_1.guardians)
             .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.guardians.userId, userId), (0, drizzle_orm_1.eq)(schema_1.guardians.studentId, student.id)))
             .limit(1);
-        if (existingGuardian.length > 0) {
-            throw new server_1.TRPCError({ code: 'CONFLICT', message: 'Este aluno já está vinculado ao seu perfil.' });
+        if (existingGuardian.length === 0) {
+            await index_1.db.insert(schema_1.guardians).values({
+                userId,
+                studentId: student.id,
+                relationship: input.relationship || 'other',
+                isPrimary: true,
+                canPickup: true,
+            });
         }
-        // Create guardian link
-        await index_1.db.insert(schema_1.guardians).values({
-            userId,
-            studentId: student.id,
-            relationship: input.relationship || 'other',
-            isPrimary: true,
-            canPickup: true,
-        });
+        // Auto-link ALL other students that match the guardian's CPF
+        let linkedCount = 1;
+        if (input.cpf) {
+            const cpfClean = input.cpf.replace(/\D/g, '');
+            const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            const allMatchingStudents = await index_1.db.select({ id: schema_1.students.id, fatherCpf: schema_1.students.fatherCpf }).from(schema_1.students)
+                .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.students.fatherCpf, cpfClean), (0, drizzle_orm_1.eq)(schema_1.students.fatherCpf, cpfFormatted), (0, drizzle_orm_1.eq)(schema_1.students.motherCpf, cpfClean), (0, drizzle_orm_1.eq)(schema_1.students.motherCpf, cpfFormatted)));
+            for (const ms of allMatchingStudents) {
+                if (ms.id === student.id)
+                    continue; // already linked above
+                const alreadyLinked = await index_1.db.select().from(schema_1.guardians)
+                    .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.guardians.userId, userId), (0, drizzle_orm_1.eq)(schema_1.guardians.studentId, ms.id)))
+                    .limit(1);
+                if (alreadyLinked.length === 0) {
+                    const isFather = ms.fatherCpf?.replace(/\D/g, '') === cpfClean;
+                    await index_1.db.insert(schema_1.guardians).values({
+                        userId,
+                        studentId: ms.id,
+                        relationship: isFather ? 'father' : 'mother',
+                        isPrimary: true,
+                        canPickup: true,
+                    });
+                    linkedCount++;
+                }
+            }
+        }
+        const studentMsg = linkedCount > 1 ? `${linkedCount} alunos vinculados` : `Aluno ${student.name} vinculado`;
         return {
             success: true,
             userId,
             studentName: student.name,
+            linkedCount,
             isExistingUser,
             message: isExistingUser
-                ? `Aluno ${student.name} vinculado ao seu perfil existente! Faça login com suas credenciais habituais.`
-                : 'Cadastro realizado! Você já pode acompanhar o transporte.'
+                ? `${studentMsg} ao seu perfil existente! Faça login com suas credenciais habituais.`
+                : `Cadastro realizado! ${studentMsg}. Você já pode acompanhar o transporte.`
         };
     }),
     // Login flexível: email, CPF ou nome
@@ -275,6 +445,21 @@ exports.authRouter = trpc_1.t.router({
             throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
         return { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId };
     }),
+    // Resetar senha (admin)
+    adminResetPassword: trpc_1.adminProcedure
+        .input(zod_1.z.object({ userId: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        const [user] = await index_1.db.select().from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, input.userId)).limit(1);
+        if (!user)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let newPassword = '';
+        for (let i = 0; i < 8; i++)
+            newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+        const passwordHash = await (0, bcryptjs_1.hash)(newPassword, 12);
+        await index_1.db.update(schema_1.users).set({ passwordHash }).where((0, drizzle_orm_1.eq)(schema_1.users.id, input.userId));
+        return { success: true, generatedPassword: newPassword };
+    }),
 });
 // ============================================
 // MUNICIPALITIES ROUTER
@@ -317,6 +502,7 @@ exports.municipalitiesRouter = trpc_1.t.router({
         secretarioCpf: zod_1.z.string().optional(),
         secretarioCargo: zod_1.z.string().optional(),
         secretarioDecreto: zod_1.z.string().optional(),
+        customRoles: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const { id, ...data } = input;
@@ -376,6 +562,80 @@ exports.municipalitiesRouter = trpc_1.t.router({
         .mutation(async ({ input }) => {
         await index_1.db.delete(schema_1.municipalityResponsibles).where((0, drizzle_orm_1.eq)(schema_1.municipalityResponsibles.id, input.id));
         return { success: true };
+    }),
+    // List all municipalities (super_admin only)
+    list: trpc_1.superAdminProcedure
+        .query(async () => {
+        const allMuns = await index_1.db.select().from(schema_1.municipalities).orderBy(schema_1.municipalities.name);
+        const results = await Promise.all(allMuns.map(async (m) => {
+            const [schoolCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.schools).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.schools.municipalityId, m.id), (0, drizzle_orm_1.eq)(schema_1.schools.isActive, true)));
+            const [studentCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, m.id), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)));
+            const [routeCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.routes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, m.id), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true)));
+            const [vehicleCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.vehicles).where((0, drizzle_orm_1.eq)(schema_1.vehicles.municipalityId, m.id));
+            const [driverCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.drivers).where((0, drizzle_orm_1.eq)(schema_1.drivers.municipalityId, m.id));
+            const [tripCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.trips)
+                .innerJoin(schema_1.routes, (0, drizzle_orm_1.eq)(schema_1.trips.routeId, schema_1.routes.id))
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, m.id), (0, drizzle_orm_1.eq)(schema_1.trips.status, 'started')));
+            return {
+                ...m,
+                schoolCount: Number(schoolCount?.count || 0),
+                studentCount: Number(studentCount?.count || 0),
+                routeCount: Number(routeCount?.count || 0),
+                vehicleCount: Number(vehicleCount?.count || 0),
+                driverCount: Number(driverCount?.count || 0),
+                activeTrips: Number(tripCount?.count || 0),
+            };
+        }));
+        return results;
+    }),
+    // Create new municipality with first admin user (super_admin only)
+    create: trpc_1.superAdminProcedure
+        .input(zod_1.z.object({
+        name: zod_1.z.string().min(3),
+        state: zod_1.z.string().length(2),
+        city: zod_1.z.string(),
+        cnpj: zod_1.z.string().optional(),
+        email: zod_1.z.string().email(),
+        phone: zod_1.z.string().optional(),
+        subscriptionPlan: zod_1.z.enum(['free', 'basic', 'premium', 'enterprise']).default('free'),
+        adminName: zod_1.z.string().min(3),
+        adminEmail: zod_1.z.string().email(),
+        adminPassword: zod_1.z.string().min(6),
+    }))
+        .mutation(async ({ input }) => {
+        const { adminName, adminEmail, adminPassword, ...munData } = input;
+        const [mun] = await index_1.db.insert(schema_1.municipalities).values({
+            ...munData,
+            isActive: true,
+        }).$returningId();
+        const passwordHash = await (0, bcryptjs_1.hash)(adminPassword, 10);
+        await index_1.db.insert(schema_1.users).values({
+            name: adminName,
+            email: adminEmail,
+            passwordHash,
+            role: 'municipal_admin',
+            municipalityId: mun.id,
+            isActive: true,
+        });
+        return { success: true, id: mun.id };
+    }),
+    // Get global stats for super admin dashboard
+    globalStats: trpc_1.superAdminProcedure
+        .query(async () => {
+        const [muns] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.municipalities).where((0, drizzle_orm_1.eq)(schema_1.municipalities.isActive, true));
+        const [studentCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.students).where((0, drizzle_orm_1.eq)(schema_1.students.isActive, true));
+        const [routeCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.isActive, true));
+        const [vehicleCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.vehicles);
+        const [activeTrips] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.trips).where((0, drizzle_orm_1.eq)(schema_1.trips.status, 'started'));
+        const [docCount] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.documents).where((0, drizzle_orm_1.eq)(schema_1.documents.status, 'valid'));
+        return {
+            municipalities: Number(muns?.count || 0),
+            students: Number(studentCount?.count || 0),
+            routes: Number(routeCount?.count || 0),
+            vehicles: Number(vehicleCount?.count || 0),
+            activeTrips: Number(activeTrips?.count || 0),
+            documents: Number(docCount?.count || 0),
+        };
     }),
     getDashboardStats: trpc_1.adminProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
@@ -521,9 +781,16 @@ exports.routesRouter = trpc_1.t.router({
     list: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
         .query(async ({ input }) => {
-        return index_1.db.select().from(schema_1.routes)
+        const allRoutes = await index_1.db.select().from(schema_1.routes)
             .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true)))
             .orderBy(schema_1.routes.name);
+        const routesWithStops = await Promise.all(allRoutes.map(async (route) => {
+            const routeStops = await index_1.db.select().from(schema_1.stops)
+                .where((0, drizzle_orm_1.eq)(schema_1.stops.routeId, route.id))
+                .orderBy(schema_1.stops.orderIndex);
+            return { route, stops: routeStops };
+        }));
+        return routesWithStops;
     }),
     getById: trpc_1.protectedProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
@@ -548,9 +815,47 @@ exports.routesRouter = trpc_1.t.router({
         scheduledEndTime: zod_1.z.string().optional(),
         defaultVehicleId: zod_1.z.number().optional(),
         defaultDriverId: zod_1.z.number().optional(),
+        // Condições da Estrada (SETE)
+        hasGate: zod_1.z.boolean().optional(),
+        hasCattleGuard: zod_1.z.boolean().optional(),
+        hasLatch: zod_1.z.boolean().optional(),
+        hasMudhole: zod_1.z.boolean().optional(),
+        hasRusticBridge: zod_1.z.boolean().optional(),
+        roadSurface: zod_1.z.string().optional(),
+        // Custos mensais
+        monthlyCostFuel: zod_1.z.string().optional(),
+        monthlyCostMaintenance: zod_1.z.string().optional(),
+        monthlyCostDriver: zod_1.z.string().optional(),
+        monthlyCostMonitor: zod_1.z.string().optional(),
+        monthlyCostInsurance: zod_1.z.string().optional(),
+        costPerStudent: zod_1.z.string().optional(),
+        stops: zod_1.z.array(zod_1.z.object({
+            name: zod_1.z.string(),
+            lat: zod_1.z.string().optional(),
+            lng: zod_1.z.string().optional(),
+            latitude: zod_1.z.string().optional(),
+            longitude: zod_1.z.string().optional(),
+            order: zod_1.z.number().optional(),
+        })).optional(),
     }))
         .mutation(async ({ input }) => {
-        const [route] = await index_1.db.insert(schema_1.routes).values(input).$returningId();
+        const { stops: inputStops, ...routeData } = input;
+        const [route] = await index_1.db.insert(schema_1.routes).values(routeData).$returningId();
+        // Insert stops if provided
+        if (inputStops && inputStops.length > 0) {
+            for (let i = 0; i < inputStops.length; i++) {
+                const s = inputStops[i];
+                const lat = s.lat || s.latitude || '0';
+                const lng = s.lng || s.longitude || '0';
+                await index_1.db.insert(schema_1.stops).values({
+                    routeId: route.id,
+                    name: s.name,
+                    latitude: lat,
+                    longitude: lng,
+                    orderIndex: s.order ?? i,
+                });
+            }
+        }
         return { success: true, id: route.id };
     }),
     update: trpc_1.adminProcedure
@@ -562,6 +867,20 @@ exports.routesRouter = trpc_1.t.router({
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening']).optional(),
         scheduledStartTime: zod_1.z.string().optional(),
         scheduledEndTime: zod_1.z.string().optional(),
+        // Condições da Estrada (SETE)
+        hasGate: zod_1.z.boolean().optional(),
+        hasCattleGuard: zod_1.z.boolean().optional(),
+        hasLatch: zod_1.z.boolean().optional(),
+        hasMudhole: zod_1.z.boolean().optional(),
+        hasRusticBridge: zod_1.z.boolean().optional(),
+        roadSurface: zod_1.z.string().optional(),
+        // Custos mensais
+        monthlyCostFuel: zod_1.z.string().optional(),
+        monthlyCostMaintenance: zod_1.z.string().optional(),
+        monthlyCostDriver: zod_1.z.string().optional(),
+        monthlyCostMonitor: zod_1.z.string().optional(),
+        monthlyCostInsurance: zod_1.z.string().optional(),
+        costPerStudent: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const { id, ...data } = input;
@@ -865,7 +1184,13 @@ exports.studentsRouter = trpc_1.t.router({
         const finalSchoolId = input.schoolId || (input.school ? parseInt(input.school) : undefined);
         if (!finalSchoolId)
             throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola e obrigatoria.' });
-        const { municipalityId, school: _s, photo, className, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, observations, routeId, ...rest } = input;
+        const { municipalityId, school: _s, photo, className, guardian1Name, guardian1Phone, guardian1Relation, guardian2Name, guardian2Phone, guardian2Relation, routeId, ...rest } = input;
+        // Resolve routeId -> routeName
+        let resolvedRouteName;
+        if (routeId) {
+            const [rt] = await index_1.db.select({ name: schema_1.routes.name }).from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.id, routeId));
+            resolvedRouteName = rt?.name || undefined;
+        }
         const [student] = await index_1.db.insert(schema_1.students).values({
             municipalityId,
             schoolId: finalSchoolId,
@@ -900,6 +1225,7 @@ exports.studentsRouter = trpc_1.t.router({
             // Transporte
             needsTransport: rest.needsTransport || false, transportType: rest.transportType || undefined,
             transportDistance: rest.transportDistance || undefined,
+            routeName: resolvedRouteName,
             // Programas sociais
             bolsaFamilia: rest.bolsaFamilia || false, bpc: rest.bpc || false,
             peti: rest.peti || false, otherPrograms: rest.otherPrograms || undefined,
@@ -920,12 +1246,14 @@ exports.studentsRouter = trpc_1.t.router({
             emergencyContact2Relation: rest.emergencyContact2Relation || guardian2Relation || undefined,
             // Filiacao
             fatherName: rest.fatherName || undefined, fatherCpf: rest.fatherCpf || undefined,
-            fatherRg: rest.fatherRg || undefined, fatherPhone: rest.fatherPhone || undefined,
+            fatherRg: rest.fatherRg || undefined, fatherRgOrgao: rest.fatherRgOrgao || undefined, fatherRgUf: rest.fatherRgUf || undefined,
+            fatherPhone: rest.fatherPhone || undefined,
             fatherProfession: rest.fatherProfession || undefined, fatherWorkplace: rest.fatherWorkplace || undefined,
             fatherEducation: rest.fatherEducation || undefined,
             fatherNaturalness: rest.fatherNaturalness || undefined, fatherNaturalnessUf: rest.fatherNaturalnessUf || undefined,
             motherName: rest.motherName || undefined, motherCpf: rest.motherCpf || undefined,
-            motherRg: rest.motherRg || undefined, motherPhone: rest.motherPhone || undefined,
+            motherRg: rest.motherRg || undefined, motherRgOrgao: rest.motherRgOrgao || undefined, motherRgUf: rest.motherRgUf || undefined,
+            motherPhone: rest.motherPhone || undefined,
             motherProfession: rest.motherProfession || undefined, motherWorkplace: rest.motherWorkplace || undefined,
             motherEducation: rest.motherEducation || undefined,
             motherNaturalness: rest.motherNaturalness || undefined, motherNaturalnessUf: rest.motherNaturalnessUf || undefined,
@@ -935,6 +1263,7 @@ exports.studentsRouter = trpc_1.t.router({
             previousSchoolZone: rest.previousSchoolZone || undefined,
             previousCity: rest.previousCity || undefined, previousState: rest.previousState || undefined,
             enrollmentType: rest.enrollmentType || undefined, studentStatus: rest.studentStatus || undefined,
+            observations: rest.observations || undefined,
             ...(rest.latitude !== undefined && { latitude: rest.latitude.toFixed(8) }),
             ...(rest.longitude !== undefined && { longitude: rest.longitude.toFixed(8) }),
         }).$returningId();
@@ -1115,6 +1444,101 @@ exports.studentsRouter = trpc_1.t.router({
         // Desativar matrículas que não estão ativas
         await index_1.db.update(schema_1.enrollments).set({ isActive: false }).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, input.id), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
         return { success: true };
+    }),
+    bulkImport: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        schoolId: zod_1.z.number().optional(),
+        students: zod_1.z.array(zod_1.z.object({
+            name: zod_1.z.string(),
+            enrollment: zod_1.z.string().optional(),
+            grade: zod_1.z.string().optional(),
+            className: zod_1.z.string().optional(),
+            shift: zod_1.z.string().optional(),
+            birthDate: zod_1.z.string().optional(),
+            cpf: zod_1.z.string().optional(),
+            address: zod_1.z.string().optional(),
+            neighborhood: zod_1.z.string().optional(),
+            city: zod_1.z.string().optional(),
+            state: zod_1.z.string().optional(),
+            phone: zod_1.z.string().optional(),
+            fatherName: zod_1.z.string().optional(),
+            motherName: zod_1.z.string().optional(),
+            sex: zod_1.z.string().optional(),
+            race: zod_1.z.string().optional(),
+            nis: zod_1.z.string().optional(),
+            rg: zod_1.z.string().optional(),
+            cep: zod_1.z.string().optional(),
+            observations: zod_1.z.string().optional(),
+        })),
+    }))
+        .mutation(async ({ input }) => {
+        let created = 0, skipped = 0, errors = 0;
+        const errorDetails = [];
+        for (const s of input.students) {
+            try {
+                // Check if enrollment already exists
+                if (s.enrollment) {
+                    const existing = await index_1.db.select({ id: schema_1.students.id }).from(schema_1.students)
+                        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.enrollment, s.enrollment), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)))
+                        .limit(1);
+                    if (existing.length > 0) {
+                        skipped++;
+                        continue;
+                    }
+                }
+                // Parse shift
+                const shiftVal = s.shift?.toLowerCase();
+                const shift = shiftVal === 'tarde' || shiftVal === 'afternoon' ? 'afternoon'
+                    : shiftVal === 'noite' || shiftVal === 'evening' ? 'evening'
+                        : 'morning';
+                // Parse birthDate
+                let birthDate;
+                if (s.birthDate) {
+                    // Try dd/mm/yyyy format first
+                    const parts = s.birthDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+                    if (parts) {
+                        birthDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                    }
+                    else {
+                        birthDate = new Date(s.birthDate);
+                    }
+                    if (isNaN(birthDate.getTime()))
+                        birthDate = undefined;
+                }
+                await index_1.db.insert(schema_1.students).values({
+                    municipalityId: input.municipalityId,
+                    schoolId: input.schoolId || 1,
+                    name: s.name,
+                    enrollment: s.enrollment || undefined,
+                    grade: s.grade || undefined,
+                    classRoom: s.className || undefined,
+                    shift: shift,
+                    birthDate,
+                    cpf: s.cpf || undefined,
+                    address: s.address || undefined,
+                    neighborhood: s.neighborhood || undefined,
+                    city: s.city || undefined,
+                    state: s.state || undefined,
+                    phone: s.phone || undefined,
+                    fatherName: s.fatherName || undefined,
+                    motherName: s.motherName || undefined,
+                    sex: s.sex || undefined,
+                    race: s.race || undefined,
+                    nis: s.nis || undefined,
+                    rg: s.rg || undefined,
+                    cep: s.cep || undefined,
+                    observations: s.observations || undefined,
+                    isActive: true,
+                });
+                created++;
+            }
+            catch (err) {
+                errors++;
+                errorDetails.push(`${s.name}: ${err.message || 'erro desconhecido'}`);
+            }
+        }
+        return { created, skipped, errors, total: input.students.length, errorDetails: errorDetails.slice(0, 10) };
     }),
 });
 // ============================================
@@ -1369,6 +1793,7 @@ exports.vehiclesRouter = trpc_1.t.router({
         fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
         lastMaintenanceAt: zod_1.z.string().optional(), nextMaintenanceAt: zod_1.z.string().optional(),
         gpsDeviceId: zod_1.z.string().optional(), gpsDeviceModel: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
         status: zod_1.z.enum(['active', 'maintenance', 'inactive']).optional(),
     }))
         .mutation(async ({ input }) => {
@@ -1398,6 +1823,7 @@ exports.vehiclesRouter = trpc_1.t.router({
         fireExtinguisherExpiry: zod_1.z.string().optional(), currentKm: zod_1.z.number().optional(),
         lastMaintenanceAt: zod_1.z.string().optional(), nextMaintenanceAt: zod_1.z.string().optional(),
         gpsDeviceId: zod_1.z.string().optional(), gpsDeviceModel: zod_1.z.string().optional(),
+        observations: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         const { id, crlvExpiry, ipvaExpiry, inspectionExpiry, insuranceExpiry, fireExtinguisherExpiry, fuel, chassis, lastMaintenanceAt, nextMaintenanceAt, ...data } = input;
@@ -1688,6 +2114,11 @@ exports.usersRouter = trpc_1.t.router({
         municipalityId: zod_1.z.number().optional(),
         username: zod_1.z.string().optional(),
         birthDate: zod_1.z.string().optional(),
+        jobTitle: zod_1.z.string().optional(),
+        registrationNumber: zod_1.z.string().optional(),
+        decree: zod_1.z.string().optional(),
+        department: zod_1.z.string().optional(),
+        qualification: zod_1.z.string().optional(),
     }))
         .mutation(async ({ input }) => {
         (0, trpc_1.validateOptionalCPF)(input.cpf);
@@ -1733,6 +2164,33 @@ exports.usersRouter = trpc_1.t.router({
             throw new server_1.TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Usuário vinculado como: ${deps.join(', ')}` });
         await index_1.db.update(schema_1.users).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.users.id, input.id));
         return { success: true };
+    }),
+    updateProfile: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        jobTitle: zod_1.z.string().optional(),
+        registrationNumber: zod_1.z.string().optional(),
+        decree: zod_1.z.string().optional(),
+        department: zod_1.z.string().optional(),
+        qualification: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const updateData = { ...input };
+        Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+        if (Object.keys(updateData).length > 0) {
+            await index_1.db.update(schema_1.users).set(updateData).where((0, drizzle_orm_1.eq)(schema_1.users.id, ctx.userId));
+        }
+        return { success: true };
+    }),
+    getProfile: trpc_1.protectedProcedure
+        .query(async ({ ctx }) => {
+        const [user] = await index_1.db.select({
+            id: schema_1.users.id, name: schema_1.users.name, email: schema_1.users.email, phone: schema_1.users.phone,
+            cpf: schema_1.users.cpf, role: schema_1.users.role,
+            jobTitle: schema_1.users.jobTitle, registrationNumber: schema_1.users.registrationNumber,
+            decree: schema_1.users.decree, department: schema_1.users.department, qualification: schema_1.users.qualification,
+        }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, ctx.userId)).limit(1);
+        return user || null;
     }),
 });
 exports.guardiansRouter = trpc_1.t.router({
@@ -1813,7 +2271,7 @@ exports.guardiansRouter = trpc_1.t.router({
                 driverName: driverUser?.name || 'Motorista',
                 driverPhone: driverUser?.phone || null,
                 vehicle: vehicle ? { plate: vehicle.plate, nickname: vehicle.nickname } : null,
-                driverLocation: driver ? { lat: parseFloat(driver.currentLatitude || '0'), lng: parseFloat(driver.currentLongitude || '0'), updatedAt: driver.lastLocationUpdate } : null,
+                driverLocation: driver && driver.currentLatitude && driver.currentLongitude ? { lat: parseFloat(driver.currentLatitude), lng: parseFloat(driver.currentLongitude), updatedAt: driver.lastLocationUpdate } : null,
                 stops: tripStops.map(s => ({
                     ...s,
                     arrived: stopLogs.some(l => l.stopId === s.id),
@@ -1870,7 +2328,250 @@ exports.guardiansRouter = trpc_1.t.router({
             .limit(input.limit);
         return tripHistory;
     }),
+    // ============================================
+    // PORTAL DO RESPONSÁVEL - ENDPOINTS ACADÊMICOS
+    // ============================================
+    // 1. Boletim do aluno
+    studentReportCard: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number(), classId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        // Buscar avaliações da turma
+        const classAssessments = await index_1.db.select().from(schema_1.assessments)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.assessments.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.assessments.isActive, true)));
+        if (classAssessments.length === 0)
+            return { subjects: [], summary: { average: 0, totalAssessments: 0 } };
+        const assessmentIds = classAssessments.map(a => a.id);
+        // Buscar notas do aluno
+        const grades = await index_1.db.select().from(schema_1.studentGrades)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.studentGrades.studentId, input.studentId), (0, drizzle_orm_1.inArray)(schema_1.studentGrades.assessmentId, assessmentIds)));
+        // Buscar nomes das disciplinas
+        const subjectIds = [...new Set(classAssessments.map(a => a.subjectId))];
+        const subjectList = subjectIds.length > 0
+            ? await index_1.db.select({ id: schema_1.subjects.id, name: schema_1.subjects.name }).from(schema_1.subjects).where((0, drizzle_orm_1.inArray)(schema_1.subjects.id, subjectIds))
+            : [];
+        // Agrupar por disciplina e bimestre
+        const subjectMap = {};
+        for (const assessment of classAssessments) {
+            if (!subjectMap[assessment.subjectId]) {
+                const subj = subjectList.find(s => s.id === assessment.subjectId);
+                subjectMap[assessment.subjectId] = { subjectName: subj?.name || 'Disciplina', bimesters: {} };
+            }
+            if (!subjectMap[assessment.subjectId].bimesters[assessment.bimester]) {
+                subjectMap[assessment.subjectId].bimesters[assessment.bimester] = { assessments: [], average: 0 };
+            }
+            const grade = grades.find(g => g.assessmentId === assessment.id);
+            subjectMap[assessment.subjectId].bimesters[assessment.bimester].assessments.push({
+                assessmentName: assessment.name,
+                type: assessment.type,
+                maxScore: assessment.maxScore,
+                weight: assessment.weight,
+                score: grade?.score || null,
+                date: assessment.date,
+            });
+        }
+        // Calcular médias por bimestre
+        for (const subjectId of Object.keys(subjectMap)) {
+            for (const bim of Object.keys(subjectMap[Number(subjectId)].bimesters)) {
+                const bimData = subjectMap[Number(subjectId)].bimesters[bim];
+                const scored = bimData.assessments.filter(a => a.score !== null);
+                if (scored.length > 0) {
+                    const totalWeight = scored.reduce((s, a) => s + parseFloat(a.weight || '1'), 0);
+                    const weightedSum = scored.reduce((s, a) => s + (parseFloat(a.score) / parseFloat(a.maxScore)) * 10 * parseFloat(a.weight || '1'), 0);
+                    bimData.average = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : 0;
+                }
+            }
+        }
+        const subjectsResult = Object.entries(subjectMap).map(([id, data]) => ({
+            subjectId: Number(id),
+            subjectName: data.subjectName,
+            bimesters: data.bimesters,
+        }));
+        // Média geral
+        const allAverages = subjectsResult.flatMap(s => Object.values(s.bimesters).map(b => b.average)).filter(a => a > 0);
+        const generalAverage = allAverages.length > 0 ? Math.round((allAverages.reduce((s, a) => s + a, 0) / allAverages.length) * 100) / 100 : 0;
+        return { subjects: subjectsResult, summary: { average: generalAverage, totalAssessments: classAssessments.length } };
+    }),
+    // 2. Frequência do aluno
+    studentAttendance: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number(), classId: zod_1.z.number().optional() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.dailyAttendance.studentId, input.studentId)];
+        if (input.classId)
+            conditions.push((0, drizzle_orm_1.eq)(schema_1.dailyAttendance.classId, input.classId));
+        const records = await index_1.db.select().from(schema_1.dailyAttendance).where((0, drizzle_orm_1.and)(...conditions));
+        const totalDays = records.length;
+        const present = records.filter(r => r.status === 'present').length;
+        const absent = records.filter(r => r.status === 'absent').length;
+        const justified = records.filter(r => r.status === 'justified').length;
+        const late = records.filter(r => r.status === 'late').length;
+        const percentPresent = totalDays > 0 ? Math.round(((present + late + justified) / totalDays) * 10000) / 100 : 0;
+        // Breakdown mensal
+        const monthlyMap = {};
+        for (const r of records) {
+            const month = r.date ? `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+            if (!monthlyMap[month])
+                monthlyMap[month] = { present: 0, absent: 0, justified: 0, late: 0, total: 0 };
+            monthlyMap[month].total++;
+            if (r.status === 'present')
+                monthlyMap[month].present++;
+            else if (r.status === 'absent')
+                monthlyMap[month].absent++;
+            else if (r.status === 'justified')
+                monthlyMap[month].justified++;
+            else if (r.status === 'late')
+                monthlyMap[month].late++;
+        }
+        const monthly = Object.entries(monthlyMap).map(([month, data]) => ({ month, ...data })).sort((a, b) => a.month.localeCompare(b.month));
+        return { totalDays, present, absent, justified, late, percentPresent, monthly };
+    }),
+    // 3. Parecer descritivo
+    studentParecer: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        const reports = await index_1.db.select({
+            id: schema_1.descriptiveReports.id,
+            bimester: schema_1.descriptiveReports.bimester,
+            content: schema_1.descriptiveReports.content,
+            classId: schema_1.descriptiveReports.classId,
+            createdAt: schema_1.descriptiveReports.createdAt,
+        }).from(schema_1.descriptiveReports)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.descriptiveReports.studentId, input.studentId), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.status, 'published'), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.isActive, true)))
+            .orderBy(schema_1.descriptiveReports.bimester);
+        // Enriquecer com nome da turma
+        const result = await Promise.all(reports.map(async (r) => {
+            const [cls] = await index_1.db.select({ name: schema_1.classes.name }).from(schema_1.classes).where((0, drizzle_orm_1.eq)(schema_1.classes.id, r.classId)).limit(1);
+            return { ...r, className: cls?.name || '' };
+        }));
+        return result;
+    }),
+    // 4. Ocorrências do aluno
+    studentOccurrences: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        const occurrences = await index_1.db.select().from(schema_1.studentOccurrences)
+            .where((0, drizzle_orm_1.eq)(schema_1.studentOccurrences.studentId, input.studentId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.studentOccurrences.date));
+        return occurrences;
+    }),
+    // 5. Calendário escolar
+    schoolCalendar: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        // Buscar escola e município do aluno
+        const [student] = await index_1.db.select({ schoolId: schema_1.students.schoolId, municipalityId: schema_1.students.municipalityId })
+            .from(schema_1.students).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId)).limit(1);
+        if (!student)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
+        const events = await index_1.db.select().from(schema_1.schoolCalendar)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.municipalityId, student.municipalityId), (0, drizzle_orm_1.eq)(schema_1.schoolCalendar.isActive, true), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.schoolCalendar.schoolId, student.schoolId), (0, drizzle_orm_1.sql) `${schema_1.schoolCalendar.schoolId} IS NULL`)))
+            .orderBy(schema_1.schoolCalendar.startDate);
+        return events;
+    }),
+    // 6. Cardápio da merenda
+    schoolMenu: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        const [student] = await index_1.db.select({ municipalityId: schema_1.students.municipalityId, schoolId: schema_1.students.schoolId })
+            .from(schema_1.students).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId)).limit(1);
+        if (!student)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
+        const menus = await index_1.db.select().from(schema_1.mealMenus)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.mealMenus.municipalityId, student.municipalityId), (0, drizzle_orm_1.eq)(schema_1.mealMenus.isActive, true), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.mealMenus.schoolId, student.schoolId), (0, drizzle_orm_1.sql) `${schema_1.mealMenus.schoolId} IS NULL`)))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.mealMenus.date))
+            .limit(30);
+        return menus;
+    }),
+    // 7. Mensagens para o responsável
+    myMessages: trpc_1.protectedProcedure
+        .query(async ({ ctx }) => {
+        // Buscar todos os alunos vinculados a este responsável
+        const guardianLinks = await index_1.db.select({
+            studentId: schema_1.guardians.studentId,
+        }).from(schema_1.guardians).where((0, drizzle_orm_1.eq)(schema_1.guardians.userId, ctx.userId));
+        if (guardianLinks.length === 0)
+            return [];
+        const studentIds = guardianLinks.map(g => g.studentId);
+        // Buscar dados dos alunos (escola, município)
+        const studentList = await index_1.db.select({
+            id: schema_1.students.id, schoolId: schema_1.students.schoolId, municipalityId: schema_1.students.municipalityId,
+        }).from(schema_1.students).where((0, drizzle_orm_1.inArray)(schema_1.students.id, studentIds));
+        if (studentList.length === 0)
+            return [];
+        const municipalityIds = [...new Set(studentList.map(s => s.municipalityId))];
+        const schoolIds = [...new Set(studentList.map(s => s.schoolId))];
+        // Buscar matrículas ativas para saber as turmas
+        const activeEnrollments = await index_1.db.select({
+            studentId: schema_1.enrollments.studentId, classId: schema_1.enrollments.classId,
+        }).from(schema_1.enrollments)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.inArray)(schema_1.enrollments.studentId, studentIds), (0, drizzle_orm_1.eq)(schema_1.enrollments.status, 'active')));
+        const classIds = [...new Set(activeEnrollments.map(e => e.classId))];
+        // Buscar mensagens que se aplicam
+        const allMessages = await index_1.db.select().from(schema_1.messages)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.inArray)(schema_1.messages.municipalityId, municipalityIds), (0, drizzle_orm_1.eq)(schema_1.messages.isActive, true), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.messages.targetType, 'all'), (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.messages.targetType, 'student'), (0, drizzle_orm_1.inArray)(schema_1.messages.targetStudentId, studentIds)), ...(schoolIds.length > 0 ? [(0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.messages.targetType, 'school'), (0, drizzle_orm_1.inArray)(schema_1.messages.schoolId, schoolIds))] : []), ...(classIds.length > 0 ? [(0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.messages.targetType, 'class'), (0, drizzle_orm_1.inArray)(schema_1.messages.targetClassId, classIds))] : []))))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.messages.createdAt))
+            .limit(50);
+        // Enriquecer com nome do remetente
+        const result = await Promise.all(allMessages.map(async (msg) => {
+            const [sender] = await index_1.db.select({ name: schema_1.users.name }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, msg.senderUserId)).limit(1);
+            return { ...msg, senderName: sender?.name || 'Sistema' };
+        }));
+        return result;
+    }),
+    // 8. Informações de matrícula do aluno
+    studentEnrollmentInfo: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        if (!await (0, helpers_1.verifyGuardianAccess)(ctx.userId, input.studentId))
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
+        // Buscar matrícula ativa mais recente
+        const enrollmentList = await index_1.db.select({
+            enrollmentId: schema_1.enrollments.id,
+            classId: schema_1.enrollments.classId,
+            academicYearId: schema_1.enrollments.academicYearId,
+            enrollmentDate: schema_1.enrollments.enrollmentDate,
+            status: schema_1.enrollments.status,
+        }).from(schema_1.enrollments)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, input.studentId), (0, drizzle_orm_1.eq)(schema_1.enrollments.status, 'active')))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.enrollments.enrollmentDate))
+            .limit(1);
+        if (enrollmentList.length === 0)
+            return null;
+        const enrollment = enrollmentList[0];
+        // Buscar nome da turma
+        const [cls] = await index_1.db.select({ name: schema_1.classes.name, schoolId: schema_1.classes.schoolId }).from(schema_1.classes)
+            .where((0, drizzle_orm_1.eq)(schema_1.classes.id, enrollment.classId)).limit(1);
+        // Buscar nome da escola
+        const [school] = cls ? await index_1.db.select({ name: schema_1.schools.name }).from(schema_1.schools)
+            .where((0, drizzle_orm_1.eq)(schema_1.schools.id, cls.schoolId)).limit(1) : [null];
+        // Buscar ano letivo
+        const [year] = await index_1.db.select({ year: schema_1.academicYears.year, name: schema_1.academicYears.name }).from(schema_1.academicYears)
+            .where((0, drizzle_orm_1.eq)(schema_1.academicYears.id, enrollment.academicYearId)).limit(1);
+        return {
+            enrollmentId: enrollment.enrollmentId,
+            classId: enrollment.classId,
+            className: cls?.name || '',
+            academicYear: year?.year || 0,
+            academicYearName: year?.name || '',
+            schoolName: school?.name || '',
+            enrollmentDate: enrollment.enrollmentDate,
+            status: enrollment.status,
+        };
+    }),
 });
+// Helper: verificar se responsável tem acesso ao aluno
+// verifyGuardianAccess imported from ./helpers
 // ============================================
 // MONITORS ROUTER (APP MONITORES)
 // ============================================
@@ -2064,7 +2765,36 @@ exports.monitorsRouter = trpc_1.t.router({
             registeredByUserId: ctx.userId,
             notes: input.notes,
         });
-        return { success: true };
+        // Notificar responsáveis
+        const [student] = await index_1.db.select({ name: schema_1.students.name }).from(schema_1.students).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId)).limit(1);
+        const guardianList = await index_1.db.select({ userId: schema_1.guardians.userId }).from(schema_1.guardians).where((0, drizzle_orm_1.eq)(schema_1.guardians.studentId, input.studentId));
+        for (const g of guardianList) {
+            await index_1.db.insert(schema_1.notifications).values({
+                userId: g.userId,
+                title: 'Aluno ausente',
+                body: (student?.name || 'Seu filho(a)') + ' foi registrado como ausente no transporte escolar.',
+                type: 'student_absent',
+                tripId: input.tripId,
+                stopId: input.stopId,
+                studentId: input.studentId,
+            });
+        }
+        // Emitir evento de ausência via Socket.IO
+        const [tripAbsent] = await index_1.db.select({ routeId: schema_1.trips.routeId }).from(schema_1.trips).where((0, drizzle_orm_1.eq)(schema_1.trips.id, input.tripId)).limit(1);
+        if (tripAbsent) {
+            const [routeAbsent] = await index_1.db.select({ municipalityId: schema_1.routes.municipalityId }).from(schema_1.routes).where((0, drizzle_orm_1.eq)(schema_1.routes.id, tripAbsent.routeId)).limit(1);
+            if (routeAbsent) {
+                (0, socketInstance_1.emitToMunicipality)(routeAbsent.municipalityId, 'student:absent', {
+                    tripId: input.tripId,
+                    stopId: input.stopId,
+                    studentId: input.studentId,
+                    studentName: student?.name,
+                    municipalityId: routeAbsent.municipalityId,
+                    time: new Date().toISOString(),
+                });
+            }
+        }
+        return { success: true, studentName: student?.name };
     }),
     // Obter resumo da viagem para o monitor
     tripSummary: trpc_1.protectedProcedure
@@ -2674,15 +3404,51 @@ exports.classesRouter = trpc_1.t.router({
         shift: zod_1.z.enum(['morning', 'afternoon', 'evening', 'full_time']).optional(),
         maxStudents: zod_1.z.number().optional(),
         roomNumber: zod_1.z.string().optional(),
-        teacherUserId: zod_1.z.number().optional(),
+        teacherUserId: zod_1.z.number().nullable().optional(),
     }))
         .mutation(async ({ input }) => {
         const { id, ...data } = input;
         const ud = {};
-        Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
-            ud[k] = v; });
+        Object.entries(data).forEach(([k, v]) => {
+            if (v !== undefined)
+                ud[k] = v;
+            if (k === 'teacherUserId' && v === null)
+                ud[k] = null;
+        });
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.classes).set(ud).where((0, drizzle_orm_1.eq)(schema_1.classes.id, id));
+        // Sincronizar todos os alunos matriculados nesta turma
+        const [cls] = await index_1.db.select({
+            name: schema_1.classes.name, fullName: schema_1.classes.fullName,
+            shift: schema_1.classes.shift, schoolId: schema_1.classes.schoolId,
+            gradeId: schema_1.classes.classGradeId,
+        }).from(schema_1.classes).where((0, drizzle_orm_1.eq)(schema_1.classes.id, id)).limit(1);
+        if (cls) {
+            let gradeName = '';
+            if (cls.gradeId) {
+                const [cg] = await index_1.db.select({ name: schema_1.classGrades.name }).from(schema_1.classGrades).where((0, drizzle_orm_1.eq)(schema_1.classGrades.id, cls.gradeId)).limit(1);
+                if (cg)
+                    gradeName = cg.name;
+            }
+            const su = {};
+            if (cls.name)
+                su.classRoom = cls.name;
+            if (gradeName)
+                su.grade = gradeName;
+            if (cls.shift)
+                su.shift = cls.shift;
+            if (cls.schoolId)
+                su.schoolId = cls.schoolId;
+            if (Object.keys(su).length > 0) {
+                // Buscar todos os alunos matriculados nesta turma
+                const activeEnrollments = await index_1.db.select({ studentId: schema_1.enrollments.studentId })
+                    .from(schema_1.enrollments)
+                    .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.classId, id), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true)));
+                for (const e of activeEnrollments) {
+                    await index_1.db.update(schema_1.students).set(su).where((0, drizzle_orm_1.eq)(schema_1.students.id, e.studentId));
+                }
+            }
+        }
         return { success: true };
     }),
     delete: trpc_1.adminProcedure
@@ -2755,6 +3521,33 @@ exports.enrollmentsRouter = trpc_1.t.router({
             ...rest,
             enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
         }).$returningId();
+        // Sync student record with class data
+        const [cls] = await index_1.db.select({
+            name: schema_1.classes.name, fullName: schema_1.classes.fullName,
+            shift: schema_1.classes.shift, schoolId: schema_1.classes.schoolId,
+            gradeId: schema_1.classes.classGradeId,
+        }).from(schema_1.classes).where((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId)).limit(1);
+        if (cls) {
+            let gradeName = '';
+            if (cls.gradeId) {
+                const [cg] = await index_1.db.select({ name: schema_1.classGrades.name }).from(schema_1.classGrades).where((0, drizzle_orm_1.eq)(schema_1.classGrades.id, cls.gradeId)).limit(1);
+                if (cg)
+                    gradeName = cg.name;
+            }
+            const su = {};
+            if (cls.name)
+                su.classRoom = cls.name;
+            if (gradeName)
+                su.grade = gradeName;
+            if (cls.shift)
+                su.shift = cls.shift;
+            if (cls.schoolId)
+                su.schoolId = cls.schoolId;
+            su.studentStatus = 'ativo';
+            if (Object.keys(su).length > 0) {
+                await index_1.db.update(schema_1.students).set(su).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId));
+            }
+        }
         return { success: true, id: result.id };
     }),
     bulkCreate: trpc_1.adminProcedure
@@ -2767,6 +3560,7 @@ exports.enrollmentsRouter = trpc_1.t.router({
         .mutation(async ({ input }) => {
         let created = 0;
         let skipped = 0;
+        const createdStudentIds = [];
         for (const studentId of input.studentIds) {
             const existing = await index_1.db.select().from(schema_1.enrollments)
                 .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, studentId), (0, drizzle_orm_1.eq)(schema_1.enrollments.academicYearId, input.academicYearId), (0, drizzle_orm_1.eq)(schema_1.enrollments.status, 'active')))
@@ -2782,8 +3576,9 @@ exports.enrollmentsRouter = trpc_1.t.router({
                 academicYearId: input.academicYearId,
             });
             created++;
+            createdStudentIds.push(studentId);
         }
-        // Sincronizar: atualizar grade, classRoom e shift nos alunos matriculados
+        // Sincronizar: atualizar grade, classRoom e shift APENAS nos alunos realmente matriculados
         if (created > 0) {
             try {
                 const [cls] = await index_1.db.select({
@@ -2803,8 +3598,11 @@ exports.enrollmentsRouter = trpc_1.t.router({
                         su.grade = gradeName;
                     if (cls.shift)
                         su.shift = cls.shift;
+                    if (cls.schoolId)
+                        su.schoolId = cls.schoolId;
+                    su.studentStatus = 'ativo';
                     if (Object.keys(su).length > 0) {
-                        for (const sid of input.studentIds) {
+                        for (const sid of createdStudentIds) {
                             try {
                                 await index_1.db.update(schema_1.students).set(su).where((0, drizzle_orm_1.eq)(schema_1.students.id, sid));
                             }
@@ -2886,9 +3684,13 @@ exports.enrollmentsRouter = trpc_1.t.router({
             };
             const studentStatus = statusMap[input.status] || input.status;
             await index_1.db.update(schema_1.students).set({ studentStatus }).where((0, drizzle_orm_1.eq)(schema_1.students.id, enr.studentId));
-            // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas
+            // Se aluno foi transferido, cancelado ou evadido: limpar vínculos com paradas e campos acadêmicos
             if (['transferred', 'cancelled', 'evaded'].includes(input.status)) {
                 await index_1.db.delete(schema_1.stopStudents).where((0, drizzle_orm_1.eq)(schema_1.stopStudents.studentId, enr.studentId));
+                // Also clear academic fields
+                await index_1.db.update(schema_1.students).set({
+                    grade: null, classRoom: null
+                }).where((0, drizzle_orm_1.eq)(schema_1.students.id, enr.studentId));
             }
         }
         return { success: true };
@@ -2896,7 +3698,21 @@ exports.enrollmentsRouter = trpc_1.t.router({
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => {
+        // Fetch student before soft-deleting
+        const [enr] = await index_1.db.select({ studentId: schema_1.enrollments.studentId }).from(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, input.id)).limit(1);
         await index_1.db.update(schema_1.enrollments).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, input.id));
+        // Check if student has other active enrollments
+        if (enr) {
+            const otherActive = await index_1.db.select({ id: schema_1.enrollments.id }).from(schema_1.enrollments)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.studentId, enr.studentId), (0, drizzle_orm_1.eq)(schema_1.enrollments.isActive, true), (0, drizzle_orm_1.sql) `${schema_1.enrollments.id} != ${input.id}`))
+                .limit(1);
+            if (otherActive.length === 0) {
+                // No other active enrollment - clear student fields
+                await index_1.db.update(schema_1.students).set({
+                    grade: null, classRoom: null, studentStatus: 'sem_matricula'
+                }).where((0, drizzle_orm_1.eq)(schema_1.students.id, enr.studentId));
+            }
+        }
         return { success: true };
     }),
 });
@@ -3480,6 +4296,20 @@ exports.staffEvaluationsRouter = trpc_1.t.router({
         const [result] = await index_1.db.insert(schema_1.staffEvaluations).values({ ...input, evaluatorUserId: ctx.userId, overallScore, status: 'submitted' }).$returningId();
         return { success: true, id: result.id };
     }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number(), period: zod_1.z.string().optional(), punctuality: zod_1.z.number().optional(), productivity: zod_1.z.number().optional(), teamwork: zod_1.z.number().optional(), initiative: zod_1.z.number().optional(), communication: zod_1.z.number().optional(), strengths: zod_1.z.string().optional(), improvements: zod_1.z.string().optional(), goals: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const scores = [data.punctuality, data.productivity, data.teamwork, data.initiative, data.communication].filter(v => v !== undefined && v !== null);
+        const ud = {};
+        Object.entries(data).forEach(([k, v]) => { if (v !== undefined)
+            ud[k] = v; });
+        if (scores.length > 0)
+            ud.overallScore = (scores.reduce((a, b) => a + b, 0) / scores.length).toString();
+        if (Object.keys(ud).length > 0)
+            await index_1.db.update(schema_1.staffEvaluations).set(ud).where((0, drizzle_orm_1.eq)(schema_1.staffEvaluations.id, id));
+        return { success: true };
+    }),
     delete: trpc_1.adminProcedure
         .input(zod_1.z.object({ id: zod_1.z.number() }))
         .mutation(async ({ input }) => { await index_1.db.update(schema_1.staffEvaluations).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.staffEvaluations.id, input.id)); return { success: true }; }),
@@ -3521,6 +4351,11 @@ exports.financialTransactionsRouter = trpc_1.t.router({
     }),
     create: trpc_1.adminProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), accountId: zod_1.z.number(), type: zod_1.z.enum(['receita', 'despesa']), category: zod_1.z.string(), description: zod_1.z.string().optional(), value: zod_1.z.number(), date: zod_1.z.string(), documentNumber: zod_1.z.string().optional(), supplier: zod_1.z.string().optional() }))
         .mutation(async ({ ctx, input }) => { const { date, value, ...rest } = input; const [r] = await index_1.db.insert(schema_1.financialTransactions).values({ ...rest, date: new Date(date), value: value.toString(), registeredByUserId: ctx.userId }).$returningId(); return { success: true, id: r.id }; }),
+    update: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number(), accountId: zod_1.z.number().optional(), type: zod_1.z.enum(['receita', 'despesa']).optional(), category: zod_1.z.string().optional(), description: zod_1.z.string().optional(), value: zod_1.z.number().optional(), date: zod_1.z.string().optional(), documentNumber: zod_1.z.string().optional(), supplier: zod_1.z.string().optional() }))
+        .mutation(async ({ input }) => { const { id, date, value, ...data } = input; const ud = { ...data }; if (date)
+        ud.date = new Date(date); if (value !== undefined)
+        ud.value = value.toString(); Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]); if (Object.keys(ud).length > 0)
+        await index_1.db.update(schema_1.financialTransactions).set(ud).where((0, drizzle_orm_1.eq)(schema_1.financialTransactions.id, id)); return { success: true }; }),
     delete: trpc_1.adminProcedure.input(zod_1.z.object({ id: zod_1.z.number() })).mutation(async ({ input }) => { await index_1.db.update(schema_1.financialTransactions).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.financialTransactions.id, input.id)); return { success: true }; }),
 });
 // ============================================
@@ -3572,16 +4407,16 @@ exports.libraryBooksRouter = trpc_1.t.router({
     }),
 });
 exports.libraryLoansRouter = trpc_1.t.router({
-    list: trpc_1.protectedProcedure.input(zod_1.z.object({ bookId: zod_1.z.number().optional(), status: zod_1.z.string().optional() }))
+    list: trpc_1.protectedProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), bookId: zod_1.z.number().optional(), status: zod_1.z.string().optional() }))
         .query(async ({ input }) => {
-        const conditions = [];
+        const conditions = [(0, drizzle_orm_1.eq)(schema_1.libraryBooks.municipalityId, input.municipalityId)];
         if (input.bookId)
             conditions.push((0, drizzle_orm_1.eq)(schema_1.libraryLoans.bookId, input.bookId));
         if (input.status)
             conditions.push((0, drizzle_orm_1.eq)(schema_1.libraryLoans.status, input.status));
         return index_1.db.select({ id: schema_1.libraryLoans.id, bookId: schema_1.libraryLoans.bookId, userId: schema_1.libraryLoans.userId, studentId: schema_1.libraryLoans.studentId, loanDate: schema_1.libraryLoans.loanDate, dueDate: schema_1.libraryLoans.dueDate, returnDate: schema_1.libraryLoans.returnDate, status: schema_1.libraryLoans.status, bookTitle: schema_1.libraryBooks.title, userName: schema_1.users.name })
             .from(schema_1.libraryLoans).leftJoin(schema_1.libraryBooks, (0, drizzle_orm_1.eq)(schema_1.libraryLoans.bookId, schema_1.libraryBooks.id)).leftJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.libraryLoans.userId, schema_1.users.id))
-            .where(conditions.length > 0 ? (0, drizzle_orm_1.and)(...conditions) : undefined).orderBy((0, drizzle_orm_1.desc)(schema_1.libraryLoans.loanDate));
+            .where((0, drizzle_orm_1.and)(...conditions)).orderBy((0, drizzle_orm_1.desc)(schema_1.libraryLoans.loanDate));
     }),
     create: trpc_1.protectedProcedure.input(zod_1.z.object({ bookId: zod_1.z.number(), userId: zod_1.z.number().optional(), studentId: zod_1.z.number().optional(), dueDate: zod_1.z.string() }))
         .mutation(async ({ ctx, input }) => { const [r] = await index_1.db.insert(schema_1.libraryLoans).values({ bookId: input.bookId, userId: input.userId || ctx.userId, studentId: input.studentId, dueDate: new Date(input.dueDate) }).$returningId(); await index_1.db.update(schema_1.libraryBooks).set({ available: (0, drizzle_orm_1.sql) `available - 1` }).where((0, drizzle_orm_1.eq)(schema_1.libraryBooks.id, input.bookId)); return { success: true, id: r.id }; }),
@@ -3709,6 +4544,16 @@ exports.educacensoRouter = trpc_1.t.router({
 // TRANSPARENCY PORTAL (PORTAL DE TRANSPARÊNCIA - PÚBLICO)
 // ============================================
 exports.transparencyRouter = trpc_1.t.router({
+    // Lista de municípios para seleção pública
+    listMunicipalities: trpc_1.publicProcedure
+        .query(async () => {
+        return index_1.db.select({
+            id: schema_1.municipalities.id,
+            name: schema_1.municipalities.name,
+            city: schema_1.municipalities.city,
+            state: schema_1.municipalities.state,
+        }).from(schema_1.municipalities).where((0, drizzle_orm_1.eq)(schema_1.municipalities.isActive, true)).orderBy(schema_1.municipalities.name);
+    }),
     // Dados públicos do município - sem autenticação
     publicData: trpc_1.publicProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
@@ -3748,8 +4593,11 @@ exports.transparencyRouter = trpc_1.t.router({
 // ============================================
 // Parecer Descritivo
 exports.descriptiveReportsRouter = trpc_1.t.router({
-    list: trpc_1.academicProcedure.input(zod_1.z.object({ classId: zod_1.z.number(), bimester: zod_1.z.string().optional() }))
+    list: trpc_1.academicProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), classId: zod_1.z.number(), bimester: zod_1.z.string().optional() }))
         .query(async ({ input }) => {
+        const [cls] = await index_1.db.select({ municipalityId: schema_1.classes.municipalityId }).from(schema_1.classes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId), (0, drizzle_orm_1.eq)(schema_1.classes.municipalityId, input.municipalityId))).limit(1);
+        if (!cls)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Turma não encontrada' });
         const conditions = [(0, drizzle_orm_1.eq)(schema_1.descriptiveReports.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.descriptiveReports.isActive, true)];
         if (input.bimester)
             conditions.push((0, drizzle_orm_1.eq)(schema_1.descriptiveReports.bimester, input.bimester));
@@ -3943,8 +4791,11 @@ exports.waitingListRouter = trpc_1.t.router({
 });
 // Documentos do Aluno
 exports.studentDocumentsRouter = trpc_1.t.router({
-    list: trpc_1.protectedProcedure.input(zod_1.z.object({ studentId: zod_1.z.number() }))
+    list: trpc_1.protectedProcedure.input(zod_1.z.object({ municipalityId: zod_1.z.number(), studentId: zod_1.z.number() }))
         .query(async ({ input }) => {
+        const [stu] = await index_1.db.select({ municipalityId: schema_1.students.municipalityId }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId), (0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId))).limit(1);
+        if (!stu)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
         return index_1.db.select().from(schema_1.studentDocuments).where((0, drizzle_orm_1.eq)(schema_1.studentDocuments.studentId, input.studentId)).orderBy((0, drizzle_orm_1.desc)(schema_1.studentDocuments.createdAt));
     }),
     create: trpc_1.adminProcedure.input(zod_1.z.object({ studentId: zod_1.z.number(), name: zod_1.z.string(), type: zod_1.z.enum(['certidao_nascimento', 'rg', 'cpf', 'comprovante_residencia', 'historico_escolar', 'laudo_medico', 'foto', 'outro']).optional(), fileUrl: zod_1.z.string().optional() }))
@@ -4030,8 +4881,11 @@ exports.fuelRouter = trpc_1.t.router({
 // ============================================
 exports.studentHistoryRouter = trpc_1.t.router({
     list: trpc_1.protectedProcedure
-        .input(zod_1.z.object({ studentId: zod_1.z.number() }))
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), studentId: zod_1.z.number() }))
         .query(async ({ input }) => {
+        const [stu] = await index_1.db.select({ municipalityId: schema_1.students.municipalityId }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId), (0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId))).limit(1);
+        if (!stu)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
         return index_1.db.select().from(schema_1.studentHistory)
             .where((0, drizzle_orm_1.eq)(schema_1.studentHistory.studentId, input.studentId))
             .orderBy(schema_1.studentHistory.year);
@@ -4075,6 +4929,1426 @@ exports.studentHistoryRouter = trpc_1.t.router({
         .mutation(async ({ input }) => {
         await index_1.db.delete(schema_1.studentHistory).where((0, drizzle_orm_1.eq)(schema_1.studentHistory.id, input.id));
         return { success: true };
+    }),
+});
+// ============================================
+// STUDENT OCCURRENCES ROUTER
+// ============================================
+exports.studentOccurrencesRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.studentOccurrences)
+            .where((0, drizzle_orm_1.eq)(schema_1.studentOccurrences.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.studentOccurrences.date));
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), studentId: zod_1.z.number(), studentName: zod_1.z.string().optional(),
+        date: zod_1.z.string(), type: zod_1.z.string(), description: zod_1.z.string(), action: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const [r] = await index_1.db.insert(schema_1.studentOccurrences).values({ ...input, date: new Date(input.date), createdById: ctx.userId }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), date: zod_1.z.string().optional(), type: zod_1.z.string().optional(),
+        description: zod_1.z.string().optional(), action: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, date, ...data } = input;
+        const ud = { ...data };
+        if (date)
+            ud.date = new Date(date);
+        await index_1.db.update(schema_1.studentOccurrences).set(ud).where((0, drizzle_orm_1.eq)(schema_1.studentOccurrences.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.studentOccurrences).where((0, drizzle_orm_1.eq)(schema_1.studentOccurrences.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// EVENTS ROUTER
+// ============================================
+exports.eventsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.events)
+            .where((0, drizzle_orm_1.eq)(schema_1.events.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.events.date));
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), title: zod_1.z.string(), date: zod_1.z.string(), endDate: zod_1.z.string().optional(),
+        type: zod_1.z.string().optional(), location: zod_1.z.string().optional(), description: zod_1.z.string().optional(),
+        responsible: zod_1.z.string().optional(), estimatedParticipants: zod_1.z.number().optional(), budget: zod_1.z.number().optional(),
+        status: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const { date, endDate, budget, ...rest } = input;
+        const values = { ...rest, date: new Date(date), createdById: ctx.userId };
+        if (endDate)
+            values.endDate = new Date(endDate);
+        if (budget !== undefined)
+            values.budget = String(budget);
+        const [r] = await index_1.db.insert(schema_1.events).values(values).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), title: zod_1.z.string().optional(), date: zod_1.z.string().optional(), endDate: zod_1.z.string().optional(),
+        type: zod_1.z.string().optional(), location: zod_1.z.string().optional(), description: zod_1.z.string().optional(),
+        responsible: zod_1.z.string().optional(), estimatedParticipants: zod_1.z.number().optional(), budget: zod_1.z.number().optional(),
+        status: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, date, endDate, budget, ...data } = input;
+        const ud = { ...data };
+        if (date)
+            ud.date = new Date(date);
+        if (endDate)
+            ud.endDate = new Date(endDate);
+        if (budget !== undefined)
+            ud.budget = String(budget);
+        await index_1.db.update(schema_1.events).set(ud).where((0, drizzle_orm_1.eq)(schema_1.events.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.events).where((0, drizzle_orm_1.eq)(schema_1.events.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// QUOTATIONS ROUTER
+// ============================================
+exports.quotationsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.quotations)
+            .where((0, drizzle_orm_1.eq)(schema_1.quotations.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.quotations.createdAt));
+    }),
+    getById: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [q] = await index_1.db.select().from(schema_1.quotations).where((0, drizzle_orm_1.eq)(schema_1.quotations.id, input.id)).limit(1);
+        if (!q)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Cotação não encontrada' });
+        const items = await index_1.db.select().from(schema_1.quotationItems).where((0, drizzle_orm_1.eq)(schema_1.quotationItems.quotationId, input.id));
+        return { ...q, items };
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), title: zod_1.z.string(),
+        supplier1Name: zod_1.z.string().optional(), supplier2Name: zod_1.z.string().optional(), supplier3Name: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const [r] = await index_1.db.insert(schema_1.quotations).values({ ...input, createdById: ctx.userId }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), title: zod_1.z.string().optional(),
+        supplier1Name: zod_1.z.string().optional(), supplier2Name: zod_1.z.string().optional(), supplier3Name: zod_1.z.string().optional(),
+        winnerSupplier: zod_1.z.string().optional(), status: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await index_1.db.update(schema_1.quotations).set(data).where((0, drizzle_orm_1.eq)(schema_1.quotations.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.quotationItems).where((0, drizzle_orm_1.eq)(schema_1.quotationItems.quotationId, input.id));
+        await index_1.db.delete(schema_1.quotations).where((0, drizzle_orm_1.eq)(schema_1.quotations.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// QUOTATION ITEMS ROUTER
+// ============================================
+exports.quotationItemsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ quotationId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.quotationItems).where((0, drizzle_orm_1.eq)(schema_1.quotationItems.quotationId, input.quotationId));
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        quotationId: zod_1.z.number(), description: zod_1.z.string(), unit: zod_1.z.string().optional(),
+        quantity: zod_1.z.number().optional(), supplier1Price: zod_1.z.number().optional(),
+        supplier2Price: zod_1.z.number().optional(), supplier3Price: zod_1.z.number().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { supplier1Price, supplier2Price, supplier3Price, ...rest } = input;
+        const values = { ...rest };
+        if (supplier1Price !== undefined)
+            values.supplier1Price = String(supplier1Price);
+        if (supplier2Price !== undefined)
+            values.supplier2Price = String(supplier2Price);
+        if (supplier3Price !== undefined)
+            values.supplier3Price = String(supplier3Price);
+        const [r] = await index_1.db.insert(schema_1.quotationItems).values(values).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), description: zod_1.z.string().optional(), unit: zod_1.z.string().optional(),
+        quantity: zod_1.z.number().optional(), supplier1Price: zod_1.z.number().optional(),
+        supplier2Price: zod_1.z.number().optional(), supplier3Price: zod_1.z.number().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, supplier1Price, supplier2Price, supplier3Price, ...data } = input;
+        const ud = { ...data };
+        if (supplier1Price !== undefined)
+            ud.supplier1Price = String(supplier1Price);
+        if (supplier2Price !== undefined)
+            ud.supplier2Price = String(supplier2Price);
+        if (supplier3Price !== undefined)
+            ud.supplier3Price = String(supplier3Price);
+        await index_1.db.update(schema_1.quotationItems).set(ud).where((0, drizzle_orm_1.eq)(schema_1.quotationItems.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.quotationItems).where((0, drizzle_orm_1.eq)(schema_1.quotationItems.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// CLASS COUNCIL ROUTER
+// ============================================
+exports.classCouncilRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), classId: zod_1.z.number(), bimester: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [cls] = await index_1.db.select({ municipalityId: schema_1.classes.municipalityId }).from(schema_1.classes).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId), (0, drizzle_orm_1.eq)(schema_1.classes.municipalityId, input.municipalityId))).limit(1);
+        if (!cls)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Turma não encontrada' });
+        return index_1.db.select().from(schema_1.classCouncilRecords)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.bimester, input.bimester)));
+    }),
+    save: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        classId: zod_1.z.number(),
+        bimester: zod_1.z.number(),
+        records: zod_1.z.array(zod_1.z.object({
+            studentId: zod_1.z.number(),
+            decision: zod_1.z.string().optional(),
+            observations: zod_1.z.string().optional(),
+        })),
+        generalNotes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        for (const record of input.records) {
+            const existing = await index_1.db.select().from(schema_1.classCouncilRecords)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.classId, input.classId), (0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.bimester, input.bimester), (0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.studentId, record.studentId))).limit(1);
+            if (existing.length > 0) {
+                await index_1.db.update(schema_1.classCouncilRecords).set({
+                    decision: record.decision,
+                    observations: record.observations,
+                }).where((0, drizzle_orm_1.eq)(schema_1.classCouncilRecords.id, existing[0].id));
+            }
+            else {
+                await index_1.db.insert(schema_1.classCouncilRecords).values({
+                    municipalityId: input.municipalityId,
+                    classId: input.classId,
+                    bimester: input.bimester,
+                    studentId: record.studentId,
+                    decision: record.decision,
+                    observations: record.observations,
+                    createdById: ctx.userId,
+                });
+            }
+        }
+        if (input.generalNotes !== undefined) {
+            await index_1.db.update(schema_1.classes).set({ generalNotes: input.generalNotes }).where((0, drizzle_orm_1.eq)(schema_1.classes.id, input.classId));
+        }
+        return { success: true };
+    }),
+});
+// ============================================
+// VEHICLE INSPECTIONS ROUTER
+// ============================================
+exports.vehicleInspectionsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.vehicleInspections)
+            .where((0, drizzle_orm_1.eq)(schema_1.vehicleInspections.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.vehicleInspections.inspectionDate));
+    }),
+    listByVehicle: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ vehicleId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.vehicleInspections)
+            .where((0, drizzle_orm_1.eq)(schema_1.vehicleInspections.vehicleId, input.vehicleId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.vehicleInspections.inspectionDate))
+            .limit(1);
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), vehicleId: zod_1.z.number(), inspectorName: zod_1.z.string().optional(),
+        inspectionDate: zod_1.z.string(), checks: zod_1.z.any().optional(), observations: zod_1.z.string().optional(),
+        approvedCount: zod_1.z.number().optional(), rejectedCount: zod_1.z.number().optional(), pendingCount: zod_1.z.number().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const { inspectionDate, ...rest } = input;
+        const [r] = await index_1.db.insert(schema_1.vehicleInspections).values({
+            ...rest, inspectionDate: new Date(inspectionDate), createdById: ctx.userId,
+        }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.vehicleInspections).where((0, drizzle_orm_1.eq)(schema_1.vehicleInspections.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// DOCUMENTS ROUTER
+// ============================================
+exports.documentsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const docs = await index_1.db.select({
+            id: schema_1.documents.id,
+            verificationCode: schema_1.documents.verificationCode,
+            type: schema_1.documents.type,
+            title: schema_1.documents.title,
+            status: schema_1.documents.status,
+            generatedAt: schema_1.documents.generatedAt,
+            generatedById: schema_1.documents.generatedById,
+            pdfHash: schema_1.documents.pdfHash,
+            pdfSize: schema_1.documents.pdfSize,
+            revokedAt: schema_1.documents.revokedAt,
+            revokedReason: schema_1.documents.revokedReason,
+        }).from(schema_1.documents)
+            .where((0, drizzle_orm_1.eq)(schema_1.documents.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.documents.generatedAt));
+        // Get signature counts for each document
+        const docIds = docs.map(d => d.id);
+        let sigCounts = {};
+        if (docIds.length > 0) {
+            const counts = await index_1.db.select({
+                documentId: schema_1.documentSignatures.documentId,
+                count: (0, drizzle_orm_1.sql) `COUNT(*)`.as('count'),
+            }).from(schema_1.documentSignatures)
+                .where((0, drizzle_orm_1.inArray)(schema_1.documentSignatures.documentId, docIds))
+                .groupBy(schema_1.documentSignatures.documentId);
+            for (const c of counts) {
+                sigCounts[c.documentId] = c.count;
+            }
+        }
+        return docs.map(d => ({
+            ...d,
+            signatureCount: sigCounts[d.id] || 0,
+        }));
+    }),
+    revoke: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(),
+        reason: zod_1.z.string().min(3),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        await index_1.db.update(schema_1.documents)
+            .set({
+            status: 'revoked',
+            revokedAt: new Date(),
+            revokedById: ctx.userId,
+            revokedReason: input.reason,
+        })
+            .where((0, drizzle_orm_1.eq)(schema_1.documents.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// DOCUMENT SIGNATURES ROUTER (SEI-style)
+// ============================================
+exports.documentSignaturesRouter = trpc_1.t.router({
+    // Sign a document (requires password verification)
+    sign: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        documentId: zod_1.z.number(),
+        password: zod_1.z.string(),
+        signerRole: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        // 1. Get user by ctx.userId
+        const [user] = await index_1.db.select({
+            id: schema_1.users.id,
+            name: schema_1.users.name,
+            cpf: schema_1.users.cpf,
+            passwordHash: schema_1.users.passwordHash,
+        }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, ctx.userId)).limit(1);
+        if (!user)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+        // 2. Verify password with bcrypt compare
+        if (!user.passwordHash)
+            throw new server_1.TRPCError({ code: 'UNAUTHORIZED', message: 'Usuário sem senha definida' });
+        const isValid = await (0, bcryptjs_1.compare)(input.password, user.passwordHash);
+        if (!isValid)
+            throw new server_1.TRPCError({ code: 'UNAUTHORIZED', message: 'Senha incorreta. A assinatura requer sua senha de login.' });
+        // 3. Get document to get its pdfHash
+        const [doc] = await index_1.db.select({
+            id: schema_1.documents.id,
+            pdfHash: schema_1.documents.pdfHash,
+            status: schema_1.documents.status,
+        }).from(schema_1.documents).where((0, drizzle_orm_1.eq)(schema_1.documents.id, input.documentId)).limit(1);
+        if (!doc)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Documento não encontrado' });
+        if (doc.status !== 'valid')
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Documento revogado ou expirado não pode ser assinado' });
+        // 4. Check if user already signed this document
+        const [existing] = await index_1.db.select({ id: schema_1.documentSignatures.id })
+            .from(schema_1.documentSignatures)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.documentSignatures.documentId, input.documentId), (0, drizzle_orm_1.eq)(schema_1.documentSignatures.signerId, ctx.userId))).limit(1);
+        if (existing)
+            throw new server_1.TRPCError({ code: 'CONFLICT', message: 'Você já assinou este documento' });
+        // 5. Create signatureHash = SHA-256(pdfHash + signerId + timestamp)
+        const now = new Date();
+        const signatureHash = (0, crypto_1.createHash)('sha256')
+            .update(`${doc.pdfHash}:${user.id}:${now.toISOString()}`)
+            .digest('hex');
+        // 6. Insert into documentSignatures
+        const [result] = await index_1.db.insert(schema_1.documentSignatures).values({
+            documentId: input.documentId,
+            signerId: user.id,
+            signerName: user.name,
+            signerRole: input.signerRole || null,
+            signerCpf: user.cpf || null,
+            signatureHash,
+            ipAddress: null, // Will be filled from REST endpoint if needed
+            signedAt: now,
+        }).$returningId();
+        return {
+            success: true,
+            id: result.id,
+            signatureHash,
+            signerName: user.name,
+            signedAt: now.toISOString(),
+        };
+    }),
+    // List signatures for a document
+    listByDocument: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ documentId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.documentSignatures)
+            .where((0, drizzle_orm_1.eq)(schema_1.documentSignatures.documentId, input.documentId))
+            .orderBy(schema_1.documentSignatures.signedAt);
+    }),
+    // Verify a signature (public)
+    verifySignature: trpc_1.publicProcedure
+        .input(zod_1.z.object({ signatureId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [sig] = await index_1.db.select().from(schema_1.documentSignatures)
+            .where((0, drizzle_orm_1.eq)(schema_1.documentSignatures.id, input.signatureId)).limit(1);
+        if (!sig)
+            return { valid: false, message: 'Assinatura não encontrada' };
+        const [doc] = await index_1.db.select({
+            id: schema_1.documents.id,
+            verificationCode: schema_1.documents.verificationCode,
+            type: schema_1.documents.type,
+            title: schema_1.documents.title,
+            status: schema_1.documents.status,
+            pdfHash: schema_1.documents.pdfHash,
+            generatedAt: schema_1.documents.generatedAt,
+        }).from(schema_1.documents).where((0, drizzle_orm_1.eq)(schema_1.documents.id, sig.documentId)).limit(1);
+        // Recompute hash to verify integrity
+        const expectedHash = (0, crypto_1.createHash)('sha256')
+            .update(`${doc?.pdfHash}:${sig.signerId}:${sig.signedAt instanceof Date ? sig.signedAt.toISOString() : sig.signedAt}`)
+            .digest('hex');
+        const hashValid = expectedHash === sig.signatureHash;
+        return {
+            valid: hashValid && doc?.status === 'valid',
+            signatureHash: sig.signatureHash,
+            signerName: sig.signerName,
+            signerRole: sig.signerRole,
+            signerCpf: sig.signerCpf ? sig.signerCpf.replace(/(\d{3})\d{6}(\d{2})/, '$1.***.**$2') : null,
+            signedAt: sig.signedAt,
+            document: doc ? {
+                verificationCode: doc.verificationCode,
+                title: doc.title,
+                type: doc.type,
+                status: doc.status,
+                generatedAt: doc.generatedAt,
+            } : null,
+            hashIntegrity: hashValid ? 'Íntegro' : 'Hash divergente - documento pode ter sido alterado',
+        };
+    }),
+});
+// ============================================
+// AI / OTIMIZAÇÃO ROUTER
+// ============================================
+exports.aiRouter = trpc_1.t.router({
+    // Analisar todas as rotas de um município
+    analyzeRoutes: trpc_1.adminProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const allRoutes = await index_1.db.select().from(schema_1.routes)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true)));
+        const results = [];
+        for (const route of allRoutes) {
+            const routeStops = await index_1.db.select({
+                id: schema_1.stops.id,
+                name: schema_1.stops.name,
+                latitude: schema_1.stops.latitude,
+                longitude: schema_1.stops.longitude,
+                orderIndex: schema_1.stops.orderIndex,
+            }).from(schema_1.stops)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.stops.routeId, route.id), (0, drizzle_orm_1.eq)(schema_1.stops.isActive, true)))
+                .orderBy(schema_1.stops.orderIndex);
+            // Buscar alunos associados às paradas desta rota
+            const stopIds = routeStops.map(s => s.id);
+            let routeStudents = [];
+            if (stopIds.length > 0) {
+                const studs = await index_1.db.select({
+                    id: schema_1.students.id,
+                    name: schema_1.students.name,
+                    latitude: schema_1.students.latitude,
+                    longitude: schema_1.students.longitude,
+                }).from(schema_1.stopStudents)
+                    .innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.stopStudents.studentId, schema_1.students.id))
+                    .where((0, drizzle_orm_1.inArray)(schema_1.stopStudents.stopId, stopIds));
+                routeStudents = studs
+                    .filter(s => s.latitude != null && s.longitude != null)
+                    .map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    latitude: parseFloat(String(s.latitude)),
+                    longitude: parseFloat(String(s.longitude)),
+                }));
+            }
+            const validStops = routeStops
+                .filter(s => s.latitude != null && s.longitude != null)
+                .map(s => ({
+                id: s.id,
+                name: s.name,
+                latitude: parseFloat(String(s.latitude)),
+                longitude: parseFloat(String(s.longitude)),
+            }));
+            const analysis = (0, routeOptimizer_1.analyzeRoute)(route, validStops, routeStudents);
+            results.push({
+                routeId: route.id,
+                routeName: route.name,
+                stopCount: routeStops.length,
+                studentCount: routeStudents.length,
+                analysis,
+            });
+        }
+        return results;
+    }),
+    // Otimizar a ordem das paradas de uma rota
+    optimizeRoute: trpc_1.adminProcedure
+        .input(zod_1.z.object({ routeId: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        const routeStops = await index_1.db.select({
+            id: schema_1.stops.id,
+            name: schema_1.stops.name,
+            latitude: schema_1.stops.latitude,
+            longitude: schema_1.stops.longitude,
+            orderIndex: schema_1.stops.orderIndex,
+        }).from(schema_1.stops)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.stops.routeId, input.routeId), (0, drizzle_orm_1.eq)(schema_1.stops.isActive, true)))
+            .orderBy(schema_1.stops.orderIndex);
+        const validStops = routeStops
+            .filter(s => s.latitude != null && s.longitude != null)
+            .map(s => ({
+            id: s.id,
+            name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+        }));
+        if (validStops.length < 2) {
+            throw new server_1.TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'A rota precisa de pelo menos 2 paradas com coordenadas para otimizar.',
+            });
+        }
+        const { optimizedStops, originalDistance, optimizedDistance, savingsPercent } = (0, routeOptimizer_1.optimizeStopOrder)(validStops);
+        // Atualizar orderIndex de cada parada no banco
+        for (let i = 0; i < optimizedStops.length; i++) {
+            await index_1.db.update(schema_1.stops)
+                .set({ orderIndex: i })
+                .where((0, drizzle_orm_1.eq)(schema_1.stops.id, optimizedStops[i].id));
+        }
+        // Atualizar distância total da rota
+        await index_1.db.update(schema_1.routes)
+            .set({ totalDistanceKm: String(optimizedDistance) })
+            .where((0, drizzle_orm_1.eq)(schema_1.routes.id, input.routeId));
+        return {
+            routeId: input.routeId,
+            originalDistance,
+            optimizedDistance,
+            savingsPercent,
+            newOrder: optimizedStops.map((s, i) => ({
+                stopId: s.id,
+                stopName: s.name,
+                newIndex: i,
+            })),
+        };
+    }),
+    // Sugerir paradas para alunos sem atribuição
+    suggestStops: trpc_1.adminProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), numClusters: zod_1.z.number().default(5) }))
+        .query(async ({ input }) => {
+        // Buscar alunos que precisam de transporte mas não têm parada atribuída
+        const allStudents = await index_1.db.select({
+            id: schema_1.students.id,
+            name: schema_1.students.name,
+            latitude: schema_1.students.latitude,
+            longitude: schema_1.students.longitude,
+            address: schema_1.students.address,
+            neighborhood: schema_1.students.neighborhood,
+        }).from(schema_1.students)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.needsTransport, true)));
+        // Filtrar alunos que já têm parada
+        const assignedStudentIds = await index_1.db.select({ studentId: schema_1.stopStudents.studentId })
+            .from(schema_1.stopStudents);
+        const assignedSet = new Set(assignedStudentIds.map(a => a.studentId));
+        const unassigned = allStudents
+            .filter(s => !assignedSet.has(s.id))
+            .filter(s => s.latitude != null && s.longitude != null &&
+            parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0)
+            .map(s => ({
+            id: s.id,
+            name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+            address: s.address,
+            neighborhood: s.neighborhood,
+        }));
+        if (unassigned.length === 0) {
+            return {
+                totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+                withCoordinates: 0,
+                clusters: [],
+                message: 'Nenhum aluno sem parada com coordenadas GPS cadastradas.',
+            };
+        }
+        const { clusters } = (0, routeOptimizer_1.clusterStudents)(unassigned.map(s => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude })), input.numClusters);
+        return {
+            totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+            withCoordinates: unassigned.length,
+            clusters: clusters.map((c, idx) => ({
+                clusterIndex: idx + 1,
+                suggestedName: `Ponto Sugerido ${idx + 1}`,
+                center: c.center,
+                studentCount: c.students.length,
+                students: c.students.map(s => {
+                    const full = unassigned.find(u => u.id === s.id);
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        address: full?.address || null,
+                        neighborhood: full?.neighborhood || null,
+                        distanceToCenter: Math.round((0, routeOptimizer_1.haversineDistance)(s.latitude, s.longitude, c.center.latitude, c.center.longitude) * 1000), // em metros
+                    };
+                }),
+                averageRadius: Math.round(c.students.reduce((sum, s) => sum + (0, routeOptimizer_1.haversineDistance)(s.latitude, s.longitude, c.center.latitude, c.center.longitude), 0) / c.students.length * 1000), // raio médio em metros
+            })),
+        };
+    }),
+    // Análise de risco de evasão escolar
+    studentRiskAnalysis: trpc_1.adminProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        // Buscar todos os alunos do município
+        const allStudents = await index_1.db.select({
+            id: schema_1.students.id,
+            name: schema_1.students.name,
+            enrollment: schema_1.students.enrollment,
+            schoolId: schema_1.students.schoolId,
+            grade: schema_1.students.grade,
+        }).from(schema_1.students)
+            .where((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId));
+        if (allStudents.length === 0)
+            return [];
+        const studentIds = allStudents.map(s => s.id);
+        // Buscar contagem de ausências por aluno (trip_student_logs where eventType='absent')
+        const absenceCounts = await index_1.db.select({
+            studentId: schema_1.tripStudentLogs.studentId,
+            count: (0, drizzle_orm_1.sql) `COUNT(*)`.as('count'),
+        }).from(schema_1.tripStudentLogs)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.inArray)(schema_1.tripStudentLogs.studentId, studentIds), (0, drizzle_orm_1.eq)(schema_1.tripStudentLogs.eventType, 'absent')))
+            .groupBy(schema_1.tripStudentLogs.studentId);
+        const absenceMap = new Map(absenceCounts.map(a => [a.studentId, Number(a.count)]));
+        // Buscar médias de notas por aluno
+        const gradeAvgs = await index_1.db.select({
+            studentId: schema_1.studentGrades.studentId,
+            avg: (0, drizzle_orm_1.sql) `AVG(${schema_1.studentGrades.score})`.as('avg'),
+        }).from(schema_1.studentGrades)
+            .where((0, drizzle_orm_1.inArray)(schema_1.studentGrades.studentId, studentIds))
+            .groupBy(schema_1.studentGrades.studentId);
+        const gradeMap = new Map(gradeAvgs.map(g => [g.studentId, Number(g.avg)]));
+        // Buscar contagem de ocorrências por aluno
+        const occCounts = await index_1.db.select({
+            studentId: schema_1.studentOccurrences.studentId,
+            count: (0, drizzle_orm_1.sql) `COUNT(*)`.as('count'),
+        }).from(schema_1.studentOccurrences)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.studentOccurrences.municipalityId, input.municipalityId), (0, drizzle_orm_1.inArray)(schema_1.studentOccurrences.studentId, studentIds)))
+            .groupBy(schema_1.studentOccurrences.studentId);
+        const occMap = new Map(occCounts.map(o => [o.studentId, Number(o.count)]));
+        // Buscar status de matrícula (evadido/transferido = já em risco)
+        const enrollmentStatuses = await index_1.db.select({
+            studentId: schema_1.enrollments.studentId,
+            status: schema_1.enrollments.status,
+        }).from(schema_1.enrollments)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.enrollments.municipalityId, input.municipalityId), (0, drizzle_orm_1.inArray)(schema_1.enrollments.studentId, studentIds), (0, drizzle_orm_1.inArray)(schema_1.enrollments.status, ['transferred', 'evaded'])));
+        const atRiskEnrollment = new Set(enrollmentStatuses.map(e => e.studentId));
+        // Calcular score de risco para cada aluno
+        const results = allStudents.map(student => {
+            let riskScore = 0;
+            const riskFactors = [];
+            // Ausências
+            const absences = absenceMap.get(student.id) || 0;
+            if (absences > 10) {
+                riskScore += 30;
+                riskFactors.push(`${absences} ausências no transporte (crítico)`);
+            }
+            else if (absences > 5) {
+                riskScore += 15;
+                riskFactors.push(`${absences} ausências no transporte`);
+            }
+            // Notas
+            const avgGrade = gradeMap.get(student.id);
+            if (avgGrade !== undefined) {
+                if (avgGrade < 5.0) {
+                    riskScore += 25;
+                    riskFactors.push(`Média ${avgGrade.toFixed(1)} (abaixo de 5.0 - crítico)`);
+                }
+                else if (avgGrade < 7.0) {
+                    riskScore += 10;
+                    riskFactors.push(`Média ${avgGrade.toFixed(1)} (abaixo de 7.0)`);
+                }
+            }
+            // Ocorrências
+            const occurrences = occMap.get(student.id) || 0;
+            if (occurrences > 3) {
+                riskScore += 20;
+                riskFactors.push(`${occurrences} ocorrências registradas (crítico)`);
+            }
+            else if (occurrences > 1) {
+                riskScore += 10;
+                riskFactors.push(`${occurrences} ocorrências registradas`);
+            }
+            // Matrícula em risco (transferido/evadido)
+            if (atRiskEnrollment.has(student.id)) {
+                riskScore += 15;
+                riskFactors.push('Matrícula transferida ou evadida');
+            }
+            // Frequência baixa no transporte (muitas ausências proporcionais)
+            if (absences > 3 && absences <= 5) {
+                riskScore += 5;
+                riskFactors.push('Frequência irregular no transporte');
+            }
+            riskScore = Math.min(100, riskScore);
+            let riskLevel;
+            if (riskScore >= 60)
+                riskLevel = 'critico';
+            else if (riskScore >= 40)
+                riskLevel = 'alto';
+            else if (riskScore >= 20)
+                riskLevel = 'moderado';
+            else
+                riskLevel = 'baixo';
+            return {
+                studentId: student.id,
+                studentName: student.name,
+                enrollment: student.enrollment,
+                schoolId: student.schoolId,
+                grade: student.grade,
+                riskScore,
+                riskLevel,
+                riskFactors,
+                absences,
+                avgGrade: avgGrade !== undefined ? Math.round(avgGrade * 10) / 10 : null,
+                occurrences,
+            };
+        });
+        // Ordenar por risco (maior primeiro), filtrar apenas quem tem algum risco
+        return results
+            .filter(r => r.riskScore > 0)
+            .sort((a, b) => b.riskScore - a.riskScore);
+    }),
+});
+// ============================================
+// CHAT ROUTER
+// ============================================
+exports.chatRouter = trpc_1.t.router({
+    // Listar conversas do usuario
+    conversations: trpc_1.protectedProcedure
+        .query(async ({ ctx }) => {
+        const userId = ctx.userId;
+        const convos = await index_1.db.select({
+            id: schema_1.chatConversations.id,
+            participant1Id: schema_1.chatConversations.participant1Id,
+            participant2Id: schema_1.chatConversations.participant2Id,
+            lastMessageAt: schema_1.chatConversations.lastMessageAt,
+            municipalityId: schema_1.chatConversations.municipalityId,
+        })
+            .from(schema_1.chatConversations)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.chatConversations.lastMessageAt));
+        // Buscar dados dos outros participantes e ultima mensagem
+        const results = [];
+        for (const c of convos) {
+            const otherUserId = c.participant1Id === userId ? c.participant2Id : c.participant1Id;
+            const [otherUser] = await index_1.db.select({ id: schema_1.users.id, name: schema_1.users.name, role: schema_1.users.role, avatarUrl: schema_1.users.avatarUrl })
+                .from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, otherUserId)).limit(1);
+            const [lastMsg] = await index_1.db.select({ content: schema_1.chatMessages.content, senderId: schema_1.chatMessages.senderId, createdAt: schema_1.chatMessages.createdAt })
+                .from(schema_1.chatMessages).where((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, c.id)).orderBy((0, drizzle_orm_1.desc)(schema_1.chatMessages.createdAt)).limit(1);
+            const [unreadResult] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` })
+                .from(schema_1.chatMessages)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, c.id), (0, drizzle_orm_1.eq)(schema_1.chatMessages.isRead, false), (0, drizzle_orm_1.sql) `${schema_1.chatMessages.senderId} != ${userId}`));
+            results.push({
+                id: c.id,
+                otherUser: otherUser || { id: otherUserId, name: 'Usuario', role: 'parent', avatarUrl: null },
+                lastMessage: lastMsg || null,
+                unreadCount: unreadResult?.count || 0,
+                lastMessageAt: c.lastMessageAt,
+            });
+        }
+        return results;
+    }),
+    // Historico de mensagens de uma conversa
+    history: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ conversationId: zod_1.z.number(), limit: zod_1.z.number().default(50) }))
+        .query(async ({ ctx, input }) => {
+        const userId = ctx.userId;
+        // Verificar que o usuario participa da conversa
+        const [conv] = await index_1.db.select().from(schema_1.chatConversations)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, input.conversationId), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))).limit(1);
+        if (!conv)
+            throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Voce nao participa desta conversa' });
+        const msgs = await index_1.db.select({
+            id: schema_1.chatMessages.id,
+            content: schema_1.chatMessages.content,
+            senderId: schema_1.chatMessages.senderId,
+            isRead: schema_1.chatMessages.isRead,
+            createdAt: schema_1.chatMessages.createdAt,
+        })
+            .from(schema_1.chatMessages)
+            .where((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, input.conversationId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.chatMessages.createdAt))
+            .limit(input.limit);
+        // Marcar como lidas as mensagens do outro usuario
+        await index_1.db.update(schema_1.chatMessages)
+            .set({ isRead: true, readAt: new Date() })
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, input.conversationId), (0, drizzle_orm_1.eq)(schema_1.chatMessages.isRead, false), (0, drizzle_orm_1.sql) `${schema_1.chatMessages.senderId} != ${userId}`));
+        return msgs.reverse();
+    }),
+    // Enviar mensagem
+    send: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        recipientId: zod_1.z.number(),
+        content: zod_1.z.string().min(1).max(2000),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.userId;
+        const municipalityId = ctx.municipalityId || 1;
+        // Buscar ou criar conversa
+        let [conv] = await index_1.db.select().from(schema_1.chatConversations)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, input.recipientId)), (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, input.recipientId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))).limit(1);
+        if (!conv) {
+            const [newConv] = await index_1.db.insert(schema_1.chatConversations).values({
+                municipalityId,
+                participant1Id: userId,
+                participant2Id: input.recipientId,
+                lastMessageAt: new Date(),
+            }).$returningId();
+            [conv] = await index_1.db.select().from(schema_1.chatConversations).where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, newConv.id)).limit(1);
+        }
+        // Inserir mensagem
+        const [msg] = await index_1.db.insert(schema_1.chatMessages).values({
+            conversationId: conv.id,
+            senderId: userId,
+            content: input.content,
+        }).$returningId();
+        // Atualizar lastMessageAt da conversa
+        await index_1.db.update(schema_1.chatConversations)
+            .set({ lastMessageAt: new Date() })
+            .where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, conv.id));
+        // Buscar nome do remetente para a notificacao
+        const [sender] = await index_1.db.select({ name: schema_1.users.name }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, userId)).limit(1);
+        // Emitir via Socket.IO para o destinatario
+        (0, socketInstance_1.emitToUser)(input.recipientId, 'chat:message', {
+            conversationId: conv.id,
+            messageId: msg.id,
+            senderId: userId,
+            senderName: sender?.name || 'Usuario',
+            content: input.content,
+            createdAt: new Date().toISOString(),
+        });
+        return { success: true, conversationId: conv.id, messageId: msg.id };
+    }),
+    // Contar mensagens nao lidas totais
+    unreadTotal: trpc_1.protectedProcedure
+        .query(async ({ ctx }) => {
+        const userId = ctx.userId;
+        // Buscar conversas do usuario
+        const convos = await index_1.db.select({ id: schema_1.chatConversations.id })
+            .from(schema_1.chatConversations)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)));
+        if (convos.length === 0)
+            return { count: 0 };
+        const convoIds = convos.map(c => c.id);
+        const [result] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` })
+            .from(schema_1.chatMessages)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.inArray)(schema_1.chatMessages.conversationId, convoIds), (0, drizzle_orm_1.eq)(schema_1.chatMessages.isRead, false), (0, drizzle_orm_1.sql) `${schema_1.chatMessages.senderId} != ${userId}`));
+        return { count: result?.count || 0 };
+    }),
+    // Buscar usuarios disponiveis para chat (staff da secretaria para pais, pais para staff)
+    availableContacts: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ ctx, input }) => {
+        const userId = ctx.userId;
+        const [currentUser] = await index_1.db.select({ role: schema_1.users.role }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, userId)).limit(1);
+        if (!currentUser)
+            return [];
+        // Pais veem staff (secretary, school_admin, municipal_admin)
+        // Staff ve pais (parent)
+        const targetRoles = currentUser.role === 'parent'
+            ? ['secretary', 'school_admin', 'municipal_admin', 'super_admin']
+            : ['parent'];
+        const contacts = await index_1.db.select({
+            id: schema_1.users.id, name: schema_1.users.name, role: schema_1.users.role, avatarUrl: schema_1.users.avatarUrl
+        })
+            .from(schema_1.users)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.users.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.users.isActive, true), (0, drizzle_orm_1.inArray)(schema_1.users.role, targetRoles), (0, drizzle_orm_1.sql) `${schema_1.users.id} != ${userId}`))
+            .orderBy(schema_1.users.name)
+            .limit(100);
+        return contacts;
+    }),
+    // Marcar mensagens de uma conversa como lidas
+    markRead: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ conversationId: zod_1.z.number() }))
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.userId;
+        await index_1.db.update(schema_1.chatMessages)
+            .set({ isRead: true, readAt: new Date() })
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, input.conversationId), (0, drizzle_orm_1.eq)(schema_1.chatMessages.isRead, false), (0, drizzle_orm_1.sql) `${schema_1.chatMessages.senderId} != ${userId}`));
+        return { success: true };
+    }),
+});
+// ============================================
+// GRADE HORÁRIA ROUTER
+// ============================================
+exports.classSchedulesRouter = trpc_1.t.router({
+    get: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ classId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [row] = await index_1.db.select().from(schema_1.classSchedules)
+            .where((0, drizzle_orm_1.eq)(schema_1.classSchedules.classId, input.classId))
+            .limit(1);
+        if (!row)
+            return null;
+        return { ...row, schedule: row.scheduleJson ? JSON.parse(row.scheduleJson) : {} };
+    }),
+    save: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        classId: zod_1.z.number(),
+        municipalityId: zod_1.z.number(),
+        schedule: zod_1.z.string(),
+    }))
+        .mutation(async ({ input }) => {
+        const [existing] = await index_1.db.select().from(schema_1.classSchedules)
+            .where((0, drizzle_orm_1.eq)(schema_1.classSchedules.classId, input.classId))
+            .limit(1);
+        if (existing) {
+            await index_1.db.update(schema_1.classSchedules)
+                .set({ scheduleJson: input.schedule })
+                .where((0, drizzle_orm_1.eq)(schema_1.classSchedules.classId, input.classId));
+        }
+        else {
+            await index_1.db.insert(schema_1.classSchedules).values({
+                classId: input.classId,
+                municipalityId: input.municipalityId,
+                scheduleJson: input.schedule,
+            });
+        }
+        return { success: true };
+    }),
+});
+// ============================================
+// MURAL INFORMATIVO ROUTER
+// ============================================
+exports.bulletinsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.bulletins)
+            .where((0, drizzle_orm_1.eq)(schema_1.bulletins.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.bulletins.pinned), (0, drizzle_orm_1.desc)(schema_1.bulletins.createdAt));
+    }),
+    create: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        title: zod_1.z.string().min(1),
+        content: zod_1.z.string().min(1),
+        category: zod_1.z.string().optional(),
+        author: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [r] = await index_1.db.insert(schema_1.bulletins).values(input).$returningId();
+        return { success: true, id: r.id };
+    }),
+    togglePin: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        const [row] = await index_1.db.select().from(schema_1.bulletins).where((0, drizzle_orm_1.eq)(schema_1.bulletins.id, input.id)).limit(1);
+        if (!row)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND' });
+        await index_1.db.update(schema_1.bulletins).set({ pinned: !row.pinned }).where((0, drizzle_orm_1.eq)(schema_1.bulletins.id, input.id));
+        return { success: true, pinned: !row.pinned };
+    }),
+    delete: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.delete(schema_1.bulletins).where((0, drizzle_orm_1.eq)(schema_1.bulletins.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// PROTOCOLOS ROUTER
+// ============================================
+exports.protocolsRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.protocols)
+            .where((0, drizzle_orm_1.eq)(schema_1.protocols.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.protocols.createdAt));
+    }),
+    create: trpc_1.protectedProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        requester: zod_1.z.string().min(1),
+        type: zod_1.z.string().optional(),
+        subject: zod_1.z.string().min(1),
+        description: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const year = new Date().getFullYear();
+        const [countResult] = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` })
+            .from(schema_1.protocols)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.protocols.municipalityId, input.municipalityId), (0, drizzle_orm_1.gte)(schema_1.protocols.date, new Date(year, 0, 1)), (0, drizzle_orm_1.lte)(schema_1.protocols.date, new Date(year, 11, 31, 23, 59, 59))));
+        const seq = Number(countResult?.count || 0) + 1;
+        const number = String(seq).padStart(4, '0') + '/' + year;
+        const [r] = await index_1.db.insert(schema_1.protocols).values({ ...input, number }).$returningId();
+        return { success: true, id: r.id, number };
+    }),
+    updateStatus: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number(), status: zod_1.z.string() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.protocols).set({ status: input.status }).where((0, drizzle_orm_1.eq)(schema_1.protocols.id, input.id));
+        return { success: true };
+    }),
+    addResponse: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number(), response: zod_1.z.string() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.protocols).set({ response: input.response, status: 'concluido' }).where((0, drizzle_orm_1.eq)(schema_1.protocols.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// SETE (FNDE) - FORNECEDORES
+// ============================================
+const suppliersRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.suppliers)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.suppliers.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.suppliers.isActive, true)))
+            .orderBy(schema_1.suppliers.name);
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), name: zod_1.z.string(), type: zod_1.z.string().optional(),
+        cnpj: zod_1.z.string().optional(), cpf: zod_1.z.string().optional(),
+        contactName: zod_1.z.string().optional(), phone: zod_1.z.string().optional(),
+        email: zod_1.z.string().optional(), address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(), state: zod_1.z.string().optional(), cep: zod_1.z.string().optional(),
+        specialties: zod_1.z.string().optional(), rating: zod_1.z.number().optional(), notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [r] = await index_1.db.insert(schema_1.suppliers).values(input).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), name: zod_1.z.string().optional(), type: zod_1.z.string().optional(),
+        cnpj: zod_1.z.string().optional(), cpf: zod_1.z.string().optional(),
+        contactName: zod_1.z.string().optional(), phone: zod_1.z.string().optional(),
+        email: zod_1.z.string().optional(), address: zod_1.z.string().optional(),
+        city: zod_1.z.string().optional(), state: zod_1.z.string().optional(), cep: zod_1.z.string().optional(),
+        specialties: zod_1.z.string().optional(), rating: zod_1.z.number().optional(), notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await index_1.db.update(schema_1.suppliers).set(data).where((0, drizzle_orm_1.eq)(schema_1.suppliers.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.suppliers).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.suppliers.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// SETE (FNDE) - ORDENS DE SERVICO
+// ============================================
+const serviceOrdersRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.serviceOrders)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.serviceOrders.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.serviceOrders.isActive, true)))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.serviceOrders.openedAt));
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), vehicleId: zod_1.z.number(), supplierId: zod_1.z.number().optional(),
+        number: zod_1.z.string(), type: zod_1.z.string().optional(), priority: zod_1.z.string().optional(),
+        description: zod_1.z.string(), diagnosis: zod_1.z.string().optional(), solution: zod_1.z.string().optional(),
+        parts: zod_1.z.string().optional(), laborCost: zod_1.z.string().optional(), partsCost: zod_1.z.string().optional(),
+        totalCost: zod_1.z.string().optional(), kmAtService: zod_1.z.number().optional(),
+        estimatedCompletionAt: zod_1.z.string().optional(), invoiceNumber: zod_1.z.string().optional(),
+        notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const { estimatedCompletionAt, ...rest } = input;
+        const [r] = await index_1.db.insert(schema_1.serviceOrders).values({
+            ...rest, requestedById: ctx.userId,
+            estimatedCompletionAt: estimatedCompletionAt ? new Date(estimatedCompletionAt) : undefined,
+        }).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), supplierId: zod_1.z.number().optional(),
+        type: zod_1.z.string().optional(), priority: zod_1.z.string().optional(),
+        description: zod_1.z.string().optional(), diagnosis: zod_1.z.string().optional(), solution: zod_1.z.string().optional(),
+        parts: zod_1.z.string().optional(), laborCost: zod_1.z.string().optional(), partsCost: zod_1.z.string().optional(),
+        totalCost: zod_1.z.string().optional(), kmAtService: zod_1.z.number().optional(),
+        status: zod_1.z.string().optional(), invoiceNumber: zod_1.z.string().optional(),
+        notes: zod_1.z.string().optional(),
+        startedAt: zod_1.z.string().optional(), completedAt: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const { id, startedAt, completedAt, ...rest } = input;
+        const data = { ...rest };
+        if (startedAt)
+            data.startedAt = new Date(startedAt);
+        if (completedAt)
+            data.completedAt = new Date(completedAt);
+        if (input.status === 'aprovada')
+            data.approvedById = ctx.userId;
+        await index_1.db.update(schema_1.serviceOrders).set(data).where((0, drizzle_orm_1.eq)(schema_1.serviceOrders.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.serviceOrders).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.serviceOrders.id, input.id));
+        return { success: true };
+    }),
+    nextNumber: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const [last] = await index_1.db.select({ number: schema_1.serviceOrders.number }).from(schema_1.serviceOrders)
+            .where((0, drizzle_orm_1.eq)(schema_1.serviceOrders.municipalityId, input.municipalityId))
+            .orderBy((0, drizzle_orm_1.desc)(schema_1.serviceOrders.id)).limit(1);
+        if (!last)
+            return 'OS-001';
+        const num = parseInt(last.number.replace(/\D/g, '') || '0') + 1;
+        return `OS-${String(num).padStart(3, '0')}`;
+    }),
+});
+// ============================================
+// SETE (FNDE) - GARAGENS
+// ============================================
+const garagesRouter = trpc_1.t.router({
+    list: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        return index_1.db.select().from(schema_1.garages)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.garages.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.garages.isActive, true)))
+            .orderBy(schema_1.garages.name);
+    }),
+    create: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), name: zod_1.z.string(),
+        address: zod_1.z.string().optional(), city: zod_1.z.string().optional(), state: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(), latitude: zod_1.z.string().optional(), longitude: zod_1.z.string().optional(),
+        capacity: zod_1.z.number().optional(), contactName: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(), type: zod_1.z.string().optional(), notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const [r] = await index_1.db.insert(schema_1.garages).values(input).$returningId();
+        return { success: true, id: r.id };
+    }),
+    update: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        id: zod_1.z.number(), name: zod_1.z.string().optional(),
+        address: zod_1.z.string().optional(), city: zod_1.z.string().optional(), state: zod_1.z.string().optional(),
+        cep: zod_1.z.string().optional(), latitude: zod_1.z.string().optional(), longitude: zod_1.z.string().optional(),
+        capacity: zod_1.z.number().optional(), contactName: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(), type: zod_1.z.string().optional(), notes: zod_1.z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await index_1.db.update(schema_1.garages).set(data).where((0, drizzle_orm_1.eq)(schema_1.garages.id, id));
+        return { success: true };
+    }),
+    delete: trpc_1.adminProcedure
+        .input(zod_1.z.object({ id: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.garages).set({ isActive: false }).where((0, drizzle_orm_1.eq)(schema_1.garages.id, input.id));
+        return { success: true };
+    }),
+});
+// ============================================
+// BACKUP DE DADOS (JSON)
+// ============================================
+const backupRouter = trpc_1.t.router({
+    // Estatísticas de registros por tabela
+    stats: trpc_1.adminProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const mid = input.municipalityId;
+        const countQuery = async (table) => {
+            const result = await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(table).where((0, drizzle_orm_1.eq)(table.municipalityId, mid));
+            return Number(result[0]?.count || 0);
+        };
+        return {
+            schools: await countQuery(schema_1.schools),
+            students: await countQuery(schema_1.students),
+            routes: await countQuery(schema_1.routes),
+            vehicles: await countQuery(schema_1.vehicles),
+            drivers: await countQuery(schema_1.drivers),
+            guardians: await index_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema_1.guardians)
+                .innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.guardians.studentId, schema_1.students.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, mid))
+                .then(r => Number(r[0]?.count || 0)),
+            enrollments: await countQuery(schema_1.enrollments),
+            classes: await countQuery(schema_1.classes),
+            subjects: await countQuery(schema_1.subjects),
+            classGrades: await countQuery(schema_1.classGrades),
+            academicYears: await countQuery(schema_1.academicYears),
+            teachers: await countQuery(schema_1.teachers),
+            monitorStaff: await countQuery(schema_1.monitorStaff),
+            contracts: await countQuery(schema_1.contracts),
+            fuelRecords: await countQuery(schema_1.fuelRecords),
+            maintenanceRecords: await countQuery(schema_1.maintenanceRecords),
+            mealMenus: await countQuery(schema_1.mealMenus),
+            libraryBooks: await countQuery(schema_1.libraryBooks),
+            assets: await countQuery(schema_1.assets),
+            inventoryItems: await countQuery(schema_1.inventoryItems),
+            financialAccounts: await countQuery(schema_1.financialAccounts),
+            financialTransactions: await countQuery(schema_1.financialTransactions),
+            positions: await countQuery(schema_1.positions),
+            departments: await countQuery(schema_1.departments),
+            staffAllocations: await countQuery(schema_1.staffAllocations),
+            events: await countQuery(schema_1.events),
+            messages: await countQuery(schema_1.messages),
+            schoolCalendar: await countQuery(schema_1.schoolCalendar),
+            bulletins: await countQuery(schema_1.bulletins),
+            protocols: await countQuery(schema_1.protocols),
+            documents: await countQuery(schema_1.documents),
+            quotations: await countQuery(schema_1.quotations),
+            vehicleInspections: await countQuery(schema_1.vehicleInspections),
+        };
+    }),
+    // Exportar todos os dados do município como JSON
+    exportAll: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        tables: zod_1.z.array(zod_1.z.string()).optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const mid = input.municipalityId;
+        const selectedTables = input.tables; // se undefined, exporta tudo
+        const shouldExport = (name) => !selectedTables || selectedTables.includes(name);
+        const q = async (table) => index_1.db.select().from(table).where((0, drizzle_orm_1.eq)(table.municipalityId, mid));
+        const data = {};
+        // Município
+        if (shouldExport('municipality')) {
+            data.municipality = await index_1.db.select().from(schema_1.municipalities).where((0, drizzle_orm_1.eq)(schema_1.municipalities.id, mid));
+        }
+        if (shouldExport('municipalityResponsibles')) {
+            data.municipalityResponsibles = await index_1.db.select().from(schema_1.municipalityResponsibles).where((0, drizzle_orm_1.eq)(schema_1.municipalityResponsibles.municipalityId, mid));
+        }
+        // Escolas e Ensino
+        if (shouldExport('schools'))
+            data.schools = await q(schema_1.schools);
+        if (shouldExport('students'))
+            data.students = await q(schema_1.students);
+        // guardians não tem municipalityId - exportar via join com students
+        if (shouldExport('guardians')) {
+            data.guardians = await index_1.db.select().from(schema_1.guardians)
+                .innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.guardians.studentId, schema_1.students.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, mid))
+                .then(rows => rows.map(r => r.guardians));
+        }
+        if (shouldExport('enrollments'))
+            data.enrollments = await q(schema_1.enrollments);
+        if (shouldExport('classes'))
+            data.classes = await q(schema_1.classes);
+        if (shouldExport('classGrades'))
+            data.classGrades = await q(schema_1.classGrades);
+        if (shouldExport('subjects'))
+            data.subjects = await q(schema_1.subjects);
+        // classSubjects não tem municipalityId - exportar via join com classes
+        if (shouldExport('classSubjects')) {
+            data.classSubjects = await index_1.db.select().from(schema_1.classSubjects)
+                .innerJoin(schema_1.classes, (0, drizzle_orm_1.eq)(schema_1.classSubjects.classId, schema_1.classes.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.classes.municipalityId, mid))
+                .then(rows => rows.map(r => r.class_subjects));
+        }
+        if (shouldExport('academicYears'))
+            data.academicYears = await q(schema_1.academicYears);
+        if (shouldExport('teachers'))
+            data.teachers = await q(schema_1.teachers);
+        // dailyAttendance não tem municipalityId - via students
+        if (shouldExport('dailyAttendance')) {
+            data.dailyAttendance = await index_1.db.select().from(schema_1.dailyAttendance)
+                .innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.dailyAttendance.studentId, schema_1.students.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, mid))
+                .then(rows => rows.map(r => r.daily_attendance));
+        }
+        if (shouldExport('assessments'))
+            data.assessments = await q(schema_1.assessments);
+        // studentGrades não tem municipalityId - via assessments
+        if (shouldExport('studentGrades')) {
+            data.studentGrades = await index_1.db.select().from(schema_1.studentGrades)
+                .innerJoin(schema_1.assessments, (0, drizzle_orm_1.eq)(schema_1.studentGrades.assessmentId, schema_1.assessments.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.assessments.municipalityId, mid))
+                .then(rows => rows.map(r => r.student_grades));
+        }
+        if (shouldExport('lessonPlans'))
+            data.lessonPlans = await q(schema_1.lessonPlans);
+        if (shouldExport('descriptiveReports'))
+            data.descriptiveReports = await q(schema_1.descriptiveReports);
+        if (shouldExport('classCouncilRecords'))
+            data.classCouncilRecords = await q(schema_1.classCouncilRecords);
+        if (shouldExport('classSchedules'))
+            data.classSchedules = await q(schema_1.classSchedules);
+        // Transporte
+        if (shouldExport('routes'))
+            data.routes = await q(schema_1.routes);
+        // stops não tem municipalityId - exportar via join com routes
+        if (shouldExport('stops')) {
+            data.stops = await index_1.db.select().from(schema_1.stops)
+                .innerJoin(schema_1.routes, (0, drizzle_orm_1.eq)(schema_1.stops.routeId, schema_1.routes.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, mid))
+                .then(rows => rows.map(r => r.stops));
+        }
+        if (shouldExport('vehicles'))
+            data.vehicles = await q(schema_1.vehicles);
+        if (shouldExport('drivers'))
+            data.drivers = await q(schema_1.drivers);
+        if (shouldExport('monitorStaff'))
+            data.monitorStaff = await q(schema_1.monitorStaff);
+        if (shouldExport('fuelRecords'))
+            data.fuelRecords = await q(schema_1.fuelRecords);
+        if (shouldExport('maintenanceRecords'))
+            data.maintenanceRecords = await q(schema_1.maintenanceRecords);
+        if (shouldExport('vehicleInspections'))
+            data.vehicleInspections = await q(schema_1.vehicleInspections);
+        if (shouldExport('contracts'))
+            data.contracts = await q(schema_1.contracts);
+        // RH
+        if (shouldExport('positions'))
+            data.positions = await q(schema_1.positions);
+        if (shouldExport('departments'))
+            data.departments = await q(schema_1.departments);
+        if (shouldExport('staffAllocations'))
+            data.staffAllocations = await q(schema_1.staffAllocations);
+        if (shouldExport('staffEvaluations'))
+            data.staffEvaluations = await q(schema_1.staffEvaluations);
+        // Financeiro
+        if (shouldExport('financialAccounts'))
+            data.financialAccounts = await q(schema_1.financialAccounts);
+        if (shouldExport('financialTransactions'))
+            data.financialTransactions = await q(schema_1.financialTransactions);
+        // Operacional
+        if (shouldExport('mealMenus'))
+            data.mealMenus = await q(schema_1.mealMenus);
+        if (shouldExport('libraryBooks'))
+            data.libraryBooks = await q(schema_1.libraryBooks);
+        // libraryLoans não tem municipalityId - via libraryBooks
+        if (shouldExport('libraryLoans')) {
+            data.libraryLoans = await index_1.db.select().from(schema_1.libraryLoans)
+                .innerJoin(schema_1.libraryBooks, (0, drizzle_orm_1.eq)(schema_1.libraryLoans.bookId, schema_1.libraryBooks.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.libraryBooks.municipalityId, mid))
+                .then(rows => rows.map(r => r.library_loans));
+        }
+        if (shouldExport('assets'))
+            data.assets = await q(schema_1.assets);
+        if (shouldExport('inventoryItems'))
+            data.inventoryItems = await q(schema_1.inventoryItems);
+        // Comunicação e Documentos
+        if (shouldExport('messages'))
+            data.messages = await q(schema_1.messages);
+        if (shouldExport('events'))
+            data.events = await q(schema_1.events);
+        if (shouldExport('documents'))
+            data.documents = await q(schema_1.documents);
+        if (shouldExport('schoolCalendar'))
+            data.schoolCalendar = await q(schema_1.schoolCalendar);
+        if (shouldExport('waitingList'))
+            data.waitingList = await q(schema_1.waitingList);
+        // studentDocuments não tem municipalityId - via students
+        if (shouldExport('studentDocuments')) {
+            data.studentDocuments = await index_1.db.select().from(schema_1.studentDocuments)
+                .innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.studentDocuments.studentId, schema_1.students.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, mid))
+                .then(rows => rows.map(r => r.student_documents));
+        }
+        if (shouldExport('studentHistory'))
+            data.studentHistory = await q(schema_1.studentHistory);
+        if (shouldExport('studentOccurrences'))
+            data.studentOccurrences = await q(schema_1.studentOccurrences);
+        if (shouldExport('bulletins'))
+            data.bulletins = await q(schema_1.bulletins);
+        if (shouldExport('protocols'))
+            data.protocols = await q(schema_1.protocols);
+        if (shouldExport('quotations'))
+            data.quotations = await q(schema_1.quotations);
+        // quotationItems não tem municipalityId - via quotations
+        if (shouldExport('quotationItems')) {
+            data.quotationItems = await index_1.db.select().from(schema_1.quotationItems)
+                .innerJoin(schema_1.quotations, (0, drizzle_orm_1.eq)(schema_1.quotationItems.quotationId, schema_1.quotations.id))
+                .where((0, drizzle_orm_1.eq)(schema_1.quotations.municipalityId, mid))
+                .then(rows => rows.map(r => r.quotation_items));
+        }
+        if (shouldExport('formFieldConfigs'))
+            data.formFieldConfigs = await q(schema_1.formFieldConfigs);
+        // Metadados
+        data._metadata = {
+            exportedAt: new Date().toISOString(),
+            version: '3.9.0',
+            system: 'NetEscol',
+            municipalityId: mid,
+            tableCount: Object.keys(data).filter(k => k !== '_metadata').length,
+            totalRecords: Object.entries(data).filter(([k]) => k !== '_metadata').reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0),
+        };
+        return data;
     }),
 });
 // ============================================
@@ -4138,4 +6412,28 @@ exports.appRouter = trpc_1.t.router({
     studentDocuments: exports.studentDocumentsRouter,
     // Configuração de Formulários
     formConfig: exports.formConfigRouter,
+    // Novos Módulos
+    studentOccurrences: exports.studentOccurrencesRouter,
+    events: exports.eventsRouter,
+    quotations: exports.quotationsRouter,
+    quotationItems: exports.quotationItemsRouter,
+    classCouncil: exports.classCouncilRouter,
+    vehicleInspections: exports.vehicleInspectionsRouter,
+    // Documentos e Assinaturas Eletrônicas
+    documents: exports.documentsRouter,
+    documentSignatures: exports.documentSignaturesRouter,
+    // IA e Otimização
+    ai: exports.aiRouter,
+    // Chat em tempo real
+    chat: exports.chatRouter,
+    // Grade Horária, Mural e Protocolos
+    classSchedules: exports.classSchedulesRouter,
+    bulletins: exports.bulletinsRouter,
+    protocols: exports.protocolsRouter,
+    // Backup de Dados
+    backup: backupRouter,
+    // SETE (FNDE) - Fornecedores, OS, Garagens
+    suppliers: suppliersRouter,
+    serviceOrders: serviceOrdersRouter,
+    garages: garagesRouter,
 });

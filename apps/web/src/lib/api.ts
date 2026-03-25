@@ -512,4 +512,26 @@ export const api = {
     exportAll: (input: any) => call('backup.exportAll', input, 'mutation'),
   },
 
+  suppliers: {
+    list: (input: any) => call('suppliers.list', input, 'query'),
+    create: (input: any) => call('suppliers.create', input, 'mutation'),
+    update: (input: any) => call('suppliers.update', input, 'mutation'),
+    delete: (input: any) => call('suppliers.delete', input, 'mutation'),
+  },
+
+  serviceOrders: {
+    list: (input: any) => call('serviceOrders.list', input, 'query'),
+    create: (input: any) => call('serviceOrders.create', input, 'mutation'),
+    update: (input: any) => call('serviceOrders.update', input, 'mutation'),
+    delete: (input: any) => call('serviceOrders.delete', input, 'mutation'),
+    nextNumber: (input: any) => call('serviceOrders.nextNumber', input, 'query'),
+  },
+
+  garages: {
+    list: (input: any) => call('garages.list', input, 'query'),
+    create: (input: any) => call('garages.create', input, 'mutation'),
+    update: (input: any) => call('garages.update', input, 'mutation'),
+    delete: (input: any) => call('garages.delete', input, 'mutation'),
+  },
+
 };

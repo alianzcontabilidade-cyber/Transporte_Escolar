@@ -47,15 +47,11 @@ async function migrate() {
     const conn = await promise_1.default.createConnection(process.env.DATABASE_URL);
     console.log('Connected to database for migration...');
     try {
-        // Alter users role enum to add teacher and coordinator (safe - no truncate needed)
+        // Alter users role enum (safe - no truncate)
         try {
             await conn.execute(`ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','municipal_admin','secretary','school_admin','driver','monitor','parent','teacher','coordinator') NOT NULL DEFAULT 'parent'`);
-            console.log('Updated users.role enum');
         }
-        catch (e) {
-            if (!e.message?.includes('Duplicate'))
-                console.log('users.role enum already up to date or:', e.message);
-        }
+        catch { /* already up to date */ }
         // Municipality extra columns (v3.2 - dados prefeito, secretaria, responsaveis)
         const munCols = [
             "cep VARCHAR(9)", "logradouro VARCHAR(255)", "numero VARCHAR(10)",
@@ -67,15 +63,10 @@ async function migrate() {
             "secretarioCargo VARCHAR(100)", "secretarioDecreto VARCHAR(100)",
         ];
         for (const col of munCols) {
-            const colName = col.split(' ')[0];
             try {
                 await conn.execute(`ALTER TABLE municipalities ADD COLUMN ${col}`);
-                console.log(`Added municipalities.${colName}`);
             }
-            catch (e) {
-                if (!e.message?.includes('Duplicate column'))
-                    console.log(`municipalities.${colName}: ${e.message?.substring(0, 60)}`);
-            }
+            catch { /* already exists */ }
         }
         // Responsibles table
         try {
@@ -89,11 +80,8 @@ async function migrate() {
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (municipalityId) REFERENCES municipalities(id)
       )`);
-            console.log('Created municipality_responsibles table');
         }
-        catch (e) {
-            console.log('municipality_responsibles:', e.message?.substring(0, 60));
-        }
+        catch { /* already exists */ }
         // Create new tables if they don't exist
         const tables = [
             `CREATE TABLE IF NOT EXISTS academic_years (
@@ -318,14 +306,9 @@ async function migrate() {
             try {
                 await conn.execute(sql);
             }
-            catch (e) {
-                // Table might already exist with slightly different structure - that's ok
-                if (!e.message?.includes('already exists')) {
-                    console.log('Warning:', e.message?.substring(0, 100));
-                }
-            }
+            catch { /* already exists */ }
         }
-        // Add new student columns (v3.1 - campos completos para relatorios)
+        // Student columns
         const newStudentCols = [
             "cpf VARCHAR(14)", "rg VARCHAR(20)", "rgOrgao VARCHAR(20)", "rgUf VARCHAR(2)", "rgDate VARCHAR(10)",
             "sex VARCHAR(1)", "race VARCHAR(20)", "nationality VARCHAR(50)", "naturalness VARCHAR(100)", "naturalnessUf VARCHAR(2)",
@@ -351,18 +334,70 @@ async function migrate() {
             "studentStatus VARCHAR(30)",
         ];
         for (const col of newStudentCols) {
-            const colName = col.split(' ')[0];
             try {
                 await conn.execute(`ALTER TABLE students ADD COLUMN ${col}`);
-                console.log(`Added students.${colName}`);
             }
-            catch (e) {
-                if (!e.message?.includes('Duplicate column'))
-                    console.log(`students.${colName}: ${e.message?.substring(0, 60)}`);
-            }
+            catch { /* already exists */ }
         }
-        console.log('Student columns migration complete');
-        console.log('Migration complete - all tables created/verified');
+        // SETE (FNDE) - Fornecedores
+        const seteTables = [
+            `CREATE TABLE IF NOT EXISTS suppliers (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        supplierType ENUM('mecanica','posto_combustivel','seguradora','autopecas','borracharia','eletrica','funilaria','outro') NOT NULL DEFAULT 'outro',
+        cnpj VARCHAR(18), cpf VARCHAR(14), contactName VARCHAR(255),
+        phone VARCHAR(20), email VARCHAR(320), address TEXT,
+        city VARCHAR(255), state VARCHAR(2), cep VARCHAR(9),
+        specialties TEXT, rating INT, notes TEXT,
+        isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
+            `CREATE TABLE IF NOT EXISTS service_orders (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        vehicleId INT NOT NULL, supplierId INT,
+        number VARCHAR(20) NOT NULL,
+        serviceType ENUM('preventiva','corretiva','preditiva','emergencial') NOT NULL DEFAULT 'corretiva',
+        servicePriority ENUM('baixa','media','alta','urgente') NOT NULL DEFAULT 'media',
+        description TEXT NOT NULL, diagnosis TEXT, solution TEXT,
+        parts TEXT, laborCost DECIMAL(10,2) DEFAULT 0, partsCost DECIMAL(10,2) DEFAULT 0,
+        totalCost DECIMAL(10,2) DEFAULT 0, kmAtService INT,
+        openedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        startedAt TIMESTAMP NULL, completedAt TIMESTAMP NULL,
+        estimatedCompletionAt TIMESTAMP NULL,
+        requestedById INT, approvedById INT,
+        invoiceNumber VARCHAR(50), notes TEXT,
+        serviceOrderStatus ENUM('aberta','aprovada','em_andamento','concluida','cancelada') NOT NULL DEFAULT 'aberta',
+        isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+        FOREIGN KEY (vehicleId) REFERENCES vehicles(id))`,
+            `CREATE TABLE IF NOT EXISTS garages (
+        id INT AUTO_INCREMENT PRIMARY KEY, municipalityId INT NOT NULL,
+        name VARCHAR(255) NOT NULL, address TEXT,
+        city VARCHAR(255), state VARCHAR(2), cep VARCHAR(9),
+        latitude DECIMAL(10,8), longitude DECIMAL(11,8),
+        capacity INT DEFAULT 10, contactName VARCHAR(255),
+        phone VARCHAR(20),
+        garageType ENUM('propria','alugada','cedida','conveniada') NOT NULL DEFAULT 'propria',
+        notes TEXT, isActive BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (municipalityId) REFERENCES municipalities(id))`,
+        ];
+        for (const sql of seteTables) {
+            try {
+                await conn.execute(sql);
+            }
+            catch { /* already exists */ }
+        }
+        // Add garageId to vehicles
+        try {
+            await conn.execute(`ALTER TABLE vehicles ADD COLUMN garageId INT`);
+        }
+        catch { /* already exists */ }
+        console.log('Migration complete');
     }
     catch (err) {
         console.error('Migration error:', err.message);

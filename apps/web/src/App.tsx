@@ -100,6 +100,9 @@ const StudentRiskPage = lazy(() => import('./pages/StudentRiskPage'));
 const DriverPortalPage = lazy(() => import('./pages/DriverPortalPage'));
 const MonitorPortalPage = lazy(() => import('./pages/MonitorPortalPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
+const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage'));
+const GaragesPage = lazy(() => import('./pages/GaragesPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -235,6 +238,9 @@ export default function App() {
         <Route path="risco-evasao" element={<Guard roles={ADMIN_SEC}><StudentRiskPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />
         <Route path="perfil" element={<Guard roles={ALL_USERS}><ProfilePage /></Guard>} />
+        <Route path="fornecedores" element={<Guard roles={ADMIN}><SuppliersPage /></Guard>} />
+        <Route path="ordens-servico" element={<Guard roles={ADMIN}><ServiceOrdersPage /></Guard>} />
+        <Route path="garagens" element={<Guard roles={ADMIN}><GaragesPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

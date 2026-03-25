@@ -3,6 +3,8 @@ import { Suspense, lazy } from 'react';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import FloatingChat from './components/FloatingChat';
+import LoadingOverlay from './components/LoadingOverlay';
+import { LoadingProvider } from './lib/loadingContext';
 
 // Paginas criticas (carregamento imediato)
 import LoginPage from './pages/LoginPage';
@@ -131,7 +133,9 @@ export default function App() {
   const { user } = useAuth();
 
   return (
+    <LoadingProvider>
     <>
+    <LoadingOverlay />
     <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
@@ -254,5 +258,6 @@ export default function App() {
     </Suspense>
     {user && <FloatingChat />}
   </>
+  </LoadingProvider>
   );
         }

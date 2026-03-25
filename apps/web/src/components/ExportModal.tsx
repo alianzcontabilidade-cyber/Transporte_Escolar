@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { showInfoToast } from '../lib/hooks';
 import { X, Printer, Download, FileText, FileSpreadsheet, Globe, Check, FileDown, Lock } from 'lucide-react';
+import { useLoading } from '../lib/loadingContext';
 
 export type ExportFormat = 'print' | 'pdf' | 'pdf-download' | 'docx' | 'csv' | 'html' | 'html-download';
 
@@ -34,6 +35,7 @@ export default function ExportModal({ open, onClose, onExport, title, allowSign 
   const [selected, setSelected] = useState<ExportFormat>('pdf');
   const [signAfterGenerate, setSignAfterGenerate] = useState(false);
   const [signerPassword, setSignerPassword] = useState('');
+  const loadingCtx = useLoading();
 
   if (!open) return null;
 
@@ -41,12 +43,28 @@ export default function ExportModal({ open, onClose, onExport, title, allowSign 
   const vizOpts = EXPORT_OPTIONS.filter(o => o.group === 'visualizar');
   const dlOpts = EXPORT_OPTIONS.filter(o => o.group === 'download');
 
-  const handleConfirm = () => {
+  const msgs: Record<string, string> = {
+    'print': 'Preparando impressao...',
+    'pdf': 'Gerando PDF...',
+    'pdf-download': 'Gerando PDF para download...',
+    'docx': 'Gerando documento Word...',
+    'csv': 'Exportando planilha...',
+    'html': 'Gerando HTML...',
+    'html-download': 'Gerando HTML para download...',
+  };
+
+  const handleConfirm = async () => {
     const options = signAfterGenerate && isPDF ? { signAfterGenerate: true, signerPassword } : undefined;
-    onExport(selected, options);
     setSignAfterGenerate(false);
     setSignerPassword('');
     onClose();
+    loadingCtx.showLoading(msgs[selected] || 'Processando...');
+    try {
+      await Promise.resolve(onExport(selected, options));
+    } finally {
+      // Small delay so user sees the animation complete
+      setTimeout(() => loadingCtx.hideLoading(), 600);
+    }
   };
 
   return (
@@ -285,37 +303,52 @@ export async function handleExport(
   data: any[],
   html: string,
   filename: string,
-  signOptions?: { signAfterGenerate?: boolean; signerPassword?: string }
+  signOptions?: { signAfterGenerate?: boolean; signerPassword?: string },
+  loadingCtx?: { showLoading: (msg?: string) => void; hideLoading: () => void }
 ) {
-  switch (format) {
-    case 'print':
-      printHTML(html);
-      break;
-    case 'pdf':
-      exportToPDF(html, filename, false, signOptions);
-      break;
-    case 'pdf-download':
-      exportToPDF(html, filename, true, signOptions);
-      break;
-    case 'docx':
-      exportToWord(html, filename);
-      break;
-    case 'csv':
-      if (data?.length) {
-        exportToCSV(data, filename);
-      } else if (html) {
-        // Extrair dados da tabela HTML quando data[] está vazio
-        const csvData = extractTableDataFromHTML(html);
-        exportToCSV(csvData, filename);
-      } else {
-        showInfoToast('Sem dados para exportar');
-      }
-      break;
-    case 'html':
-      exportToHTML(html, filename, false);
-      break;
-    case 'html-download':
-      exportToHTML(html, filename, true);
-      break;
+  const msgs: Record<string, string> = {
+    'print': 'Preparando impressao...',
+    'pdf': 'Gerando PDF...',
+    'pdf-download': 'Gerando PDF para download...',
+    'docx': 'Gerando documento Word...',
+    'csv': 'Exportando planilha...',
+    'html': 'Gerando HTML...',
+    'html-download': 'Gerando HTML para download...',
+  };
+  if (loadingCtx) loadingCtx.showLoading(msgs[format] || 'Processando...');
+
+  try {
+    switch (format) {
+      case 'print':
+        printHTML(html);
+        break;
+      case 'pdf':
+        await exportToPDF(html, filename, false, signOptions);
+        break;
+      case 'pdf-download':
+        await exportToPDF(html, filename, true, signOptions);
+        break;
+      case 'docx':
+        exportToWord(html, filename);
+        break;
+      case 'csv':
+        if (data?.length) {
+          exportToCSV(data, filename);
+        } else if (html) {
+          const csvData = extractTableDataFromHTML(html);
+          exportToCSV(csvData, filename);
+        } else {
+          showInfoToast('Sem dados para exportar');
+        }
+        break;
+      case 'html':
+        exportToHTML(html, filename, false);
+        break;
+      case 'html-download':
+        exportToHTML(html, filename, true);
+        break;
+    }
+  } finally {
+    if (loadingCtx) loadingCtx.hideLoading();
   }
 }

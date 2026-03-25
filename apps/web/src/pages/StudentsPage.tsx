@@ -697,7 +697,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                 <div><p className="text-xs text-gray-400">Bolsa Família</p><p className="text-sm font-medium">{viewStudent.bolsaFamilia ? 'Sim' : 'Nao'}</p></div>
                 <div><p className="text-xs text-gray-400">BPC</p><p className="text-sm font-medium">{viewStudent.bpc ? 'Sim' : 'Nao'}</p></div>
                 <div><p className="text-xs text-gray-400">PETI</p><p className="text-sm font-medium">{viewStudent.peti ? 'Sim' : 'Nao'}</p></div>
-                <div><p className="text-xs text-gray-400">Outros</p><p className="text-sm font-medium">{viewStudent.otherPrograms || '—'}</p></div>
+                <div><p className="text-xs text-gray-400">Outros</p><p className="text-sm font-medium">{viewStudent.otherPrograms || '--'}</p></div>
               </div>
 
               {/* SAÚDE + NECESSIDADES ESPECIAIS */}
@@ -775,7 +775,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                 <QuickActionButton icon={History} label="Histórico" to="/historico-escolar" />
                 <QuickActionButton icon={ClipboardList} label="Ficha" to="/ficha-aluno" />
                 <QuickActionButton icon={QrCode} label="Carteirinha" to="/carteirinha" />
-                <QuickActionButton icon={FileUp} label="Documentos" to="" searchParams={{}} />
+                <QuickActionButton icon={FileUp} label="Documentos" to="/alunos" />
               </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
@@ -1077,10 +1077,10 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
                         <span className="text-xs text-primary-500 font-bold">{h.year}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{h.grade || '—'}</p>
-                        <p className="text-xs text-gray-500 truncate">{h.schoolName || '—'}{h.schoolCity ? ' - ' + h.schoolCity : ''}{h.schoolState ? '/' + h.schoolState : ''}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{h.grade || '--'}</p>
+                        <p className="text-xs text-gray-500 truncate">{h.schoolName || '--'}{h.schoolCity ? ' - ' + h.schoolCity : ''}{h.schoolState ? '/' + h.schoolState : ''}</p>
                         <div className="flex gap-2 mt-1">
-                          <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (h.result === 'aprovado' ? 'bg-green-100 text-green-700' : h.result === 'reprovado' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600')}>{h.result === 'aprovado' ? 'Aprovado' : h.result === 'reprovado' ? 'Reprovado' : h.result === 'transferido' ? 'Transferido' : h.result || '—'}</span>
+                          <span className={'text-[10px] px-2 py-0.5 rounded-full font-medium ' + (h.result === 'aprovado' ? 'bg-green-100 text-green-700' : h.result === 'reprovado' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600')}>{h.result === 'aprovado' ? 'Aprovado' : h.result === 'reprovado' ? 'Reprovado' : h.result === 'transferido' ? 'Transferido' : h.result || '--'}</span>
                           {h.schoolType && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{h.schoolType === 'municipal' ? 'Municipal' : h.schoolType === 'estadual' ? 'Estadual' : h.schoolType === 'federal' ? 'Federal' : h.schoolType === 'particular' ? 'Particular' : h.schoolType}</span>}
                         </div>
                       </div>

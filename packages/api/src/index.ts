@@ -197,24 +197,26 @@ app.post('/api/pdf/generate', async (req, res) => {
     // Injetar blocos de assinatura no HTML se fornecidos
     let htmlClean = html;
     if (signatures && Array.isArray(signatures) && signatures.length > 0) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const sigBlocksHtml = `
-        <div style="page-break-inside:avoid;margin-top:40px;padding-top:20px;border-top:2px solid #1B3A5C;">
-          <div style="text-align:center;font-size:11px;color:#1B3A5C;font-weight:bold;margin-bottom:20px;">
-            ASSINATURAS ELETRÔNICAS
+        <div style="page-break-inside:avoid;margin-top:30px;border:1px solid #ccc;border-radius:4px;font-family:Arial,sans-serif;">
+          <div style="background:#f0f4f8;padding:8px 12px;border-bottom:1px solid #ccc;text-align:center;">
+            <strong style="font-size:11px;color:#1B3A5C;">Assinaturas Eletr&ocirc;nicas</strong>
           </div>
-          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:30px;">
-            ${signatures.map((s: any) => `
-              <div style="text-align:center;min-width:200px;padding:10px;">
-                <div style="border-bottom:1px solid #333;padding-bottom:5px;margin-bottom:5px;">
-                  <strong style="font-size:11px;">${s.signerName || ''}</strong>
-                </div>
-                <div style="font-size:9px;color:#555;">${s.signerRole || ''}</div>
-                <div style="font-size:8px;color:#888;margin-top:3px;">Assinado eletronicamente</div>
+          ${signatures.map((s: any, i: number) => {
+            const sigHash = verificationCode + '-' + (i+1);
+            return `
+            <div style="padding:10px 15px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
+              <img src="${qrDataURL}" style="width:45px;height:45px;flex-shrink:0;"/>
+              <div style="flex:1;font-size:9px;line-height:1.5;color:#333;">
+                <div>Documento assinado eletronicamente por <strong>${s.signerName || ''}</strong>, <strong>${s.signerRole || ''}</strong>, em ${dateStr}.</div>
+                <div style="color:#666;margin-top:2px;">C&oacute;digo de verifica&ccedil;&atilde;o: <strong style="color:#1B3A5C;">${sigHash}</strong></div>
               </div>
-            `).join('')}
-          </div>
-          <div style="text-align:center;font-size:7px;color:#999;margin-top:15px;">
-            Documento assinado eletronicamente conforme MP 2.200-2/2001. Verifique a autenticidade pelo QR Code.
+            </div>`;
+          }).join('')}
+          <div style="padding:8px 15px;background:#f8f9fa;font-size:8px;color:#666;line-height:1.4;">
+            A autenticidade deste documento pode ser conferida acessando <strong>${verifyUrl}</strong>, informando o c&oacute;digo verificador <strong>${verificationCode}</strong>. Assinatura eletr&ocirc;nica conforme MP 2.200-2/2001.
           </div>
         </div>`;
       // Insert before </body> or at the end

@@ -226,16 +226,16 @@ export function generateSignaturesHTML(signatories: Signatory[]): string {
 
   const cols = Math.min(signatories.length, 3);
   const gridStyle = signatories.length <= 3
-    ? `display:flex;justify-content:space-around;flex-wrap:wrap;gap:20px`
-    : `display:grid;grid-template-columns:repeat(${cols},1fr);gap:20px`;
+    ? `display:flex;justify-content:space-around;flex-wrap:wrap;gap:30px`
+    : `display:grid;grid-template-columns:repeat(${cols},1fr);gap:30px`;
 
   const sigs = signatories.map(s => `
-    <div style="text-align:center;min-width:180px;margin-top:50px">
-      <div style="border-top:1px solid #333;padding-top:8px;margin:0 10px">
-        <p style="font-size:12px;font-weight:bold;margin:0;color:#333">${s.name}</p>
-        <p style="font-size:10px;color:#666;margin:2px 0 0">${s.role}</p>
-        ${s.cpf ? '<p style="font-size:9px;color:#999;margin:1px 0 0">CPF: ' + s.cpf + '</p>' : ''}
-        ${s.decree ? '<p style="font-size:9px;color:#999;margin:1px 0 0">' + s.decree + '</p>' : ''}
+    <div style="text-align:center;min-width:200px;margin-top:60px">
+      <div style="border-top:2px solid #333;padding-top:10px;margin:0 5px">
+        <p style="font-size:12px;font-weight:bold;margin:0;color:#1B3A5C">${s.name}</p>
+        <p style="font-size:10px;color:#555;margin:3px 0 0">${s.role}</p>
+        ${s.cpf ? '<p style="font-size:9px;color:#888;margin:2px 0 0">CPF: ' + s.cpf + '</p>' : ''}
+        ${s.decree ? '<p style="font-size:9px;color:#888;margin:1px 0 0">' + s.decree + '</p>' : ''}
       </div>
     </div>
   `).join('');

@@ -195,6 +195,8 @@ export const api = {
     create: (input: any) => call('users.create', input, 'mutation'),
     update: (input: any) => call('users.update', input, 'mutation'),
     delete: (input: any) => call('users.delete', input, 'mutation'),
+    updateProfile: (input: any) => call('users.updateProfile', input, 'mutation'),
+    getProfile: () => call('users.getProfile', {}, 'query'),
   },
   notifications: {
     list: (input: any) => call('notifications.list', input, 'query'),

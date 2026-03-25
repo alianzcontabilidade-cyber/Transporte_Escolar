@@ -164,11 +164,18 @@ export const users = mysqlTable("users", {
     "coordinator",      // Coordenador pedagógico
   ]).default("parent").notNull(),
   
+  // Dados profissionais (assinatura eletrônica)
+  jobTitle: varchar("jobTitle", { length: 255 }),
+  registrationNumber: varchar("registrationNumber", { length: 50 }),
+  decree: varchar("decree", { length: 255 }),
+  department: varchar("department", { length: 255 }),
+  qualification: varchar("qualification", { length: 255 }),
+
   // Status
   isActive: boolean("isActive").default(true).notNull(),
   emailVerified: boolean("emailVerified").default(false),
   lastLoginAt: timestamp("lastLoginAt"),
-  
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

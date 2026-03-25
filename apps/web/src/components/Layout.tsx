@@ -503,11 +503,11 @@ export default function Layout() {
           {connected ? 'Conectado' : 'Desconectado'}
         </div>
         <div className="flex items-center gap-3 p-2">
-          <div className="w-9 h-9 rounded-full bg-accent-500 flex items-center justify-center text-sm font-bold text-white">
+          <Link to="/perfil" className="w-9 h-9 rounded-full bg-accent-500 flex items-center justify-center text-sm font-bold text-white hover:ring-2 hover:ring-accent-300 transition-all" title="Meu Perfil">
             {user?.name?.charAt(0) || '?'}
-          </div>
+          </Link>
           <div className="flex-1 min-w-0">
-            <p className="text-[0.875rem] font-medium text-white truncate">{user?.name}</p>
+            <Link to="/perfil" className="block text-[0.875rem] font-medium text-white truncate hover:text-accent-300 transition-colors" title="Meu Perfil">{user?.name}</Link>
             <p className="text-xs text-accent-400">{ROLE_LABELS[role] || role}</p>
           </div>
           <button onClick={logout} className="p-1.5 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/20" title="Sair">

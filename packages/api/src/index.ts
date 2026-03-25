@@ -199,7 +199,8 @@ app.post('/api/pdf/generate', async (req, res) => {
     if (signAfterGenerate && signerPassword) {
       const [user] = await db.select({
         id: users.id, name: users.name, cpf: users.cpf, passwordHash: users.passwordHash,
-        role: users.role,
+        role: users.role, jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,
+        decree: users.decree, department: users.department,
       }).from(users).where(eq(users.id, tokenData.userId)).limit(1);
       if (!user || !user.passwordHash) return res.status(401).json({ error: 'Usuário não encontrado' });
       const isValid = await compare(signerPassword, user.passwordHash);
@@ -214,7 +215,13 @@ app.post('/api/pdf/generate', async (req, res) => {
     }
     if (autoSignUser) {
       const roleMap: Record<string, string> = { super_admin: 'Administrador do Sistema', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a) Escolar', teacher: 'Professor(a)', driver: 'Motorista', monitor: 'Monitor(a)' };
-      allSigners.push({ signerName: autoSignUser.name, signerRole: roleMap[autoSignUser.role] || autoSignUser.role, signerCpf: autoSignUser.cpf });
+      allSigners.push({
+        signerName: autoSignUser.name,
+        signerRole: autoSignUser.jobTitle || roleMap[autoSignUser.role] || autoSignUser.role,
+        signerCpf: autoSignUser.cpf,
+        signerRegistration: autoSignUser.registrationNumber,
+        signerDecree: autoSignUser.decree,
+      });
     }
 
     let htmlClean = html;
@@ -242,13 +249,13 @@ app.post('/api/pdf/generate', async (req, res) => {
             <div style="padding:10px 15px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
               <img src="${qrDataURL}" style="width:45px;height:45px;flex-shrink:0;"/>
               <div style="flex:1;font-size:9px;line-height:1.5;color:#333;">
-                <div>Documento assinado eletronicamente por <strong>${s.signerName || ''}</strong>, <strong>${s.signerRole || ''}</strong>, em ${dateStr}.</div>
+                <div>Documento assinado eletronicamente por <strong>${s.signerName || ''}</strong>, <strong>${s.signerRole || ''}</strong>${s.signerDecree ? ` (${s.signerDecree})` : ''}${s.signerRegistration ? `, Mat. ${s.signerRegistration}` : ''}, em ${dateStr}.</div>
                 <div style="color:#666;margin-top:2px;">C&oacute;digo de verifica&ccedil;&atilde;o: <strong style="color:#1B3A5C;">${sigHash}</strong></div>
               </div>
             </div>`;
           }).join('')}
           <div style="padding:8px 15px;background:#f8f9fa;font-size:8px;color:#666;line-height:1.4;">
-            A autenticidade deste documento pode ser conferida acessando <strong>${verifyUrl}</strong>, informando o c&oacute;digo verificador <strong>${verificationCode}</strong>. Assinatura eletr&ocirc;nica conforme MP 2.200-2/2001.
+            A autenticidade deste documento pode ser conferida acessando <strong>${verifyUrl}</strong>, informando o c&oacute;digo verificador <strong>${verificationCode}</strong>. Assinatura eletr&ocirc;nica avan&ccedil;ada conforme Art. 4&ordm; da Lei n&ordm; 14.063/2020 e MP 2.200-2/2001.
           </div>
         </div>`;
       if (htmlClean.includes('</body>')) {
@@ -311,7 +318,7 @@ app.post('/api/pdf/generate', async (req, res) => {
           documentId,
           signerId: autoSignUser.id,
           signerName: autoSignUser.name,
-          signerRole: roleMap[autoSignUser.role] || autoSignUser.role,
+          signerRole: autoSignUser.jobTitle || roleMap[autoSignUser.role] || autoSignUser.role,
           signerCpf: autoSignUser.cpf || null,
           signatureHash,
           ipAddress: req.ip || req.socket.remoteAddress || null,

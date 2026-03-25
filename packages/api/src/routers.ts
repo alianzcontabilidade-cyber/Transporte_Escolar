@@ -2172,6 +2172,11 @@ export const usersRouter = t.router({
       municipalityId: z.number().optional(),
       username: z.string().optional(),
       birthDate: z.string().optional(),
+      jobTitle: z.string().optional(),
+      registrationNumber: z.string().optional(),
+      decree: z.string().optional(),
+      department: z.string().optional(),
+      qualification: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
@@ -2213,6 +2218,35 @@ export const usersRouter = t.router({
       if (deps.length > 0) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `Não é possível excluir. Usuário vinculado como: ${deps.join(', ')}` });
       await db.update(users).set({ isActive: false }).where(eq(users.id, input.id));
       return { success: true };
+    }),
+
+  updateProfile: protectedProcedure
+    .input(z.object({
+      jobTitle: z.string().optional(),
+      registrationNumber: z.string().optional(),
+      decree: z.string().optional(),
+      department: z.string().optional(),
+      qualification: z.string().optional(),
+      phone: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const updateData: any = { ...input };
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users).set(updateData).where(eq(users.id, ctx.userId!));
+      }
+      return { success: true };
+    }),
+
+  getProfile: protectedProcedure
+    .query(async ({ ctx }) => {
+      const [user] = await db.select({
+        id: users.id, name: users.name, email: users.email, phone: users.phone,
+        cpf: users.cpf, role: users.role,
+        jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,
+        decree: users.decree, department: users.department, qualification: users.qualification,
+      }).from(users).where(eq(users.id, ctx.userId!)).limit(1);
+      return user || null;
     }),
 });
 

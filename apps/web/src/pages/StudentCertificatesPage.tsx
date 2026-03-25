@@ -144,7 +144,7 @@ export default function StudentCertificatesPage() {
         </div>
       </div>
 
-      <ExportModal allowSign={true} open={!!certExportModal} onClose={() => setCertExportModal(null)} onExport={(fmt: ExportFormat) => { if (certExportModal?.html) { handleExport(fmt, [], certExportModal.html, certExportModal.filename); } setCertExportModal(null); }} title="Exportar Declaracao" />
+      <ExportModal allowSign={true} open={!!certExportModal} onClose={() => setCertExportModal(null)} onExport={(fmt: ExportFormat, opts?: any) => { if (certExportModal?.html) { handleExport(fmt, [], certExportModal.html, certExportModal.filename, opts); } setCertExportModal(null); }} title="Exportar Declaracao" />
     </div>
   );
 }

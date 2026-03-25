@@ -167,7 +167,7 @@ export default function ProtocolPage() {
         <div className="flex gap-3 p-5 border-t"><button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button><button onClick={addProtocol} className="btn-primary flex-1">Registrar</button></div>
       </div></div>)}
 
-      <ExportModal allowSign={true} open={!!protoExportModal} onClose={() => setProtoExportModal(null)} onExport={(fmt: ExportFormat) => { if (protoExportModal?.html) { handleExport(fmt, [], protoExportModal.html, protoExportModal.filename); } setProtoExportModal(null); }} title="Exportar Protocolo" />
+      <ExportModal allowSign={true} open={!!protoExportModal} onClose={() => setProtoExportModal(null)} onExport={(fmt: ExportFormat, opts?: any) => { if (protoExportModal?.html) { handleExport(fmt, [], protoExportModal.html, protoExportModal.filename, opts); } setProtoExportModal(null); }} title="Exportar Protocolo" />
     </div>
   );
 }

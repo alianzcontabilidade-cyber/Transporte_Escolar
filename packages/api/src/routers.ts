@@ -25,7 +25,7 @@ import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { emitToMunicipality, emitToUser } from './socketInstance';
-import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents } from './services/routeOptimizer';
+import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents, clarkeWrightGrouping, dbscanCluster, twoOptImprove } from './services/routeOptimizer';
 import { verifyGuardianAccess } from './helpers';
 
 // ╔══════════════════════════════════════════════════════════════════╗
@@ -5819,6 +5819,124 @@ export const aiRouter = t.router({
             ) / c.students.length * 1000
           ), // raio médio em metros
         })),
+      };
+    }),
+
+  // Clarke-Wright: agrupar paradas em rotas otimizadas
+  clarkeWright: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      depotLat: z.number(), depotLng: z.number(),       // Garagem
+      destinationLat: z.number(), destinationLng: z.number(), // Escola
+      maxCapacity: z.number().default(40),
+      maxDistanceKm: z.number().default(100),
+    }))
+    .query(async ({ input }) => {
+      // Buscar todas as paradas do municipio com alunos
+      const allStops = await db.select({
+        id: stops.id, name: stops.name,
+        latitude: stops.latitude, longitude: stops.longitude,
+        routeId: stops.routeId,
+      }).from(stops)
+        .innerJoin(routes, eq(stops.routeId, routes.id))
+        .where(and(eq(routes.municipalityId, input.municipalityId), eq(routes.isActive, true)));
+
+      // Contar alunos por parada
+      const stopStudentCounts = await db.select({
+        stopId: stopStudents.stopId,
+      }).from(stopStudents);
+      const countMap = new Map<number, number>();
+      for (const ss of stopStudentCounts) {
+        countMap.set(ss.stopId, (countMap.get(ss.stopId) || 0) + 1);
+      }
+
+      const validStops = allStops
+        .filter(s => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0)
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          latitude: parseFloat(String(s.latitude)),
+          longitude: parseFloat(String(s.longitude)),
+          passengers: countMap.get(s.id) || 1,
+        }));
+
+      if (validStops.length === 0) return { routes: [], totalStops: 0, message: 'Nenhuma parada com GPS encontrada.' };
+
+      const depot = { latitude: input.depotLat, longitude: input.depotLng };
+      const dest = { latitude: input.destinationLat, longitude: input.destinationLng };
+
+      const cwRoutes = clarkeWrightGrouping(depot, dest, validStops, input.maxCapacity, input.maxDistanceKm);
+
+      return {
+        totalStops: validStops.length,
+        routes: cwRoutes.map((r, i) => ({
+          routeIndex: i + 1,
+          suggestedName: `Rota CW-${String(i + 1).padStart(2, '0')}`,
+          stops: r.stops.map((s, order) => ({ id: s.id, name: s.name, lat: s.latitude, lng: s.longitude, order: order + 1 })),
+          totalPassengers: r.totalPassengers,
+          totalDistanceKm: r.totalDistance,
+          stopCount: r.stops.length,
+        })),
+      };
+    }),
+
+  // DBSCAN: pontos de parada sugeridos automaticamente
+  suggestStopsDbscan: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      epsilonKm: z.number().default(1.5),
+      minPoints: z.number().default(2),
+    }))
+    .query(async ({ input }) => {
+      const allStudents = await db.select({
+        id: students.id, name: students.name,
+        latitude: students.latitude, longitude: students.longitude,
+        address: students.address, neighborhood: students.neighborhood,
+      }).from(students)
+        .where(and(eq(students.municipalityId, input.municipalityId), eq(students.needsTransport, true)));
+
+      const assignedIds = await db.select({ studentId: stopStudents.studentId }).from(stopStudents);
+      const assignedSet = new Set(assignedIds.map(a => a.studentId));
+
+      const unassigned = allStudents
+        .filter(s => !assignedSet.has(s.id))
+        .filter(s => s.latitude != null && s.longitude != null &&
+          parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0)
+        .map(s => ({
+          id: s.id, name: s.name,
+          latitude: parseFloat(String(s.latitude)),
+          longitude: parseFloat(String(s.longitude)),
+          address: s.address, neighborhood: s.neighborhood,
+        }));
+
+      if (unassigned.length === 0) {
+        return { totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length, withCoordinates: 0, clusters: [], noise: [], message: 'Nenhum aluno sem parada com GPS.' };
+      }
+
+      const { clusters, noise } = dbscanCluster(
+        unassigned.map(s => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude })),
+        input.epsilonKm, input.minPoints
+      );
+
+      return {
+        totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+        withCoordinates: unassigned.length,
+        clusters: clusters.map((c, idx) => ({
+          clusterIndex: idx + 1,
+          suggestedName: `Ponto DBSCAN ${idx + 1}`,
+          center: c.center,
+          studentCount: c.students.length,
+          avgDistanceM: c.avgDistanceM,
+          students: c.students.map(s => {
+            const full = unassigned.find(u => u.id === s.id);
+            return { id: s.id, name: s.name, address: full?.address || null, neighborhood: full?.neighborhood || null,
+              distanceToCenter: Math.round(haversineDistance(s.latitude, s.longitude, c.center.latitude, c.center.longitude) * 1000) };
+          }),
+        })),
+        noise: noise.map(s => {
+          const full = unassigned.find(u => u.id === s.id);
+          return { id: s.id, name: s.name, address: full?.address || null, neighborhood: full?.neighborhood || null };
+        }),
       };
     }),
 

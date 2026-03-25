@@ -97,13 +97,16 @@ export function optimizeStopOrder(stops: StopPoint[]): {
     }
   }
 
-  const optimizedDistance = totalRouteDistance(result);
+  // Aplicar 2-opt para refinar
+  const optimized = twoOptImprove(result);
+
+  const optimizedDistance = totalRouteDistance(optimized);
   const savingsPercent = originalDistance > 0
     ? Math.round(((originalDistance - optimizedDistance) / originalDistance) * 10000) / 100
     : 0;
 
   return {
-    optimizedStops: result,
+    optimizedStops: optimized,
     originalDistance,
     optimizedDistance,
     savingsPercent: Math.max(0, savingsPercent),
@@ -196,6 +199,245 @@ export function clusterStudents(
     .filter(c => c.students.length > 0);
 
   return { clusters };
+}
+
+// ============================================
+// 2-OPT LOCAL SEARCH (refinamento de rota)
+// ============================================
+export function twoOptImprove(stops: StopPoint[]): StopPoint[] {
+  if (stops.length < 4) return [...stops];
+
+  let bestPath = [...stops];
+  let bestDist = totalRouteDistance(bestPath);
+  let improved = true;
+
+  while (improved) {
+    improved = false;
+    for (let i = 0; i < bestPath.length - 2; i++) {
+      for (let j = i + 2; j < bestPath.length - 1; j++) {
+        // Reverter segmento [i+1..j]
+        const newPath = [
+          ...bestPath.slice(0, i + 1),
+          ...bestPath.slice(i + 1, j + 1).reverse(),
+          ...bestPath.slice(j + 1),
+        ];
+        const newDist = totalRouteDistance(newPath);
+        if (newDist < bestDist) {
+          bestDist = newDist;
+          bestPath = newPath;
+          improved = true;
+          break; // Restart
+        }
+      }
+      if (improved) break;
+    }
+  }
+  return bestPath;
+}
+
+// ============================================
+// CLARKE-WRIGHT SAVINGS (agrupamento de rotas)
+// ============================================
+interface CWRoute {
+  stops: StopPoint[];
+  totalPassengers: number;
+  totalDistance: number;
+}
+
+interface CWSaving {
+  i: number;
+  j: number;
+  saving: number;
+}
+
+export function clarkeWrightGrouping(
+  depot: GeoPoint,          // Garagem / ponto de partida
+  destination: GeoPoint,     // Escola / ponto final
+  stops: (StopPoint & { passengers?: number })[],
+  maxCapacity: number = 40,
+  maxDistanceKm: number = 100
+): CWRoute[] {
+  if (stops.length === 0) return [];
+  if (stops.length === 1) {
+    const d = haversineDistance(depot.latitude, depot.longitude, stops[0].latitude, stops[0].longitude)
+            + haversineDistance(stops[0].latitude, stops[0].longitude, destination.latitude, destination.longitude);
+    return [{ stops: [stops[0]], totalPassengers: stops[0].passengers || 1, totalDistance: d }];
+  }
+
+  // Calcular distancias: garagem→parada, parada→escola, parada→parada
+  const distDepot: number[] = [];    // dist(garagem, stop_i)
+  const distDest: number[] = [];     // dist(stop_i, escola)
+  const distMatrix: number[][] = [];
+
+  for (let i = 0; i < stops.length; i++) {
+    distDepot[i] = haversineDistance(depot.latitude, depot.longitude, stops[i].latitude, stops[i].longitude);
+    distDest[i] = haversineDistance(stops[i].latitude, stops[i].longitude, destination.latitude, destination.longitude);
+    distMatrix[i] = [];
+    for (let j = 0; j < stops.length; j++) {
+      if (i === j) { distMatrix[i][j] = 0; continue; }
+      distMatrix[i][j] = haversineDistance(stops[i].latitude, stops[i].longitude, stops[j].latitude, stops[j].longitude);
+    }
+  }
+
+  // Calcular savings: S(i,j) = dist(i,escola) + dist(garagem,j) - dist(i,j)
+  const savings: CWSaving[] = [];
+  for (let i = 0; i < stops.length; i++) {
+    for (let j = 0; j < stops.length; j++) {
+      if (i === j) continue;
+      const s = distDest[i] + distDepot[j] - distMatrix[i][j];
+      if (s > 0) savings.push({ i, j, saving: s });
+    }
+  }
+  savings.sort((a, b) => b.saving - a.saving); // Descendente
+
+  // Cada parada comeca como sua propria rota
+  const routes: (number[] | null)[] = stops.map((_, idx) => [idx]);
+  const routeOf: number[] = stops.map((_, idx) => idx); // qual rota contem parada idx
+
+  for (const { i: ci, j: cj } of savings) {
+    const ri = routeOf[ci];
+    const rj = routeOf[cj];
+    if (ri === rj) continue; // Mesma rota
+    if (!routes[ri] || !routes[rj]) continue;
+
+    const routeI = routes[ri]!;
+    const routeJ = routes[rj]!;
+
+    // ci deve ser o ultimo da rota I, cj o primeiro da rota J
+    if (routeI[routeI.length - 1] !== ci || routeJ[0] !== cj) continue;
+
+    // Verificar capacidade
+    const totalPass = routeI.reduce((s, idx) => s + (stops[idx].passengers || 1), 0)
+                    + routeJ.reduce((s, idx) => s + (stops[idx].passengers || 1), 0);
+    if (totalPass > maxCapacity) continue;
+
+    // Verificar distancia total da rota mesclada
+    const merged = [...routeI, ...routeJ];
+    const mergedStops = merged.map(idx => stops[idx]);
+    let mergedDist = distDepot[merged[0]];
+    for (let k = 0; k < merged.length - 1; k++) {
+      mergedDist += distMatrix[merged[k]][merged[k + 1]];
+    }
+    mergedDist += distDest[merged[merged.length - 1]];
+    if (mergedDist > maxDistanceKm) continue;
+
+    // Mesclar: routeI + routeJ
+    routes[ri] = merged;
+    routes[rj] = null;
+    for (const idx of routeJ) {
+      routeOf[idx] = ri;
+    }
+  }
+
+  // Converter para resultado e aplicar 2-opt em cada rota
+  const result: CWRoute[] = [];
+  for (const route of routes) {
+    if (!route || route.length === 0) continue;
+    const routeStops = route.map(idx => stops[idx]);
+    const optimized = twoOptImprove(routeStops);
+    const totalPass = route.reduce((s, idx) => s + (stops[idx].passengers || 1), 0);
+    const totalDist = distDepot[route[0]]
+      + totalRouteDistance(optimized)
+      + distDest[route[route.length - 1]];
+    result.push({ stops: optimized, totalPassengers: totalPass, totalDistance: Math.round(totalDist * 100) / 100 });
+  }
+  return result;
+}
+
+// ============================================
+// DBSCAN CLUSTERING (para pontos de parada sugeridos)
+// ============================================
+export function dbscanCluster(
+  students: StudentPoint[],
+  epsilonKm: number = 1.5,    // Raio maximo do cluster em km
+  minPoints: number = 2       // Minimo de pontos para formar cluster
+): { clusters: { center: GeoPoint; students: StudentPoint[]; avgDistanceM: number }[]; noise: StudentPoint[] } {
+  if (students.length === 0) return { clusters: [], noise: [] };
+
+  const UNVISITED = -2;
+  const NOISE = -1;
+  const labels = new Array(students.length).fill(UNVISITED);
+  let clusterId = 0;
+
+  // Pre-calcular distancias para performance
+  const getNeighbors = (idx: number): number[] => {
+    const neighbors: number[] = [];
+    for (let j = 0; j < students.length; j++) {
+      if (j === idx) continue;
+      const d = haversineDistance(
+        students[idx].latitude, students[idx].longitude,
+        students[j].latitude, students[j].longitude
+      );
+      if (d <= epsilonKm) neighbors.push(j);
+    }
+    return neighbors;
+  };
+
+  const expandCluster = (pointIdx: number, neighbors: number[], clId: number) => {
+    labels[pointIdx] = clId;
+    const queue = [...neighbors];
+    const visited = new Set<number>([pointIdx]);
+
+    while (queue.length > 0) {
+      const q = queue.shift()!;
+      if (visited.has(q)) continue;
+      visited.add(q);
+
+      if (labels[q] === NOISE) labels[q] = clId; // Converter noise em membro
+      if (labels[q] !== UNVISITED) continue;
+      labels[q] = clId;
+
+      const qNeighbors = getNeighbors(q);
+      if (qNeighbors.length >= minPoints) {
+        for (const n of qNeighbors) {
+          if (!visited.has(n)) queue.push(n);
+        }
+      }
+    }
+  };
+
+  // DBSCAN principal
+  for (let i = 0; i < students.length; i++) {
+    if (labels[i] !== UNVISITED) continue;
+    const neighbors = getNeighbors(i);
+    if (neighbors.length < minPoints) {
+      labels[i] = NOISE;
+    } else {
+      expandCluster(i, neighbors, clusterId);
+      clusterId++;
+    }
+  }
+
+  // Montar resultado
+  const clusterMap = new Map<number, StudentPoint[]>();
+  const noise: StudentPoint[] = [];
+
+  for (let i = 0; i < students.length; i++) {
+    if (labels[i] === NOISE) {
+      noise.push(students[i]);
+    } else {
+      if (!clusterMap.has(labels[i])) clusterMap.set(labels[i], []);
+      clusterMap.get(labels[i])!.push(students[i]);
+    }
+  }
+
+  const clusters = Array.from(clusterMap.values()).map(studs => {
+    const centerLat = studs.reduce((s, st) => s + st.latitude, 0) / studs.length;
+    const centerLng = studs.reduce((s, st) => s + st.longitude, 0) / studs.length;
+
+    // Calcular distancia media dos alunos ao centro (em metros)
+    const avgDistM = studs.reduce((s, st) => {
+      return s + haversineDistance(st.latitude, st.longitude, centerLat, centerLng) * 1000;
+    }, 0) / studs.length;
+
+    return {
+      center: { latitude: centerLat, longitude: centerLng },
+      students: studs,
+      avgDistanceM: Math.round(avgDistM),
+    };
+  });
+
+  return { clusters, noise };
 }
 
 // ============================================

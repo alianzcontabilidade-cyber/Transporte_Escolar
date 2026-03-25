@@ -182,6 +182,7 @@ app.post('/api/pdf/generate', async (req, res) => {
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
     const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures } = req.body;
+    console.log('[PDF] signAfterGenerate:', signAfterGenerate, 'hasPwd:', !!signerPassword, 'sigs:', signatures?.length || 0);
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();

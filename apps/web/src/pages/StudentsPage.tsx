@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download, QrCode, GraduationCap, FileText, ClipboardList, Bus, School, History } from 'lucide-react';
+import { Users, User, Plus, X, Camera, Pencil, Trash2, Search, Phone, MapPin, BookOpen, Navigation, Loader2, MessageCircle, Share2, CheckCircle, Eye, Heart, AlertTriangle, Upload, FileUp, Download, QrCode, GraduationCap, FileText, ClipboardList, Bus, School, History } from 'lucide-react';
 import { printStudentQRCodes } from '../lib/qrcode';
 import StudentDocumentsModal from '../components/StudentDocumentsModal';
 import { QuickActionButton } from '../components/EntitySummaries';

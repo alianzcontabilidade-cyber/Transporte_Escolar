@@ -693,9 +693,9 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rapido.
               {/* PROGRAMAS SOCIAIS */}
               <h2 className="text-sm font-bold text-green-600 uppercase tracking-wide mb-3">Programas Sociais</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 p-4 bg-green-50 rounded-xl">
-                <div><p className="text-xs text-gray-400">Bolsa Família</p><p className="text-sm font-medium">{viewStudent.bolsaFamilia ? '✅ Sim' : '— Não'}</p></div>
-                <div><p className="text-xs text-gray-400">BPC</p><p className="text-sm font-medium">{viewStudent.bpc ? '✅ Sim' : '— Não'}</p></div>
-                <div><p className="text-xs text-gray-400">PETI</p><p className="text-sm font-medium">{viewStudent.peti ? '✅ Sim' : '— Não'}</p></div>
+                <div><p className="text-xs text-gray-400">Bolsa Família</p><p className="text-sm font-medium">{viewStudent.bolsaFamilia ? 'Sim' : 'Nao'}</p></div>
+                <div><p className="text-xs text-gray-400">BPC</p><p className="text-sm font-medium">{viewStudent.bpc ? 'Sim' : 'Nao'}</p></div>
+                <div><p className="text-xs text-gray-400">PETI</p><p className="text-sm font-medium">{viewStudent.peti ? 'Sim' : 'Nao'}</p></div>
                 <div><p className="text-xs text-gray-400">Outros</p><p className="text-sm font-medium">{viewStudent.otherPrograms || '—'}</p></div>
               </div>
 

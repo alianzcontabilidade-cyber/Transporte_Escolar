@@ -891,6 +891,20 @@ export const routesRouter = t.router({
       scheduledEndTime: z.string().optional(),
       defaultVehicleId: z.number().optional(),
       defaultDriverId: z.number().optional(),
+      // Condições da Estrada (SETE)
+      hasGate: z.boolean().optional(),
+      hasCattleGuard: z.boolean().optional(),
+      hasLatch: z.boolean().optional(),
+      hasMudhole: z.boolean().optional(),
+      hasRusticBridge: z.boolean().optional(),
+      roadSurface: z.string().optional(),
+      // Custos mensais
+      monthlyCostFuel: z.string().optional(),
+      monthlyCostMaintenance: z.string().optional(),
+      monthlyCostDriver: z.string().optional(),
+      monthlyCostMonitor: z.string().optional(),
+      monthlyCostInsurance: z.string().optional(),
+      costPerStudent: z.string().optional(),
       stops: z.array(z.object({
         name: z.string(),
         lat: z.string().optional(),
@@ -932,6 +946,20 @@ export const routesRouter = t.router({
       shift: z.enum(['morning', 'afternoon', 'evening']).optional(),
       scheduledStartTime: z.string().optional(),
       scheduledEndTime: z.string().optional(),
+      // Condições da Estrada (SETE)
+      hasGate: z.boolean().optional(),
+      hasCattleGuard: z.boolean().optional(),
+      hasLatch: z.boolean().optional(),
+      hasMudhole: z.boolean().optional(),
+      hasRusticBridge: z.boolean().optional(),
+      roadSurface: z.string().optional(),
+      // Custos mensais
+      monthlyCostFuel: z.string().optional(),
+      monthlyCostMaintenance: z.string().optional(),
+      monthlyCostDriver: z.string().optional(),
+      monthlyCostMonitor: z.string().optional(),
+      monthlyCostInsurance: z.string().optional(),
+      costPerStudent: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;

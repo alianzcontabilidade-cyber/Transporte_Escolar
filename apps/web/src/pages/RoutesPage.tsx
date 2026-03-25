@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
-import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle, Pencil, Eye } from 'lucide-react';
+import { MapPin, Plus, X, Clock, Trash2, Navigation, Info, LayoutList, Search, Play, Square, Bus, User, ChevronDown, ChevronRight, CheckCircle, Pencil, Eye, DollarSign, AlertTriangle, Mountain } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
@@ -18,7 +18,7 @@ function LeafletMap({ stops, onAddStop, readonly }: { stops: any[]; onAddStop: (
   useEffect(() => {
     if (!mapRef.current||mapInst.current) return;
     const sc = document.createElement('script'); sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    sc.onload = () => { const lk=document.createElement('link');lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(lk); const L=(window as any).L; const map=L.map(mapRef.current!).setView([-15.78,-47.93],13); const st=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO &copy; OSM',maxZoom:20}); const sa=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}); const te=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}); st.addTo(map); L.control.layers({'Ruas':st,'Satélite':sa,'Terreno':te},{},{position:'topright',collapsed:true}).addTo(map); if(!readonly)map.on('click',(e:any)=>{const n=prompt('Nome da parada:');if(n)onAddStop({name:n,lat:String(e.latlng.lat.toFixed(6)),lng:String(e.latlng.lng.toFixed(6))});}); mapInst.current=map; };
+    sc.onload = () => { const lk=document.createElement('link');lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(lk); const L=(window as any).L; const map=L.map(mapRef.current!).setView([-15.78,-47.93],13); const st=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO &copy; OSM',maxZoom:20}); const sa=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}); const dk=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CARTO &copy; OSM',maxZoom:20}); const te=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}); const hl=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}); const hy=L.layerGroup([L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19}),hl]); st.addTo(map); L.control.layers({'Ruas':st,'Satélite':sa,'Híbrido':hy,'Escuro':dk,'Terreno':te},{},{position:'topright',collapsed:true}).addTo(map); if(!readonly)map.on('click',(e:any)=>{const n=prompt('Nome da parada:');if(n)onAddStop({name:n,lat:String(e.latlng.lat.toFixed(6)),lng:String(e.latlng.lng.toFixed(6))});}); mapInst.current=map; };
     document.head.appendChild(sc);
     return () => { if(mapInst.current){mapInst.current.remove();mapInst.current=null;} };
   }, [readonly]);
@@ -48,7 +48,7 @@ export default function RoutesPage() {
   const [show, setShow] = useState(false);
   const [viewRoute, setViewRoute] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list'|'map'>('list');
-  const [form, setForm] = useState({ name:'', code:'', description:'', type:'both', shift:'morning', scheduledStartTime:'06:30', scheduledEndTime:'07:30' });
+  const [form, setForm] = useState({ name:'', code:'', description:'', type:'both', shift:'morning', scheduledStartTime:'06:30', scheduledEndTime:'07:30', hasGate:false, hasCattleGuard:false, hasLatch:false, hasMudhole:false, hasRusticBridge:false, roadSurface:'paved', monthlyCostFuel:'', monthlyCostMaintenance:'', monthlyCostDriver:'', monthlyCostMonitor:'', monthlyCostInsurance:'' });
   const [stops, setStops] = useState<{name:string;lat:string;lng:string}[]>([]);
   const [newStop, setNewStop] = useState({ name:'', lat:'', lng:'' });
   const [tripModal, setTripModal] = useState<any>(null);
@@ -89,10 +89,10 @@ export default function RoutesPage() {
     const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     return 'R' + String(next).padStart(3, '0');
   };
-  const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30'}); setStops([]); setEditId(null); setShow(true); };
+  const openNew = () => { setForm({name:'',code:generateCode(),description:'',type:'both',shift:'morning',scheduledStartTime:'06:30',scheduledEndTime:'07:30',hasGate:false,hasCattleGuard:false,hasLatch:false,hasMudhole:false,hasRusticBridge:false,roadSurface:'paved',monthlyCostFuel:'',monthlyCostMaintenance:'',monthlyCostDriver:'',monthlyCostMonitor:'',monthlyCostInsurance:''}); setStops([]); setEditId(null); setShow(true); };
   const openEdit = (r:any) => {
     const route = r.route || r;
-    setForm({ name:route.name||'', code:route.code||'', description:route.description||'', type:route.type||'both', shift:route.shift||'morning', scheduledStartTime:route.scheduledStartTime||'06:30', scheduledEndTime:route.scheduledEndTime||'07:30' });
+    setForm({ name:route.name||'', code:route.code||'', description:route.description||'', type:route.type||'both', shift:route.shift||'morning', scheduledStartTime:route.scheduledStartTime||'06:30', scheduledEndTime:route.scheduledEndTime||'07:30', hasGate:!!route.hasGate, hasCattleGuard:!!route.hasCattleGuard, hasLatch:!!route.hasLatch, hasMudhole:!!route.hasMudhole, hasRusticBridge:!!route.hasRusticBridge, roadSurface:route.roadSurface||'paved', monthlyCostFuel:route.monthlyCostFuel||'', monthlyCostMaintenance:route.monthlyCostMaintenance||'', monthlyCostDriver:route.monthlyCostDriver||'', monthlyCostMonitor:route.monthlyCostMonitor||'', monthlyCostInsurance:route.monthlyCostInsurance||'' });
     setStops((r.stops||[]).map((s:any)=>({name:s.name,lat:s.latitude||'',lng:s.longitude||''})));
     setEditId(route.id);
     setShow(true);
@@ -149,6 +149,12 @@ export default function RoutesPage() {
                     <div className="flex items-center gap-2"><p className="font-semibold text-gray-800">{route.name}</p>{route.code&&<span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{route.code}</span>}{isActive&&<span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><div className="w-1.5 h-1.5 bg-green-500 rounded-full"/>Em andamento</span>}</div>
                     <div className="flex gap-3 mt-0.5"><span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10}/>{route.scheduledStartTime} - {route.scheduledEndTime}</span><span className="text-xs text-gray-500">{sl(route.shift)}</span><span className="text-xs text-gray-500">{tl(route.type)}</span><span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={10}/>{routeStops.length} paradas</span></div>
                     {isActive&&activeTrip?.driverName&&<p className="text-xs text-green-700 mt-0.5 flex items-center gap-1"><User size={10}/>{activeTrip.driverName} · <Bus size={10}/>{activeTrip.vehicle?.plate}</p>}
+                    {(route.hasGate||route.hasCattleGuard||route.hasLatch||route.hasMudhole||route.hasRusticBridge||route.roadSurface==='unpaved'||route.roadSurface==='mixed')&&(
+                      <div className="flex gap-1 mt-1 flex-wrap">{route.hasGate&&<span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Porteira</span>}{route.hasCattleGuard&&<span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Mata-burro</span>}{route.hasLatch&&<span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Colchete</span>}{route.hasMudhole&&<span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Atoleiro</span>}{route.hasRusticBridge&&<span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Ponte Rustica</span>}{route.roadSurface==='unpaved'&&<span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Nao pavimentada</span>}{route.roadSurface==='mixed'&&<span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Mista</span>}</div>
+                    )}
+                    {(parseFloat(route.monthlyCostFuel||'0')+parseFloat(route.monthlyCostMaintenance||'0')+parseFloat(route.monthlyCostDriver||'0')+parseFloat(route.monthlyCostMonitor||'0')+parseFloat(route.monthlyCostInsurance||'0'))>0&&(
+                      <p className="text-[10px] text-emerald-600 mt-0.5 flex items-center gap-1"><DollarSign size={10}/>Custo mensal: R$ {(parseFloat(route.monthlyCostFuel||'0')+parseFloat(route.monthlyCostMaintenance||'0')+parseFloat(route.monthlyCostDriver||'0')+parseFloat(route.monthlyCostMonitor||'0')+parseFloat(route.monthlyCostInsurance||'0')).toFixed(2)}{routeStops.length>0&&' · Por aluno: R$ '+((parseFloat(route.monthlyCostFuel||'0')+parseFloat(route.monthlyCostMaintenance||'0')+parseFloat(route.monthlyCostDriver||'0')+parseFloat(route.monthlyCostMonitor||'0')+parseFloat(route.monthlyCostInsurance||'0'))/Math.max(routeStops.length,1)).toFixed(2)}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {isActive ? (
@@ -202,6 +208,38 @@ export default function RoutesPage() {
             <div><label className="label">Horário fim</label><input className="input" type="time" value={form.scheduledEndTime} onChange={setField('scheduledEndTime')}/></div>
             <div className="col-span-2"><label className="label">Descrição</label><textarea className="input" rows={2} value={form.description} onChange={setField('description')}/></div>
           </div>
+
+          {/* Condições da Estrada (SETE) */}
+          <div className="border border-amber-200 rounded-xl p-4 bg-amber-50/30">
+            <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm"><Mountain size={15} className="text-amber-600"/> Condições da Estrada</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Tipo de pavimento</label><select className="input" value={form.roadSurface} onChange={setField('roadSurface')}><option value="paved">Pavimentada</option><option value="unpaved">Não pavimentada</option><option value="mixed">Mista</option></select></div>
+              <div className="flex flex-col gap-2 mt-6">
+                <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.hasGate} onChange={e=>setForm(f=>({...f,hasGate:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"/> Porteira</label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.hasCattleGuard} onChange={e=>setForm(f=>({...f,hasCattleGuard:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"/> Mata-burro</label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.hasLatch} onChange={e=>setForm(f=>({...f,hasLatch:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"/> Colchete</label>
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.hasMudhole} onChange={e=>setForm(f=>({...f,hasMudhole:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"/> Atoleiro</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.hasRusticBridge} onChange={e=>setForm(f=>({...f,hasRusticBridge:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"/> Ponte Rústica</label>
+            </div>
+          </div>
+
+          {/* Custos Mensais */}
+          <div className="border border-emerald-200 rounded-xl p-4 bg-emerald-50/30">
+            <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm"><DollarSign size={15} className="text-emerald-600"/> Custos Mensais</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Combustível (R$)</label><input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.monthlyCostFuel} onChange={setField('monthlyCostFuel')}/></div>
+              <div><label className="label">Manutenção (R$)</label><input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.monthlyCostMaintenance} onChange={setField('monthlyCostMaintenance')}/></div>
+              <div><label className="label">Motorista (R$)</label><input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.monthlyCostDriver} onChange={setField('monthlyCostDriver')}/></div>
+              <div><label className="label">Monitor (R$)</label><input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.monthlyCostMonitor} onChange={setField('monthlyCostMonitor')}/></div>
+              <div><label className="label">Seguro (R$)</label><input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.monthlyCostInsurance} onChange={setField('monthlyCostInsurance')}/></div>
+              <div className="bg-emerald-100 rounded-lg p-3 flex flex-col justify-center">
+                <p className="text-xs text-emerald-700 font-medium">Custo Total Mensal</p>
+                <p className="text-lg font-bold text-emerald-800">R$ {(parseFloat(form.monthlyCostFuel||'0')+parseFloat(form.monthlyCostMaintenance||'0')+parseFloat(form.monthlyCostDriver||'0')+parseFloat(form.monthlyCostMonitor||'0')+parseFloat(form.monthlyCostInsurance||'0')).toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+
           <div><h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm"><Navigation size={15}/> Paradas</h4><LeafletMap stops={stops} onAddStop={addStop}/>
             <div className="mt-2 space-y-1">{stops.map((s,i)=>(<div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><div className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold">{i+1}</div><p className="text-sm flex-1">{s.name}</p>{s.lat&&<p className="text-xs text-gray-400">{s.lat},{s.lng}</p>}<button onClick={()=>removeStop(i)} className="text-gray-400 hover:text-red-500"><X size={14}/></button></div>))}</div>
             <div className="flex gap-2 mt-2"><input className="input flex-1" placeholder="Nome da parada" value={newStop.name} onChange={e=>setNewStop(s=>({...s,name:e.target.value}))}/><input className="input w-24" placeholder="Lat" value={newStop.lat} onChange={e=>setNewStop(s=>({...s,lat:e.target.value}))}/><input className="input w-24" placeholder="Lng" value={newStop.lng} onChange={e=>setNewStop(s=>({...s,lng:e.target.value}))}/><button onClick={()=>addStop()} className="btn-secondary px-3">+</button></div>
@@ -209,9 +247,9 @@ export default function RoutesPage() {
         </div>
         <div className="flex gap-3 p-5 border-t border-gray-100"><button onClick={()=>setShow(false)} className="btn-secondary flex-1">Cancelar</button><button disabled={loading||updating} onClick={()=>{
           if(editId) {
-            updateRoute({id:editId, name:form.name, code:form.code, description:form.description, type:form.type, shift:form.shift, scheduledStartTime:form.scheduledStartTime, scheduledEndTime:form.scheduledEndTime},{onSuccess:()=>{refetch();setShow(false);}});
+            updateRoute({id:editId, name:form.name, code:form.code, description:form.description, type:form.type, shift:form.shift, scheduledStartTime:form.scheduledStartTime, scheduledEndTime:form.scheduledEndTime, hasGate:form.hasGate, hasCattleGuard:form.hasCattleGuard, hasLatch:form.hasLatch, hasMudhole:form.hasMudhole, hasRusticBridge:form.hasRusticBridge, roadSurface:form.roadSurface, monthlyCostFuel:form.monthlyCostFuel||'0', monthlyCostMaintenance:form.monthlyCostMaintenance||'0', monthlyCostDriver:form.monthlyCostDriver||'0', monthlyCostMonitor:form.monthlyCostMonitor||'0', monthlyCostInsurance:form.monthlyCostInsurance||'0'},{onSuccess:()=>{refetch();setShow(false);}});
           } else {
-            create({municipalityId,...form,stops},{onSuccess:()=>{refetch();setShow(false);}});
+            create({municipalityId,...form,stops,monthlyCostFuel:form.monthlyCostFuel||'0',monthlyCostMaintenance:form.monthlyCostMaintenance||'0',monthlyCostDriver:form.monthlyCostDriver||'0',monthlyCostMonitor:form.monthlyCostMonitor||'0',monthlyCostInsurance:form.monthlyCostInsurance||'0'},{onSuccess:()=>{refetch();setShow(false);}});
           }
         }} className="btn-primary flex-1">{loading||updating?'Salvando...':editId?'Salvar Alterações':'Salvar Rota'}</button></div>
       </div></div>)}

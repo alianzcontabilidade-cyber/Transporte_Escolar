@@ -453,9 +453,25 @@ export const routes = mysqlTable("routes", {
   // Distância total
   totalDistanceKm: decimal("totalDistanceKm", { precision: 10, scale: 2 }),
   
+  // Condições da Estrada (SETE)
+  hasGate: boolean("hasGate").default(false),
+  hasCattleGuard: boolean("hasCattleGuard").default(false),
+  hasLatch: boolean("hasLatch").default(false),
+  hasMudhole: boolean("hasMudhole").default(false),
+  hasRusticBridge: boolean("hasRusticBridge").default(false),
+  roadSurface: varchar("roadSurface", { length: 50 }).default("paved"),
+
+  // Custos mensais da rota
+  monthlyCostFuel: decimal("monthlyCostFuel", { precision: 10, scale: 2 }).default("0"),
+  monthlyCostMaintenance: decimal("monthlyCostMaintenance", { precision: 10, scale: 2 }).default("0"),
+  monthlyCostDriver: decimal("monthlyCostDriver", { precision: 10, scale: 2 }).default("0"),
+  monthlyCostMonitor: decimal("monthlyCostMonitor", { precision: 10, scale: 2 }).default("0"),
+  monthlyCostInsurance: decimal("monthlyCostInsurance", { precision: 10, scale: 2 }).default("0"),
+  costPerStudent: decimal("costPerStudent", { precision: 10, scale: 2 }).default("0"),
+
   // Status
   isActive: boolean("isActive").default(true).notNull(),
-  
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

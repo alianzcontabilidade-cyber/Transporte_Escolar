@@ -223,7 +223,7 @@ export default function CalendarPage() {
             <div><label className="label">Data fim</label><input className="input" type="date" value={form.endDate} onChange={sf('endDate')} /></div>
           </div>
           <div><label className="label">Tipo</label><select className="input" value={form.eventType} onChange={sf('eventType')}>{Object.entries(EVENT_TYPES).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>
-          <div><label className="label">Descricao</label><textarea className="input" rows={2} value={form.description} onChange={sf('description')} /></div>
+          <div><label className="label">Descrição</label><textarea className="input" rows={2} value={form.description} onChange={sf('description')} /></div>
         </div>
         <div className="flex gap-3 p-5 border-t"><button onClick={() => { setShowModal(false); setEditId(null); }} className="btn-secondary flex-1">Cancelar</button><button onClick={save} className="btn-primary flex-1">{editId ? 'Atualizar' : 'Salvar'}</button></div>
       </div></div>)}

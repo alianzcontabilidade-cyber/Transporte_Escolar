@@ -28,7 +28,7 @@ const TYPE_LABELS: Record<string, string> = {
   declaration: 'Declaracao',
   report_card: 'Boletim',
   enrollment: 'Matricula',
-  attendance: 'Frequencia',
+  attendance: 'Frequência',
   other: 'Outro',
 };
 
@@ -227,7 +227,7 @@ export default function DocumentManagementPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por titulo ou codigo de verificacao..."
+              placeholder="Buscar por titulo ou código de verificação..."
               className="input pl-9"
             />
           </div>
@@ -520,7 +520,7 @@ export default function DocumentManagementPage() {
               </p>
               <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-200 dark:border-red-800">
                 <p className="text-xs text-red-700 dark:text-red-300">
-                  <strong>Atencao:</strong> Esta acao e irreversivel. O documento sera marcado como revogado e
+                  <strong>Atenção:</strong> Esta acao e irreversivel. O documento sera marcado como revogado e
                   nao podera mais ser utilizado como prova valida.
                 </p>
               </div>

@@ -10,9 +10,9 @@ import ReportSignatureSelector, { Signatory } from '../components/ReportSignatur
 
 const CERT_TYPES = [
   { id: 'escolaridade', label: 'Declaracao de Escolaridade', desc: 'Comprova que o aluno esta matriculado e cursando', icon: GraduationCap, color: 'indigo' },
-  { id: 'frequencia', label: 'Declaracao de Frequencia', desc: 'Comprova frequencia escolar regular', icon: CalendarCheck, color: 'emerald' },
-  { id: 'transferencia', label: 'Declaracao de Transferencia', desc: 'Para transferencia entre escolas', icon: ArrowRightLeft, color: 'amber' },
-  { id: 'matricula', label: 'Ficha de Matricula', desc: 'Ficha completa com todos os dados do aluno', icon: ClipboardList, color: 'blue' },
+  { id: 'frequência', label: 'Declaracao de Frequencia', desc: 'Comprova frequência escolar regular', icon: CalendarCheck, color: 'emerald' },
+  { id: 'transferência', label: 'Declaracao de Transferencia', desc: 'Para transferência entre escolas', icon: ArrowRightLeft, color: 'amber' },
+  { id: 'matricula', label: 'Ficha de Matrícula', desc: 'Ficha completa com todos os dados do aluno', icon: ClipboardList, color: 'blue' },
 ];
 
 export default function StudentCertificatesPage() {
@@ -44,8 +44,8 @@ export default function StudentCertificatesPage() {
 
     switch (type) {
       case 'escolaridade': return generateDeclaracaoEscolaridade(selStudent, school, municipality, secretaria, selectedSigs);
-      case 'transferencia': return generateDeclaracaoTransferencia(selStudent, school, municipality, secretaria, selectedSigs);
-      case 'frequencia': return generateDeclaracaoFrequencia(selStudent, school, municipality, secretaria, selectedSigs);
+      case 'transferência': return generateDeclaracaoTransferencia(selStudent, school, municipality, secretaria, selectedSigs);
+      case 'frequência': return generateDeclaracaoFrequencia(selStudent, school, municipality, secretaria, selectedSigs);
       case 'matricula': return generateFichaMatricula(selStudent, school, municipality, secretaria, selectedSigs);
       default: return '';
     }
@@ -138,7 +138,7 @@ export default function StudentCertificatesPage() {
           ) : (
             <div className="card text-center py-20">
               <FileText size={48} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-500">Selecione um aluno para gerar declaracoes</p>
+              <p className="text-gray-500">Selecione um aluno para gerar declarações</p>
             </div>
           )}
         </div>

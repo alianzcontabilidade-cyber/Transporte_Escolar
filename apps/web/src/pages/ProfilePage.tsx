@@ -214,7 +214,7 @@ export default function ProfilePage() {
               className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               <Save size={16} />
-              {saving ? 'Salvando...' : 'Salvar Alteracoes'}
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
             </button>
           </div>
         </div>

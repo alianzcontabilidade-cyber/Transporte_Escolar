@@ -72,7 +72,7 @@ export default function FinancialPage() {
 
   const save = () => {
     if (tab === 'accounts') {
-      if (!form.name) { setFormErr('Nome obrigatorio'); return; }
+      if (!form.name) { setFormErr('Nome obrigatório'); return; }
       const p = { municipalityId: mid, name: form.name, type: form.type, bankName: form.bankName || undefined, agency: form.agency || undefined, accountNumber: form.accountNumber || undefined, balance: form.balance ? parseFloat(form.balance) : undefined };
       const cb = { onSuccess: () => { rAccts(); setShowModal(false); }, onError: (e: any) => setFormErr(e || 'Erro') };
       editId ? updateAcct({ id: editId, ...p }, cb) : createAcct(p, cb);
@@ -125,7 +125,7 @@ export default function FinancialPage() {
       )}
 
       {tab === 'transactions' && (
-        <div className="card p-0 overflow-hidden"><table className="w-full text-sm"><thead className="bg-gray-50 border-b"><tr>{['Data', 'Tipo', 'Categoria', 'Descricao', 'Valor', ''].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y">{allTxns.map((t: any) => (
+        <div className="card p-0 overflow-hidden"><table className="w-full text-sm"><thead className="bg-gray-50 border-b"><tr>{['Data', 'Tipo', 'Categoria', 'Descrição', 'Valor', ''].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y">{allTxns.map((t: any) => (
           <tr key={t.id} className="hover:bg-gray-50">
             <td className="px-4 py-3 text-gray-500">{t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '—'}</td>
             <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.type === 'receita' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{t.type === 'receita' ? 'Receita' : 'Despesa'}</span></td>
@@ -160,7 +160,7 @@ export default function FinancialPage() {
               <div><label className="label">Valor *</label><input className="input" type="number" step="0.01" value={form.value || ''} onChange={sf('value')} /></div>
               <div><label className="label">Data *</label><input className="input" type="date" value={form.date || ''} onChange={sf('date')} /></div>
               <div><label className="label">Nº Documento</label><input className="input" value={form.documentNumber || ''} onChange={sf('documentNumber')} /></div>
-              <div className="col-span-2"><label className="label">Descricao</label><input className="input" value={form.description || ''} onChange={sf('description')} /></div>
+              <div className="col-span-2"><label className="label">Descrição</label><input className="input" value={form.description || ''} onChange={sf('description')} /></div>
               <div className="col-span-2"><label className="label">Fornecedor</label><input className="input" value={form.supplier || ''} onChange={sf('supplier')} /></div>
             </div>
           )}

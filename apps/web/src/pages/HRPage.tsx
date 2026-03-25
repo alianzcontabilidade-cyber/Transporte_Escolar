@@ -178,12 +178,12 @@ export default function HRPage() {
             <div className="col-span-2"><label className="label">Nome do cargo *</label><input className="input" value={form.name || ''} onChange={sf('name')} /></div>
             <div><label className="label">Categoria</label><select className="input" value={form.category || ''} onChange={sf('category')}>{Object.entries(POS_CATS).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>
             <div><label className="label">Salario base (R$)</label><input className="input" type="number" step="0.01" value={form.baseSalary || ''} onChange={sf('baseSalary')} /></div>
-            <div className="col-span-2"><label className="label">Descricao</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
+            <div className="col-span-2"><label className="label">Descrição</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
           </div>)}
           {tab === 'departments' && (<div className="space-y-4">
             <div><label className="label">Nome *</label><input className="input" value={form.name || ''} onChange={sf('name')} /></div>
             <div><label className="label">Responsável</label><select className="input" value={form.headUserId || ''} onChange={sf('headUserId')}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
-            <div><label className="label">Descricao</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
+            <div><label className="label">Descrição</label><textarea className="input" rows={2} value={form.description || ''} onChange={sf('description')} /></div>
           </div>)}
           {tab === 'allocations' && (<div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="label">Servidor *</label><select className="input" value={form.userId || ''} onChange={sf('userId')} disabled={!!editId}><option value="">Selecione</option>{allUsers.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}</select></div>

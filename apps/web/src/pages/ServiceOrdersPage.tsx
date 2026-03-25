@@ -139,7 +139,7 @@ export default function ServiceOrdersPage() {
 
   const save = function () {
     if (!form.vehicleId || !form.description) {
-      showErrorToast('Veiculo e descricao sao obrigatorios.');
+      showErrorToast('Veiculo e descrição sao obrigatorios.');
       return;
     }
     const totalCost = calcTotal(form.laborCost, form.partsCost);
@@ -194,7 +194,7 @@ export default function ServiceOrdersPage() {
       status: STATUS_LABELS[o.status] || o.status || '',
     };
   });
-  const exportCols = ['Numero', 'Veículo', 'Tipo', 'Prioridade', 'Fornecedor', 'Custo Total', 'Status'];
+  const exportCols = ['Número', 'Veículo', 'Tipo', 'Prioridade', 'Fornecedor', 'Custo Total', 'Status'];
   const doExport = function (format: ExportFormat) {
     if (!exportModal) return;
     handleExport(format, exportModal.data, buildTableReportHTML(exportModal.title, exportModal.data, exportModal.cols, null), exportModal.filename);
@@ -212,11 +212,11 @@ export default function ServiceOrdersPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><ClipboardList size={24} className="text-primary-600" /> Ordens de Servico</h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><ClipboardList size={24} className="text-primary-600" /> Ordens de Serviço</h1>
           <p className="text-gray-500">{allOrders.length} ordem(ns) de servico</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={function () { setExportModal({ title: 'Ordens de Servico', data: exportRows, cols: exportCols, filename: 'ordens_servico_netescol' }); }} className="btn-secondary flex items-center gap-2"><FileText size={16} /> Exportar</button>
+          <button onClick={function () { setExportModal({ title: 'Ordens de Serviço', data: exportRows, cols: exportCols, filename: 'ordens_servico_netescol' }); }} className="btn-secondary flex items-center gap-2"><FileText size={16} /> Exportar</button>
           <button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16} /> Nova OS</button>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function ServiceOrdersPage() {
       {/* Search */}
       <div className="relative mb-4">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input className="input pl-9" placeholder="Buscar por numero, placa, fornecedor ou descricao..." value={search} onChange={function (e) { setSearch(e.target.value); setPage(1); }} />
+        <input className="input pl-9" placeholder="Buscar por numero, placa, fornecedor ou descrição..." value={search} onChange={function (e) { setSearch(e.target.value); setPage(1); }} />
       </div>
 
       {/* Table */}
@@ -264,7 +264,7 @@ export default function ServiceOrdersPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left p-3 text-xs text-gray-500 font-medium">Numero</th>
+              <th className="text-left p-3 text-xs text-gray-500 font-medium">Número</th>
               <th className="text-left p-3 text-xs text-gray-500 font-medium">Veiculo</th>
               <th className="text-left p-3 text-xs text-gray-500 font-medium">Tipo</th>
               <th className="text-left p-3 text-xs text-gray-500 font-medium">Prioridade</th>
@@ -371,10 +371,10 @@ export default function ServiceOrdersPage() {
               <button onClick={function () { setShowModal(false); }} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button>
             </div>
             <div className="overflow-y-auto flex-1 p-5 space-y-4">
-              {/* Numero + Veiculo + Fornecedor */}
+              {/* Número + Veiculo + Fornecedor */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="label">Numero OS</label>
+                  <label className="label">Número OS</label>
                   <input className="input bg-gray-50" value={form.number} readOnly />
                 </div>
                 <div>
@@ -421,9 +421,9 @@ export default function ServiceOrdersPage() {
                 )}
               </div>
 
-              {/* Descricao */}
+              {/* Descrição */}
               <div>
-                <label className="label">Descricao do Problema *</label>
+                <label className="label">Descrição do Problema *</label>
                 <textarea className="input" rows={3} value={form.description} onChange={setField('description')} placeholder="Descreva o problema ou servico necessario..." />
               </div>
 
@@ -466,7 +466,7 @@ export default function ServiceOrdersPage() {
                 </div>
                 <div>
                   <label className="label">Nota Fiscal</label>
-                  <input className="input" value={form.invoiceNumber} onChange={setField('invoiceNumber')} placeholder="Numero da NF" />
+                  <input className="input" value={form.invoiceNumber} onChange={setField('invoiceNumber')} placeholder="Número da NF" />
                 </div>
               </div>
 
@@ -479,7 +479,7 @@ export default function ServiceOrdersPage() {
 
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={function () { setShowModal(false); }} className="btn-secondary flex-1">Cancelar</button>
-              <button onClick={save} disabled={creating || updating} className="btn-primary flex-1">{creating || updating ? 'Salvando...' : editId ? 'Salvar alteracoes' : 'Criar OS'}</button>
+              <button onClick={save} disabled={creating || updating} className="btn-primary flex-1">{creating || updating ? 'Salvando...' : editId ? 'Salvar Alterações' : 'Criar OS'}</button>
             </div>
           </div>
         </div>

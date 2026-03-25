@@ -33,28 +33,28 @@ const REPORTS: Report[] = [
   { code: 'R101', title: 'Ficha de Matrícula', desc: 'Formulário oficial de matrícula para impressão', module: 'Gestão Escolar', color: '#6366f1', to: '/ficha-matricula', icon: FileText, tags: ['aluno', 'matricula', 'formulario'] },
   { code: 'R102', title: 'Requerimento de Matrícula', desc: 'Renovação ou nova matrícula', module: 'Gestão Escolar', color: '#6366f1', to: '/matriculas', icon: FileText, tags: ['aluno', 'matricula'] },
   { code: 'R103', title: 'Ficha Completa do Aluno', desc: 'Todos os dados do aluno para impressão', module: 'Gestão Escolar', color: '#6366f1', to: '/ficha-aluno', icon: Users, tags: ['aluno', 'ficha', 'dados'] },
-  { code: 'R104', title: 'Declaração de Matrícula', desc: 'Comprova matrícula ativa', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'matricula'] },
-  { code: 'R105', title: 'Declaração de Transferência', desc: 'Para transferência entre escolas', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'transferencia'] },
-  { code: 'R106', title: 'Declaração de Frequência', desc: 'Comprova frequência escolar', module: 'Gestão Escolar', color: '#6366f1', to: '/declaracoes', icon: FileText, tags: ['declaracao', 'frequencia'] },
+  { code: 'R104', title: 'Declaração de Matrícula', desc: 'Comprova matrícula ativa', module: 'Gestão Escolar', color: '#6366f1', to: '/declarações', icon: FileText, tags: ['declaracao', 'matricula'] },
+  { code: 'R105', title: 'Declaração de Transferência', desc: 'Para transferência entre escolas', module: 'Gestão Escolar', color: '#6366f1', to: '/declarações', icon: FileText, tags: ['declaracao', 'transferência'] },
+  { code: 'R106', title: 'Declaração de Frequência', desc: 'Comprova frequência escolar', module: 'Gestão Escolar', color: '#6366f1', to: '/declarações', icon: FileText, tags: ['declaracao', 'frequência'] },
   { code: 'R107', title: 'Histórico Escolar', desc: 'Trajetória acadêmica completa', module: 'Gestão Escolar', color: '#6366f1', to: '/historico-escolar', icon: BookOpen, tags: ['aluno', 'historico', 'academico'] },
   { code: 'R108', title: 'Relação de Alunos por Turma', desc: 'Lista de alunos filtrada por turma', module: 'Gestão Escolar', color: '#6366f1', to: '/relacao-alunos-turma', icon: Users, tags: ['aluno', 'turma', 'lista'] },
   { code: 'R109', title: 'Relatório por Escola', desc: 'Visão completa de uma escola', module: 'Gestão Escolar', color: '#6366f1', to: '/relatorio-escola', icon: School, tags: ['escola', 'relatorio'] },
   { code: 'R110', title: 'Carteirinha Estudantil', desc: 'Carteira do aluno com QR Code', module: 'Gestão Escolar', color: '#6366f1', to: '/carteirinha', icon: Users, tags: ['aluno', 'carteirinha', 'qrcode'] },
-  { code: 'R111', title: 'Registro de Ocorrências', desc: 'Ocorrências disciplinares', module: 'Gestão Escolar', color: '#6366f1', to: '/ocorrencias', icon: FileText, tags: ['ocorrencia', 'disciplinar'] },
+  { code: 'R111', title: 'Registro de Ocorrências', desc: 'Ocorrências disciplinares', module: 'Gestão Escolar', color: '#6366f1', to: '/ocorrências', icon: FileText, tags: ['ocorrência', 'disciplinar'] },
   { code: 'R112', title: 'Lista de Escolas', desc: 'Todas as escolas do município', module: 'Gestão Escolar', color: '#6366f1', to: '/escolas', icon: School, tags: ['escola', 'lista'] },
   // Ensino e Aprendizagem
   { code: 'R201', title: 'Lista de Notas Bimestral', desc: 'Notas por turma/disciplina/bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/lancamento-notas', icon: GraduationCap, tags: ['notas', 'bimestre'] },
   { code: 'R202', title: 'Mapa de Resultados Final', desc: 'Aprovados, retidos, transferidos', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados', icon: TrendingUp, tags: ['resultados', 'ata', 'aprovacao'] },
   { code: 'R203', title: 'Boletim Escolar', desc: 'Notas por bimestre e média final', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/boletim', icon: FileText, tags: ['boletim', 'notas', 'aluno'] },
   { code: 'R204', title: 'Parecer Descritivo', desc: 'Avaliação qualitativa por aluno', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/parecer-descritivo', icon: BookOpen, tags: ['parecer', 'avaliacao'] },
-  { code: 'R205', title: 'Relatório de Frequência', desc: 'Presença por aluno e período', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-frequencia', icon: Users, tags: ['frequencia', 'presenca'] },
+  { code: 'R205', title: 'Relatório de Frequência', desc: 'Presença por aluno e período', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-frequência', icon: Users, tags: ['frequência', 'presenca'] },
   { code: 'R206', title: 'ATA do Conselho de Classe', desc: 'Decisões por aluno e bimestre', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/conselho-classe', icon: FileText, tags: ['conselho', 'ata'] },
   { code: 'R207', title: 'Grade Horária', desc: 'Horário de aulas por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/grade-horaria', icon: Clock, tags: ['horario', 'grade', 'turma'] },
   { code: 'R208', title: 'Relatório Individual do Aluno', desc: 'Relatório BNCC com competências e desempenho', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/relatorio-individual', icon: BookOpen, tags: ['individual', 'bncc', 'competencia', 'aluno'] },
   { code: 'R209', title: 'Quadro de Rendimento Escolar', desc: 'Aprovados, retidos e transferidos por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/quadro-rendimento', icon: TrendingUp, tags: ['rendimento', 'aprovado', 'retido', 'escola'] },
   { code: 'R210', title: 'Ata de Resultados Finais', desc: 'Documento oficial de resultados do ano letivo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/ata-resultados-finais', icon: FileText, tags: ['ata', 'resultado', 'final', 'oficial'] },
   { code: 'R211', title: 'Alunos com Baixo Rendimento', desc: 'Alunos com média abaixo do mínimo', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/baixo-rendimento', icon: TrendingUp, tags: ['baixo', 'rendimento', 'recuperacao', 'nota'] },
-  { code: 'R212', title: 'Diário de Classe', desc: 'Frequência diária por turma e mês', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/diario-classe', icon: BookOpen, tags: ['diario', 'classe', 'frequencia', 'presenca'] },
+  { code: 'R212', title: 'Diário de Classe', desc: 'Frequência diária por turma e mês', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/diario-classe', icon: BookOpen, tags: ['diario', 'classe', 'frequência', 'presenca'] },
   { code: 'R213', title: 'Quadro Curricular', desc: 'Disciplinas e carga horária por turma', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/quadro-curricular', icon: BookOpen, tags: ['quadro', 'curricular', 'disciplina', 'horaria'] },
   { code: 'R214', title: 'Desempenho por Disciplina', desc: 'Média e aprovação por componente curricular', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/desempenho-disciplina', icon: TrendingUp, tags: ['desempenho', 'disciplina', 'media', 'aprovacao'] },
   // Frota e Rotas
@@ -77,7 +77,7 @@ const REPORTS: Report[] = [
   { code: 'R407', title: 'Relatório de RH', desc: 'Quadro de pessoal por cargo e departamento', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-rh', icon: Users, tags: ['rh', 'pessoal', 'servidor', 'cargo'] },
   { code: 'R408', title: 'Relatório de Patrimônio', desc: 'Inventário de bens patrimoniais', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-patrimonio', icon: Briefcase, tags: ['patrimonio', 'bem', 'inventario', 'tombamento'] },
   { code: 'R409', title: 'Relatório EDUCACENSO', desc: 'Dados consolidados para o Censo Escolar', module: 'Gestão e Recursos', color: '#0ea5e9', to: '/relatorio-educacenso', icon: TrendingUp, tags: ['educacenso', 'censo', 'inep', 'escolar'] },
-  { code: 'R410', title: 'Risco de Evasão Escolar', desc: 'Análise de risco de abandono por aluno via IA', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/risco-evasao', icon: TrendingUp, tags: ['risco', 'evasao', 'abandono', 'ia', 'frequencia'] },
+  { code: 'R410', title: 'Risco de Evasão Escolar', desc: 'Análise de risco de abandono por aluno via IA', module: 'Ensino e Aprendizagem', color: '#8b5cf6', to: '/risco-evasao', icon: TrendingUp, tags: ['risco', 'evasao', 'abandono', 'ia', 'frequência'] },
 ];
 
 // ============================================
@@ -314,7 +314,7 @@ export default function ReportCenterPage() {
                     <tr>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Codigo</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Relatorio</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Descricao</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Descrição</th>
                       <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Acoes</th>
                     </tr>
                   </thead>

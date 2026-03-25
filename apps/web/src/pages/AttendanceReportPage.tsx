@@ -68,13 +68,13 @@ export default function AttendanceReportPage() {
     const rows = summary.map((s: any) => ({ aluno: s.studentName, presencas: s.present, faltas: s.absent||0, justificadas: s.justified||0, atrasos: s.late||0, total: s.total, percentual: s.total > 0 ? Math.round(((s.present+(s.justified||0))/s.total)*100) + '%' : '0%' }));
     const keys = Object.keys(rows[0]);
     const csv = [keys.join(';'), ...rows.map((r: any) => keys.map(k => '"'+(r[k]||'')+'"').join(';'))].join('\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'frequencia_netescol.csv'; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})); a.download = 'frequência_netescol.csv'; a.click();
   };
 
   const handleExportClick = () => {
     const html = buildExportHTML();
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
-    setPgExportModal({ html, filename: 'relatorio_frequencia' });
+    setPgExportModal({ html, filename: 'relatorio_frequência' });
   };
 
   return (

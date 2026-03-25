@@ -122,7 +122,7 @@ export default function TransparencyPage() {
         {data.contracts?.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border">
             <div className="px-6 py-4 border-b"><h2 className="font-semibold text-gray-800 flex items-center gap-2"><FileText size={18} /> Contratos Vigentes</h2></div>
-            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Numero', 'Tipo', 'Fornecedor', 'Valor', 'Vigencia'].map(h => <th key={h} className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Número', 'Tipo', 'Fornecedor', 'Valor', 'Vigencia'].map(h => <th key={h} className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead>
             <tbody className="divide-y">{data.contracts.map((c: any, i: number) => (
               <tr key={i} className="hover:bg-gray-50">
                 <td className="px-6 py-3 font-medium">{c.number}</td>

@@ -285,7 +285,7 @@ export default function MunicipalitySettingsPage() {
                 </div>
               </div>
               <div className="md:col-span-2"><label className="label">Logradouro *</label><input className="input" value={form.logradouro} onChange={sf('logradouro')} /></div>
-              <div><label className="label">Numero</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
+              <div><label className="label">Número</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
               <div><label className="label">Complemento</label><input className="input" value={form.complemento} onChange={sf('complemento')} /></div>
               <div><label className="label">Bairro *</label><input className="input" value={form.bairro} onChange={sf('bairro')} /></div>
               <div><label className="label">UF *</label><select className="input" value={form.estado} onChange={(e) => setForm(f => ({...f, estado: e.target.value, cidade: ''}))}><option value="">Selecione</option>{ESTADOS_BR.map(es => <option key={es.uf} value={es.uf}>{es.uf} - {es.nome}</option>)}</select></div>
@@ -386,7 +386,7 @@ export default function MunicipalitySettingsPage() {
             <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
               <Users size={16} className="text-purple-500" /> Demais Responsaveis
             </h3>
-            <p className="text-xs text-gray-500 mb-4">Cadastre os responsaveis adicionais do municipio. Cada municipio pode ter cargos diferentes.</p>
+            <p className="text-xs text-gray-500 mb-4">Cadastre os responsaveis adicionais do município. Cada municipio pode ter cargos diferentes.</p>
 
             {/* Custom roles management */}
             <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
@@ -494,7 +494,7 @@ export default function MunicipalitySettingsPage() {
 
           <div className="card mt-4">
             <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 text-sm">Dica</h3>
-            <p className="text-xs text-gray-500">Clique no botao <b>Receita Federal</b> ao lado do CNPJ para carregar os dados automaticamente. O mesmo vale para o CEP.</p>
+            <p className="text-xs text-gray-500">Clique no botão <b>Receita Federal</b> ao lado do CNPJ para carregar os dados automaticamente. O mesmo vale para o CEP.</p>
           </div>
         </div>
       </div>

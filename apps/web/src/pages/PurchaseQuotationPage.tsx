@@ -152,9 +152,9 @@ export default function PurchaseQuotationPage() {
   // Exportar planilha modelo para enviar ao fornecedor
   const exportModelSheet = (supplierIndex: number) => {
     const supplierName = suppliers[supplierIndex] || 'Fornecedor';
-    const header = 'Item;Descricao;Unidade;Quantidade;Preco Unitario (R$)';
+    const header = 'Item;Descrição;Unidade;Quantidade;Preco Unitario (R$)';
     const rows = items.map((item, i) => `${i + 1};"${item.description}";${item.unit};${item.quantity};`);
-    const csv = header + '\n' + rows.join('\n') + '\n\n;;;;;TOTAL:\n\nINSTRUCOES:\n- Preencha a coluna "Preco Unitario" com o valor unitario de cada item\n- Nao altere as colunas Item, Descricao, Unidade e Quantidade\n- Salve o arquivo e devolva para a prefeitura\n- Cotacao: ' + title + '\n- Fornecedor: ' + supplierName;
+    const csv = header + '\n' + rows.join('\n') + '\n\n;;;;;TOTAL:\n\nINSTRUCOES:\n- Preencha a coluna "Preco Unitario" com o valor unitario de cada item\n- Nao altere as colunas Item, Descrição, Unidade e Quantidade\n- Salve o arquivo e devolva para a prefeitura\n- Cotacao: ' + title + '\n- Fornecedor: ' + supplierName;
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -245,14 +245,14 @@ export default function PurchaseQuotationPage() {
     const winner = getWinner();
     const rows = items.map((item: any, i: number) => ({
       num: i + 1,
-      descricao: item.description || '--',
+      descrição: item.description || '--',
       unidade: item.unit || 'un',
       quantidade: item.quantity,
       forn1: 'R$ ' + (item.supplier1Price * item.quantity).toFixed(2),
       forn2: 'R$ ' + (item.supplier2Price * item.quantity).toFixed(2),
       forn3: 'R$ ' + (item.supplier3Price * item.quantity).toFixed(2),
     }));
-    const cols = ['#', 'Descricao', 'Unid.', 'Qtd.', suppliers[0], suppliers[1], suppliers[2]];
+    const cols = ['#', 'Descrição', 'Unid.', 'Qtd.', suppliers[0], suppliers[1], suppliers[2]];
     const html = buildTableReportHTML(title, rows, cols, munReport, {
       summary: `Menor preco global: ${suppliers[winner]} - R$ ${[getTotal('supplier1Price'), getTotal('supplier2Price'), getTotal('supplier3Price')][winner]?.toFixed(2)}`,
       orientation: 'landscape',

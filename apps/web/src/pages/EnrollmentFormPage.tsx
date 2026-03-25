@@ -36,7 +36,7 @@ export default function EnrollmentFormPage() {
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('pt-BR') : '____/____/________';
     const line = (label: string, value: string, width?: string) => `<div class="field" style="${width ? 'width:'+width : ''}"><div class="field-label">${label}</div><div class="field-value">${value || '_'.repeat(40)}</div></div>`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ficha de Matricula - NetEscol</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ficha de Matrícula - NetEscol</title>
     <style>
       @page{size:A4;margin:12mm}
       body{font-family:'Segoe UI',Arial,sans-serif;padding:20px 25px;color:#333;font-size:12px;line-height:1.4}
@@ -137,7 +137,7 @@ export default function EnrollmentFormPage() {
 
     <div class="title">7. DECLARA\C\AO</div>
     <div style="font-size:10px;text-align:justify;margin:6px 0;line-height:1.5">
-      Declaro que as informacoes prestadas sao verdadeiras e me responsabilizo por qualquer informacao incorreta. Comprometo-me a comunicar a escola qualquer alteracao nos dados acima. Autorizo a escola a utilizar a imagem do(a) aluno(a) em atividades pedagogicas e eventos escolares.
+      Declaro que as informações prestadas sao verdadeiras e me responsabilizo por qualquer informacao incorreta. Comprometo-me a comunicar a escola qualquer alteracao nos dados acima. Autorizo a escola a utilizar a imagem do(a) aluno(a) em atividades pedagogicas e eventos escolares.
     </div>
 
     <div style="text-align:right;font-size:11px;margin:20px 0">${mun?.city || '_________'}, ______ de _________________ de ${new Date().getFullYear()}</div>
@@ -182,7 +182,7 @@ export default function EnrollmentFormPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Ficha de Matricula</h1><p className="text-gray-500">Formulario oficial para impressao</p></div></div>
+        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div><div><h1 className="text-2xl font-bold text-gray-900">Ficha de Matrícula</h1><p className="text-gray-500">Formulário oficial para impressão</p></div></div>
         <div className="flex gap-2">
           <button onClick={() => printForm()} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir em Branco</button>
           {selStudent && <button onClick={() => printForm(selStudent)} className="btn-primary flex items-center gap-2"><Printer size={16} /> Imprimir Preenchida</button>}

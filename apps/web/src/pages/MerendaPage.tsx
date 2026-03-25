@@ -54,7 +54,7 @@ export default function MerendaPage() {
         <div className="p-5 space-y-4"><div className="grid grid-cols-2 gap-4">
           <div><label className="label">Data *</label><input className="input" type="date" value={form.date} onChange={sf('date')} /></div>
           <div><label className="label">Refeicao</label><select className="input" value={form.mealType} onChange={sf('mealType')}>{Object.entries(MEALS).map(([k, v]) => <option key={k} value={k}>{v as string}</option>)}</select></div>
-          <div className="col-span-2"><label className="label">Descricao do cardapio *</label><textarea className="input" rows={3} value={form.description} onChange={sf('description')} placeholder="Arroz, feijao, frango grelhado, salada..." /></div>
+          <div className="col-span-2"><label className="label">Descrição do cardapio *</label><textarea className="input" rows={3} value={form.description} onChange={sf('description')} placeholder="Arroz, feijao, frango grelhado, salada..." /></div>
           <div><label className="label">Calorias (kcal)</label><input className="input" type="number" value={form.calories} onChange={sf('calories')} /></div>
           <div><label className="label">Porcoes</label><input className="input" type="number" value={form.servings} onChange={sf('servings')} /></div>
           <div><label className="label">Custo (R$)</label><input className="input" type="number" step="0.01" value={form.cost} onChange={sf('cost')} /></div>

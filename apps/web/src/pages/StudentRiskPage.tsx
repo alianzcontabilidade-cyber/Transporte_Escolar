@@ -162,7 +162,7 @@ export default function StudentRiskPage() {
           <ShieldAlert size={56} className="text-gray-200 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum dado de risco disponivel</h3>
           <p className="text-gray-500 text-sm max-w-md mx-auto">
-            A analise de risco requer dados de frequencia, notas e ocorrencias dos alunos.
+            A analise de risco requer dados de frequência, notas e ocorrências dos alunos.
           </p>
         </div>
       )}
@@ -188,7 +188,7 @@ export default function StudentRiskPage() {
                     <div className="flex gap-4 text-xs">
                       <span className="text-gray-600"><strong>{student.absences}</strong> faltas</span>
                       <span className="text-gray-600">Media: <strong>{student.avgGrade.toFixed(1)}</strong></span>
-                      <span className="text-gray-600"><strong>{student.occurrences}</strong> ocorrencias</span>
+                      <span className="text-gray-600"><strong>{student.occurrences}</strong> ocorrências</span>
                     </div>
                     {student.factors && student.factors.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">

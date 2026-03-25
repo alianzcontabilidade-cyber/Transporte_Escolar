@@ -13,7 +13,7 @@ import {
   RefreshCw, CheckCircle, Bell, History, ChevronRight, X, LogOut
 } from 'lucide-react';
 
-type PortalView = 'home' | 'boletim' | 'frequencia' | 'parecer' | 'ocorrencias' | 'calendario' | 'merenda' | 'mensagens' | 'declaracoes' | 'transporte' | 'vincular';
+type PortalView = 'home' | 'boletim' | 'frequência' | 'parecer' | 'ocorrências' | 'calendario' | 'merenda' | 'mensagens' | 'declarações' | 'transporte' | 'vincular';
 
 // =============================================
 // LIVE MAP (from GuardianPage)
@@ -335,7 +335,7 @@ export default function GuardianPortalPage() {
             <div className="card mb-4 p-3 bg-amber-50 border-amber-200 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-amber-700">
                 <Bell size={16} />
-                <span>Ative as notificacoes para receber alertas</span>
+                <span>Ative as notificações para receber alertas</span>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={async () => { const ok = await requestNotificationPermission(); setNotifBannerVisible(!ok && Notification.permission === 'default'); }} className="bg-amber-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-amber-600">Ativar</button>
@@ -371,13 +371,13 @@ export default function GuardianPortalPage() {
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {[
               { id: 'boletim' as PortalView, label: 'Boletim', icon: GraduationCap, color: 'bg-blue-500', badge: null },
-              { id: 'frequencia' as PortalView, label: 'Frequencia', icon: Clock, color: 'bg-green-500', badge: null },
+              { id: 'frequência' as PortalView, label: 'Frequência', icon: Clock, color: 'bg-green-500', badge: null },
               { id: 'parecer' as PortalView, label: 'Parecer', icon: ClipboardList, color: 'bg-purple-500', badge: null },
-              { id: 'ocorrencias' as PortalView, label: 'Ocorrencias', icon: AlertTriangle, color: 'bg-orange-500', badge: null },
+              { id: 'ocorrências' as PortalView, label: 'Ocorrências', icon: AlertTriangle, color: 'bg-orange-500', badge: null },
               { id: 'calendario' as PortalView, label: 'Calendario', icon: Calendar, color: 'bg-teal-500', badge: null },
               { id: 'merenda' as PortalView, label: 'Merenda', icon: UtensilsCrossed, color: 'bg-pink-500', badge: null },
               { id: 'mensagens' as PortalView, label: 'Mensagens', icon: MessageCircle, color: 'bg-indigo-500', badge: unreadMsgCount > 0 ? unreadMsgCount : null },
-              { id: 'declaracoes' as PortalView, label: 'Declaracoes', icon: FileText, color: 'bg-gray-500', badge: null },
+              { id: 'declarações' as PortalView, label: 'Declaracoes', icon: FileText, color: 'bg-gray-500', badge: null },
               { id: 'transporte' as PortalView, label: 'Transporte', icon: Bus, color: 'bg-primary-500', badge: activeTrip ? 'AO VIVO' : null },
             ].map(mod => (
               <button key={mod.id} onClick={() => setView(mod.id)}
@@ -409,13 +409,13 @@ export default function GuardianPortalPage() {
       {view === 'boletim' && currentStudent && <BoletimView student={currentStudent} onBack={goHome} />}
 
       {/* ========== FREQUENCIA VIEW ========== */}
-      {view === 'frequencia' && currentStudent && <FrequenciaView student={currentStudent} onBack={goHome} />}
+      {view === 'frequência' && currentStudent && <FrequenciaView student={currentStudent} onBack={goHome} />}
 
       {/* ========== PARECER VIEW ========== */}
       {view === 'parecer' && currentStudent && <ParecerView student={currentStudent} onBack={goHome} />}
 
       {/* ========== OCORRENCIAS VIEW ========== */}
-      {view === 'ocorrencias' && currentStudent && <OcorrenciasView student={currentStudent} onBack={goHome} />}
+      {view === 'ocorrências' && currentStudent && <OcorrenciasView student={currentStudent} onBack={goHome} />}
 
       {/* ========== CALENDARIO VIEW ========== */}
       {view === 'calendario' && currentStudent && <CalendarioView student={currentStudent} onBack={goHome} />}
@@ -427,7 +427,7 @@ export default function GuardianPortalPage() {
       {view === 'mensagens' && <MensagensView onBack={goHome} />}
 
       {/* ========== DECLARACOES VIEW ========== */}
-      {view === 'declaracoes' && currentStudent && <DeclaracoesView student={currentStudent} onBack={goHome} />}
+      {view === 'declarações' && currentStudent && <DeclaracoesView student={currentStudent} onBack={goHome} />}
 
       {/* ========== TRANSPORTE VIEW ========== */}
       {view === 'transporte' && currentStudent && (
@@ -607,7 +607,7 @@ function BoletimView({ student, onBack }: { student: any; onBack: () => void }) 
           </div>
         </div>
       ) : (
-        <EmptyState icon={GraduationCap} title="Sem notas lancadas" description="Ainda nao ha notas lancadas para este aluno." />
+        <EmptyState icon={GraduationCap} title="Sem notas lancadas" description="Ainda não há notas lancadas para este aluno." />
       )}
     </>
   );
@@ -633,7 +633,7 @@ function FrequenciaView({ student, onBack }: { student: any; onBack: () => void 
     finally { setLoading(false); }
   }
 
-  if (loading) return <><BackButton onClick={onBack} /><LoadingSpinner text="Carregando frequencia..." /></>;
+  if (loading) return <><BackButton onClick={onBack} /><LoadingSpinner text="Carregando frequência..." /></>;
 
   return (
     <>
@@ -681,7 +681,7 @@ function FrequenciaView({ student, onBack }: { student: any; onBack: () => void 
               />
             </div>
             {attendance.percentPresent < 75 && (
-              <p className="text-xs text-red-500 mt-2">Atencao: frequencia abaixo do minimo de 75%</p>
+              <p className="text-xs text-red-500 mt-2">Atenção: frequência abaixo do mínimo de 75%</p>
             )}
           </div>
 
@@ -713,7 +713,7 @@ function FrequenciaView({ student, onBack }: { student: any; onBack: () => void 
           )}
         </div>
       ) : (
-        <EmptyState icon={Clock} title="Sem registros de frequencia" description="Ainda nao ha registros de frequencia para este aluno." />
+        <EmptyState icon={Clock} title="Sem registros de frequência" description="Ainda não há registros de frequência para este aluno." />
       )}
     </>
   );
@@ -794,7 +794,7 @@ function OcorrenciasView({ student, onBack }: { student: any; onBack: () => void
     finally { setLoading(false); }
   }
 
-  if (loading) return <><BackButton onClick={onBack} /><LoadingSpinner text="Carregando ocorrencias..." /></>;
+  if (loading) return <><BackButton onClick={onBack} /><LoadingSpinner text="Carregando ocorrências..." /></>;
 
   const typeConfig: Record<string, { label: string; color: string; bg: string }> = {
     indisciplina: { label: 'Indisciplina', color: 'text-red-700', bg: 'bg-red-100' },
@@ -838,7 +838,7 @@ function OcorrenciasView({ student, onBack }: { student: any; onBack: () => void
           })}
         </div>
       ) : (
-        <EmptyState icon={AlertTriangle} title="Nenhuma ocorrencia" description="Nao ha ocorrencias registradas para este aluno." />
+        <EmptyState icon={AlertTriangle} title="Nenhuma ocorrência" description="Não há ocorrências registradas para este aluno." />
       )}
     </>
   );
@@ -1117,7 +1117,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
           <FileText size={40} className="text-gray-300 mx-auto mb-3" />
           <h3 className="font-semibold text-gray-700 mb-2">Solicitar Declaracoes</h3>
           <p className="text-sm text-gray-500 mb-4">
-            Para solicitar declaracoes de matricula, frequencia ou transferencia, entre em contato com a secretaria da escola.
+            Para solicitar declarações de matricula, frequência ou transferência, entre em contato com a secretaria da escola.
           </p>
         </div>
 

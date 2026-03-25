@@ -486,7 +486,7 @@ export default function SchoolsPage() {
                         </div>
                       </div>
                       <div className="col-span-2"><label className="label">Logradouro</label><input className="input" value={form.logradouro} onChange={sf('logradouro')} placeholder="Rua, Avenida..." /></div>
-                      <div><label className="label">Numero</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
+                      <div><label className="label">Número</label><input className="input" value={form.numero} onChange={sf('numero')} /></div>
                       <div><label className="label">Complemento</label><input className="input" value={form.complemento} onChange={sf('complemento')} /></div>
                       <div><label className="label">Bairro</label><input className="input" value={form.bairro} onChange={sf('bairro')} /></div>
                       <div><label className="label">Cidade</label><input className="input" value={form.city} onChange={sf('city')} /></div>
@@ -566,7 +566,7 @@ export default function SchoolsPage() {
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button>
               <button onClick={save} disabled={creating || updating} className="btn-primary flex-1">
-                {creating || updating ? 'Salvando...' : editId ? 'Salvar Alteracoes' : 'Salvar Escola'}
+                {creating || updating ? 'Salvando...' : editId ? 'Salvar Alterações' : 'Salvar Escola'}
               </button>
             </div>
           </div>

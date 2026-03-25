@@ -31,7 +31,7 @@ export default function TeachersPage() {
   const filtered = all.filter((t: any) => { const q = search.toLowerCase(); return t.name?.toLowerCase().includes(q) || (t.registrationNumber || '').includes(q) || (t.email || '').toLowerCase().includes(q); });
 
   const sf = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.value }));
-  const handleCpf = (e: any) => { const v = maskCPF(e.target.value); setForm((f: any) => ({ ...f, cpf: v })); const d = e.target.value.replace(/\D/g, ''); setCpfError(d.length === 11 ? (validateCPF(d) ? '' : 'CPF invalido') : ''); };
+  const handleCpf = (e: any) => { const v = maskCPF(e.target.value); setForm((f: any) => ({ ...f, cpf: v })); const d = e.target.value.replace(/\D/g, ''); setCpfError(d.length === 11 ? (validateCPF(d) ? '' : 'CPF inválido') : ''); };
   const handlePhone = (e: any) => setForm((f: any) => ({ ...f, phone: maskPhone(e.target.value) }));
 
   const openNew = () => { setForm(emptyForm); setEditId(null); setFormErr(''); setCpfError(''); setShowModal(true); };

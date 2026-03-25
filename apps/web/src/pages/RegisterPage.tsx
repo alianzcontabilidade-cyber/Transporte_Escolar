@@ -197,7 +197,7 @@ export default function RegisterPage() {
                       setCpfInput(masked);
                       const digits = e.target.value.replace(/\D/g, '');
                       if (digits.length === 11) {
-                        setCpfError(validateCPF(digits) ? '' : 'CPF invalido');
+                        setCpfError(validateCPF(digits) ? '' : 'CPF inválido');
                       } else {
                         setCpfError('');
                       }

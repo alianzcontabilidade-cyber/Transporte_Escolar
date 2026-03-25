@@ -73,7 +73,7 @@ export default function DiaryPage() {
       </div>
 
       <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
-        {[['attendance', 'Frequencia', CheckCircle], ['grades', 'Notas', BookOpen], ['plans', 'Planejamento', Calendar]].map(([id, label, Icon]: any) => (
+        {[['attendance', 'Frequência', CheckCircle], ['grades', 'Notas', BookOpen], ['plans', 'Planejamento', Calendar]].map(([id, label, Icon]: any) => (
           <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === id ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}><Icon size={14} /> {label}</button>
         ))}
       </div>
@@ -127,7 +127,7 @@ export default function DiaryPage() {
               )}
             </>
           ) : (
-            <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para registrar frequencia</p></div>
+            <div className="card text-center py-16"><Users size={48} className="text-gray-200 mx-auto mb-3" /><p className="text-gray-500">Selecione uma turma para registrar frequência</p></div>
           )}
         </div>
       )}

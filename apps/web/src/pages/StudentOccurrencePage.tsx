@@ -91,13 +91,13 @@ export default function StudentOccurrencePage() {
       data: new Date(o.date).toLocaleDateString('pt-BR'),
       aluno: o.studentName || '--',
       tipo: OCC_TYPES.find(t => t.v === o.type)?.l || o.type,
-      descricao: o.description || '--',
+      descrição: o.description || '--',
       providencia: o.action || '--',
     }));
-    const cols = ['Data', 'Aluno', 'Tipo', 'Descricao', 'Providencia'];
+    const cols = ['Data', 'Aluno', 'Tipo', 'Descrição', 'Providencia'];
     const html = buildTableReportHTML('REGISTRO DE OCORRENCIAS', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
-    setPgExportModal({ html, filename: 'ocorrencias' });
+    setPgExportModal({ html, filename: 'ocorrências' });
   };
 
   return (

@@ -40,7 +40,7 @@ const MODULES = [
     links: [
       { to: '/diario-escolar', text: 'Diário' }, { to: '/lancamento-notas', text: 'Notas' },
       { to: '/boletim', text: 'Boletim' }, { to: '/calendario', text: 'Calendário' },
-      { to: '/relatorio-frequencia', text: 'Frequência' }, { to: '/educacenso', text: 'EDUCACENSO' },
+      { to: '/relatorio-frequência', text: 'Frequência' }, { to: '/educacenso', text: 'EDUCACENSO' },
     ],
   },
   {
@@ -54,7 +54,7 @@ const MODULES = [
       { to: '/rotas', text: 'Rotas' }, { to: '/veiculos', text: 'Veículos' },
       { to: '/monitor', text: 'Monitoramento' }, { to: '/mapa-tempo-real', text: 'Mapa GPS' },
       { to: '/motoristas', text: 'Motoristas' }, { to: '/portal-responsavel', text: 'Portal Pais' },
-      { to: '/fornecedores', text: 'Fornecedores' }, { to: '/ordens-servico', text: 'Ordens de Servico' },
+      { to: '/fornecedores', text: 'Fornecedores' }, { to: '/ordens-servico', text: 'Ordens de Serviço' },
       { to: '/garagens', text: 'Garagens' },
     ],
   },
@@ -72,7 +72,7 @@ const MODULES = [
     ],
   },
   {
-    to: '/configuracoes',
+    to: '/configurações',
     icon: Settings,
     title: 'Central de Controle',
     desc: 'Usuários, segurança, perfis e preferências do sistema',

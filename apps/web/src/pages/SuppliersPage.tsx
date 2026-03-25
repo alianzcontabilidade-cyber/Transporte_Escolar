@@ -480,7 +480,7 @@ export default function SuppliersPage() {
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={function () { setShowModal(false); }} className="btn-secondary flex-1">Cancelar</button>
               <button onClick={save} disabled={creating || updating} className="btn-primary flex-1">
-                {creating || updating ? 'Salvando...' : editId ? 'Salvar alteracoes' : 'Salvar Fornecedor'}
+                {creating || updating ? 'Salvando...' : editId ? 'Salvar Alterações' : 'Salvar Fornecedor'}
               </button>
             </div>
           </div>

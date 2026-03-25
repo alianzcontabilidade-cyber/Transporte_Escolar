@@ -194,9 +194,32 @@ app.post('/api/pdf/generate', async (req, res) => {
     const verifyUrl = `${baseUrl}/verificar/${verificationCode}`;
     const qrDataURL = await generateQRCodeDataURL(verifyUrl);
 
-    // Injetar blocos de assinatura no HTML se fornecidos
-    let htmlClean = html;
+    // Se signAfterGenerate, buscar dados do usuário logado e verificar senha ANTES de gerar PDF
+    let autoSignUser: any = null;
+    if (signAfterGenerate && signerPassword) {
+      const [user] = await db.select({
+        id: users.id, name: users.name, cpf: users.cpf, passwordHash: users.passwordHash,
+        role: users.role,
+      }).from(users).where(eq(users.id, tokenData.userId)).limit(1);
+      if (!user || !user.passwordHash) return res.status(401).json({ error: 'Usuário não encontrado' });
+      const isValid = await compare(signerPassword, user.passwordHash);
+      if (!isValid) return res.status(401).json({ error: 'Senha incorreta' });
+      autoSignUser = user;
+    }
+
+    // Montar lista de assinantes (do request OU do usuário logado se signAfterGenerate)
+    let allSigners: any[] = [];
     if (signatures && Array.isArray(signatures) && signatures.length > 0) {
+      allSigners = signatures;
+    }
+    if (autoSignUser) {
+      const roleMap: Record<string, string> = { super_admin: 'Administrador do Sistema', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a) Escolar', teacher: 'Professor(a)', driver: 'Motorista', monitor: 'Monitor(a)' };
+      allSigners.push({ signerName: autoSignUser.name, signerRole: roleMap[autoSignUser.role] || autoSignUser.role, signerCpf: autoSignUser.cpf });
+    }
+
+    // Injetar blocos de assinatura no HTML
+    let htmlClean = html;
+    if (allSigners.length > 0) {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const sigBlocksHtml = `
@@ -204,7 +227,7 @@ app.post('/api/pdf/generate', async (req, res) => {
           <div style="background:#f0f4f8;padding:8px 12px;border-bottom:1px solid #ccc;text-align:center;">
             <strong style="font-size:11px;color:#1B3A5C;">Assinaturas Eletr&ocirc;nicas</strong>
           </div>
-          ${signatures.map((s: any, i: number) => {
+          ${allSigners.map((s: any, i: number) => {
             const sigHash = verificationCode + '-' + (i+1);
             return `
             <div style="padding:10px 15px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
@@ -275,44 +298,33 @@ app.post('/api/pdf/generate', async (req, res) => {
       console.warn('Aviso: não foi possível registrar documento:', dbErr.message);
     }
 
-    // Auto-sign after generation if requested
+    // Auto-sign after generation (senha já verificada acima)
     let signatureResult = null;
-    if (signAfterGenerate && signerPassword && documentId) {
+    if (autoSignUser && documentId) {
       try {
-        const [user] = await db.select({
-          id: users.id,
-          name: users.name,
-          cpf: users.cpf,
-          passwordHash: users.passwordHash,
-        }).from(users).where(eq(users.id, tokenData.userId)).limit(1);
+        const now = new Date();
+        const signatureHash = createHash('sha256')
+          .update(`${pdfHash}:${autoSignUser.id}:${now.toISOString()}`)
+          .digest('hex');
 
-        if (user && user.passwordHash) {
-          const isValid = await compare(signerPassword, user.passwordHash);
-          if (isValid) {
-            const now = new Date();
-            const signatureHash = createHash('sha256')
-              .update(`${pdfHash}:${user.id}:${now.toISOString()}`)
-              .digest('hex');
+        const roleMap: Record<string, string> = { super_admin: 'Administrador do Sistema', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a) Escolar' };
+        const [sigResult] = await db.insert(documentSignatures).values({
+          documentId,
+          signerId: autoSignUser.id,
+          signerName: autoSignUser.name,
+          signerRole: roleMap[autoSignUser.role] || autoSignUser.role,
+          signerCpf: autoSignUser.cpf || null,
+          signatureHash,
+          ipAddress: req.ip || req.socket.remoteAddress || null,
+          signedAt: now,
+        } as any).$returningId();
 
-            const [sigResult] = await db.insert(documentSignatures).values({
-              documentId,
-              signerId: user.id,
-              signerName: user.name,
-              signerRole: null,
-              signerCpf: user.cpf || null,
-              signatureHash,
-              ipAddress: req.ip || req.socket.remoteAddress || null,
-              signedAt: now,
-            } as any).$returningId();
-
-            signatureResult = {
-              id: sigResult.id,
-              signatureHash,
-              signerName: user.name,
-              signedAt: now.toISOString(),
-            };
-          }
-        }
+        signatureResult = {
+          id: sigResult.id,
+          signatureHash,
+          signerName: autoSignUser.name,
+          signedAt: now.toISOString(),
+        };
       } catch (sigErr: any) {
         console.warn('Aviso: não foi possível assinar automaticamente:', sigErr.message);
       }

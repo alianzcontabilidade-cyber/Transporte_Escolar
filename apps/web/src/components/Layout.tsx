@@ -235,6 +235,7 @@ export default function Layout() {
     { code: '316', to: '/fornecedores', text: 'Fornecedores', module: 'Frota e Rotas', desc: 'Mecanicas, postos de combustivel, seguradoras', tags: 'fornecedor mecanica posto seguradora autopeca borracharia', color: '#f97316' },
     { code: '317', to: '/ordens-servico', text: 'Ordens de Servico', module: 'Frota e Rotas', desc: 'OS de manutencao preventiva e corretiva', tags: 'ordem servico os manutencao veiculo mecanica reparo', color: '#f97316' },
     { code: '318', to: '/garagens', text: 'Garagens', module: 'Frota e Rotas', desc: 'Locais de guarda e estacionamento da frota', tags: 'garagem estacionamento frota veiculo guarda local', color: '#f97316' },
+    { code: '319', to: '/coleta-gps', text: 'Coleta GPS Alunos', module: 'Frota e Rotas', desc: 'Marcar ponto GPS da residencia de cada aluno', tags: 'gps coleta ponto aluno mapa localizacao residencia coordenada', color: '#f97316' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -297,6 +298,7 @@ export default function Layout() {
       { to: '/fornecedores', icon: Building2, text: 'Fornecedores' },
       { to: '/ordens-servico', icon: ClipboardList, text: 'Ordens de Servico' },
       { to: '/garagens', icon: Warehouse, text: 'Garagens' },
+      { to: '/coleta-gps', icon: MapPinned, text: 'Coleta GPS Alunos' },
     ]},
     { key: 'administrativo', label: 'Gestão e Recursos', icon: Briefcase, color: '#0ea5e9', items: [
       { to: '/recursos-humanos', icon: Briefcase, text: 'RH' }, { to: '/financeiro', icon: DollarSign, text: 'Financeiro' },

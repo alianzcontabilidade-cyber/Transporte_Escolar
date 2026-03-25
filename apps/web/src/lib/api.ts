@@ -477,6 +477,8 @@ export const api = {
     optimizeRoute: (input: any) => call('ai.optimizeRoute', input, 'mutation'),
     suggestStops: (input: any) => call('ai.suggestStops', input, 'query'),
     clarkeWright: (input: any) => call('ai.clarkeWright', input, 'query'),
+    studentsGpsStatus: (input: any) => call('ai.studentsGpsStatus', input, 'query'),
+    updateStudentGps: (input: any) => call('ai.updateStudentGps', input, 'mutation'),
     suggestStopsDbscan: (input: any) => call('ai.suggestStopsDbscan', input, 'query'),
     studentRiskAnalysis: (input: any) => call('ai.studentRiskAnalysis', input, 'query'),
   },

@@ -103,6 +103,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
 const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage'));
 const GaragesPage = lazy(() => import('./pages/GaragesPage'));
+const StudentGpsPage = lazy(() => import('./pages/StudentGpsPage'));
 
 // Loading fallback
 function PageLoader() {
@@ -241,6 +242,7 @@ export default function App() {
         <Route path="fornecedores" element={<Guard roles={ADMIN}><SuppliersPage /></Guard>} />
         <Route path="ordens-servico" element={<Guard roles={ADMIN}><ServiceOrdersPage /></Guard>} />
         <Route path="garagens" element={<Guard roles={ADMIN}><GaragesPage /></Guard>} />
+        <Route path="coleta-gps" element={<Guard roles={ALL_STAFF}><StudentGpsPage /></Guard>} />
 
         {/* GPS Tracking - Motoristas e Monitores */}
         <Route path="rastreamento" element={<Guard roles={DRIVER_MONITOR}><TrackingPage /></Guard>} />

@@ -5940,6 +5940,32 @@ export const aiRouter = t.router({
       };
     }),
 
+  // Listar alunos com status de GPS (para coleta em campo)
+  studentsGpsStatus: staffProcedure
+    .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const conds = [eq(students.municipalityId, input.municipalityId), eq(students.isActive, true)];
+      if (input.schoolId) conds.push(eq(students.schoolId, input.schoolId));
+      const list = await db.select({
+        id: students.id, name: students.name, address: students.address,
+        neighborhood: students.neighborhood, latitude: students.latitude,
+        longitude: students.longitude, schoolId: students.schoolId,
+        grade: students.grade, shift: students.shift, routeName: students.routeName,
+      }).from(students).where(and(...conds)).orderBy(students.name);
+      return list;
+    }),
+
+  // Atualizar GPS de um aluno (acessivel por motorista/monitor/secretario)
+  updateStudentGps: staffProcedure
+    .input(z.object({ studentId: z.number(), latitude: z.number(), longitude: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.update(students).set({
+        latitude: input.latitude.toFixed(8) as any,
+        longitude: input.longitude.toFixed(8) as any,
+      }).where(eq(students.id, input.studentId));
+      return { success: true };
+    }),
+
   // Análise de risco de evasão escolar
   studentRiskAnalysis: adminProcedure
     .input(z.object({ municipalityId: z.number() }))

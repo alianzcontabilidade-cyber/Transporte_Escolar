@@ -46,6 +46,34 @@ export default function SchoolsPage() {
   const schoolMapInstanceRef = useRef<any>(null);
   const schoolMarkerRef = useRef<any>(null);
   const [collectingGps, setCollectingGps] = useState(false);
+  const [mapSearch, setMapSearch] = useState('');
+  const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
+  const [mapSearching, setMapSearching] = useState(false);
+  const searchMarkerRef = useRef<any>(null);
+
+  const doMapSearch = (q: string) => {
+    setMapSearch(q);
+    if (q.length < 3) { setMapSuggestions([]); return; }
+    setMapSearching(true);
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=br&limit=6', { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'NetEscol/1.0' } })
+      .then(r => r.json()).then(d => { setMapSuggestions(d); setMapSearching(false); })
+      .catch(() => { setMapSuggestions([]); setMapSearching(false); });
+  };
+
+  const selectMapPlace = (place: any) => {
+    const L = (window as any).L;
+    if (!L || !schoolMapInstanceRef.current) return;
+    const la = parseFloat(place.lat), ln = parseFloat(place.lon);
+    // Set form coordinates
+    setForm((f: any) => ({ ...f, latitude: la.toFixed(8), longitude: ln.toFixed(8) }));
+    // Move map and set marker
+    schoolMapInstanceRef.current.setView([la, ln], 17);
+    if (schoolMarkerRef.current) schoolMarkerRef.current.remove();
+    const icon = L.divIcon({ html: '<div style="background:#dc2626;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:16px">🏫</div>', className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+    schoolMarkerRef.current = L.marker([la, ln], { icon }).addTo(schoolMapInstanceRef.current);
+    setMapSearch(place.display_name.split(',').slice(0, 3).join(', '));
+    setMapSuggestions([]);
+  };
   const { data: schools, refetch } = useQuery(() => api.schools.list({ municipalityId }), [municipalityId]);
   const { data: allStudents } = useQuery(() => api.students.list({ municipalityId }), [municipalityId]);
   const { data: allClasses } = useQuery(() => api.classes?.list?.({ municipalityId }) || Promise.resolve([]), [municipalityId]);
@@ -517,6 +545,25 @@ export default function SchoolsPage() {
                   {/* Localização no Mapa */}
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
                     <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2"><MapPin size={14} /> Localização no Mapa</p>
+                    {/* Busca por endereço */}
+                    <div className="relative mb-3">
+                      <div className="relative">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input className="input pl-9 pr-10 text-xs" placeholder="Pesquise o endereço ou nome da escola..." value={mapSearch} onChange={e => doMapSearch(e.target.value)} />
+                        {mapSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />}
+                      </div>
+                      {mapSuggestions.length > 0 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                          {mapSuggestions.map((s: any, i: number) => (
+                            <button key={i} type="button" onClick={() => selectMapPlace(s)}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-green-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 flex items-start gap-2">
+                              <MapPin size={12} className="text-green-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700 dark:text-gray-300">{s.display_name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex gap-2 mb-3">
                       <button type="button" onClick={() => {
                         if (!navigator.geolocation) return;

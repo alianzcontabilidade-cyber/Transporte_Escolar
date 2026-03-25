@@ -27,6 +27,30 @@ export default function StudentGpsPage() {
   const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
   const [collecting, setCollecting] = useState<number | null>(null);
   const [pendingGps, setPendingGps] = useState<PendingGps | null>(null);
+  const [mapSearch, setMapSearch] = useState('');
+  const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
+  const [mapSearchBusy, setMapSearchBusy] = useState(false);
+
+  const doMapSearch = (q: string) => {
+    setMapSearch(q);
+    if (q.length < 3) { setMapSuggestions([]); return; }
+    setMapSearchBusy(true);
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=br&limit=6', { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'NetEscol/1.0' } })
+      .then(r => r.json()).then(d => { setMapSuggestions(d); setMapSearchBusy(false); })
+      .catch(() => { setMapSuggestions([]); setMapSearchBusy(false); });
+  };
+
+  const goToMapPlace = (place: any) => {
+    const L = (window as any).L;
+    if (!L || !mapInstanceRef.current) return;
+    const la = parseFloat(place.lat), ln = parseFloat(place.lon);
+    mapInstanceRef.current.setView([la, ln], 17);
+    const icon = L.divIcon({ html: '<div style="background:#3b82f6;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:14px;font-weight:bold">📍</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+    const m = L.marker([la, ln], { icon }).addTo(mapInstanceRef.current).bindPopup('<b>' + place.display_name.split(',').slice(0, 3).join(', ') + '</b>').openPopup();
+    markersRef.current.push(m);
+    setMapSearch(place.display_name.split(',').slice(0, 3).join(', '));
+    setMapSuggestions([]);
+  };
 
   const { data: studentsList, loading, refetch } = useQuery<any[]>(
     () => api.ai.studentsGpsStatus({ municipalityId, schoolId: selectedSchool || undefined }),
@@ -460,18 +484,37 @@ export default function StudentGpsPage() {
       ) : (
         /* MAP VIEW */
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <MapIcon className="w-4 h-4" />
-              {withGps} alunos com GPS no mapa
-            </span>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 bg-green-500 rounded-full inline-block" /> Aluno com GPS
+          <div className="p-3 bg-gray-50 border-b">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <MapIcon className="w-4 h-4" />
+                {withGps} alunos com GPS no mapa
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 bg-red-500 rounded-full inline-block" /> Sua posição
-              </span>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-green-500 rounded-full inline-block" /> Aluno com GPS
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-red-500 rounded-full inline-block" /> Sua posição
+                </span>
+              </div>
+            </div>
+            {/* Busca por endereço no mapa */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input className="input pl-9 pr-10 text-xs" placeholder="Pesquise rua, bairro, cidade, escola..." value={mapSearch} onChange={e => doMapSearch(e.target.value)} />
+              {mapSearchBusy && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />}
+              {mapSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  {mapSuggestions.map((s: any, i: number) => (
+                    <button key={i} type="button" onClick={() => goToMapPlace(s)}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-start gap-2">
+                      <MapPin size={12} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{s.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div ref={mapRef} style={{ height: '600px', width: '100%' }} />

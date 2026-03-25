@@ -219,6 +219,7 @@ app.post('/api/pdf/generate', async (req, res) => {
     }
 
     // Injetar blocos de assinatura no HTML
+    console.log('[PDF] autoSignUser:', autoSignUser?.name, 'allSigners:', allSigners.length, allSigners.map((s:any)=>s.signerName));
     let htmlClean = html;
     if (allSigners.length > 0) {
       const now = new Date();
@@ -244,7 +245,9 @@ app.post('/api/pdf/generate', async (req, res) => {
           </div>
         </div>`;
       // Insert before </body> or at the end
-      if (htmlClean.includes('</body>')) {
+      const hasBody = htmlClean.includes('</body>');
+      console.log('[PDF] Inserindo bloco assinatura. hasBody:', hasBody, 'blockLen:', sigBlocksHtml.length);
+      if (hasBody) {
         htmlClean = htmlClean.replace('</body>', sigBlocksHtml + '</body>');
       } else {
         htmlClean += sigBlocksHtml;

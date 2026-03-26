@@ -6101,7 +6101,7 @@ export const aiRouter = t.router({
           id: routeResult.id,
           name: routeName,
           code: routeCode,
-          stops: cw.stops.length,
+          stopCount: cw.stops.length,
           passengers: cw.totalPassengers,
           distanceKm: cw.totalDistance,
           timeMinutes,
@@ -6109,6 +6109,10 @@ export const aiRouter = t.router({
           monthlyCostDriver: Math.round(monthlyCostDriver),
           monthlyCostTotal: Math.round(monthlyCostFuel + monthlyCostDriver),
           costPerStudent: Math.round(costPerStudent),
+          // Coordenadas para o mapa
+          stopPoints: cw.stops.map((s, idx) => ({ lat: s.latitude, lng: s.longitude, name: s.name, order: idx + 1 })),
+          depotLat: input.depotLat, depotLng: input.depotLng,
+          schoolLat: schoolLat, schoolLng: schoolLng,
         });
       }
 

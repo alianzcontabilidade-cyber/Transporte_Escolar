@@ -412,22 +412,21 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
       cep:form.cep||undefined, city:form.city||undefined, state:form.state||undefined, zone:form.zone||undefined,
       phone:form.phone||undefined, cellPhone:form.cellPhone||undefined,
       latitude:form.latitude?parseFloat(form.latitude):undefined, longitude:form.longitude?parseFloat(form.longitude):undefined,
-      // Transporte - distância calculada automaticamente
+      // Transporte - distância calculada automaticamente via Haversine
       needsTransport:form.needsTransport||false, transportType:form.transportType||undefined,
       transportDistance: (() => {
-        if (form.transportDistance) return form.transportDistance;
         const sLat = parseFloat(form.latitude), sLng = parseFloat(form.longitude);
         const sch = allSchools.find((s:any) => String(s.id) === String(form.school));
         const scLat = sch ? parseFloat(String(sch.latitude || 0)) : 0;
         const scLng = sch ? parseFloat(String(sch.longitude || 0)) : 0;
-        if (sLat && sLng && scLat && scLng) {
+        if (sLat && sLng && scLat && scLng && !isNaN(sLat) && !isNaN(scLat)) {
           const R = 6371;
           const dLat = (scLat - sLat) * Math.PI / 180;
           const dLng = (scLng - sLng) * Math.PI / 180;
           const a = Math.sin(dLat/2)**2 + Math.cos(sLat*Math.PI/180)*Math.cos(scLat*Math.PI/180)*Math.sin(dLng/2)**2;
           return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
         }
-        return undefined;
+        return form.transportDistance || undefined;
       })(),
       // Programas sociais
       bolsaFamilia:form.bolsaFamilia||false, bpc:form.bpc||false, peti:form.peti||false, otherPrograms:form.otherPrograms||undefined,
@@ -994,23 +993,22 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Transporte Escolar</p><div className="grid grid-cols-3 gap-3">
               <div><label className="label">Necessita transporte?</label><select className="input" value={form.needsTransport?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,needsTransport:e.target.value==='sim'}))}><option value="nao">Não</option><option value="sim">Sim</option></select></div>
               {form.needsTransport&&<><div><label className="label">Tipo</label><input className="input" value={form.transportType} onChange={setField('transportType')} placeholder="Ônibus, Van..."/></div>
-              <div><label className="label">Distância até a escola (km)</label><input className="input bg-gray-100 cursor-not-allowed" value={form.transportDistance || ((() => {
+              <div><label className="label">Distância até a escola (km)</label><input className="input bg-gray-100 cursor-not-allowed" value={(() => {
                 const sLat = parseFloat(form.latitude), sLng = parseFloat(form.longitude);
                 const sch = allSchools.find((s:any) => String(s.id) === String(form.school));
                 const scLat = sch ? parseFloat(String(sch.latitude || 0)) : 0;
                 const scLng = sch ? parseFloat(String(sch.longitude || 0)) : 0;
-                if (sLat && sLng && scLat && scLng) {
+                if (sLat && sLng && scLat && scLng && !isNaN(sLat) && !isNaN(scLat)) {
                   const R = 6371;
                   const dLat = (scLat - sLat) * Math.PI / 180;
                   const dLng = (scLng - sLng) * Math.PI / 180;
                   const a = Math.sin(dLat/2)**2 + Math.cos(sLat*Math.PI/180)*Math.cos(scLat*Math.PI/180)*Math.sin(dLng/2)**2;
-                  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                  return d.toFixed(1);
+                  return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
                 }
-                return '';
-              })())} readOnly title="Calculado automaticamente com base no GPS do aluno e da escola" /></div></>}
+                return form.transportDistance || 'Aguardando GPS...';
+              })()} readOnly title="Calculado automaticamente com base no GPS do aluno e da escola" /></div></>}
             </div>
-            {form.needsTransport && !form.latitude && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle size={12}/> Cadastre a localização do aluno acima para calcular a distância automaticamente.</p>}
+            {form.needsTransport && !form.latitude && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle size={12}/> Cadastre a localização do aluno no mapa acima para calcular a distância.</p>}
             {form.needsTransport && form.latitude && !(() => { const sch = allSchools.find((s:any) => String(s.id) === String(form.school)); return sch && parseFloat(String(sch.latitude || 0)); })() && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle size={12}/> A escola selecionada não tem GPS cadastrado. Cadastre no menu Escolas.</p>}
             </div>
           </div>)}

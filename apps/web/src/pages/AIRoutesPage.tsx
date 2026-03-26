@@ -62,32 +62,58 @@ export default function AIRoutesPage() {
   const [genResult, setGenResult] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
 
-  // Queries
-  const { data: routeAnalysis, loading: analyzing, error: analyzeError, refetch: runAnalysis } = useQuery<RouteAnalysis[]>(
-    () => api.ai.analyzeRoutes({ municipalityId }), [municipalityId]
-  );
-  const { data: kmeansData, loading: loadingKmeans, refetch: loadKmeans } = useQuery<{ clusters: StopCluster[] }>(
-    () => api.ai.suggestStops({ municipalityId, numClusters }), [municipalityId, numClusters]
-  );
-  const { data: dbscanData, loading: loadingDbscan, refetch: loadDbscan } = useQuery<{ clusters: StopCluster[]; noise: NoiseStudent[]; totalUnassigned: number; withCoordinates: number }>(
-    () => api.ai.suggestStopsDbscan({ municipalityId, epsilonKm: epsilon, minPoints }), [municipalityId, epsilon, minPoints]
-  );
-  const { data: cwData, loading: loadingCW, refetch: loadCW } = useQuery<{ routes: CWRoute[]; totalStops: number }>(
-    () => cwConfig.depotLat ? api.ai.clarkeWright({
-      municipalityId, depotLat: parseFloat(cwConfig.depotLat), depotLng: parseFloat(cwConfig.depotLng),
-      destinationLat: parseFloat(cwConfig.destLat), destinationLng: parseFloat(cwConfig.destLng),
-      maxCapacity: cwConfig.maxCapacity, maxDistanceKm: cwConfig.maxDistanceKm,
-    }) : Promise.resolve({ routes: [], totalStops: 0 }),
-    [municipalityId, cwConfig]
-  );
+  // Queries - lazy (only run when user clicks)
+  const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState('');
+  const runAnalysis = async () => {
+    setAnalyzing(true); setAnalyzeError('');
+    try { const r = await api.ai.analyzeRoutes({ municipalityId }); setRouteAnalysis(r || []); }
+    catch (e: any) { setAnalyzeError(e.message || 'Erro'); }
+    setAnalyzing(false);
+  };
 
-  // Garages/Schools for CW dropdowns
-  const { data: garagesList } = useQuery<any[]>(() => api.garages.list({ municipalityId }), [municipalityId]);
-  const { data: schoolsList } = useQuery<any[]>(() => api.schools.list({ municipalityId }), [municipalityId]);
+  const [kmeansData, setKmeansData] = useState<any>(null);
+  const [loadingKmeans, setLoadingKmeans] = useState(false);
+  const loadKmeans = async () => {
+    setLoadingKmeans(true);
+    try { const r = await api.ai.suggestStops({ municipalityId, numClusters }); setKmeansData(r); }
+    catch {}
+    setLoadingKmeans(false);
+  };
+
+  const [dbscanData, setDbscanData] = useState<any>(null);
+  const [loadingDbscan, setLoadingDbscan] = useState(false);
+  const loadDbscan = async () => {
+    setLoadingDbscan(true);
+    try { const r = await api.ai.suggestStopsDbscan({ municipalityId, epsilonKm: epsilon, minPoints }); setDbscanData(r); }
+    catch {}
+    setLoadingDbscan(false);
+  };
+
+  const [cwData, setCwData] = useState<any>(null);
+  const [loadingCW, setLoadingCW] = useState(false);
+  const loadCW = async () => {
+    if (!cwConfig.depotLat || !cwConfig.destLat) return;
+    setLoadingCW(true);
+    try {
+      const r = await api.ai.clarkeWright({
+        municipalityId, depotLat: parseFloat(cwConfig.depotLat), depotLng: parseFloat(cwConfig.depotLng),
+        destinationLat: parseFloat(cwConfig.destLat), destinationLng: parseFloat(cwConfig.destLng),
+        maxCapacity: cwConfig.maxCapacity, maxDistanceKm: cwConfig.maxDistanceKm,
+      });
+      setCwData(r);
+    } catch {}
+    setLoadingCW(false);
+  };
+
+  // Garages/Schools - these are lightweight, load on mount
+  const { data: garagesList } = useQuery<any[]>(() => api.garages?.list ? api.garages.list({ municipalityId }) : Promise.resolve([]), [municipalityId]);
+  const { data: schoolsList } = useQuery<any[]>(() => api.schools?.list ? api.schools.list({ municipalityId }) : Promise.resolve([]), [municipalityId]);
 
   const { mutate: optimizeRoute, loading: optimizing } = useMutation(api.ai.optimizeRoute);
 
-  const routes = routeAnalysis || [];
+  const routes = routeAnalysis;
   const totalRoutes = routes.length;
   const totalCurrentKm = routes.reduce((s, r) => s + r.currentDistance, 0);
   const totalSavingsKm = routes.reduce((s, r) => s + r.savingsKm, 0);

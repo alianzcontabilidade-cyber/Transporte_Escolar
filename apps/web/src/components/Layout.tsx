@@ -320,10 +320,10 @@ export default function Layout() {
     { key: 'configurações', label: 'Central de Controle', icon: Settings, color: '#64748b', items: [
       { to: '/cadastro-prefeitura', icon: School, text: 'Cadastro Prefeitura' },
       { to: '/configurações', icon: Settings, text: 'Configurações' }, { to: '/ia-rotas', icon: Brain, text: 'IA Rotas' },
-      { to: '/risco-evasao', icon: AlertTriangle, text: 'Risco de Evasao' },
+      { to: '/risco-evasao', icon: AlertTriangle, text: 'Risco de Evasão' },
       { to: '/atividade-usuarios', icon: Users, text: 'Atividade Usuários' },
       { to: '/sobre', icon: Settings, text: 'Sobre o Sistema' },
-      { to: '/gestao-documentos', icon: FileCheck, text: 'Gestao Documentos' },
+      { to: '/gestao-documentos', icon: FileCheck, text: 'Gestão Documentos' },
       { to: '/backup', icon: Database, text: 'Backup de Dados' },
       ...(role === 'super_admin' ? [
         { to: '/super-admin', icon: Shield, text: 'Super Admin' },

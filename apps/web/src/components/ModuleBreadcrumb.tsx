@@ -48,7 +48,7 @@ const ROUTE_TO_MODULE: Record<string, { module: string; moduleLabel: string; lab
   '/monitores': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Monitores' },
   '/monitor': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Monitoramento' },
   '/mapa-tempo-real': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Mapa GPS' },
-  '/ia-rotas': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'IA Rotas' },
+  '/ia-rotas': { module: 'controle', moduleLabel: 'Controle', label: 'IA Rotas' },
   '/coleta-gps': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Coleta GPS' },
   '/fornecedores': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Fornecedores' },
   '/ordens-servico': { module: 'transporte', moduleLabel: 'Frota e Rotas', label: 'Ordens de Serviço' },
@@ -90,6 +90,11 @@ const ROUTE_TO_MODULE: Record<string, { module: string; moduleLabel: string; lab
   '/perfil': { module: 'controle', moduleLabel: 'Controle', label: 'Meu Perfil' },
   '/sobre': { module: 'controle', moduleLabel: 'Controle', label: 'Sobre o Sistema' },
   '/manutencao-preditiva': { module: 'controle', moduleLabel: 'Controle', label: 'Manutenção Preditiva' },
+  '/relatorios': { module: 'controle', moduleLabel: 'Controle', label: 'Relatórios' },
+  '/super-admin': { module: 'controle', moduleLabel: 'Controle', label: 'Super Admin' },
+  '/config-formularios': { module: 'controle', moduleLabel: 'Controle', label: 'Config. Formulários' },
+  '/promocao': { module: 'pedagogico', moduleLabel: 'Ensino', label: 'Promoção' },
+  '/dashboard': { module: 'controle', moduleLabel: 'Controle', label: 'Painel Central' },
 };
 
 export default function ModuleBreadcrumb() {

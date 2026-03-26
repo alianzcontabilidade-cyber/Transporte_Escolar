@@ -14,25 +14,112 @@ const SUGGESTIONS = [
   'Como funciona a lista de espera?',
 ];
 
+// Verifica se TODAS as palavras-chave estão na frase (em qualquer ordem)
+function matchAll(q: string, ...words: string[]) { return words.every(w => q.includes(w)); }
+// Verifica se ALGUMA palavra-chave está na frase
+function matchAny(q: string, ...words: string[]) { return words.some(w => q.includes(w)); }
+
 function generateResponse(question: string): string {
-  const q = question.toLowerCase();
-  if (q.includes('cadastrar aluno') || q.includes('novo aluno'))
-    return 'Para cadastrar um aluno:\n1. Acesse **Gestão Escolar > Alunos**\n2. Clique em **+ Novo Aluno**\n3. Preencha os dados nas abas\n4. Clique em **Salvar**\n\nVocê também pode importar via CSV.';
-  if (q.includes('boletim'))
-    return 'Para gerar o boletim:\n1. Acesse **Ensino > Boletim Escolar**\n2. Selecione turma e aluno\n3. Clique em **Imprimir**';
-  if (q.includes('matrícula') || q.includes('matricula'))
-    return 'Para matricular:\n1. Acesse **Gestão Escolar > Matrículas**\n2. Selecione Ano Letivo e Turma\n3. Marque os alunos e clique **Matricular**';
-  if (q.includes('gps') || q.includes('rastreamento') || q.includes('transporte'))
-    return 'O rastreamento GPS:\n1. Motorista inicia tracking em **Rastreamento GPS**\n2. Posição enviada a cada 10s\n3. Pais acompanham no **Portal do Responsável**\n4. Admin vê tudo em **Mapa Tempo Real**';
-  if (q.includes('lista de espera') || q.includes('espera'))
-    return 'Lista de espera:\n1. Acesse **Gestão Escolar > Lista de Espera**\n2. Adicione alunos\n3. Use **Convocar** ou **Matricular**';
-  if (q.includes('rota') || q.includes('gerar rota'))
-    return 'Para gerar rotas automaticamente:\n1. Acesse **IA Rotas > Gerar Rotas**\n2. Selecione escola e garagem\n3. Configure capacidade e custos\n4. Clique **Gerar Rotas**\n\nO sistema usa Clarke-Wright + 2-opt.';
-  if (q.includes('coleta') || q.includes('gps aluno'))
-    return 'Para coletar GPS dos alunos:\n1. Acesse **Coleta GPS Alunos**\n2. Vá até a casa do aluno\n3. Clique **Marcar Ponto**\n4. Confirme no mapa e salve';
-  if (q.includes('oi') || q.includes('olá') || q.includes('ajuda'))
-    return 'Olá! Sou o assistente do **NetEscol**. Posso ajudar com cadastros, matrículas, transporte, relatórios e mais. Digite sua dúvida!';
-  return 'Tente perguntar sobre: cadastro de alunos, matrículas, boletim, GPS, rotas, lista de espera, financeiro, ou merenda.';
+  const q = question.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // remove acentos
+
+  // Alunos
+  if (matchAny(q, 'aluno', 'aluna', 'estudante') && matchAny(q, 'cadastr', 'novo', 'adicionar', 'incluir', 'inserir', 'registrar', 'como'))
+    return 'Para cadastrar um aluno:\n1. Acesse **Gestão Escolar > Alunos**\n2. Clique em **+ Novo Aluno**\n3. Preencha os dados pessoais, endereço, transporte e saúde\n4. Marque a localização no mapa (Google Maps)\n5. Clique em **Salvar**\n\n💡 Você também pode importar alunos via **planilha CSV/Excel**.';
+  if (matchAny(q, 'aluno', 'aluna', 'estudante'))
+    return 'Sobre **Alunos**:\n• **Cadastro**: Gestão Escolar > Alunos > + Novo\n• **Importar**: Botão importar CSV/Excel na lista\n• **Ficha**: Clique no aluno > Exportar > Ficha de Matrícula\n• **Carteirinha**: Gestão Escolar > Carteirinha\n• **GPS**: A localização do aluno é cadastrada no mapa\n• **Distância**: Calculada automaticamente até a escola';
+
+  // Escola
+  if (matchAny(q, 'escola') && matchAny(q, 'cadastr', 'nova', 'adicionar', 'como', 'registrar'))
+    return 'Para cadastrar uma escola:\n1. Acesse **Gestão Escolar > Escolas**\n2. Clique em **+ Nova Escola**\n3. Preencha nome, CNPJ, endereço, horários\n4. Marque a localização no **mapa Google**\n5. Clique em **Salvar**';
+  if (matchAny(q, 'escola'))
+    return 'Sobre **Escolas**:\n• **Cadastro**: Gestão Escolar > Escolas\n• **GPS**: Localização no mapa Google no formulário\n• **Relatórios**: Gestão Escolar > Relatório Escola\n• **EDUCACENSO**: Ensino > EDUCACENSO';
+
+  // Matrícula
+  if (matchAny(q, 'matricul'))
+    return 'Sobre **Matrículas**:\n1. Acesse **Gestão Escolar > Matrículas**\n2. Selecione o **Ano Letivo** e a **Turma**\n3. Marque os alunos e clique **Matricular**\n\n• **Ficha**: Gestão Escolar > Ficha de Matrícula\n• **Remanejamento**: Para transferir entre turmas\n• **Lista de Espera**: Alunos aguardando vaga';
+
+  // Boletim / Notas
+  if (matchAny(q, 'boletim', 'nota', 'avaliacao', 'prova'))
+    return 'Sobre **Notas e Boletim**:\n1. **Lançar notas**: Ensino > Lançar Notas\n2. **Boletim**: Ensino > Boletim Escolar > Selecione turma e aluno\n3. **Parecer**: Ensino > Parecer Descritivo\n4. **ATA**: Ensino > ATA Resultados\n\nO boletim pode ser exportado em **PDF** com assinatura digital.';
+
+  // Diário / Frequência
+  if (matchAny(q, 'diario', 'frequencia', 'falta', 'presenca', 'chamada'))
+    return 'Sobre **Diário e Frequência**:\n1. Acesse **Ensino > Diário Escolar**\n2. Selecione turma e data\n3. Marque presença/falta de cada aluno\n\n• **Diário de Classe**: Relatório mensal de frequência\n• **Relatório**: Ensino > Rel. Frequência';
+
+  // Rotas / IA
+  if (matchAny(q, 'rota') && matchAny(q, 'gerar', 'criar', 'automatica', 'ia', 'otimiz'))
+    return 'Para **gerar rotas automaticamente**:\n1. Acesse **Central de Controle > IA Rotas**\n2. Aba **Gerar Rotas**\n3. Selecione **escola** e **garagem**\n4. Configure capacidade e custos\n5. Clique **Simular Rotas** (preview)\n6. Revise no mapa e clique **Aprovar**\n\nUsa algoritmo **Clarke-Wright + 2-opt** para otimização.';
+  if (matchAny(q, 'rota'))
+    return 'Sobre **Rotas**:\n• **Cadastro**: Frota e Rotas > Rotas\n• **Gerar pela IA**: Central de Controle > IA Rotas > Gerar Rotas\n• **Monitorar**: Frota > Monitoramento / Mapa GPS\n• **Custos**: Relatório de Transporte mostra custo por rota\n• **Paradas**: Cada rota tem paradas com alunos vinculados';
+
+  // GPS / Coleta / Mapa
+  if (matchAny(q, 'gps', 'localiza', 'mapa', 'ponto', 'coleta', 'coordenada'))
+    return 'Sobre **GPS e Localização**:\n• **Coleta GPS**: Frota > Coleta GPS Alunos\n  1. Vá até a casa do aluno\n  2. Clique **Marcar Ponto** > Confirme\n• **Rastreamento**: Frota > Rastreamento GPS (motorista)\n• **Mapa Tempo Real**: Frota > Mapa GPS\n• **Escola/Aluno**: No cadastro, use o Google Maps\n• **Distância**: Calculada automaticamente aluno↔escola';
+
+  // Transporte
+  if (matchAny(q, 'transport', 'onibus', 'veiculo', 'motorista', 'monitor'))
+    return 'Sobre **Transporte Escolar**:\n• **Veículos**: Frota > Veículos (cadastro da frota)\n• **Motoristas**: Frota > Motoristas\n• **Monitores**: Frota > Monitores\n• **Rotas**: Frota > Rotas\n• **Garagens**: Frota > Garagens\n• **Fornecedores**: Frota > Fornecedores\n• **OS**: Frota > Ordens de Serviço\n• **Vistoria**: Frota > Vistoria Veículos';
+
+  // Relatório
+  if (matchAny(q, 'relatorio', 'exportar', 'imprimir', 'pdf', 'excel'))
+    return 'Sobre **Relatórios e Exportação**:\n• **Central**: Gestão > Central de Relatórios\n• **Transporte**: Frota > Relatório (custos por rota)\n• **Alunos**: Abra o cadastro > botão Exportar\n• **Formatos**: PDF, Word, CSV, HTML, Impressão\n• **Assinatura**: Marque "Assinar ao gerar" no PDF\n\nTodo relatório pode ter **assinatura eletrônica** e **QR Code**.';
+
+  // Financeiro / Custo
+  if (matchAny(q, 'financ', 'custo', 'despesa', 'receita', 'orcamento', 'gasto'))
+    return 'Sobre **Financeiro**:\n• **Contas**: Gestão e Recursos > Financeiro\n• **Contratos**: Gestão > Contratos\n• **Custos de Rota**: Frota > Relatório de Transporte\n• **Cotações**: Gestão > Cotação de Compras';
+
+  // Merenda
+  if (matchAny(q, 'merenda', 'alimenta', 'cardapio', 'refeic'))
+    return 'Sobre **Merenda Escolar**:\n• **Cardápio**: Gestão > Merenda (criar cardápios semanais)\n• **Estoque**: Gestão > Estoque Merenda\n• **Relatório**: Gestão > Central Relatórios > Merenda';
+
+  // Lista de espera
+  if (matchAny(q, 'espera', 'fila', 'vaga'))
+    return 'Sobre **Lista de Espera**:\n1. Acesse **Gestão Escolar > Lista de Espera**\n2. Adicione alunos com **+ Adicionar**\n3. Quando surgir vaga: **Convocar** ou **Matricular**\n4. O aluno é movido automaticamente para a turma';
+
+  // RH
+  if (matchAny(q, 'funcionario', 'servidor', 'rh', 'recurso humano', 'pessoal', 'cargo'))
+    return 'Sobre **Recursos Humanos**:\n• **Quadro**: Gestão > RH (cargos, departamentos)\n• **Motoristas**: Frota > Motoristas\n• **Monitores**: Frota > Monitores\n• **Professores**: Gestão Escolar > Professores\n• **Relatório**: Gestão > Relatório RH';
+
+  // Backup
+  if (matchAny(q, 'backup', 'copia', 'seguranca dos dados', 'restaur'))
+    return 'Sobre **Backup**:\n1. Acesse **Central de Controle > Backup**\n2. Clique **Criar Backup** (exporta JSON)\n3. Para restaurar: **Importar Backup**\n\nRecomendação: faça backup **semanalmente**.';
+
+  // Configurações
+  if (matchAny(q, 'config', 'tema', 'escuro', 'claro', 'aparencia'))
+    return 'Sobre **Configurações**:\n• Acesse **Central de Controle > Configurações**\n• **Tema**: Claro ou Escuro\n• **Notificações**: Ativar/desativar alertas\n• **Formulários**: Central > Config. Formulários';
+
+  // Perfil
+  if (matchAny(q, 'perfil', 'senha', 'minha conta', 'meus dados'))
+    return 'Sobre **Meu Perfil**:\n• Acesse **Central de Controle > Meu Perfil**\n• Atualize: cargo, decreto, matrícula, departamento\n• Esses dados aparecem na **assinatura digital** dos relatórios';
+
+  // Assinatura
+  if (matchAny(q, 'assinatura', 'assinar', 'certificado', 'digital'))
+    return 'Sobre **Assinatura Eletrônica**:\n• Ao exportar PDF, marque **"Assinar ao gerar"**\n• Informe sua **senha** para validar\n• O documento recebe **QR Code** de verificação\n• Baseado na **Lei 14.063/2020**\n• Configure seus dados em **Meu Perfil**';
+
+  // Saudação
+  if (matchAny(q, 'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'ajuda', 'help'))
+    return 'Olá! 👋 Sou o assistente do **NetEscol**.\n\nPosso ajudar com:\n• 📋 **Cadastros** (alunos, escolas, motoristas)\n• 📝 **Matrículas** e lista de espera\n• 🚌 **Transporte** e rotas\n• 📊 **Relatórios** e exportações\n• 🗺️ **GPS** e mapas\n• 💰 **Financeiro** e custos\n• ⚙️ **Configurações** do sistema\n\nDigite sua dúvida!';
+
+  // Fallback inteligente - tenta identificar o assunto
+  const topics = [
+    { keys: ['turma', 'classe'], resp: 'Sobre **Turmas**: Gestão Escolar > Turmas. Crie turmas, vincule à série e ao ano letivo.' },
+    { keys: ['professor', 'docente'], resp: 'Sobre **Professores**: Gestão Escolar > Professores. Cadastre docentes e vincule às disciplinas.' },
+    { keys: ['disciplina', 'materia'], resp: 'Sobre **Disciplinas**: Ensino > Disciplinas. Cadastre componentes curriculares.' },
+    { keys: ['calendario', 'feriado', 'evento'], resp: 'Sobre **Calendário**: Ensino > Calendário Escolar. Registre feriados, eventos e dias letivos.' },
+    { keys: ['patrimonio', 'bem', 'equipamento'], resp: 'Sobre **Patrimônio**: Gestão > Patrimônio. Controle bens patrimoniais da escola.' },
+    { keys: ['biblioteca', 'livro', 'emprestimo'], resp: 'Sobre **Biblioteca**: Gestão > Biblioteca. Gerencie acervo e empréstimos.' },
+    { keys: ['documento', 'declaracao', 'certidao'], resp: 'Sobre **Documentos**: Gestão Escolar > Declarações ou Central > Gestão de Documentos.' },
+    { keys: ['comunicacao', 'mensagem', 'aviso', 'chat'], resp: 'Sobre **Comunicação**: Use o **Chat** (botão no canto) para enviar mensagens. Para avisos gerais: Gestão > Comunicação ou Mural.' },
+    { keys: ['fornecedor', 'mecanica', 'posto'], resp: 'Sobre **Fornecedores**: Frota > Fornecedores. Cadastre mecânicas, postos, seguradoras.' },
+    { keys: ['ordem', 'servico', 'os', 'manutencao'], resp: 'Sobre **Ordens de Serviço**: Frota > Ordens de Serviço. Registre manutenções preventivas e corretivas.' },
+    { keys: ['garagem'], resp: 'Sobre **Garagens**: Frota > Garagens. Cadastre locais de guarda dos veículos com GPS.' },
+    { keys: ['vistoria', 'inspecao'], resp: 'Sobre **Vistoria**: Frota > Vistoria Veículos. Checklist de inspeção antes das viagens.' },
+  ];
+  for (const t of topics) {
+    if (t.keys.some(k => q.includes(k))) return t.resp;
+  }
+
+  return 'Não encontrei uma resposta específica para sua pergunta. 🤔\n\nTente perguntar sobre:\n• **Alunos** - cadastro, matrícula, ficha\n• **Escolas** - cadastro, GPS\n• **Rotas** - geração automática, custos\n• **GPS** - coleta, rastreamento\n• **Relatórios** - exportar, imprimir\n• **Notas** - boletim, diário\n• **Financeiro** - custos, contratos\n\nOu digite **ajuda** para ver todas as opções.';
 }
 
 // ============================================
@@ -79,23 +166,77 @@ export default function FloatingChat() {
     api.chat.unreadTotal().then((r: any) => setUnreadChat(r?.count || r?.total || 0)).catch(() => {});
   }, [user]);
 
+  // Som de notificação
+  const playNotificationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 800; osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+      // Segundo tom (mais agudo)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc2.frequency.value = 1200; osc2.type = 'sine';
+      gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc2.start(ctx.currentTime + 0.15);
+      osc2.stop(ctx.currentTime + 0.4);
+    } catch {}
+  };
+
+  // Notificação nativa do navegador
+  const showBrowserNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/bus.svg', badge: '/bus.svg', tag: 'netescol-chat' });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  };
+
+  // Pedir permissão de notificação ao carregar
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Socket listeners - notificação de nova mensagem
   useEffect(() => {
     if (!socket) return;
     const handler = (data: any) => {
       setUnreadChat(p => p + 1);
+
+      // Som de notificação
+      playNotificationSound();
+
+      // Vibrar no celular
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
       // Se está na conversa aberta, recarregar mensagens
       if (panel === 'chat-conv' && activeConv && data?.conversationId === activeConv.id) {
         api.chat.history({ conversationId: activeConv.id }).then((msgs: any) => setChatMessages(msgs || [])).catch(() => {});
       }
-      // Mostrar notificação toast
+
+      // Notificação nativa do navegador/celular
+      if (data?.senderName && data?.content) {
+        showBrowserNotification('💬 ' + data.senderName, data.content);
+      }
+
+      // Toast visual na tela
       if (data?.senderName && data?.content) {
         const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:350px;padding:12px 16px;background:#1E40AF;color:white;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.3);font-family:Arial,sans-serif;font-size:13px;cursor:pointer;animation:slideIn 0.3s ease';
-        toast.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px">' + (data.senderName?.charAt(0) || '?') + '</div><div><b style="display:block;margin-bottom:2px">' + data.senderName + '</b><span style="opacity:0.85;font-size:12px">' + (data.content.length > 50 ? data.content.substring(0, 50) + '...' : data.content) + '</span></div></div>';
+        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:350px;padding:14px 18px;background:#1E40AF;color:white;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.3);font-family:Arial,sans-serif;font-size:13px;cursor:pointer;transform:translateX(120%);transition:transform 0.3s ease';
+        toast.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px">' + (data.senderName?.charAt(0) || '?') + '</div><div><b style="display:block;margin-bottom:2px">' + data.senderName + '</b><span style="opacity:0.85;font-size:12px">' + (data.content.length > 60 ? data.content.substring(0, 60) + '...' : data.content) + '</span></div></div>';
         toast.onclick = () => { toast.remove(); setPanel('chat-list'); loadConversations(); };
         document.body.appendChild(toast);
-        setTimeout(() => { if (toast.parentElement) { toast.style.animation = 'slideOut 0.3s ease forwards'; setTimeout(() => toast.remove(), 300); } }, 5000);
+        requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+        setTimeout(() => { if (toast.parentElement) { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); } }, 6000);
       }
     };
     socket.on('chat:newMessage', handler);

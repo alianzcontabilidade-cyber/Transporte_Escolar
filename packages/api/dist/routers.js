@@ -13,6 +13,7 @@ const jsonwebtoken_1 = require("jsonwebtoken");
 const crypto_1 = require("crypto");
 const socketInstance_1 = require("./socketInstance");
 const routeOptimizer_1 = require("./services/routeOptimizer");
+const pushService_1 = require("./services/pushService");
 const helpers_1 = require("./helpers");
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║                    ROUTERS - TABLE OF CONTENTS                  ║
@@ -5449,12 +5450,27 @@ exports.aiRouter = trpc_1.t.router({
                 longitude: parseFloat(String(s.longitude)),
             }));
             const analysis = (0, routeOptimizer_1.analyzeRoute)(route, validStops, routeStudents);
+            // Build stops with current vs suggested order
+            const stopsWithOrder = validStops.map((s, idx) => {
+                const suggestedIdx = analysis.optimizedOrder.indexOf(s.id);
+                return {
+                    id: s.id, name: s.name,
+                    currentOrder: idx + 1,
+                    suggestedOrder: suggestedIdx >= 0 ? suggestedIdx + 1 : idx + 1,
+                    lat: s.latitude, lng: s.longitude,
+                };
+            });
             results.push({
                 routeId: route.id,
                 routeName: route.name,
-                stopCount: routeStops.length,
-                studentCount: routeStudents.length,
-                analysis,
+                currentDistance: analysis.currentDistance,
+                optimizedDistance: analysis.optimizedDistance,
+                savingsKm: analysis.savingsKm,
+                savingsPercent: analysis.savingsPercent,
+                optimizedOrder: analysis.optimizedOrder,
+                suggestions: analysis.suggestions,
+                score: analysis.score,
+                stops: stopsWithOrder,
             });
         }
         return results;
@@ -5698,116 +5714,102 @@ exports.aiRouter = trpc_1.t.router({
         }).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId));
         return { success: true };
     }),
-    // Gerar rotas automaticamente a partir dos dados GPS dos alunos
-    generateRoutes: trpc_1.adminProcedure
+    // SIMULAR rotas (não salva nada - apenas calcula)
+    simulateRoutes: trpc_1.adminProcedure
         .input(zod_1.z.object({
-        municipalityId: zod_1.z.number(),
-        schoolId: zod_1.z.number(),
+        municipalityId: zod_1.z.number(), schoolId: zod_1.z.number(),
         depotLat: zod_1.z.number(), depotLng: zod_1.z.number(),
-        maxCapacity: zod_1.z.number().default(40),
-        maxDistanceKm: zod_1.z.number().default(80),
-        avgSpeedKmh: zod_1.z.number().default(40), // Velocidade media para calculo de tempo
-        costPerKm: zod_1.z.number().default(3.5), // R$ por km (combustivel + desgaste)
-        driverCostPerHour: zod_1.z.number().default(25), // R$ por hora do motorista
-        prefix: zod_1.z.string().default('AUTO'), // Prefixo das rotas geradas
+        maxCapacity: zod_1.z.number().default(40), maxDistanceKm: zod_1.z.number().default(80),
+        avgSpeedKmh: zod_1.z.number().default(40), costPerKm: zod_1.z.number().default(3.5),
+        driverCostPerHour: zod_1.z.number().default(25), prefix: zod_1.z.string().default('AUTO'),
     }))
-        .mutation(async ({ input }) => {
-        // 1. Buscar escola
+        .query(async ({ input }) => {
         const [school] = await index_1.db.select().from(schema_1.schools).where((0, drizzle_orm_1.eq)(schema_1.schools.id, input.schoolId)).limit(1);
         if (!school)
             throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Escola não encontrada' });
         const schoolLat = parseFloat(String(school.latitude || 0));
         const schoolLng = parseFloat(String(school.longitude || 0));
         if (!schoolLat || !schoolLng)
-            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola sem coordenadas GPS cadastradas' });
-        // 2. Buscar alunos da escola com GPS e que precisam de transporte
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola sem GPS cadastrado' });
         const allStudents = await index_1.db.select({
             id: schema_1.students.id, name: schema_1.students.name,
             latitude: schema_1.students.latitude, longitude: schema_1.students.longitude,
             address: schema_1.students.address, grade: schema_1.students.grade,
         }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.schoolId, input.schoolId), (0, drizzle_orm_1.eq)(schema_1.students.needsTransport, true), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)));
-        const validStudents = allStudents.filter(s => s.latitude && s.longitude &&
-            parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0).map(s => ({
-            id: s.id, name: s.name,
-            latitude: parseFloat(String(s.latitude)),
-            longitude: parseFloat(String(s.longitude)),
-            passengers: 1,
-        }));
-        if (validStudents.length === 0) {
-            return { success: false, message: 'Nenhum aluno com GPS e transporte necessário encontrado para esta escola.', routes: [] };
-        }
-        // 3. Usar Clarke-Wright para agrupar alunos em rotas
-        const depot = { latitude: input.depotLat, longitude: input.depotLng };
-        const destination = { latitude: schoolLat, longitude: schoolLng };
-        const cwRoutes = (0, routeOptimizer_1.clarkeWrightGrouping)(depot, destination, validStudents, input.maxCapacity, input.maxDistanceKm);
-        // 4. Criar rotas no banco de dados
-        const createdRoutes = [];
-        for (let i = 0; i < cwRoutes.length; i++) {
-            const cw = cwRoutes[i];
-            const routeCode = `${input.prefix}-${String(i + 1).padStart(2, '0')}`;
-            const routeName = `${school.name} - Rota ${routeCode}`;
-            // Calcular tempo estimado
-            const timeHours = cw.totalDistance / input.avgSpeedKmh;
-            const timeMinutes = Math.round(timeHours * 60);
-            // Calcular custos mensais (22 dias uteis, ida e volta)
-            const monthlyKm = cw.totalDistance * 2 * 22; // ida e volta, 22 dias
-            const monthlyCostFuel = monthlyKm * input.costPerKm;
-            const monthlyCostDriver = timeHours * 2 * 22 * input.driverCostPerHour;
-            const costPerStudent = cw.totalPassengers > 0 ? (monthlyCostFuel + monthlyCostDriver) / cw.totalPassengers : 0;
-            // Criar rota
+        const validStudents = allStudents.filter(s => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0)
+            .map(s => ({ id: s.id, name: s.name, latitude: parseFloat(String(s.latitude)), longitude: parseFloat(String(s.longitude)), passengers: 1 }));
+        if (validStudents.length === 0)
+            return { success: false, message: 'Nenhum aluno com GPS e transporte necessário.', routes: [], schoolName: school.name };
+        const cwRoutes = (0, routeOptimizer_1.clarkeWrightGrouping)({ latitude: input.depotLat, longitude: input.depotLng }, { latitude: schoolLat, longitude: schoolLng }, validStudents, input.maxCapacity, input.maxDistanceKm);
+        const simulatedRoutes = cwRoutes.map((cw, i) => {
+            const code = `${input.prefix}-${String(i + 1).padStart(2, '0')}`;
+            const name = `${school.name} - Rota ${code}`;
+            const timeH = cw.totalDistance / input.avgSpeedKmh;
+            const timeMin = Math.round(timeH * 60);
+            const monthlyKm = cw.totalDistance * 2 * 22;
+            const fuelCost = monthlyKm * input.costPerKm;
+            const driverCost = timeH * 2 * 22 * input.driverCostPerHour;
+            const perStudent = cw.totalPassengers > 0 ? (fuelCost + driverCost) / cw.totalPassengers : 0;
+            return {
+                name, code, stopCount: cw.stops.length, passengers: cw.totalPassengers,
+                distanceKm: Math.round(cw.totalDistance * 100) / 100, timeMinutes: timeMin,
+                monthlyCostFuel: Math.round(fuelCost), monthlyCostDriver: Math.round(driverCost),
+                monthlyCostTotal: Math.round(fuelCost + driverCost), costPerStudent: Math.round(perStudent),
+                stopPoints: cw.stops.map((s, idx) => ({ lat: s.latitude, lng: s.longitude, name: s.name, studentId: s.id, order: idx + 1 })),
+                depotLat: input.depotLat, depotLng: input.depotLng, schoolLat, schoolLng,
+            };
+        });
+        return { success: true, schoolName: school.name, totalStudents: validStudents.length, routes: simulatedRoutes };
+    }),
+    // APROVAR rotas simuladas (salva no banco)
+    approveRoutes: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(), schoolId: zod_1.z.number(),
+        routes: zod_1.z.array(zod_1.z.object({
+            name: zod_1.z.string(), code: zod_1.z.string(), distanceKm: zod_1.z.number(), timeMinutes: zod_1.z.number(),
+            monthlyCostFuel: zod_1.z.number(), monthlyCostDriver: zod_1.z.number(), costPerStudent: zod_1.z.number(),
+            stopPoints: zod_1.z.array(zod_1.z.object({ lat: zod_1.z.number(), lng: zod_1.z.number(), name: zod_1.z.string(), studentId: zod_1.z.number(), order: zod_1.z.number() })),
+        })),
+    }))
+        .mutation(async ({ input }) => {
+        const created = [];
+        for (const r of input.routes) {
             const [routeResult] = await index_1.db.insert(schema_1.routes).values({
-                municipalityId: input.municipalityId,
-                schoolId: input.schoolId,
-                name: routeName,
-                code: routeCode,
-                type: 'both',
-                shift: 'morning',
-                estimatedDuration: timeMinutes,
-                totalDistanceKm: cw.totalDistance.toFixed(2),
-                monthlyCostFuel: monthlyCostFuel.toFixed(2),
-                monthlyCostDriver: monthlyCostDriver.toFixed(2),
-                costPerStudent: costPerStudent.toFixed(2),
-                isActive: true,
+                municipalityId: input.municipalityId, schoolId: input.schoolId,
+                name: r.name, code: r.code, type: 'both', shift: 'morning',
+                estimatedDuration: r.timeMinutes, totalDistanceKm: r.distanceKm.toFixed(2),
+                monthlyCostFuel: r.monthlyCostFuel.toFixed(2),
+                monthlyCostDriver: r.monthlyCostDriver.toFixed(2),
+                costPerStudent: r.costPerStudent.toFixed(2), isActive: true,
             }).$returningId();
-            // Criar paradas (cada aluno = uma parada)
-            for (let j = 0; j < cw.stops.length; j++) {
-                const stop = cw.stops[j];
+            for (const sp of r.stopPoints) {
                 const [stopResult] = await index_1.db.insert(schema_1.stops).values({
-                    routeId: routeResult.id,
-                    name: `Parada ${j + 1} - ${stop.name.split(' ')[0]}`,
-                    latitude: stop.latitude.toFixed(8),
-                    longitude: stop.longitude.toFixed(8),
-                    orderIndex: j + 1,
-                    estimatedArrivalMinutes: Math.round((j + 1) * (timeMinutes / cw.stops.length)),
+                    routeId: routeResult.id, name: `Parada ${sp.order} - ${sp.name.split(' ')[0]}`,
+                    latitude: sp.lat.toFixed(8), longitude: sp.lng.toFixed(8),
+                    orderIndex: sp.order, estimatedArrivalMinutes: Math.round(sp.order * (r.timeMinutes / r.stopPoints.length)),
                 }).$returningId();
-                // Vincular aluno à parada
-                await index_1.db.insert(schema_1.stopStudents).values({
-                    stopId: stopResult.id,
-                    studentId: stop.id,
-                    boardingType: 'both',
-                });
-                // Atualizar routeName do aluno
-                await index_1.db.update(schema_1.students).set({ routeName: routeName }).where((0, drizzle_orm_1.eq)(schema_1.students.id, stop.id));
+                await index_1.db.insert(schema_1.stopStudents).values({ stopId: stopResult.id, studentId: sp.studentId, boardingType: 'both' });
+                await index_1.db.update(schema_1.students).set({ routeName: r.name }).where((0, drizzle_orm_1.eq)(schema_1.students.id, sp.studentId));
             }
-            createdRoutes.push({
-                id: routeResult.id,
-                name: routeName,
-                code: routeCode,
-                stops: cw.stops.length,
-                passengers: cw.totalPassengers,
-                distanceKm: cw.totalDistance,
-                timeMinutes,
-                monthlyCostFuel: Math.round(monthlyCostFuel),
-                monthlyCostDriver: Math.round(monthlyCostDriver),
-                monthlyCostTotal: Math.round(monthlyCostFuel + monthlyCostDriver),
-                costPerStudent: Math.round(costPerStudent),
-            });
+            created.push({ id: routeResult.id, name: r.name, code: r.code });
         }
+        return { success: true, message: `${created.length} rota(s) aprovada(s) e criada(s)`, routes: created };
+    }),
+    // Buscar alunos de uma rota (para mapa)
+    routeStudents: trpc_1.protectedProcedure
+        .input(zod_1.z.object({ routeId: zod_1.z.number() }))
+        .query(async ({ input }) => {
+        const routeStops = await index_1.db.select({ id: schema_1.stops.id, name: schema_1.stops.name, latitude: schema_1.stops.latitude, longitude: schema_1.stops.longitude, orderIndex: schema_1.stops.orderIndex })
+            .from(schema_1.stops).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.stops.routeId, input.routeId), (0, drizzle_orm_1.eq)(schema_1.stops.isActive, true))).orderBy(schema_1.stops.orderIndex);
+        const stopIds = routeStops.map(s => s.id);
+        if (stopIds.length === 0)
+            return { stops: [], students: [] };
+        const studs = await index_1.db.select({ id: schema_1.students.id, name: schema_1.students.name, latitude: schema_1.students.latitude, longitude: schema_1.students.longitude, address: schema_1.students.address, grade: schema_1.students.grade, stopId: schema_1.stopStudents.stopId })
+            .from(schema_1.stopStudents).innerJoin(schema_1.students, (0, drizzle_orm_1.eq)(schema_1.stopStudents.studentId, schema_1.students.id))
+            .where((0, drizzle_orm_1.inArray)(schema_1.stopStudents.stopId, stopIds));
         return {
-            success: true,
-            message: `${createdRoutes.length} rota(s) gerada(s) para ${school.name}`,
-            totalStudents: validStudents.length,
-            routes: createdRoutes,
+            stops: routeStops.map(s => ({ ...s, latitude: parseFloat(String(s.latitude)), longitude: parseFloat(String(s.longitude)) })),
+            students: studs.map(s => ({ ...s, latitude: parseFloat(String(s.latitude || 0)), longitude: parseFloat(String(s.longitude || 0)) })),
         };
     }),
     // Análise de risco de evasão escolar
@@ -5999,48 +6001,61 @@ exports.chatRouter = trpc_1.t.router({
             .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatMessages.conversationId, input.conversationId), (0, drizzle_orm_1.eq)(schema_1.chatMessages.isRead, false), (0, drizzle_orm_1.sql) `${schema_1.chatMessages.senderId} != ${userId}`));
         return msgs.reverse();
     }),
-    // Enviar mensagem
+    // Enviar mensagem (aceita recipientId OU conversationId)
     send: trpc_1.protectedProcedure
         .input(zod_1.z.object({
-        recipientId: zod_1.z.number(),
+        recipientId: zod_1.z.number().optional(),
+        conversationId: zod_1.z.number().optional(),
         content: zod_1.z.string().min(1).max(2000),
     }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.userId;
         const municipalityId = ctx.municipalityId || 1;
-        // Buscar ou criar conversa
-        let [conv] = await index_1.db.select().from(schema_1.chatConversations)
-            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, input.recipientId)), (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, input.recipientId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))).limit(1);
-        if (!conv) {
-            const [newConv] = await index_1.db.insert(schema_1.chatConversations).values({
-                municipalityId,
-                participant1Id: userId,
-                participant2Id: input.recipientId,
-                lastMessageAt: new Date(),
-            }).$returningId();
-            [conv] = await index_1.db.select().from(schema_1.chatConversations).where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, newConv.id)).limit(1);
+        let conv = null;
+        let recipientId = input.recipientId;
+        // Se conversationId fornecido, buscar a conversa existente
+        if (input.conversationId) {
+            [conv] = await index_1.db.select().from(schema_1.chatConversations)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, input.conversationId), (0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))).limit(1);
+            if (!conv)
+                throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Conversa não encontrada' });
+            recipientId = conv.participant1Id === userId ? conv.participant2Id : conv.participant1Id;
         }
+        // Se recipientId fornecido, buscar ou criar conversa
+        if (!conv && recipientId) {
+            [conv] = await index_1.db.select().from(schema_1.chatConversations)
+                .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, userId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, recipientId)), (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.chatConversations.participant1Id, recipientId), (0, drizzle_orm_1.eq)(schema_1.chatConversations.participant2Id, userId)))).limit(1);
+            if (!conv) {
+                const [newConv] = await index_1.db.insert(schema_1.chatConversations).values({
+                    municipalityId, participant1Id: userId, participant2Id: recipientId, lastMessageAt: new Date(),
+                }).$returningId();
+                [conv] = await index_1.db.select().from(schema_1.chatConversations).where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, newConv.id)).limit(1);
+            }
+        }
+        if (!conv)
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Informe recipientId ou conversationId' });
         // Inserir mensagem
         const [msg] = await index_1.db.insert(schema_1.chatMessages).values({
-            conversationId: conv.id,
-            senderId: userId,
-            content: input.content,
+            conversationId: conv.id, senderId: userId, content: input.content,
         }).$returningId();
-        // Atualizar lastMessageAt da conversa
-        await index_1.db.update(schema_1.chatConversations)
-            .set({ lastMessageAt: new Date() })
-            .where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, conv.id));
-        // Buscar nome do remetente para a notificacao
+        // Atualizar lastMessageAt
+        await index_1.db.update(schema_1.chatConversations).set({ lastMessageAt: new Date() }).where((0, drizzle_orm_1.eq)(schema_1.chatConversations.id, conv.id));
+        // Buscar nome do remetente
         const [sender] = await index_1.db.select({ name: schema_1.users.name }).from(schema_1.users).where((0, drizzle_orm_1.eq)(schema_1.users.id, userId)).limit(1);
-        // Emitir via Socket.IO para o destinatario
-        (0, socketInstance_1.emitToUser)(input.recipientId, 'chat:message', {
-            conversationId: conv.id,
-            messageId: msg.id,
-            senderId: userId,
-            senderName: sender?.name || 'Usuario',
-            content: input.content,
-            createdAt: new Date().toISOString(),
-        });
+        // Emitir via Socket.IO para o destinatário
+        if (recipientId) {
+            (0, socketInstance_1.emitToUser)(recipientId, 'chat:newMessage', {
+                conversationId: conv.id, messageId: msg.id, senderId: userId,
+                senderName: sender?.name || 'Usuário', content: input.content,
+                createdAt: new Date().toISOString(),
+            });
+            // Push notification (funciona com app fechado)
+            (0, pushService_1.sendPushToUser)(recipientId, {
+                title: '💬 ' + (sender?.name || 'Nova mensagem'),
+                body: input.content.length > 100 ? input.content.substring(0, 100) + '...' : input.content,
+                data: { type: 'chat', conversationId: String(conv.id) },
+            });
+        }
         return { success: true, conversationId: conv.id, messageId: msg.id };
     }),
     // Contar mensagens nao lidas totais
@@ -6684,4 +6699,27 @@ exports.appRouter = trpc_1.t.router({
     suppliers: suppliersRouter,
     serviceOrders: serviceOrdersRouter,
     garages: garagesRouter,
+    // Push Notifications
+    push: trpc_1.t.router({
+        registerToken: trpc_1.protectedProcedure
+            .input(zod_1.z.object({ token: zod_1.z.string(), platform: zod_1.z.string().default('android') }))
+            .mutation(async ({ ctx, input }) => {
+            const userId = ctx.userId;
+            // Verificar se token já existe
+            const [existing] = await index_1.db.execute(`SELECT id FROM push_tokens WHERE userId = ? AND token = ?`, [userId, input.token]);
+            if (existing.length > 0) {
+                await index_1.db.execute(`UPDATE push_tokens SET updatedAt = NOW() WHERE userId = ? AND token = ?`, [userId, input.token]);
+            }
+            else {
+                await index_1.db.execute(`INSERT INTO push_tokens (userId, token, platform) VALUES (?, ?, ?)`, [userId, input.token, input.platform]);
+            }
+            return { success: true };
+        }),
+        removeToken: trpc_1.protectedProcedure
+            .input(zod_1.z.object({ token: zod_1.z.string() }))
+            .mutation(async ({ ctx, input }) => {
+            await index_1.db.execute(`DELETE FROM push_tokens WHERE userId = ? AND token = ?`, [ctx.userId, input.token]);
+            return { success: true };
+        }),
+    }),
 });

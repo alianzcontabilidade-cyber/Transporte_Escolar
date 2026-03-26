@@ -199,11 +199,40 @@ export default function FloatingChat() {
     }
   };
 
-  // Pedir permissão de notificação ao carregar
+  // Pedir permissão de notificação e registrar push token
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    // Registrar push token via Capacitor (se disponível)
+    (async () => {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const perm = await PushNotifications.requestPermissions();
+        if (perm.receive === 'granted') {
+          await PushNotifications.register();
+          PushNotifications.addListener('registration', (token) => {
+            console.log('[PUSH] Token:', token.value);
+            api.push.registerToken({ token: token.value, platform: 'android' }).catch(() => {});
+          });
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('[PUSH] Received:', notification);
+            playNotificationSound();
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          });
+          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            console.log('[PUSH] Action:', action);
+            const data = action.notification.data;
+            if (data?.type === 'chat') {
+              setPanel('chat-list');
+              loadConversations();
+            }
+          });
+        }
+      } catch {
+        // Não está no Capacitor (web browser) - OK
+      }
+    })();
   }, []);
 
   // Socket listeners - notificação de nova mensagem

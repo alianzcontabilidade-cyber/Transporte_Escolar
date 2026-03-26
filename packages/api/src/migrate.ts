@@ -359,6 +359,19 @@ async function migrate() {
     try { await conn.execute(`ALTER TABLE vehicles ADD COLUMN garageId INT`); }
     catch { /* already exists */ }
 
+    // Push notification tokens
+    try {
+      await conn.execute(`CREATE TABLE IF NOT EXISTS push_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        token TEXT NOT NULL,
+        platform VARCHAR(20) DEFAULT 'android',
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (userId) REFERENCES users(id)
+      )`);
+    } catch { /* already exists */ }
+
     // Add home location to drivers
     try { await conn.execute(`ALTER TABLE drivers ADD COLUMN homeLatitude DECIMAL(10,8)`); }
     catch { /* already exists */ }

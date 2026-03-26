@@ -26,6 +26,7 @@ import { sign, verify } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { emitToMunicipality, emitToUser } from './socketInstance';
 import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents, clarkeWrightGrouping, dbscanCluster, twoOptImprove } from './services/routeOptimizer';
+import { sendPushToUser } from './services/pushService';
 import { verifyGuardianAccess } from './helpers';
 
 // ╔══════════════════════════════════════════════════════════════════╗
@@ -6387,6 +6388,12 @@ export const chatRouter = t.router({
           senderName: sender?.name || 'Usuário', content: input.content,
           createdAt: new Date().toISOString(),
         });
+        // Push notification (funciona com app fechado)
+        sendPushToUser(recipientId, {
+          title: '💬 ' + (sender?.name || 'Nova mensagem'),
+          body: input.content.length > 100 ? input.content.substring(0, 100) + '...' : input.content,
+          data: { type: 'chat', conversationId: String(conv.id) },
+        });
       }
 
       return { success: true, conversationId: conv.id, messageId: msg.id };
@@ -7030,6 +7037,28 @@ export const appRouter = t.router({
   suppliers: suppliersRouter,
   serviceOrders: serviceOrdersRouter,
   garages: garagesRouter,
+  // Push Notifications
+  push: t.router({
+    registerToken: protectedProcedure
+      .input(z.object({ token: z.string(), platform: z.string().default('android') }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = ctx.userId!;
+        // Verificar se token já existe
+        const [existing] = await (db as any).execute(`SELECT id FROM push_tokens WHERE userId = ? AND token = ?`, [userId, input.token]);
+        if ((existing as any[]).length > 0) {
+          await (db as any).execute(`UPDATE push_tokens SET updatedAt = NOW() WHERE userId = ? AND token = ?`, [userId, input.token]);
+        } else {
+          await (db as any).execute(`INSERT INTO push_tokens (userId, token, platform) VALUES (?, ?, ?)`, [userId, input.token, input.platform]);
+        }
+        return { success: true };
+      }),
+    removeToken: protectedProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        await (db as any).execute(`DELETE FROM push_tokens WHERE userId = ? AND token = ?`, [ctx.userId, input.token]);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

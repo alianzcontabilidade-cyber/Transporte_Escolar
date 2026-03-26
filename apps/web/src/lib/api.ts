@@ -541,4 +541,9 @@ export const api = {
     delete: (input: any) => call('garages.delete', input, 'mutation'),
   },
 
+  push: {
+    registerToken: (input: any) => call('push.registerToken', input, 'mutation'),
+    removeToken: (input: any) => call('push.removeToken', input, 'mutation'),
+  },
+
 };

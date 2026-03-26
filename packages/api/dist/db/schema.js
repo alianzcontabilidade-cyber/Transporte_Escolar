@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
-exports.garages = exports.serviceOrders = exports.suppliers = exports.protocols = exports.bulletins = exports.classSchedules = exports.vehicleInspections = exports.chatMessages = exports.chatConversations = exports.classCouncilRecords = exports.quotationItems = exports.quotations = exports.events = exports.studentOccurrences = exports.formFieldConfigs = exports.documentSignatures = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
+exports.pushTokens = exports.garages = exports.serviceOrders = exports.suppliers = exports.protocols = exports.bulletins = exports.classSchedules = exports.vehicleInspections = exports.chatMessages = exports.chatConversations = exports.classCouncilRecords = exports.quotationItems = exports.quotations = exports.events = exports.studentOccurrences = exports.formFieldConfigs = exports.documentSignatures = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -1565,6 +1565,17 @@ exports.garages = (0, mysql_core_1.mysqlTable)("garages", {
     type: (0, mysql_core_1.mysqlEnum)("garageType", ["propria", "alugada", "cedida", "conveniada"]).default("propria").notNull(),
     notes: (0, mysql_core_1.text)("notes"),
     isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+// ============================================
+// TABELA: PUSH NOTIFICATION TOKENS (FCM)
+// ============================================
+exports.pushTokens = (0, mysql_core_1.mysqlTable)("push_tokens", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    userId: (0, mysql_core_1.int)("userId").notNull().references(() => exports.users.id),
+    token: (0, mysql_core_1.text)("token").notNull(),
+    platform: (0, mysql_core_1.varchar)("platform", { length: 20 }).default("android"), // android, ios, web
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
     updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

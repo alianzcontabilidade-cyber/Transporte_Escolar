@@ -1870,3 +1870,16 @@ export const garages = mysqlTable("garages", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+
+// ============================================
+// TABELA: PUSH NOTIFICATION TOKENS (FCM)
+// ============================================
+export const pushTokens = mysqlTable("push_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id),
+  token: text("token").notNull(),
+  platform: varchar("platform", { length: 20 }).default("android"), // android, ios, web
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});

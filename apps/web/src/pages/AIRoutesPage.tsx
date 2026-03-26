@@ -126,14 +126,24 @@ export default function AIRoutesPage() {
       routeMapInstanceRef.current = map;
       setTimeout(() => map.invalidateSize(), 200);
     };
-    if ((window as any).L) { setTimeout(initMap, 100); }
-    else {
+    // Load Leaflet if needed
+    if ((window as any).L) {
+      setTimeout(initMap, 200);
+    } else {
       if (!document.getElementById('leaflet-css-rt')) {
         const lk = document.createElement('link'); lk.id = 'leaflet-css-rt'; lk.rel = 'stylesheet';
         lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk);
       }
-      const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      sc.onload = () => setTimeout(initMap, 100); document.head.appendChild(sc);
+      if (!document.getElementById('leaflet-js-rt')) {
+        const sc = document.createElement('script'); sc.id = 'leaflet-js-rt';
+        sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        sc.onload = () => setTimeout(initMap, 300);
+        document.head.appendChild(sc);
+      } else {
+        // Script exists but L not ready yet, poll
+        const poll = setInterval(() => { if ((window as any).L) { clearInterval(poll); initMap(); } }, 200);
+        setTimeout(() => clearInterval(poll), 5000);
+      }
     }
     return () => { if (routeMapInstanceRef.current) { routeMapInstanceRef.current.remove(); routeMapInstanceRef.current = null; } };
   }, [genResult, selectedRouteMap]);

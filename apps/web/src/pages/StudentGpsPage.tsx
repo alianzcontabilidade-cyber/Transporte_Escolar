@@ -27,6 +27,7 @@ export default function StudentGpsPage() {
   const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
   const [collecting, setCollecting] = useState<number | null>(null);
   const [pendingGps, setPendingGps] = useState<PendingGps | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'coletado' | 'pendente'>('todos');
   const [mapSearch, setMapSearch] = useState('');
   const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
   const [mapSearchBusy, setMapSearchBusy] = useState(false);
@@ -103,8 +104,12 @@ export default function StudentGpsPage() {
   const withoutGps = totalStudents - withGps;
   const percentage = totalStudents > 0 ? Math.round((withGps / totalStudents) * 100) : 0;
 
-  // Filter
+  // Filter (search + status)
   const filtered = students.filter((s: any) => {
+    // Status filter
+    if (statusFilter === 'coletado' && !(s.latitude && s.longitude)) return false;
+    if (statusFilter === 'pendente' && (s.latitude && s.longitude)) return false;
+    // Search filter
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -113,6 +118,14 @@ export default function StudentGpsPage() {
       (s.schoolName || '').toLowerCase().includes(term)
     );
   });
+
+  // Navegação sequencial (pendentes)
+  const pendingStudents = students.filter((s: any) => !(s.latitude && s.longitude));
+  const handleNextPending = () => {
+    if (pendingStudents.length > 0) {
+      handleCollectGps(pendingStudents[0]);
+    }
+  };
 
   // GPS Collection
   const handleCollectGps = (student: any) => {
@@ -378,6 +391,21 @@ export default function StudentGpsPage() {
               />
             </div>
           </div>
+
+          {/* Status filter */}
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            <button onClick={() => setStatusFilter('todos')} className={`px-3 py-2.5 text-xs font-medium transition-colors ${statusFilter === 'todos' ? 'bg-gray-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+            <button onClick={() => setStatusFilter('coletado')} className={`px-3 py-2.5 text-xs font-medium transition-colors ${statusFilter === 'coletado' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Coletado</button>
+            <button onClick={() => setStatusFilter('pendente')} className={`px-3 py-2.5 text-xs font-medium transition-colors ${statusFilter === 'pendente' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Pendente</button>
+          </div>
+
+          {/* Próximo pendente */}
+          {pendingStudents.length > 0 && viewMode === 'lista' && (
+            <button onClick={handleNextPending} disabled={!!collecting}
+              className="btn-primary text-xs flex items-center gap-1.5 px-3 py-2.5 whitespace-nowrap">
+              <Crosshair className="w-3.5 h-3.5" /> Próximo ({pendingStudents.length})
+            </button>
+          )}
 
           {/* View Toggle */}
           <div className="flex rounded-lg border border-gray-300 overflow-hidden">

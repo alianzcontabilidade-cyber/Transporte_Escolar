@@ -6,6 +6,7 @@ import { ESTADOS_BR, useMunicipios } from '../lib/ibge';
 import { Truck, Plus, X, Phone, Mail, Camera, Pencil, Trash2, AlertTriangle, Search, FileText, Navigation, Bus, Loader2, Eye, Download, Printer } from 'lucide-react';
 import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import QuickAddModal from '../components/QuickAddModal';
+import GoogleMapPicker from '../components/GoogleMapPicker';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -17,7 +18,7 @@ function PhotoUpload({ value, onChange }: any) {
 }
 
 const CNH_CATS=['B','C','D','E'];
-const EF={name:'',cpf:'',phone:'',email:'',birthDate:'',address:'',state:'',city:'',cnhNumber:'',cnhCategory:'D',cnhExpiry:'',experience:'',routeId:'',vehicleId:'',photo:'',observations:''};
+const EF={name:'',cpf:'',phone:'',email:'',birthDate:'',address:'',state:'',city:'',cnhNumber:'',cnhCategory:'D',cnhExpiry:'',experience:'',routeId:'',vehicleId:'',photo:'',observations:'',latitude:'',longitude:''};
 
 export default function DriversPage() {
     const {user}=useAuth();
@@ -177,6 +178,12 @@ export default function DriversPage() {
                                                 <div><label className="label">Estado</label><select className="input" value={form.state} onChange={function(e:any){setForm(function(f:any){return{...f,state:e.target.value,city:''};});}}><option value="">Selecione</option>{ESTADOS_BR.map(function(es){return <option key={es.uf} value={es.uf}>{es.uf}</option>;})}</select></div>
                                                 <div><label className="label">Cidade {drvMunLoading && <Loader2 size={12} className="inline animate-spin"/>}</label><select className="input" value={form.city} onChange={sf('city')} disabled={!form.state||drvMunLoading}><option value="">Selecione</option>{drvMunicipios.map(function(m:any){return <option key={m.id} value={m.nome}>{m.nome}</option>;})}</select></div>
                                                 <div><label className="label">Observações</label><input className="input" value={form.observations} onChange={sf('observations')}/></div>
+                                  </div>
+                                  <div className="mt-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                    <p className="text-xs font-semibold text-green-700 mb-2 uppercase flex items-center gap-1"><Navigation size={12}/> Localização Residencial</p>
+                                    <GoogleMapPicker latitude={form.latitude} longitude={form.longitude}
+                                      onLocationChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
+                                      height={200} placeholder="Pesquise o endereço do profissional..." showGpsButton={true} />
                                   </div>
                       </>)}
                       {tab==='cnh'&&(<div className="grid grid-cols-2 gap-3"><div><label className="label">Número CNH</label><input className="input" value={form.cnhNumber} onChange={sf('cnhNumber')}/></div><div><label className="label">Categoria</label><select className="input" value={form.cnhCategory} onChange={sf('cnhCategory')}>{CNH_CATS.map(function(c){return <option key={c}>{c}</option>;})}</select></div><div><label className="label">Validade CNH</label><input className="input" type="date" value={form.cnhExpiry} onChange={sf('cnhExpiry')}/></div><div><label className="label">Experiência (anos)</label><input className="input" type="number" min="0" value={form.experience} onChange={sf('experience')}/></div></div>)}

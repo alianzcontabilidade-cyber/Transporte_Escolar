@@ -5966,6 +5966,137 @@ export const aiRouter = t.router({
       return { success: true };
     }),
 
+  // Gerar rotas automaticamente a partir dos dados GPS dos alunos
+  generateRoutes: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(),
+      schoolId: z.number(),
+      depotLat: z.number(), depotLng: z.number(),
+      maxCapacity: z.number().default(40),
+      maxDistanceKm: z.number().default(80),
+      avgSpeedKmh: z.number().default(40), // Velocidade media para calculo de tempo
+      costPerKm: z.number().default(3.5),  // R$ por km (combustivel + desgaste)
+      driverCostPerHour: z.number().default(25), // R$ por hora do motorista
+      prefix: z.string().default('AUTO'),  // Prefixo das rotas geradas
+    }))
+    .mutation(async ({ input }) => {
+      // 1. Buscar escola
+      const [school] = await db.select().from(schools).where(eq(schools.id, input.schoolId)).limit(1);
+      if (!school) throw new TRPCError({ code: 'NOT_FOUND', message: 'Escola não encontrada' });
+      const schoolLat = parseFloat(String(school.latitude || 0));
+      const schoolLng = parseFloat(String(school.longitude || 0));
+      if (!schoolLat || !schoolLng) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Escola sem coordenadas GPS cadastradas' });
+
+      // 2. Buscar alunos da escola com GPS e que precisam de transporte
+      const allStudents = await db.select({
+        id: students.id, name: students.name,
+        latitude: students.latitude, longitude: students.longitude,
+        address: students.address, grade: students.grade,
+      }).from(students).where(and(
+        eq(students.municipalityId, input.municipalityId),
+        eq(students.schoolId, input.schoolId),
+        eq(students.needsTransport, true),
+        eq(students.isActive, true),
+      ));
+
+      const validStudents = allStudents.filter(s =>
+        s.latitude && s.longitude &&
+        parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0
+      ).map(s => ({
+        id: s.id, name: s.name,
+        latitude: parseFloat(String(s.latitude)),
+        longitude: parseFloat(String(s.longitude)),
+        passengers: 1,
+      }));
+
+      if (validStudents.length === 0) {
+        return { success: false, message: 'Nenhum aluno com GPS e transporte necessário encontrado para esta escola.', routes: [] };
+      }
+
+      // 3. Usar Clarke-Wright para agrupar alunos em rotas
+      const depot = { latitude: input.depotLat, longitude: input.depotLng };
+      const destination = { latitude: schoolLat, longitude: schoolLng };
+      const cwRoutes = clarkeWrightGrouping(depot, destination, validStudents, input.maxCapacity, input.maxDistanceKm);
+
+      // 4. Criar rotas no banco de dados
+      const createdRoutes = [];
+      for (let i = 0; i < cwRoutes.length; i++) {
+        const cw = cwRoutes[i];
+        const routeCode = `${input.prefix}-${String(i + 1).padStart(2, '0')}`;
+        const routeName = `${school.name} - Rota ${routeCode}`;
+
+        // Calcular tempo estimado
+        const timeHours = cw.totalDistance / input.avgSpeedKmh;
+        const timeMinutes = Math.round(timeHours * 60);
+
+        // Calcular custos mensais (22 dias uteis, ida e volta)
+        const monthlyKm = cw.totalDistance * 2 * 22; // ida e volta, 22 dias
+        const monthlyCostFuel = monthlyKm * input.costPerKm;
+        const monthlyCostDriver = timeHours * 2 * 22 * input.driverCostPerHour;
+        const costPerStudent = cw.totalPassengers > 0 ? (monthlyCostFuel + monthlyCostDriver) / cw.totalPassengers : 0;
+
+        // Criar rota
+        const [routeResult] = await db.insert(routes).values({
+          municipalityId: input.municipalityId,
+          schoolId: input.schoolId,
+          name: routeName,
+          code: routeCode,
+          type: 'both',
+          shift: 'morning',
+          estimatedDuration: timeMinutes,
+          totalDistanceKm: cw.totalDistance.toFixed(2) as any,
+          monthlyCostFuel: monthlyCostFuel.toFixed(2) as any,
+          monthlyCostDriver: monthlyCostDriver.toFixed(2) as any,
+          costPerStudent: costPerStudent.toFixed(2) as any,
+          isActive: true,
+        } as any).$returningId();
+
+        // Criar paradas (cada aluno = uma parada)
+        for (let j = 0; j < cw.stops.length; j++) {
+          const stop = cw.stops[j];
+          const [stopResult] = await db.insert(stops).values({
+            routeId: routeResult.id,
+            name: `Parada ${j + 1} - ${stop.name.split(' ')[0]}`,
+            latitude: stop.latitude.toFixed(8) as any,
+            longitude: stop.longitude.toFixed(8) as any,
+            orderIndex: j + 1,
+            estimatedArrivalMinutes: Math.round((j + 1) * (timeMinutes / cw.stops.length)),
+          } as any).$returningId();
+
+          // Vincular aluno à parada
+          await db.insert(stopStudents).values({
+            stopId: stopResult.id,
+            studentId: stop.id,
+            boardingType: 'both',
+          });
+
+          // Atualizar routeName do aluno
+          await db.update(students).set({ routeName: routeName }).where(eq(students.id, stop.id));
+        }
+
+        createdRoutes.push({
+          id: routeResult.id,
+          name: routeName,
+          code: routeCode,
+          stops: cw.stops.length,
+          passengers: cw.totalPassengers,
+          distanceKm: cw.totalDistance,
+          timeMinutes,
+          monthlyCostFuel: Math.round(monthlyCostFuel),
+          monthlyCostDriver: Math.round(monthlyCostDriver),
+          monthlyCostTotal: Math.round(monthlyCostFuel + monthlyCostDriver),
+          costPerStudent: Math.round(costPerStudent),
+        });
+      }
+
+      return {
+        success: true,
+        message: `${createdRoutes.length} rota(s) gerada(s) para ${school.name}`,
+        totalStudents: validStudents.length,
+        routes: createdRoutes,
+      };
+    }),
+
   // Análise de risco de evasão escolar
   studentRiskAnalysis: adminProcedure
     .input(z.object({ municipalityId: z.number() }))

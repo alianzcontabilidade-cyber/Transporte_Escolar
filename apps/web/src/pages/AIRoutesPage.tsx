@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, useMutation, showSuccessToast, showErrorToast } from '../lib/hooks';
 import { api } from '../lib/api';
-import { Brain, MapPin, Route, TrendingDown, Loader2, Check, AlertTriangle, Users, Play, ChevronDown, ChevronRight, Lightbulb, RefreshCw, Truck, Warehouse, Target, Layers, Settings } from 'lucide-react';
+import { Brain, MapPin, Route, TrendingDown, Loader2, Check, CheckCircle, AlertTriangle, Users, Play, ChevronDown, ChevronRight, Lightbulb, RefreshCw, Truck, Warehouse, Target, Layers, Settings } from 'lucide-react';
 
 interface RouteStop {
   id: number; name: string; currentOrder: number; suggestedOrder: number; lat: number; lng: number;
@@ -40,7 +40,7 @@ function ScoreGauge({ score }: { score: number }) {
 export default function AIRoutesPage() {
   const { user } = useAuth();
   const municipalityId = user?.municipalityId;
-  const [tab, setTab] = useState<'routes' | 'clarke' | 'stops'>('routes');
+  const [tab, setTab] = useState<'routes' | 'clarke' | 'stops' | 'generate'>('routes');
   const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
   const [expandedCluster, setExpandedCluster] = useState<number | null>(null);
   const [expandedCW, setExpandedCW] = useState<number | null>(null);
@@ -53,6 +53,14 @@ export default function AIRoutesPage() {
 
   // Clarke-Wright config
   const [cwConfig, setCwConfig] = useState({ depotLat: '', depotLng: '', destLat: '', destLng: '', maxCapacity: 40, maxDistanceKm: 100 });
+
+  // Generate routes config
+  const [genConfig, setGenConfig] = useState({
+    schoolId: '', depotLat: '', depotLng: '', maxCapacity: 40, maxDistanceKm: 80,
+    avgSpeedKmh: 40, costPerKm: 3.5, driverCostPerHour: 25, prefix: 'AUTO',
+  });
+  const [genResult, setGenResult] = useState<any>(null);
+  const [generating, setGenerating] = useState(false);
 
   // Queries
   const { data: routeAnalysis, loading: analyzing, error: analyzeError, refetch: runAnalysis } = useQuery<RouteAnalysis[]>(
@@ -153,6 +161,10 @@ export default function AIRoutesPage() {
         <button onClick={() => setTab('stops')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'stops' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}>
           <Target size={14} /> Pontos de Parada
+        </button>
+        <button onClick={() => setTab('generate')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'generate' ? 'bg-white shadow text-green-600' : 'text-gray-500 hover:text-gray-700'}`}>
+          <Truck size={14} /> Gerar Rotas
         </button>
       </div>
 
@@ -548,6 +560,178 @@ export default function AIRoutesPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ====== TAB: Gerar Rotas Automaticamente ====== */}
+      {tab === 'generate' && (
+        <>
+          <div className="card mb-5">
+            <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><Truck size={14} /> Gerar Rotas Automaticamente</h3>
+            <p className="text-xs text-gray-500 mb-4">O sistema analisa os pontos GPS dos alunos e gera rotas otimizadas com cálculo de custo e tempo.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="label">Escola</label>
+                <select className="input" value={genConfig.schoolId} onChange={e => {
+                  const s = (schoolsList || []).find((s: any) => s.id === Number(e.target.value));
+                  setGenConfig(c => ({ ...c, schoolId: e.target.value }));
+                }}>
+                  <option value="">Selecione a escola</option>
+                  {(schoolsList || []).map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Garagem (partida)</label>
+                <select className="input" onChange={(e) => {
+                  const g = (garagesList || []).find((g: any) => g.id === Number(e.target.value));
+                  if (g) setGenConfig(c => ({ ...c, depotLat: String(g.latitude || ''), depotLng: String(g.longitude || '') }));
+                }}>
+                  <option value="">Selecione</option>
+                  {(garagesList || []).filter((g: any) => g.latitude).map((g: any) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2 mt-1">
+                  <input type="text" placeholder="Lat" value={genConfig.depotLat} onChange={e => setGenConfig(c => ({ ...c, depotLat: e.target.value }))} className="input text-xs flex-1" />
+                  <input type="text" placeholder="Lng" value={genConfig.depotLng} onChange={e => setGenConfig(c => ({ ...c, depotLng: e.target.value }))} className="input text-xs flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Capacidade veículo</label>
+                <input type="number" value={genConfig.maxCapacity} onChange={e => setGenConfig(c => ({ ...c, maxCapacity: Number(e.target.value) }))} className="input" />
+              </div>
+              <div>
+                <label className="label">Dist. máx. rota (km)</label>
+                <input type="number" value={genConfig.maxDistanceKm} onChange={e => setGenConfig(c => ({ ...c, maxDistanceKm: Number(e.target.value) }))} className="input" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="label">Velocidade média (km/h)</label>
+                <input type="number" value={genConfig.avgSpeedKmh} onChange={e => setGenConfig(c => ({ ...c, avgSpeedKmh: Number(e.target.value) }))} className="input" />
+              </div>
+              <div>
+                <label className="label">Custo por km (R$)</label>
+                <input type="number" step="0.1" value={genConfig.costPerKm} onChange={e => setGenConfig(c => ({ ...c, costPerKm: Number(e.target.value) }))} className="input" />
+              </div>
+              <div>
+                <label className="label">Custo motorista/hora (R$)</label>
+                <input type="number" value={genConfig.driverCostPerHour} onChange={e => setGenConfig(c => ({ ...c, driverCostPerHour: Number(e.target.value) }))} className="input" />
+              </div>
+              <div>
+                <label className="label">Prefixo das rotas</label>
+                <input type="text" value={genConfig.prefix} onChange={e => setGenConfig(c => ({ ...c, prefix: e.target.value }))} className="input" />
+              </div>
+            </div>
+            <button onClick={async () => {
+              if (!genConfig.schoolId || !genConfig.depotLat) { showErrorToast('Selecione a escola e a garagem'); return; }
+              setGenerating(true); setGenResult(null);
+              try {
+                const result = await api.ai.generateRoutes({
+                  municipalityId, schoolId: Number(genConfig.schoolId),
+                  depotLat: parseFloat(genConfig.depotLat), depotLng: parseFloat(genConfig.depotLng),
+                  maxCapacity: genConfig.maxCapacity, maxDistanceKm: genConfig.maxDistanceKm,
+                  avgSpeedKmh: genConfig.avgSpeedKmh, costPerKm: genConfig.costPerKm,
+                  driverCostPerHour: genConfig.driverCostPerHour, prefix: genConfig.prefix,
+                });
+                setGenResult(result);
+                if (result.success) showSuccessToast(result.message);
+                else showErrorToast(result.message);
+              } catch (e: any) { showErrorToast(e.message || 'Erro ao gerar rotas'); }
+              setGenerating(false);
+            }} disabled={generating || !genConfig.schoolId || !genConfig.depotLat}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50">
+              {generating ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
+              {generating ? 'Gerando rotas...' : 'Gerar Rotas Automaticamente'}
+            </button>
+          </div>
+
+          {generating && (
+            <div className="card border-green-200 bg-green-50/30 mb-4">
+              <div className="flex items-center gap-3">
+                <Brain size={18} className="text-green-500 animate-pulse" />
+                <p className="font-semibold text-green-700">Clarke-Wright + 2-opt processando alunos...</p>
+                <Loader2 size={16} className="animate-spin text-green-500 ml-auto" />
+              </div>
+            </div>
+          )}
+
+          {genResult && genResult.success && (
+            <>
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="card bg-blue-50 border-0">
+                  <Truck size={20} className="text-blue-600 mb-2" />
+                  <p className="text-xl font-bold text-gray-900">{genResult.routes.length}</p>
+                  <p className="text-xs text-gray-500">Rotas geradas</p>
+                </div>
+                <div className="card bg-green-50 border-0">
+                  <Users size={20} className="text-green-600 mb-2" />
+                  <p className="text-xl font-bold text-gray-900">{genResult.totalStudents}</p>
+                  <p className="text-xs text-gray-500">Alunos distribuídos</p>
+                </div>
+                <div className="card bg-amber-50 border-0">
+                  <Route size={20} className="text-amber-600 mb-2" />
+                  <p className="text-xl font-bold text-gray-900">{genResult.routes.reduce((s: number, r: any) => s + r.distanceKm, 0).toFixed(1)} km</p>
+                  <p className="text-xs text-gray-500">Distância total</p>
+                </div>
+                <div className="card bg-red-50 border-0">
+                  <TrendingDown size={20} className="text-red-600 mb-2" />
+                  <p className="text-xl font-bold text-gray-900">R$ {genResult.routes.reduce((s: number, r: any) => s + r.monthlyCostTotal, 0).toLocaleString('pt-BR')}</p>
+                  <p className="text-xs text-gray-500">Custo mensal total</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {genResult.routes.map((r: any, idx: number) => (
+                  <div key={idx} className="card">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle size={18} className="text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">{r.name}</p>
+                        <div className="flex gap-4 text-xs text-gray-500 mt-0.5">
+                          <span>{r.stops} paradas</span>
+                          <span>{r.passengers} alunos</span>
+                          <span>{r.distanceKm.toFixed(1)} km</span>
+                          <span>{r.timeMinutes} min</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-800">R$ {r.monthlyCostTotal.toLocaleString('pt-BR')}/mês</p>
+                        <p className="text-xs text-gray-400">R$ {r.costPerStudent}/aluno</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-3">
+                      <div className="bg-blue-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-blue-600 font-medium">Combustível</p>
+                        <p className="text-sm font-bold text-blue-800">R$ {r.monthlyCostFuel.toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-amber-600 font-medium">Motorista</p>
+                        <p className="text-sm font-bold text-amber-800">R$ {r.monthlyCostDriver.toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-green-600 font-medium">Custo/Aluno</p>
+                        <p className="text-sm font-bold text-green-800">R$ {r.costPerStudent}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {genResult && !genResult.success && (
+            <div className="card bg-yellow-50 border-yellow-200">
+              <div className="flex items-center gap-2 text-yellow-700">
+                <AlertTriangle size={16} />
+                <p className="text-sm">{genResult.message}</p>
               </div>
             </div>
           )}

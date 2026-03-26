@@ -8,6 +8,7 @@ import { maskCPF, validateCPF, maskPhone } from '../lib/utils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import GoogleMapPicker from '../components/GoogleMapPicker';
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -194,6 +195,12 @@ export default function MonitoresPage() {
                   <div><label className="label flex items-center gap-1"><Navigation size={12}/> Rota</label><select className="input" value={form.routeName} onChange={setField('routeName')}><option value="">-- Selecione a rota --</option>{allRoutes.map((r: any) => <option key={r.route?.id || r.id} value={r.route?.name || r.name}>{r.route?.name || r.name}{r.route?.code ? ' (' + r.route.code + ')' : ''}</option>)}</select></div>
                   <div className="col-span-2"><label className="label">Endereço</label><input className="input" value={form.address} onChange={setField('address')}/></div>
                   <div className="col-span-2"><label className="label">Observações</label><textarea className="input" rows={2} value={form.observations} onChange={setField('observations')}/></div>
+                </div>
+                <div className="mt-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                  <p className="text-xs font-semibold text-green-700 mb-2 uppercase flex items-center gap-1"><MapPin size={12}/> Localização Residencial</p>
+                  <GoogleMapPicker latitude={form.latitude || ''} longitude={form.longitude || ''}
+                    onLocationChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
+                    height={200} placeholder="Pesquise o endereço do monitor..." showGpsButton={true} />
                 </div>
               </div>
               {!editId && <div className="p-4 bg-gray-50 rounded-xl">

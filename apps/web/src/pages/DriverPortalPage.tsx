@@ -405,11 +405,15 @@ function StudentsView({ stops }: { stops: any[] }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{st.name}</p>
-                    <p className="text-xs text-gray-500">{st.enrollment || ''}</p>
+                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                      {st.grade && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{st.grade}</span>}
+                      {st.hasSpecialNeeds && <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">PCD</span>}
+                    </div>
                   </div>
                   {st.status === 'boarded' && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Embarcou</span>}
+                  {st.status === 'dropped' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">Desembarcou</span>}
                   {st.status === 'absent' && <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Ausente</span>}
-                  {!st.status && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-medium">Pendente</span>}
+                  {(st.status === 'pending' || !st.status) && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-medium">Pendente</span>}
                 </div>
               ))}
             </div>
@@ -429,8 +433,59 @@ function StudentsView({ stops }: { stops: any[] }) {
 }
 
 function RouteView({ stops }: { stops: any[] }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || stops.length === 0) return;
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L || !mapRef.current) return;
+      if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null; }
+      const map = L.map(mapRef.current, { zoomControl: true }).setView([-10.76, -48.90], 13);
+      const sa = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const hl = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const st = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+      sa.addTo(map); hl.addTo(map);
+      L.control.layers({ 'Ruas': st, 'Satélite': sa }, {}, { position: 'topright', collapsed: true }).addTo(map);
+      const pts: any[] = [];
+      stops.forEach((s: any, i: number) => {
+        const la = parseFloat(String(s.latitude || 0)), ln = parseFloat(String(s.longitude || 0));
+        if (!la || !ln) return;
+        const icon = L.divIcon({ html: '<div style="background:#059669;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3)">' + (i+1) + '</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+        L.marker([la, ln], { icon }).addTo(map).bindPopup('<b>' + (i+1) + '. ' + s.name + '</b><br><span style="font-size:11px">' + (s.students?.length || 0) + ' aluno(s)</span>');
+        pts.push([la, ln]);
+      });
+      if (pts.length > 1) {
+        L.polyline(pts, { color: '#059669', weight: 4, opacity: 0.8 }).addTo(map);
+        map.fitBounds(pts, { padding: [30, 30] });
+      } else if (pts.length === 1) map.setView(pts[0], 15);
+      mapInstRef.current = map;
+      setTimeout(() => map.invalidateSize(), 200);
+    };
+    if ((window as any).L) { setTimeout(initMap, 100); }
+    else {
+      if (!document.getElementById('leaflet-css-drv')) { const lk = document.createElement('link'); lk.id = 'leaflet-css-drv'; lk.rel = 'stylesheet'; lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk); }
+      if (!document.getElementById('leaflet-js-drv')) { const sc = document.createElement('script'); sc.id = 'leaflet-js-drv'; sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = () => setTimeout(initMap, 200); document.head.appendChild(sc); }
+      else { const p = setInterval(() => { if ((window as any).L) { clearInterval(p); initMap(); } }, 200); setTimeout(() => clearInterval(p), 5000); }
+    }
+    return () => { if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null; } };
+  }, [stops]);
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Mapa da rota */}
+      {stops.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b flex items-center gap-2">
+            <Navigation size={14} className="text-accent-600" />
+            <span className="text-sm font-semibold text-gray-700">Mapa da Rota</span>
+            <span className="ml-auto text-xs text-gray-400">{stops.length} parada(s)</span>
+          </div>
+          <div ref={mapRef} style={{ height: 300 }} />
+        </div>
+      )}
+      {/* Lista de paradas */}
       {stops.map((stop: any, idx: number) => (
         <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border flex items-start gap-3">
           <div className="flex flex-col items-center">
@@ -440,9 +495,10 @@ function RouteView({ stops }: { stops: any[] }) {
           <div className="flex-1">
             <p className="font-semibold text-gray-900">{stop.name}</p>
             {stop.address && <p className="text-sm text-gray-500 mt-0.5">{stop.address}</p>}
-            {stop.time && <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Clock size={12} /> {stop.time}</p>}
+            {stop.latitude && <p className="text-xs text-gray-400 mt-0.5">{parseFloat(String(stop.latitude)).toFixed(5)}, {parseFloat(String(stop.longitude)).toFixed(5)}</p>}
             <p className="text-xs text-gray-400 mt-1">{stop.students?.length || 0} aluno(s)</p>
           </div>
+          {stop.arrived && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Visitada</span>}
         </div>
       ))}
       {stops.length === 0 && (

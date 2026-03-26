@@ -1,77 +1,67 @@
-// ============================================
-// WEB PUSH NOTIFICATIONS HELPER
-// ============================================
+// Push Notifications - Capacitor + FCM + Web
+import { api } from './api';
 
-/**
- * Solicita permissao para notificacoes do navegador.
- * Retorna true se foi concedida.
- */
-export async function requestNotificationPermission(): Promise<boolean> {
-  if (!('Notification' in window)) {
-    console.warn('Navegador nao suporta notificacoes');
-    return false;
+// Solicitar permissão de notificação web
+export function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
   }
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-  const result = await Notification.requestPermission();
-  return result === 'granted';
 }
 
-/**
- * Mostra uma notificacao local do navegador (quando a aba esta aberta mas sem foco).
- */
-export function showLocalNotification(title: string, body: string, options?: {
-  url?: string;
-  tag?: string;
-  icon?: string;
-}) {
-  if (Notification.permission !== 'granted') return;
-
-  // Se o service worker esta ativo, usar ele para mostrar a notificacao (funciona em background)
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.showNotification(title, {
-        body,
-        icon: options?.icon || '/bus.svg',
-        badge: '/bus.svg',
-        tag: options?.tag || 'netescol-' + Date.now(),
-        data: { url: options?.url || '/' },
-        requireInteraction: false,
-      } as NotificationOptions);
-    });
-    return;
+// Mostrar notificação local (web)
+export function showLocalNotification(title: string, body: string) {
+  // Notificação nativa do navegador
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body, icon: '/bus.svg' }); } catch {}
   }
+  // Vibrar
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
 
-  // Fallback: notificacao direta
+let initialized = false;
+
+export async function initPushNotifications() {
+  if (initialized) return;
+  initialized = true;
+
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
   try {
-    new Notification(title, {
-      body,
-      icon: options?.icon || '/bus.svg',
-      tag: options?.tag || 'netescol-' + Date.now(),
-    });
-  } catch (e) {
-    // Alguns navegadores nao suportam new Notification() diretamente
-    console.warn('Erro ao criar notificacao:', e);
-  }
-}
+    const { Capacitor } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return;
 
-/**
- * Verifica se o navegador suporta notificacoes push e se ja foram permitidas.
- */
-export function getNotificationStatus(): 'granted' | 'denied' | 'default' | 'unsupported' {
-  if (!('Notification' in window)) return 'unsupported';
-  return Notification.permission;
-}
+    const { PushNotifications } = await import('@capacitor/push-notifications');
 
-/**
- * Solicita permissao e mostra uma notificacao de teste.
- */
-export async function testNotification(): Promise<boolean> {
-  const granted = await requestNotificationPermission();
-  if (granted) {
-    showLocalNotification('NetEscol', 'Notificacoes ativadas com sucesso!', {
-      tag: 'test-notification',
+    const permResult = await PushNotifications.requestPermissions();
+    if (permResult.receive !== 'granted') return;
+
+    await PushNotifications.register();
+
+    await PushNotifications.addListener('registration', async (tokenData) => {
+      console.log('[PUSH] Token:', tokenData.value.substring(0, 20) + '...');
+      try {
+        await api.push.registerToken({ token: tokenData.value, platform: 'android' });
+        console.log('[PUSH] Token saved');
+      } catch (e: any) {
+        console.error('[PUSH] Save error:', e?.message);
+      }
     });
+
+    await PushNotifications.addListener('registrationError', (err) => {
+      console.error('[PUSH] Reg error:', err);
+    });
+
+    await PushNotifications.addListener('pushNotificationReceived', (notif) => {
+      console.log('[PUSH] Foreground:', notif);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    });
+
+    await PushNotifications.addListener('pushNotificationActionPerformed', () => {
+      window.location.href = '/';
+    });
+
+  } catch (e: any) {
+    // Not on native platform
   }
-  return granted;
 }

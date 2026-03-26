@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import FloatingChat from './components/FloatingChat';
 import LoadingOverlay from './components/LoadingOverlay';
 import { LoadingProvider } from './lib/loadingContext';
+import { initPushNotifications } from './lib/pushNotifications';
 
 // Paginas criticas (carregamento imediato)
 import LoginPage from './pages/LoginPage';
@@ -135,6 +136,11 @@ function HomeRedirect() {
 
 export default function App() {
   const { user } = useAuth();
+
+  // Inicializar push notifications quando o usuário está logado
+  useEffect(() => {
+    if (user) initPushNotifications();
+  }, [user]);
 
   return (
     <LoadingProvider>

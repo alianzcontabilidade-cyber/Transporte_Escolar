@@ -531,7 +531,7 @@ export default function Layout() {
   return (
     <div className={`flex h-screen ${isDark ? 'bg-gray-900 text-gray-200' : 'bg-[#f8f9fa]'}`}>
       {/* Sidebar Desktop */}
-      <aside className={`hidden lg:flex flex-col bg-primary-500 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : isParent ? 'w-52' : 'w-60'}`}>
+      <aside className={`hidden lg:flex flex-col transition-all duration-300 ${isDark ? 'bg-gray-800' : 'bg-primary-500'} ${sidebarCollapsed ? 'w-16' : isParent ? 'w-52' : 'w-60'}`}>
         <div className="p-3 border-b border-white/10 flex items-center justify-between">
           {!sidebarCollapsed && <img src="/logo.png" alt="NetEscol" className="h-7 w-auto" />}
           <button onClick={toggleSidebarCollapse} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all" title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}>
@@ -557,7 +557,7 @@ export default function Layout() {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 h-full w-72 bg-primary-500 shadow-xl z-50 flex flex-col">
+          <aside className={`fixed left-0 top-0 h-full w-72 shadow-xl z-50 flex flex-col ${isDark ? 'bg-gray-800' : 'bg-primary-500'}`}>
             <div className="p-4 flex items-center justify-between border-b border-white/10">
               <img src="/logo.png" alt="NetEscol" className="h-7 w-auto" />
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white"><X size={20} /></button>
@@ -570,7 +570,7 @@ export default function Layout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-primary-500 border-b border-primary-600">
+        <header className={`lg:hidden flex items-center justify-between px-4 py-3 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-primary-500 border-primary-600'}`}>
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-white/10 text-white"><Menu size={20} /></button>
           <img src="/logo.png" alt="NetEscol" className="h-6 w-auto" />
           <div className="flex items-center gap-2">

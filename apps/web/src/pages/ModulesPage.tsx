@@ -1,89 +1,166 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import DashboardWidget from '../components/DashboardWidget';
 import {
   LayoutDashboard, School, GraduationCap, Bus, Briefcase, Settings,
-  Users, MapPin, BarChart3, ArrowRight
+  Users, MapPin, BarChart3, ArrowRight, ArrowLeft, Grid3X3, List,
+  Route, BookOpen, FileText, ClipboardList, Calendar, Database,
+  Navigation, Locate, MapPinned, Heart, UserCheck, Bell, DollarSign,
+  Package, Wrench, Brain, Shield, AlertTriangle, FileCheck, Building2,
+  Warehouse, Fuel
 } from 'lucide-react';
 
-const MODULES = [
-  {
-    to: '/dashboard',
-    icon: LayoutDashboard,
-    title: 'Painel Central',
-    desc: 'Visão geral, indicadores, alertas e gráficos',
-    color: '#2DB5B0',
-    gradient: 'from-[#2DB5B0] to-[#249a96]',
-  },
-  {
-    to: '/modulos?m=secretaria',
-    icon: School,
-    title: 'Gestão Escolar',
-    desc: 'Escolas, alunos, matrículas, turmas e professores',
-    color: '#6366f1',
-    gradient: 'from-[#6366f1] to-[#4f46e5]',
-    links: [
-      { to: '/escolas', text: 'Escolas' }, { to: '/alunos', text: 'Alunos' },
-      { to: '/matriculas', text: 'Matrículas' }, { to: '/turmas', text: 'Turmas' },
-      { to: '/professores', text: 'Professores' }, { to: '/ficha-matricula', text: 'Ficha Matríc.' },
+// Ícones por rota para o submódulo
+const ICON_MAP: Record<string, any> = {
+  '/escolas': School, '/alunos': Users, '/matriculas': FileText, '/turmas': GraduationCap,
+  '/series': GraduationCap, '/professores': UserCheck, '/ficha-matricula': FileText,
+  '/anos-letivos': Calendar, '/lista-espera': ClipboardList, '/carteirinha': FileText,
+  '/remanejamento': Users, '/relatorios': BarChart3, '/declaracoes': FileText,
+  '/ocorrencias': AlertTriangle, '/ficha-aluno': FileText, '/relatorio-escola': School,
+  '/relacao-alunos-turma': Users, '/historico-escolar': BookOpen,
+  '/disciplinas': BookOpen, '/diario-escolar': BookOpen, '/lancamento-notas': FileText,
+  '/boletim': FileText, '/parecer-descritivo': BookOpen, '/ata-resultados': FileText,
+  '/calendario': Calendar, '/educacenso': Database, '/grade-horaria': Calendar,
+  '/conselho-classe': Users, '/relatorio-individual': BookOpen,
+  '/quadro-rendimento': BarChart3, '/ata-resultados-finais': FileText,
+  '/baixo-rendimento': AlertTriangle, '/diario-classe': BookOpen,
+  '/quadro-curricular': BookOpen, '/desempenho-disciplina': BarChart3,
+  '/rotas': Route, '/veiculos': Bus, '/motoristas': UserCheck, '/monitores': UserCheck,
+  '/monitor': Navigation, '/mapa-tempo-real': MapPinned, '/rastreamento': Locate,
+  '/portal-responsavel': Heart, '/relatorio-transporte': BarChart3,
+  '/vistoria-veiculos': ClipboardList, '/alunos-transportados': Users,
+  '/quilometragem': BarChart3, '/abastecimento': Fuel, '/relatorio-manutencoes': Wrench,
+  '/fornecedores': Building2, '/ordens-servico': ClipboardList, '/garagens': Warehouse,
+  '/coleta-gps': MapPinned, '/ia-rotas': Brain, '/frequencia': ClipboardList,
+  '/recursos-humanos': Briefcase, '/financeiro': DollarSign, '/contratos': FileText,
+  '/merenda': ClipboardList, '/biblioteca': BookOpen, '/patrimonio': Package,
+  '/manutencao-preditiva': Wrench, '/central-relatorios': BarChart3,
+  '/comunicacao': Bell, '/envio-massa': Bell, '/cotacao-compras': DollarSign,
+  '/estoque-merenda': Package, '/protocolo': ClipboardList, '/eventos': Calendar,
+  '/mural': Bell, '/relatorio-rh': Briefcase, '/relatorio-patrimonio': Package,
+  '/relatorio-educacenso': Database,
+  '/cadastro-prefeitura': School, '/configuracoes': Settings,
+  '/risco-evasao': AlertTriangle, '/atividade-usuarios': Users,
+  '/sobre': Settings, '/gestao-documentos': FileCheck, '/backup': Database,
+  '/super-admin': Shield, '/config-formularios': Settings, '/perfil': Users,
+};
+
+const MODULE_DATA: Record<string, { title: string; desc: string; color: string; gradient: string; icon: any; items: { to: string; text: string; desc: string }[] }> = {
+  secretaria: {
+    title: 'Gestão Escolar', desc: 'Escolas, alunos, matrículas, turmas e professores',
+    color: '#6366f1', gradient: 'from-[#6366f1] to-[#4f46e5]', icon: School,
+    items: [
+      { to: '/escolas', text: 'Escolas', desc: 'Cadastro e gestão de escolas' },
+      { to: '/alunos', text: 'Alunos', desc: 'Cadastro completo de alunos' },
+      { to: '/matriculas', text: 'Matrículas', desc: 'Matrículas por turma e ano' },
+      { to: '/turmas', text: 'Turmas', desc: 'Gestão de turmas e séries' },
+      { to: '/series', text: 'Séries', desc: 'Etapas e séries escolares' },
+      { to: '/professores', text: 'Professores', desc: 'Cadastro de docentes' },
+      { to: '/anos-letivos', text: 'Anos Letivos', desc: 'Períodos acadêmicos' },
+      { to: '/ficha-matricula', text: 'Ficha de Matrícula', desc: 'Formulário oficial' },
+      { to: '/lista-espera', text: 'Lista de Espera', desc: 'Fila de vagas' },
+      { to: '/carteirinha', text: 'Carteirinha', desc: 'Carteira estudantil com QR' },
+      { to: '/remanejamento', text: 'Remanejamento', desc: 'Transferência entre turmas' },
+      { to: '/declaracoes', text: 'Declarações', desc: 'Documentos e certidões' },
+      { to: '/ocorrencias', text: 'Ocorrências', desc: 'Registros disciplinares' },
+      { to: '/historico-escolar', text: 'Histórico Escolar', desc: 'Anos anteriores' },
     ],
   },
-  {
-    to: '/modulos?m=pedagogico',
-    icon: GraduationCap,
-    title: 'Ensino e Aprendizagem',
-    desc: 'Diário escolar, notas, boletim e calendário',
-    color: '#8b5cf6',
-    gradient: 'from-[#8b5cf6] to-[#7c3aed]',
-    links: [
-      { to: '/diario-escolar', text: 'Diário' }, { to: '/lancamento-notas', text: 'Notas' },
-      { to: '/boletim', text: 'Boletim' }, { to: '/calendario', text: 'Calendário' },
-      { to: '/relatorio-frequência', text: 'Frequência' }, { to: '/educacenso', text: 'EDUCACENSO' },
+  pedagogico: {
+    title: 'Ensino e Aprendizagem', desc: 'Diário escolar, notas, boletim e calendário',
+    color: '#8b5cf6', gradient: 'from-[#8b5cf6] to-[#7c3aed]', icon: GraduationCap,
+    items: [
+      { to: '/diario-escolar', text: 'Diário Escolar', desc: 'Registro diário de aulas' },
+      { to: '/lancamento-notas', text: 'Lançar Notas', desc: 'Notas e avaliações' },
+      { to: '/boletim', text: 'Boletim Escolar', desc: 'Boletim do aluno' },
+      { to: '/parecer-descritivo', text: 'Parecer Descritivo', desc: 'Avaliação qualitativa' },
+      { to: '/disciplinas', text: 'Disciplinas', desc: 'Componentes curriculares' },
+      { to: '/grade-horaria', text: 'Grade Horária', desc: 'Horários das turmas' },
+      { to: '/calendario', text: 'Calendário Escolar', desc: 'Eventos e feriados' },
+      { to: '/conselho-classe', text: 'Conselho de Classe', desc: 'Decisões pedagógicas' },
+      { to: '/ata-resultados', text: 'ATA Resultados', desc: 'Atas de resultados' },
+      { to: '/ata-resultados-finais', text: 'Resultados Finais', desc: 'Ata final do ano' },
+      { to: '/relatorio-individual', text: 'Relatório Individual', desc: 'Relatório BNCC' },
+      { to: '/quadro-rendimento', text: 'Quadro de Rendimento', desc: 'Aprovação por turma' },
+      { to: '/diario-classe', text: 'Diário de Classe', desc: 'Frequência mensal' },
+      { to: '/educacenso', text: 'EDUCACENSO', desc: 'Censo Escolar INEP' },
     ],
   },
-  {
-    to: '/modulos?m=transporte',
-    icon: Bus,
-    title: 'Frota e Rotas',
-    desc: 'Rotas, veículos, motoristas e monitoramento GPS',
-    color: '#f97316',
-    gradient: 'from-[#f97316] to-[#ea580c]',
-    links: [
-      { to: '/rotas', text: 'Rotas' }, { to: '/veiculos', text: 'Veículos' },
-      { to: '/monitor', text: 'Monitoramento' }, { to: '/mapa-tempo-real', text: 'Mapa GPS' },
-      { to: '/motoristas', text: 'Motoristas' }, { to: '/portal-responsavel', text: 'Portal Pais' },
-      { to: '/fornecedores', text: 'Fornecedores' }, { to: '/ordens-servico', text: 'Ordens de Serviço' },
-      { to: '/garagens', text: 'Garagens' },
+  transporte: {
+    title: 'Frota e Rotas', desc: 'Rotas, veículos, motoristas e monitoramento GPS',
+    color: '#f97316', gradient: 'from-[#f97316] to-[#ea580c]', icon: Bus,
+    items: [
+      { to: '/rotas', text: 'Rotas', desc: 'Gestão de rotas de transporte' },
+      { to: '/veiculos', text: 'Veículos', desc: 'Frota de ônibus e vans' },
+      { to: '/motoristas', text: 'Motoristas', desc: 'Cadastro de motoristas' },
+      { to: '/monitores', text: 'Monitores', desc: 'Monitores de ônibus' },
+      { to: '/monitor', text: 'Monitoramento', desc: 'Acompanhar viagens ativas' },
+      { to: '/mapa-tempo-real', text: 'Mapa GPS', desc: 'Veículos em tempo real' },
+      { to: '/ia-rotas', text: 'IA Rotas', desc: 'Geração inteligente de rotas' },
+      { to: '/coleta-gps', text: 'Coleta GPS', desc: 'Marcar pontos dos alunos' },
+      { to: '/fornecedores', text: 'Fornecedores', desc: 'Mecânicas e postos' },
+      { to: '/ordens-servico', text: 'Ordens de Serviço', desc: 'OS de manutenção' },
+      { to: '/garagens', text: 'Garagens', desc: 'Locais de guarda da frota' },
+      { to: '/vistoria-veiculos', text: 'Vistoria', desc: 'Checklist de inspeção' },
+      { to: '/abastecimento', text: 'Abastecimento', desc: 'Controle de combustível' },
+      { to: '/quilometragem', text: 'Quilometragem', desc: 'Km por veículo e rota' },
+      { to: '/alunos-transportados', text: 'Alunos Transportados', desc: 'Relatório FNDE' },
+      { to: '/portal-responsavel', text: 'Portal Pais', desc: 'Portal do responsável' },
     ],
   },
-  {
-    to: '/modulos?m=administrativo',
-    icon: Briefcase,
-    title: 'Gestão e Recursos',
-    desc: 'RH, financeiro, contratos, merenda e patrimônio',
-    color: '#0ea5e9',
-    gradient: 'from-[#0ea5e9] to-[#0284c7]',
-    links: [
-      { to: '/recursos-humanos', text: 'RH' }, { to: '/financeiro', text: 'Financeiro' },
-      { to: '/contratos', text: 'Contratos' }, { to: '/merenda', text: 'Merenda' },
-      { to: '/biblioteca', text: 'Biblioteca' }, { to: '/relatorios', text: 'Relatórios' },
+  administrativo: {
+    title: 'Gestão e Recursos', desc: 'RH, financeiro, contratos, merenda e patrimônio',
+    color: '#0ea5e9', gradient: 'from-[#0ea5e9] to-[#0284c7]', icon: Briefcase,
+    items: [
+      { to: '/recursos-humanos', text: 'RH', desc: 'Quadro de pessoal' },
+      { to: '/financeiro', text: 'Financeiro', desc: 'Receitas e despesas' },
+      { to: '/contratos', text: 'Contratos', desc: 'Contratos e fornecedores' },
+      { to: '/merenda', text: 'Merenda', desc: 'Cardápios escolares' },
+      { to: '/estoque-merenda', text: 'Estoque Merenda', desc: 'Entrada e saída' },
+      { to: '/biblioteca', text: 'Biblioteca', desc: 'Acervo e empréstimos' },
+      { to: '/patrimonio', text: 'Patrimônio', desc: 'Bens patrimoniais' },
+      { to: '/comunicacao', text: 'Comunicação', desc: 'Mensagens e recados' },
+      { to: '/eventos', text: 'Eventos', desc: 'Festas e formaturas' },
+      { to: '/protocolo', text: 'Protocolo', desc: 'Requerimentos oficiais' },
+      { to: '/mural', text: 'Mural', desc: 'Avisos e comunicados' },
+      { to: '/cotacao-compras', text: 'Cotações', desc: 'Pesquisa de preços' },
+      { to: '/central-relatorios', text: 'Central Relatórios', desc: 'Todos os relatórios' },
     ],
   },
-  {
-    to: '/configurações',
-    icon: Settings,
-    title: 'Central de Controle',
-    desc: 'Usuários, segurança, perfis e preferências do sistema',
-    color: '#64748b',
-    gradient: 'from-[#64748b] to-[#475569]',
+  controle: {
+    title: 'Central de Controle', desc: 'Configurações, segurança e administração',
+    color: '#64748b', gradient: 'from-[#64748b] to-[#475569]', icon: Settings,
+    items: [
+      { to: '/cadastro-prefeitura', text: 'Prefeitura', desc: 'Dados do município' },
+      { to: '/configuracoes', text: 'Configurações', desc: 'Preferências do sistema' },
+      { to: '/gestao-documentos', text: 'Documentos', desc: 'Assinaturas eletrônicas' },
+      { to: '/atividade-usuarios', text: 'Atividade', desc: 'Log de usuários' },
+      { to: '/backup', text: 'Backup', desc: 'Backup de dados' },
+      { to: '/risco-evasao', text: 'Risco Evasão', desc: 'Análise preditiva' },
+      { to: '/perfil', text: 'Meu Perfil', desc: 'Dados profissionais' },
+      { to: '/sobre', text: 'Sobre', desc: 'Informações do sistema' },
+    ],
   },
+};
+
+const MAIN_MODULES = [
+  { key: 'dashboard', to: '/dashboard', icon: LayoutDashboard, title: 'Painel Central', desc: 'Indicadores e gráficos', color: '#2DB5B0', gradient: 'from-[#2DB5B0] to-[#249a96]' },
+  { key: 'secretaria', to: '/modulos?m=secretaria', icon: School, title: 'Gestão Escolar', desc: 'Escolas, alunos e matrículas', color: '#6366f1', gradient: 'from-[#6366f1] to-[#4f46e5]' },
+  { key: 'pedagogico', to: '/modulos?m=pedagogico', icon: GraduationCap, title: 'Ensino e Aprendizagem', desc: 'Notas, boletim e calendário', color: '#8b5cf6', gradient: 'from-[#8b5cf6] to-[#7c3aed]' },
+  { key: 'transporte', to: '/modulos?m=transporte', icon: Bus, title: 'Frota e Rotas', desc: 'Transporte e GPS', color: '#f97316', gradient: 'from-[#f97316] to-[#ea580c]' },
+  { key: 'administrativo', to: '/modulos?m=administrativo', icon: Briefcase, title: 'Gestão e Recursos', desc: 'RH, financeiro e mais', color: '#0ea5e9', gradient: 'from-[#0ea5e9] to-[#0284c7]' },
+  { key: 'controle', to: '/modulos?m=controle', icon: Settings, title: 'Central de Controle', desc: 'Configurações e segurança', color: '#64748b', gradient: 'from-[#64748b] to-[#475569]' },
 ];
 
 export default function ModulesPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [searchParams] = useSearchParams();
+  const moduleKey = searchParams.get('m');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
@@ -97,9 +174,87 @@ export default function ModulesPage() {
     activeTrips: ((activeTrips as any) || []).length,
   };
 
+  // Se tem módulo selecionado (?m=transporte), mostra os itens do módulo
+  const mod = moduleKey ? MODULE_DATA[moduleKey] : null;
+  if (mod) {
+    const ModIcon = mod.icon;
+    return (
+      <div className="p-6 lg:p-8">
+        {/* Header do módulo */}
+        <div className="mb-6">
+          <Link to="/modulos" className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-3 transition-colors">
+            <ArrowLeft size={14} /> Voltar aos Módulos
+          </Link>
+          <div className={`bg-gradient-to-r ${mod.gradient} rounded-2xl p-6 relative overflow-hidden`}>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <ModIcon size={32} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">{mod.title}</h1>
+                <p className="text-white/70 mt-0.5">{mod.desc}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle view */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-gray-500">{mod.items.length} funcionalidades</p>
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}><Grid3X3 size={16} /></button>
+            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}><List size={16} /></button>
+          </div>
+        </div>
+
+        {/* Grid view */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {mod.items.map(item => {
+              const ItemIcon = ICON_MAP[item.to] || FileText;
+              return (
+                <Link key={item.to} to={item.to}
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 text-center hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5 transition-all duration-200 group">
+                  <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: mod.color + '15' }}>
+                    <ItemIcon size={26} style={{ color: mod.color }} />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{item.text}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{item.desc}</p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* List view */}
+        {viewMode === 'list' && (
+          <div className="space-y-2">
+            {mod.items.map(item => {
+              const ItemIcon = ICON_MAP[item.to] || FileText;
+              return (
+                <Link key={item.to} to={item.to}
+                  className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md hover:border-gray-300 transition-all group">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform" style={{ backgroundColor: mod.color + '15' }}>
+                    <ItemIcon size={20} style={{ color: mod.color }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{item.text}</p>
+                    <p className="text-xs text-gray-400">{item.desc}</p>
+                  </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Tela principal (sem módulo selecionado)
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Bem-vindo ao NetEscol</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Selecione um módulo para começar</p>
@@ -121,18 +276,15 @@ export default function ModulesPage() {
         </div>
       </div>
 
-      {/* Live Status */}
       <DashboardWidget />
 
-      {/* Module Banners - Grid 3 columns */}
+      {/* Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {MODULES.map(mod => (
-          <div key={mod.title} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 group">
-            {/* Banner header with gradient */}
-            <Link to={mod.to.startsWith('/modulos') ? (mod.links?.[0]?.to || '/') : mod.to}
-              className={`block bg-gradient-to-r ${mod.gradient} p-5 relative overflow-hidden`}>
+        {MAIN_MODULES.map(mod => (
+          <Link key={mod.key} to={mod.to}
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+            <div className={`bg-gradient-to-r ${mod.gradient} p-5 relative overflow-hidden`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
               <div className="relative flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <mod.icon size={28} className="text-white" />
@@ -141,32 +293,10 @@ export default function ModulesPage() {
                   <h3 className="text-xl font-bold text-white">{mod.title}</h3>
                   <p className="text-white/70 text-sm mt-0.5">{mod.desc}</p>
                 </div>
+                <ArrowRight size={20} className="text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
-            </Link>
-
-            {/* Quick links */}
-            {mod.links && (
-              <div className="p-4">
-                <div className="grid grid-cols-3 gap-2">
-                  {mod.links.map(link => (
-                    <Link key={link.to} to={link.to}
-                      className="text-center py-2.5 px-2 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                      {link.text}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* For modules without links (Dashboard, Config) */}
-            {!mod.links && (
-              <div className="p-4">
-                <Link to={mod.to} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Acessar <ArrowRight size={14} />
-                </Link>
-              </div>
-            )}
-          </div>
+            </div>
+          </Link>
         ))}
       </div>
     </div>

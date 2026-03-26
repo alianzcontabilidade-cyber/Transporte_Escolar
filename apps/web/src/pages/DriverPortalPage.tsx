@@ -93,7 +93,7 @@ export default function DriverPortalPage() {
     if (!activeTrip?.route?.id) return;
     const vId = activeTrip.vehicle?.id || activeTrip.vehicleId;
     await startTripMut.mutate(
-      { routeId: activeTrip.route.id, driverId: driverId || 0, vehicleId: vId || 0 },
+      { routeId: activeTrip.route.id, driverId: driverId || 0, vehicleId: vId || 0, municipalityId: user?.municipalityId || 1 },
       { onSuccess: () => { setTripStartTime(new Date()); startTracking(); loadData(); } }
     );
   }
@@ -105,7 +105,16 @@ export default function DriverPortalPage() {
     if (!tripId) return;
     await completeTripMut.mutate(
       { tripId },
-      { onSuccess: () => { stopTracking(); setActiveTrip(null); setTripStartTime(null); setElapsed('00:00:00'); loadData(); } }
+      {
+        onSuccess: () => {
+          try { stopTracking(); } catch {}
+          setActiveTrip(null); setTripStartTime(null); setElapsed('00:00:00'); setGpsActive(false);
+          loadData();
+        },
+        onError: (err: string) => {
+          console.error('Erro ao finalizar:', err);
+        }
+      }
     );
   }
 

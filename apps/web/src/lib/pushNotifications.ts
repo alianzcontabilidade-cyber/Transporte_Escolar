@@ -46,8 +46,11 @@ try {
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     });
 
-    PushNotifications.addListener('pushNotificationActionPerformed', () => {
-      window.location.href = '/';
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      const data = action?.notification?.data || {};
+      if (data.type === 'chat') window.location.href = '/';
+      else if (['student_boarded','student_dropped','student_absent','trip_started','trip_completed','trip_cancelled','trip_interrupted'].includes(data.type)) window.location.href = '/portal-responsavel';
+      else window.location.href = '/';
     });
 
     console.log('[PUSH] Listeners registrados');

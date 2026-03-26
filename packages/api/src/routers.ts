@@ -26,7 +26,7 @@ import { sign, verify } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { emitToMunicipality, emitToUser } from './socketInstance';
 import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents, clarkeWrightGrouping, dbscanCluster, twoOptImprove } from './services/routeOptimizer';
-import { sendPushToUser } from './services/pushService';
+import { sendPushToUser, notifyTripStarted, notifyTripCompleted, notifyTripCancelled, notifyTripInterrupted, notifyStudentBoarded, notifyStudentDropped, notifyStudentAbsent } from './services/pushService';
 import { verifyGuardianAccess } from './helpers';
 
 // ╔══════════════════════════════════════════════════════════════════╗
@@ -1740,6 +1740,9 @@ export const tripsRouter = t.router({
         time: new Date().toISOString(),
       });
 
+      // Push notification para pais dos alunos da rota
+      notifyTripStarted(input.routeId, route.name);
+
       return { success: true, tripId: trip.id };
     }),
 
@@ -1822,6 +1825,29 @@ export const tripsRouter = t.router({
             municipalityId: routeComplete.municipalityId,
             time: new Date().toISOString(),
           });
+        }
+        // Push notification
+        const [routeForPush] = await db.select({ name: routes.name }).from(routes).where(eq(routes.id, trip.routeId)).limit(1);
+        if (routeForPush) notifyTripCompleted(trip.routeId, routeForPush.name);
+      }
+      return { success: true };
+    }),
+
+  // Cancelar/Interromper viagem
+  cancelTrip: protectedProcedure
+    .input(z.object({ tripId: z.number(), reason: z.string().default('Motivo não informado'), status: z.enum(['cancelled', 'interrupted']).default('cancelled') }))
+    .mutation(async ({ input }) => {
+      await db.update(trips).set({ status: input.status, completedAt: new Date(), notes: input.reason }).where(eq(trips.id, input.tripId));
+      const [trip] = await db.select().from(trips).where(eq(trips.id, input.tripId)).limit(1);
+      if (trip) {
+        const [route] = await db.select({ name: routes.name, municipalityId: routes.municipalityId }).from(routes).where(eq(routes.id, trip.routeId)).limit(1);
+        if (route) {
+          emitToMunicipality(route.municipalityId, 'trip:cancelled', { tripId: input.tripId, routeName: route.name, reason: input.reason });
+          if (input.status === 'cancelled') {
+            notifyTripCancelled(trip.routeId, route.name, input.reason);
+          } else {
+            notifyTripInterrupted(trip.routeId, route.name, input.reason);
+          }
         }
       }
       return { success: true };
@@ -2891,6 +2917,9 @@ export const monitorsRouter = t.router({
         }
       }
 
+      // Push notification para pais
+      notifyStudentBoarded(input.studentId, student?.name || 'Aluno');
+
       return { success: true, studentName: student?.name };
     }),
 
@@ -2940,6 +2969,9 @@ export const monitorsRouter = t.router({
           });
         }
       }
+      // Push notification para pais
+      notifyStudentDropped(input.studentId, student?.name || 'Aluno');
+
       return { success: true, studentName: student?.name };
     }),
 
@@ -2992,6 +3024,9 @@ export const monitorsRouter = t.router({
           });
         }
       }
+
+      // Push notification para pais
+      notifyStudentAbsent(input.studentId, student?.name || 'Aluno');
 
       return { success: true, studentName: student?.name };
     }),

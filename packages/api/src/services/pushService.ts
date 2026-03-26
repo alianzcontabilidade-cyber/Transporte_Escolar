@@ -125,3 +125,118 @@ export async function sendPushToUser(userId: number, payload: PushPayload) {
     console.log(`[PUSH] Error: ${(e as any).message}`);
   }
 }
+
+// ============================================
+// HELPERS: Notificações de Transporte
+// ============================================
+
+// Buscar pais (guardians) dos alunos de uma rota
+export async function getParentUserIdsByRoute(routeId: number): Promise<number[]> {
+  try {
+    const rows = await db.select({ userId: sql<number>`g.userId` })
+      .from(sql`guardians g`)
+      .innerJoin(sql`stop_students ss`, sql`ss.studentId = g.studentId`)
+      .innerJoin(sql`stops s`, sql`s.id = ss.stopId`)
+      .where(sql`s.routeId = ${routeId}`);
+    return [...new Set(rows.map(r => r.userId))];
+  } catch { return []; }
+}
+
+// Buscar pais de um aluno específico
+export async function getParentUserIdsByStudent(studentId: number): Promise<number[]> {
+  try {
+    const rows = await db.select({ userId: sql<number>`userId` })
+      .from(sql`guardians`).where(sql`studentId = ${studentId}`);
+    return rows.map(r => r.userId);
+  } catch { return []; }
+}
+
+// Enviar push para múltiplos usuários
+export async function sendPushToUsers(userIds: number[], payload: PushPayload) {
+  for (const uid of userIds) {
+    await sendPushToUser(uid, payload);
+  }
+}
+
+// Notificação: Viagem iniciada
+export async function notifyTripStarted(routeId: number, routeName: string) {
+  const parentIds = await getParentUserIdsByRoute(routeId);
+  await sendPushToUsers(parentIds, {
+    title: '🚌 Ônibus saiu!',
+    body: `Rota ${routeName} iniciou a viagem`,
+    data: { type: 'trip_started', routeId: String(routeId) },
+  });
+}
+
+// Notificação: Aluno embarcou
+export async function notifyStudentBoarded(studentId: number, studentName: string) {
+  const parentIds = await getParentUserIdsByStudent(studentId);
+  await sendPushToUsers(parentIds, {
+    title: '✅ Aluno embarcou',
+    body: `${studentName} embarcou no ônibus`,
+    data: { type: 'student_boarded', studentId: String(studentId) },
+  });
+}
+
+// Notificação: Aluno desembarcou
+export async function notifyStudentDropped(studentId: number, studentName: string) {
+  const parentIds = await getParentUserIdsByStudent(studentId);
+  await sendPushToUsers(parentIds, {
+    title: '🏠 Aluno desembarcou',
+    body: `${studentName} desembarcou com segurança`,
+    data: { type: 'student_dropped', studentId: String(studentId) },
+  });
+}
+
+// Notificação: Aluno ausente
+export async function notifyStudentAbsent(studentId: number, studentName: string) {
+  const parentIds = await getParentUserIdsByStudent(studentId);
+  await sendPushToUsers(parentIds, {
+    title: '⚠️ Aluno ausente',
+    body: `${studentName} não estava no ponto de parada`,
+    data: { type: 'student_absent', studentId: String(studentId) },
+  });
+}
+
+// Notificação: Viagem concluída
+export async function notifyTripCompleted(routeId: number, routeName: string) {
+  const parentIds = await getParentUserIdsByRoute(routeId);
+  await sendPushToUsers(parentIds, {
+    title: '✅ Viagem concluída',
+    body: `Rota ${routeName} - todos os alunos entregues`,
+    data: { type: 'trip_completed', routeId: String(routeId) },
+  });
+}
+
+// Notificação: Viagem cancelada
+export async function notifyTripCancelled(routeId: number, routeName: string, reason: string, driverUserId?: number, monitorUserId?: number) {
+  const parentIds = await getParentUserIdsByRoute(routeId);
+  const allIds = [...parentIds];
+  if (driverUserId) allIds.push(driverUserId);
+  if (monitorUserId) allIds.push(monitorUserId);
+  await sendPushToUsers([...new Set(allIds)], {
+    title: '🚫 Viagem CANCELADA',
+    body: `Rota ${routeName}. Motivo: ${reason}`,
+    data: { type: 'trip_cancelled', routeId: String(routeId) },
+  });
+}
+
+// Notificação: Viagem interrompida
+export async function notifyTripInterrupted(routeId: number, routeName: string, reason: string) {
+  const parentIds = await getParentUserIdsByRoute(routeId);
+  await sendPushToUsers(parentIds, {
+    title: '⛔ Viagem INTERROMPIDA',
+    body: `Rota ${routeName}. Motivo: ${reason}`,
+    data: { type: 'trip_interrupted', routeId: String(routeId) },
+  });
+}
+
+// Notificação: Problema com veículo
+export async function notifyVehicleProblem(routeId: number, routeName: string, plate: string) {
+  const parentIds = await getParentUserIdsByRoute(routeId);
+  await sendPushToUsers(parentIds, {
+    title: '🔧 Problema mecânico',
+    body: `Veículo ${plate} com problema na rota ${routeName}`,
+    data: { type: 'vehicle_problem', routeId: String(routeId) },
+  });
+}

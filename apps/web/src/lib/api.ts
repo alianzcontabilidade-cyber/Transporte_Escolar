@@ -187,6 +187,7 @@ export const api = {
     start: (input: any) => call('trips.start', input, 'mutation'),
     arriveAtStop: (input: any) => call('trips.arriveAtStop', input, 'mutation'),
     complete: (input: any) => call('trips.complete', input, 'mutation'),
+    cancelTrip: (input: any) => call('trips.cancelTrip', input, 'mutation'),
     updateLocation: (input: any) => call('trips.updateLocation', input, 'mutation'),
     history: (input: any) => call('trips.history', input, 'query'),
   },

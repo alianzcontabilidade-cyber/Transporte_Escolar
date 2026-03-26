@@ -6327,57 +6327,67 @@ export const chatRouter = t.router({
       return msgs.reverse();
     }),
 
-  // Enviar mensagem
+  // Enviar mensagem (aceita recipientId OU conversationId)
   send: protectedProcedure
     .input(z.object({
-      recipientId: z.number(),
+      recipientId: z.number().optional(),
+      conversationId: z.number().optional(),
       content: z.string().min(1).max(2000),
     }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.userId!;
       const municipalityId = ctx.municipalityId || 1;
+      let conv: any = null;
+      let recipientId = input.recipientId;
 
-      // Buscar ou criar conversa
-      let [conv] = await db.select().from(chatConversations)
-        .where(or(
-          and(eq(chatConversations.participant1Id, userId), eq(chatConversations.participant2Id, input.recipientId)),
-          and(eq(chatConversations.participant1Id, input.recipientId), eq(chatConversations.participant2Id, userId))
-        )).limit(1);
-
-      if (!conv) {
-        const [newConv] = await db.insert(chatConversations).values({
-          municipalityId,
-          participant1Id: userId,
-          participant2Id: input.recipientId,
-          lastMessageAt: new Date(),
-        }).$returningId();
-        [conv] = await db.select().from(chatConversations).where(eq(chatConversations.id, newConv.id)).limit(1);
+      // Se conversationId fornecido, buscar a conversa existente
+      if (input.conversationId) {
+        [conv] = await db.select().from(chatConversations)
+          .where(and(
+            eq(chatConversations.id, input.conversationId),
+            or(eq(chatConversations.participant1Id, userId), eq(chatConversations.participant2Id, userId))
+          )).limit(1);
+        if (!conv) throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversa não encontrada' });
+        recipientId = conv.participant1Id === userId ? conv.participant2Id : conv.participant1Id;
       }
+
+      // Se recipientId fornecido, buscar ou criar conversa
+      if (!conv && recipientId) {
+        [conv] = await db.select().from(chatConversations)
+          .where(or(
+            and(eq(chatConversations.participant1Id, userId), eq(chatConversations.participant2Id, recipientId)),
+            and(eq(chatConversations.participant1Id, recipientId), eq(chatConversations.participant2Id, userId))
+          )).limit(1);
+
+        if (!conv) {
+          const [newConv] = await db.insert(chatConversations).values({
+            municipalityId, participant1Id: userId, participant2Id: recipientId, lastMessageAt: new Date(),
+          }).$returningId();
+          [conv] = await db.select().from(chatConversations).where(eq(chatConversations.id, newConv.id)).limit(1);
+        }
+      }
+
+      if (!conv) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Informe recipientId ou conversationId' });
 
       // Inserir mensagem
       const [msg] = await db.insert(chatMessages).values({
-        conversationId: conv.id,
-        senderId: userId,
-        content: input.content,
+        conversationId: conv.id, senderId: userId, content: input.content,
       }).$returningId();
 
-      // Atualizar lastMessageAt da conversa
-      await db.update(chatConversations)
-        .set({ lastMessageAt: new Date() })
-        .where(eq(chatConversations.id, conv.id));
+      // Atualizar lastMessageAt
+      await db.update(chatConversations).set({ lastMessageAt: new Date() }).where(eq(chatConversations.id, conv.id));
 
-      // Buscar nome do remetente para a notificacao
+      // Buscar nome do remetente
       const [sender] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
 
-      // Emitir via Socket.IO para o destinatario
-      emitToUser(input.recipientId, 'chat:message', {
-        conversationId: conv.id,
-        messageId: msg.id,
-        senderId: userId,
-        senderName: sender?.name || 'Usuario',
-        content: input.content,
-        createdAt: new Date().toISOString(),
-      });
+      // Emitir via Socket.IO para o destinatário
+      if (recipientId) {
+        emitToUser(recipientId, 'chat:newMessage', {
+          conversationId: conv.id, messageId: msg.id, senderId: userId,
+          senderName: sender?.name || 'Usuário', content: input.content,
+          createdAt: new Date().toISOString(),
+        });
+      }
 
       return { success: true, conversationId: conv.id, messageId: msg.id };
     }),

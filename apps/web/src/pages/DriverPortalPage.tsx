@@ -61,11 +61,27 @@ export default function DriverPortalPage() {
   async function loadData() {
     try {
       setLoading(true);
+      // Verificar se tem viagem ativa
       const trip = await api.monitors.myActiveTrip();
       if (trip) {
         setActiveTrip(trip);
         if (trip.driverId) setDriverId(trip.driverId);
         if (trip.trip?.startedAt) setTripStartTime(new Date(trip.trip.startedAt));
+      } else {
+        // Sem viagem ativa - buscar rotas disponíveis do motorista
+        try {
+          const available = await api.monitors.availableTrips();
+          if (available?.driver?.id) setDriverId(available.driver.id);
+          if (available?.routes?.length > 0) {
+            // Montar objeto com rota e veículo para o motorista poder iniciar
+            setActiveTrip({
+              route: available.routes[0],
+              vehicle: available.vehicle,
+              driverId: available.driver.id,
+              stops: [],
+            });
+          }
+        } catch {}
       }
     } catch { }
     finally { setLoading(false); }

@@ -105,6 +105,27 @@ export default function FloatingChat() {
   useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [aiMessages]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
+  // Auto-refresh: polling a cada 3s quando conversa está aberta
+  useEffect(() => {
+    if (panel !== 'chat-conv' || !activeConv) return;
+    const interval = setInterval(async () => {
+      try {
+        const msgs = await api.chat.history({ conversationId: activeConv.id });
+        if (msgs && msgs.length !== chatMessages.length) {
+          setChatMessages(msgs);
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [panel, activeConv, chatMessages.length]);
+
+  // Auto-refresh lista de conversas quando está na lista
+  useEffect(() => {
+    if (panel !== 'chat-list') return;
+    const interval = setInterval(() => { loadConversations(); }, 5000);
+    return () => clearInterval(interval);
+  }, [panel]);
+
   // AI send
   const sendAI = (text?: string) => {
     const msg = text || aiInput.trim();
@@ -148,7 +169,9 @@ export default function FloatingChat() {
   };
   const startConversation = async (contactId: number) => {
     try {
-      await api.chat.send({ recipientId: contactId, content: 'Olá!' });
+      const contact = contacts.find((c: any) => c.id === contactId);
+      const greeting = `Olá${contact ? ', ' + contact.name.split(' ')[0] : ''}! Estou entrando em contato pelo sistema NetEscol.`;
+      await api.chat.send({ recipientId: contactId, content: greeting });
       await loadConversations(); setPanel('chat-list');
     } catch {}
   };

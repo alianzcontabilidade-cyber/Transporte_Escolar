@@ -1,11 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import FloatingChat from './components/FloatingChat';
 import LoadingOverlay from './components/LoadingOverlay';
 import { LoadingProvider } from './lib/loadingContext';
 import { initPushNotifications } from './lib/pushNotifications';
+import { RefreshCw } from 'lucide-react';
 
 // Paginas criticas (carregamento imediato)
 import LoginPage from './pages/LoginPage';
@@ -136,16 +137,49 @@ function HomeRedirect() {
 
 export default function App() {
   const { user } = useAuth();
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   // Inicializar push notifications quando o usuário está logado
   useEffect(() => {
     if (user) initPushNotifications();
   }, [user]);
 
+  // Detectar atualizações do Service Worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if (newSW) {
+            newSW.addEventListener('statechange', () => {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                setUpdateAvailable(true);
+              }
+            });
+          }
+        });
+      });
+      // Verificar atualizações a cada 5 minutos
+      setInterval(() => { navigator.serviceWorker.ready.then(reg => reg.update()); }, 300000);
+    }
+  }, []);
+
   return (
     <LoadingProvider>
     <>
     <LoadingOverlay />
+    {/* Banner de atualização */}
+    {updateAvailable && (
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-accent-600 text-white px-4 py-3 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-2">
+          <RefreshCw size={16} />
+          <span className="text-sm font-medium">Nova versão disponível do NetEscol!</span>
+        </div>
+        <button onClick={() => { window.location.reload(); }} className="bg-white text-accent-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-100">
+          Atualizar agora
+        </button>
+      </div>
+    )}
     <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />

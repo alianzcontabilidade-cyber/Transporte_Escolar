@@ -73,12 +73,23 @@ export default function DriverPortalPage() {
           const available = await api.monitors.availableTrips();
           if (available?.driver?.id) setDriverId(available.driver.id);
           if (available?.routes?.length > 0) {
-            // Montar objeto com rota e veículo para o motorista poder iniciar
+            const route = available.routes[0];
+            // Carregar paradas e alunos da rota
+            let routeStops: any[] = [];
+            try {
+              const stopsData = await api.ai.routeStudents({ routeId: route.id });
+              if (stopsData?.stops) {
+                routeStops = stopsData.stops.map((s: any) => ({
+                  ...s,
+                  students: (stopsData.students || []).filter((st: any) => st.stopId === s.id).map((st: any) => ({ ...st, status: 'pending' })),
+                }));
+              }
+            } catch {}
             setActiveTrip({
-              route: available.routes[0],
+              route,
               vehicle: available.vehicle,
               driverId: available.driver.id,
-              stops: [],
+              stops: routeStops,
             });
           }
         } catch {}

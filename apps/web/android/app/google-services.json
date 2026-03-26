@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "710141252858",
+    "project_id": "netescol",
+    "storage_bucket": "netescol.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:710141252858:android:fdb694642cf9fc1c872543",
+        "android_client_info": {
+          "package_name": "br.com.netescol.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1I5kwHghaVm1OO7do7H6WdDr21yABjcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

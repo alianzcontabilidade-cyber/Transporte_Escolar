@@ -47,9 +47,9 @@ export default function DriverPortalPage() {
 
   // Elapsed timer
   useEffect(() => {
-    if (!tripStartTime) return;
+    if (!tripStartTime || isNaN(tripStartTime.getTime())) return;
     const iv = setInterval(() => {
-      const diff = Math.floor((Date.now() - tripStartTime.getTime()) / 1000);
+      const diff = Math.max(0, Math.floor((Date.now() - tripStartTime.getTime()) / 1000));
       const h = String(Math.floor(diff / 3600)).padStart(2, '0');
       const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
       const s = String(diff % 60).padStart(2, '0');
@@ -91,8 +91,9 @@ export default function DriverPortalPage() {
   const startTripMut = useMutation(api.trips.start);
   async function handleStartTrip() {
     if (!activeTrip?.route?.id) return;
+    const vId = activeTrip.vehicle?.id || activeTrip.vehicleId;
     await startTripMut.mutate(
-      { routeId: activeTrip.route.id, driverId: driverId || undefined, vehicleId: activeTrip.vehicle?.id },
+      { routeId: activeTrip.route.id, driverId: driverId || 0, vehicleId: vId || 0 },
       { onSuccess: () => { setTripStartTime(new Date()); startTracking(); loadData(); } }
     );
   }
@@ -103,7 +104,7 @@ export default function DriverPortalPage() {
     const tripId = activeTrip?.trip?.id || activeTrip?.id;
     if (!tripId) return;
     await completeTripMut.mutate(
-      { id: tripId },
+      { tripId },
       { onSuccess: () => { stopTracking(); setActiveTrip(null); setTripStartTime(null); setElapsed('00:00:00'); loadData(); } }
     );
   }

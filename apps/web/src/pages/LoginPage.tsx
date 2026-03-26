@@ -181,12 +181,6 @@ export default function LoginPage() {
                   <Heart size={16} />
                   Sou Pai/Responsável
                 </Link>
-                <Link
-                  to="/cadastro"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 text-gray-500 rounded-xl text-xs font-medium hover:bg-gray-100 transition-all"
-                >
-                  Cadastrar Prefeitura
-                </Link>
               </div>
             </div>
 

@@ -397,6 +397,15 @@ async function migrate() {
             await conn.execute(`ALTER TABLE vehicles ADD COLUMN garageId INT`);
         }
         catch { /* already exists */ }
+        // Add home location to drivers
+        try {
+            await conn.execute(`ALTER TABLE drivers ADD COLUMN homeLatitude DECIMAL(10,8)`);
+        }
+        catch { /* already exists */ }
+        try {
+            await conn.execute(`ALTER TABLE drivers ADD COLUMN homeLongitude DECIMAL(11,8)`);
+        }
+        catch { /* already exists */ }
         console.log('Migration complete');
     }
     catch (err) {

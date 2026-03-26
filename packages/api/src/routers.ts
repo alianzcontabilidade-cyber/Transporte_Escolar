@@ -2004,12 +2004,12 @@ export const driversRouter = t.router({
       vehicleId: z.number().optional(),
       photo: z.string().optional(),
       observations: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
-      // Gerar email temporario se nao informado
       const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.netescol.local');
-      // Gerar senha padrao se nao informada
       const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
       const passwordHash = await hash(pwd, 12);
 
@@ -2027,6 +2027,8 @@ export const driversRouter = t.router({
           address: input.address, city: input.city, state: input.state,
           birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
           experience: input.experience, photo: input.photo, observations: input.observations,
+          homeLatitude: input.latitude?.toFixed(8) as any,
+          homeLongitude: input.longitude?.toFixed(8) as any,
         }).$returningId();
 
         // Vincular rota se informada
@@ -2065,10 +2067,12 @@ export const driversRouter = t.router({
       experience: z.number().optional(),
       photo: z.string().optional(),
       observations: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
-      const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, ...driverData } = input;
+      const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, latitude, longitude, ...driverData } = input;
       // Atualizar dados do driver
       const ud: any = { ...driverData };
       if (cnhExpiry) ud.cnhExpiresAt = new Date(cnhExpiry);
@@ -2079,6 +2083,8 @@ export const driversRouter = t.router({
       if (experience !== undefined) ud.experience = experience;
       if (photo !== undefined) ud.photo = photo;
       if (observations !== undefined) ud.observations = observations;
+      if (latitude !== undefined) ud.homeLatitude = latitude.toFixed(8);
+      if (longitude !== undefined) ud.homeLongitude = longitude.toFixed(8);
       Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
       if (Object.keys(ud).length > 0) await db.update(drivers).set(ud).where(eq(drivers.id, id));
       // Atualizar dados do user vinculado

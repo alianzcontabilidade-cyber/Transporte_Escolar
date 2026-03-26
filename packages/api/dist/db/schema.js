@@ -209,6 +209,9 @@ exports.drivers = (0, mysql_core_1.mysqlTable)("drivers", {
     experience: (0, mysql_core_1.int)("experience"), // Anos de experiencia
     photo: (0, mysql_core_1.text)("photo"),
     observations: (0, mysql_core_1.text)("observations"),
+    // Localização residencial (para calculo de distancia)
+    homeLatitude: (0, mysql_core_1.decimal)("homeLatitude", { precision: 10, scale: 8 }),
+    homeLongitude: (0, mysql_core_1.decimal)("homeLongitude", { precision: 11, scale: 8 }),
     // Status
     isAvailable: (0, mysql_core_1.boolean)("isAvailable").default(true),
     currentLatitude: (0, mysql_core_1.decimal)("currentLatitude", { precision: 10, scale: 8 }),

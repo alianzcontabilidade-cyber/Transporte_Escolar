@@ -1911,12 +1911,12 @@ exports.driversRouter = trpc_1.t.router({
         vehicleId: zod_1.z.number().optional(),
         photo: zod_1.z.string().optional(),
         observations: zod_1.z.string().optional(),
+        latitude: zod_1.z.number().optional(),
+        longitude: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
         (0, trpc_1.validateOptionalCPF)(input.cpf);
-        // Gerar email temporario se nao informado
         const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.netescol.local');
-        // Gerar senha padrao se nao informada
         const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
         const passwordHash = await (0, bcryptjs_1.hash)(pwd, 12);
         try {
@@ -1932,6 +1932,8 @@ exports.driversRouter = trpc_1.t.router({
                 address: input.address, city: input.city, state: input.state,
                 birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
                 experience: input.experience, photo: input.photo, observations: input.observations,
+                homeLatitude: input.latitude?.toFixed(8),
+                homeLongitude: input.longitude?.toFixed(8),
             }).$returningId();
             // Vincular rota se informada
             if (input.routeId) {
@@ -1970,10 +1972,12 @@ exports.driversRouter = trpc_1.t.router({
         experience: zod_1.z.number().optional(),
         photo: zod_1.z.string().optional(),
         observations: zod_1.z.string().optional(),
+        latitude: zod_1.z.number().optional(),
+        longitude: zod_1.z.number().optional(),
     }))
         .mutation(async ({ input }) => {
         (0, trpc_1.validateOptionalCPF)(input.cpf);
-        const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, ...driverData } = input;
+        const { id, routeId, name, phone, cpf, email, cnhExpiry, birthDate, experience, photo, observations, address, city, state, latitude, longitude, ...driverData } = input;
         // Atualizar dados do driver
         const ud = { ...driverData };
         if (cnhExpiry)
@@ -1992,6 +1996,10 @@ exports.driversRouter = trpc_1.t.router({
             ud.photo = photo;
         if (observations !== undefined)
             ud.observations = observations;
+        if (latitude !== undefined)
+            ud.homeLatitude = latitude.toFixed(8);
+        if (longitude !== undefined)
+            ud.homeLongitude = longitude.toFixed(8);
         Object.keys(ud).forEach(k => ud[k] === undefined && delete ud[k]);
         if (Object.keys(ud).length > 0)
             await index_1.db.update(schema_1.drivers).set(ud).where((0, drizzle_orm_1.eq)(schema_1.drivers.id, id));
@@ -5560,6 +5568,246 @@ exports.aiRouter = trpc_1.t.router({
                 }),
                 averageRadius: Math.round(c.students.reduce((sum, s) => sum + (0, routeOptimizer_1.haversineDistance)(s.latitude, s.longitude, c.center.latitude, c.center.longitude), 0) / c.students.length * 1000), // raio médio em metros
             })),
+        };
+    }),
+    // Clarke-Wright: agrupar paradas em rotas otimizadas
+    clarkeWright: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        depotLat: zod_1.z.number(), depotLng: zod_1.z.number(), // Garagem
+        destinationLat: zod_1.z.number(), destinationLng: zod_1.z.number(), // Escola
+        maxCapacity: zod_1.z.number().default(40),
+        maxDistanceKm: zod_1.z.number().default(100),
+    }))
+        .query(async ({ input }) => {
+        // Buscar todas as paradas do municipio com alunos
+        const allStops = await index_1.db.select({
+            id: schema_1.stops.id, name: schema_1.stops.name,
+            latitude: schema_1.stops.latitude, longitude: schema_1.stops.longitude,
+            routeId: schema_1.stops.routeId,
+        }).from(schema_1.stops)
+            .innerJoin(schema_1.routes, (0, drizzle_orm_1.eq)(schema_1.stops.routeId, schema_1.routes.id))
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.routes.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.routes.isActive, true)));
+        // Contar alunos por parada
+        const stopStudentCounts = await index_1.db.select({
+            stopId: schema_1.stopStudents.stopId,
+        }).from(schema_1.stopStudents);
+        const countMap = new Map();
+        for (const ss of stopStudentCounts) {
+            countMap.set(ss.stopId, (countMap.get(ss.stopId) || 0) + 1);
+        }
+        const validStops = allStops
+            .filter(s => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0)
+            .map(s => ({
+            id: s.id,
+            name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+            passengers: countMap.get(s.id) || 1,
+        }));
+        if (validStops.length === 0)
+            return { routes: [], totalStops: 0, message: 'Nenhuma parada com GPS encontrada.' };
+        const depot = { latitude: input.depotLat, longitude: input.depotLng };
+        const dest = { latitude: input.destinationLat, longitude: input.destinationLng };
+        const cwRoutes = (0, routeOptimizer_1.clarkeWrightGrouping)(depot, dest, validStops, input.maxCapacity, input.maxDistanceKm);
+        return {
+            totalStops: validStops.length,
+            routes: cwRoutes.map((r, i) => ({
+                routeIndex: i + 1,
+                suggestedName: `Rota CW-${String(i + 1).padStart(2, '0')}`,
+                stops: r.stops.map((s, order) => ({ id: s.id, name: s.name, lat: s.latitude, lng: s.longitude, order: order + 1 })),
+                totalPassengers: r.totalPassengers,
+                totalDistanceKm: r.totalDistance,
+                stopCount: r.stops.length,
+            })),
+        };
+    }),
+    // DBSCAN: pontos de parada sugeridos automaticamente
+    suggestStopsDbscan: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        epsilonKm: zod_1.z.number().default(1.5),
+        minPoints: zod_1.z.number().default(2),
+    }))
+        .query(async ({ input }) => {
+        const allStudents = await index_1.db.select({
+            id: schema_1.students.id, name: schema_1.students.name,
+            latitude: schema_1.students.latitude, longitude: schema_1.students.longitude,
+            address: schema_1.students.address, neighborhood: schema_1.students.neighborhood,
+        }).from(schema_1.students)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.needsTransport, true)));
+        const assignedIds = await index_1.db.select({ studentId: schema_1.stopStudents.studentId }).from(schema_1.stopStudents);
+        const assignedSet = new Set(assignedIds.map(a => a.studentId));
+        const unassigned = allStudents
+            .filter(s => !assignedSet.has(s.id))
+            .filter(s => s.latitude != null && s.longitude != null &&
+            parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0)
+            .map(s => ({
+            id: s.id, name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+            address: s.address, neighborhood: s.neighborhood,
+        }));
+        if (unassigned.length === 0) {
+            return { totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length, withCoordinates: 0, clusters: [], noise: [], message: 'Nenhum aluno sem parada com GPS.' };
+        }
+        const { clusters, noise } = (0, routeOptimizer_1.dbscanCluster)(unassigned.map(s => ({ id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude })), input.epsilonKm, input.minPoints);
+        return {
+            totalUnassigned: allStudents.filter(s => !assignedSet.has(s.id)).length,
+            withCoordinates: unassigned.length,
+            clusters: clusters.map((c, idx) => ({
+                clusterIndex: idx + 1,
+                suggestedName: `Ponto DBSCAN ${idx + 1}`,
+                center: c.center,
+                studentCount: c.students.length,
+                avgDistanceM: c.avgDistanceM,
+                students: c.students.map(s => {
+                    const full = unassigned.find(u => u.id === s.id);
+                    return { id: s.id, name: s.name, address: full?.address || null, neighborhood: full?.neighborhood || null,
+                        distanceToCenter: Math.round((0, routeOptimizer_1.haversineDistance)(s.latitude, s.longitude, c.center.latitude, c.center.longitude) * 1000) };
+                }),
+            })),
+            noise: noise.map(s => {
+                const full = unassigned.find(u => u.id === s.id);
+                return { id: s.id, name: s.name, address: full?.address || null, neighborhood: full?.neighborhood || null };
+            }),
+        };
+    }),
+    // Listar alunos com status de GPS (para coleta em campo)
+    studentsGpsStatus: trpc_1.staffProcedure
+        .input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional() }))
+        .query(async ({ input }) => {
+        const conds = [(0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)];
+        if (input.schoolId)
+            conds.push((0, drizzle_orm_1.eq)(schema_1.students.schoolId, input.schoolId));
+        const list = await index_1.db.select({
+            id: schema_1.students.id, name: schema_1.students.name, address: schema_1.students.address,
+            neighborhood: schema_1.students.neighborhood, latitude: schema_1.students.latitude,
+            longitude: schema_1.students.longitude, schoolId: schema_1.students.schoolId,
+            grade: schema_1.students.grade, shift: schema_1.students.shift, routeName: schema_1.students.routeName,
+        }).from(schema_1.students).where((0, drizzle_orm_1.and)(...conds)).orderBy(schema_1.students.name);
+        return list;
+    }),
+    // Atualizar GPS de um aluno (acessivel por motorista/monitor/secretario)
+    updateStudentGps: trpc_1.staffProcedure
+        .input(zod_1.z.object({ studentId: zod_1.z.number(), latitude: zod_1.z.number(), longitude: zod_1.z.number() }))
+        .mutation(async ({ input }) => {
+        await index_1.db.update(schema_1.students).set({
+            latitude: input.latitude.toFixed(8),
+            longitude: input.longitude.toFixed(8),
+        }).where((0, drizzle_orm_1.eq)(schema_1.students.id, input.studentId));
+        return { success: true };
+    }),
+    // Gerar rotas automaticamente a partir dos dados GPS dos alunos
+    generateRoutes: trpc_1.adminProcedure
+        .input(zod_1.z.object({
+        municipalityId: zod_1.z.number(),
+        schoolId: zod_1.z.number(),
+        depotLat: zod_1.z.number(), depotLng: zod_1.z.number(),
+        maxCapacity: zod_1.z.number().default(40),
+        maxDistanceKm: zod_1.z.number().default(80),
+        avgSpeedKmh: zod_1.z.number().default(40), // Velocidade media para calculo de tempo
+        costPerKm: zod_1.z.number().default(3.5), // R$ por km (combustivel + desgaste)
+        driverCostPerHour: zod_1.z.number().default(25), // R$ por hora do motorista
+        prefix: zod_1.z.string().default('AUTO'), // Prefixo das rotas geradas
+    }))
+        .mutation(async ({ input }) => {
+        // 1. Buscar escola
+        const [school] = await index_1.db.select().from(schema_1.schools).where((0, drizzle_orm_1.eq)(schema_1.schools.id, input.schoolId)).limit(1);
+        if (!school)
+            throw new server_1.TRPCError({ code: 'NOT_FOUND', message: 'Escola não encontrada' });
+        const schoolLat = parseFloat(String(school.latitude || 0));
+        const schoolLng = parseFloat(String(school.longitude || 0));
+        if (!schoolLat || !schoolLng)
+            throw new server_1.TRPCError({ code: 'BAD_REQUEST', message: 'Escola sem coordenadas GPS cadastradas' });
+        // 2. Buscar alunos da escola com GPS e que precisam de transporte
+        const allStudents = await index_1.db.select({
+            id: schema_1.students.id, name: schema_1.students.name,
+            latitude: schema_1.students.latitude, longitude: schema_1.students.longitude,
+            address: schema_1.students.address, grade: schema_1.students.grade,
+        }).from(schema_1.students).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId), (0, drizzle_orm_1.eq)(schema_1.students.schoolId, input.schoolId), (0, drizzle_orm_1.eq)(schema_1.students.needsTransport, true), (0, drizzle_orm_1.eq)(schema_1.students.isActive, true)));
+        const validStudents = allStudents.filter(s => s.latitude && s.longitude &&
+            parseFloat(String(s.latitude)) !== 0 && parseFloat(String(s.longitude)) !== 0).map(s => ({
+            id: s.id, name: s.name,
+            latitude: parseFloat(String(s.latitude)),
+            longitude: parseFloat(String(s.longitude)),
+            passengers: 1,
+        }));
+        if (validStudents.length === 0) {
+            return { success: false, message: 'Nenhum aluno com GPS e transporte necessário encontrado para esta escola.', routes: [] };
+        }
+        // 3. Usar Clarke-Wright para agrupar alunos em rotas
+        const depot = { latitude: input.depotLat, longitude: input.depotLng };
+        const destination = { latitude: schoolLat, longitude: schoolLng };
+        const cwRoutes = (0, routeOptimizer_1.clarkeWrightGrouping)(depot, destination, validStudents, input.maxCapacity, input.maxDistanceKm);
+        // 4. Criar rotas no banco de dados
+        const createdRoutes = [];
+        for (let i = 0; i < cwRoutes.length; i++) {
+            const cw = cwRoutes[i];
+            const routeCode = `${input.prefix}-${String(i + 1).padStart(2, '0')}`;
+            const routeName = `${school.name} - Rota ${routeCode}`;
+            // Calcular tempo estimado
+            const timeHours = cw.totalDistance / input.avgSpeedKmh;
+            const timeMinutes = Math.round(timeHours * 60);
+            // Calcular custos mensais (22 dias uteis, ida e volta)
+            const monthlyKm = cw.totalDistance * 2 * 22; // ida e volta, 22 dias
+            const monthlyCostFuel = monthlyKm * input.costPerKm;
+            const monthlyCostDriver = timeHours * 2 * 22 * input.driverCostPerHour;
+            const costPerStudent = cw.totalPassengers > 0 ? (monthlyCostFuel + monthlyCostDriver) / cw.totalPassengers : 0;
+            // Criar rota
+            const [routeResult] = await index_1.db.insert(schema_1.routes).values({
+                municipalityId: input.municipalityId,
+                schoolId: input.schoolId,
+                name: routeName,
+                code: routeCode,
+                type: 'both',
+                shift: 'morning',
+                estimatedDuration: timeMinutes,
+                totalDistanceKm: cw.totalDistance.toFixed(2),
+                monthlyCostFuel: monthlyCostFuel.toFixed(2),
+                monthlyCostDriver: monthlyCostDriver.toFixed(2),
+                costPerStudent: costPerStudent.toFixed(2),
+                isActive: true,
+            }).$returningId();
+            // Criar paradas (cada aluno = uma parada)
+            for (let j = 0; j < cw.stops.length; j++) {
+                const stop = cw.stops[j];
+                const [stopResult] = await index_1.db.insert(schema_1.stops).values({
+                    routeId: routeResult.id,
+                    name: `Parada ${j + 1} - ${stop.name.split(' ')[0]}`,
+                    latitude: stop.latitude.toFixed(8),
+                    longitude: stop.longitude.toFixed(8),
+                    orderIndex: j + 1,
+                    estimatedArrivalMinutes: Math.round((j + 1) * (timeMinutes / cw.stops.length)),
+                }).$returningId();
+                // Vincular aluno à parada
+                await index_1.db.insert(schema_1.stopStudents).values({
+                    stopId: stopResult.id,
+                    studentId: stop.id,
+                    boardingType: 'both',
+                });
+                // Atualizar routeName do aluno
+                await index_1.db.update(schema_1.students).set({ routeName: routeName }).where((0, drizzle_orm_1.eq)(schema_1.students.id, stop.id));
+            }
+            createdRoutes.push({
+                id: routeResult.id,
+                name: routeName,
+                code: routeCode,
+                stops: cw.stops.length,
+                passengers: cw.totalPassengers,
+                distanceKm: cw.totalDistance,
+                timeMinutes,
+                monthlyCostFuel: Math.round(monthlyCostFuel),
+                monthlyCostDriver: Math.round(monthlyCostDriver),
+                monthlyCostTotal: Math.round(monthlyCostFuel + monthlyCostDriver),
+                costPerStudent: Math.round(costPerStudent),
+            });
+        }
+        return {
+            success: true,
+            message: `${createdRoutes.length} rota(s) gerada(s) para ${school.name}`,
+            totalStudents: validStudents.length,
+            routes: createdRoutes,
         };
     }),
     // Análise de risco de evasão escolar

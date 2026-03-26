@@ -260,6 +260,10 @@ export const drivers = mysqlTable("drivers", {
   photo: text("photo"),
   observations: text("observations"),
 
+  // Localização residencial (para calculo de distancia)
+  homeLatitude: decimal("homeLatitude", { precision: 10, scale: 8 }),
+  homeLongitude: decimal("homeLongitude", { precision: 11, scale: 8 }),
+
   // Status
   isAvailable: boolean("isAvailable").default(true),
   currentLatitude: decimal("currentLatitude", { precision: 10, scale: 8 }),

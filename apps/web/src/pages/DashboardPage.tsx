@@ -2,7 +2,7 @@ import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { useSocket } from '../lib/socket';
-import { School, Users, MapPin, Truck, Bus, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, UserCheck } from 'lucide-react';
+import { School, Users, MapPin, Truck, Bus, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, UserCheck, DollarSign, Route, Navigation } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const WEEK = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -131,12 +131,22 @@ export default function DashboardPage() {
   vehicleAlerts.sort(function(a: any, b: any) { return a.days - b.days; });
   driverAlerts.sort(function(a: any, b: any) { return a.days - b.days; });
 
+  // Custos de transporte
+  const allRoutes = (routes as any) || [];
+  const totalKm = allRoutes.reduce((s: number, r: any) => s + parseFloat(String((r.route || r).totalDistanceKm || 0)), 0);
+  const totalMonthlyCost = allRoutes.reduce((s: number, r: any) => {
+    const rt = r.route || r;
+    return s + parseFloat(String(rt.monthlyCostFuel || 0)) + parseFloat(String(rt.monthlyCostDriver || 0));
+  }, 0);
+  const studentsWithTransport = ((students as any) || []).filter((s: any) => s.needsTransport).length;
+  const studentsWithGps = ((students as any) || []).filter((s: any) => s.latitude && s.longitude).length;
+
   const kpis = [
     { label: 'Escolas', value: nSchools, icon: School, color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600' },
     { label: 'Alunos', value: nStudents, icon: Users, color: 'bg-purple-500', light: 'bg-purple-50', text: 'text-purple-600' },
-    { label: 'Rotas', value: nRoutes, icon: MapPin, color: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-600' },
+    { label: 'Rotas', value: nRoutes, icon: Route, color: 'bg-sky-500', light: 'bg-sky-50', text: 'text-sky-600' },
     { label: 'Motoristas', value: nDrivers, icon: Truck, color: 'bg-green-500', light: 'bg-green-50', text: 'text-green-600' },
-    { label: 'Veículos', value: nVehicles, icon: Bus, color: 'bg-yellow-500', light: 'bg-yellow-50', text: 'text-yellow-600' },
+    { label: 'Veículos', value: nVehicles, icon: Bus, color: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-600' },
     { label: 'Viagens hoje', value: nTrips, icon: Activity, color: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-600' },
   ];
 
@@ -192,7 +202,7 @@ export default function DashboardPage() {
               <XAxis dataKey="day" tick={{ fontSize: 12 }}/>
               <YAxis tick={{ fontSize: 12 }}/>
               <Tooltip/>
-              <Bar dataKey="viagens" fill="#f97316" radius={[4,4,0,0]}/>
+              <Bar dataKey="viagens" fill="#0369A1" radius={[4,4,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -206,6 +216,30 @@ export default function DashboardPage() {
               <Line type="monotone" dataKey="pct" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }}/>
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Custos e GPS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800">
+          <DollarSign size={18} className="text-emerald-600 mb-1" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">R$ {totalMonthlyCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+          <p className="text-[10px] text-gray-500 uppercase">Custo Mensal Transporte</p>
+        </div>
+        <div className="card p-4 bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/20 border-blue-200 dark:border-blue-800">
+          <MapPin size={18} className="text-blue-600 mb-1" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{totalKm.toFixed(0)} km</p>
+          <p className="text-[10px] text-gray-500 uppercase">Distância Total Rotas</p>
+        </div>
+        <div className="card p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
+          <Users size={18} className="text-amber-600 mb-1" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{studentsWithTransport}</p>
+          <p className="text-[10px] text-gray-500 uppercase">Alunos com Transporte</p>
+        </div>
+        <div className="card p-4 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border-violet-200 dark:border-violet-800">
+          <Navigation size={18} className="text-violet-600 mb-1" />
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{studentsWithGps}/{nStudents}</p>
+          <p className="text-[10px] text-gray-500 uppercase">GPS Coletado ({nStudents > 0 ? Math.round(studentsWithGps/nStudents*100) : 0}%)</p>
         </div>
       </div>
 

@@ -5679,12 +5679,29 @@ export const aiRouter = t.router({
           }));
 
         const analysis = analyzeRoute(route, validStops, routeStudents);
+
+        // Build stops with current vs suggested order
+        const stopsWithOrder = validStops.map((s, idx) => {
+          const suggestedIdx = analysis.optimizedOrder.indexOf(s.id);
+          return {
+            id: s.id, name: s.name,
+            currentOrder: idx + 1,
+            suggestedOrder: suggestedIdx >= 0 ? suggestedIdx + 1 : idx + 1,
+            lat: s.latitude, lng: s.longitude,
+          };
+        });
+
         results.push({
           routeId: route.id,
           routeName: route.name,
-          stopCount: routeStops.length,
-          studentCount: routeStudents.length,
-          analysis,
+          currentDistance: analysis.currentDistance,
+          optimizedDistance: analysis.optimizedDistance,
+          savingsKm: analysis.savingsKm,
+          savingsPercent: analysis.savingsPercent,
+          optimizedOrder: analysis.optimizedOrder,
+          suggestions: analysis.suggestions,
+          score: analysis.score,
+          stops: stopsWithOrder,
         });
       }
 

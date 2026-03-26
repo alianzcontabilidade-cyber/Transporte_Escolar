@@ -31,8 +31,38 @@ export default function StudentGpsPage() {
   const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
   const [mapSearchBusy, setMapSearchBusy] = useState(false);
 
+  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY || '';
+  const googleAutocompleteRef = useRef<any>(null);
+  const googleSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Setup Google Places Autocomplete for map search (if key available)
+  useEffect(() => {
+    if (!googleKey || viewMode !== 'mapa' || !googleSearchInputRef.current) return;
+    const google = (window as any).google;
+    if (!google?.maps?.places) return;
+    if (googleAutocompleteRef.current) return; // already setup
+    const ac = new google.maps.places.Autocomplete(googleSearchInputRef.current, {
+      componentRestrictions: { country: 'br' }, fields: ['geometry', 'name', 'formatted_address'], types: ['establishment', 'geocode'],
+    });
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (!place.geometry?.location) return;
+      const la = place.geometry.location.lat(), ln = place.geometry.location.lng();
+      const L = (window as any).L;
+      if (L && mapInstanceRef.current) {
+        mapInstanceRef.current.setView([la, ln], 17);
+        const icon = L.divIcon({ html: '<div style="background:#3b82f6;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:14px;font-weight:bold">📍</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+        const m = L.marker([la, ln], { icon }).addTo(mapInstanceRef.current).bindPopup('<b>' + (place.name || place.formatted_address || '') + '</b>').openPopup();
+        markersRef.current.push(m);
+      }
+    });
+    googleAutocompleteRef.current = ac;
+  }, [viewMode, googleKey]);
+
+  // Fallback: Nominatim search when no Google key
   const doMapSearch = (q: string) => {
     setMapSearch(q);
+    if (googleKey) return; // Google handles it via Autocomplete
     if (q.length < 3) { setMapSuggestions([]); return; }
     setMapSearchBusy(true);
     fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=br&limit=6', { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'NetEscol/1.0' } })
@@ -128,6 +158,15 @@ export default function StudentGpsPage() {
       }
     );
   };
+
+  // Load Google Maps script (for search autocomplete)
+  useEffect(() => {
+    if (!googleKey || (window as any).google?.maps) return;
+    if (document.getElementById('google-maps-script')) return;
+    const sc = document.createElement('script'); sc.id = 'google-maps-script';
+    sc.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}&libraries=places&language=pt-BR&region=BR`;
+    sc.async = true; sc.defer = true; document.head.appendChild(sc);
+  }, []);
 
   // Load Leaflet via CDN script (same pattern as other map pages)
   const loadLeaflet = (callback: (L: any) => void) => {
@@ -502,7 +541,7 @@ export default function StudentGpsPage() {
             {/* Busca por endereço no mapa */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input className="input pl-9 pr-10 text-xs" placeholder="Pesquise rua, bairro, cidade, escola..." value={mapSearch} onChange={e => doMapSearch(e.target.value)} />
+              <input ref={googleSearchInputRef} className="input pl-9 pr-10 text-xs" placeholder="Pesquise rua, bairro, cidade, escola..." value={mapSearch} onChange={e => doMapSearch(e.target.value)} />
               {mapSearchBusy && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />}
               {mapSuggestions.length > 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
@@ -534,8 +573,15 @@ export default function StudentGpsPage() {
               <p className="text-blue-100 text-sm mt-1">{pendingGps.studentName}</p>
             </div>
 
-            {/* Mini Map */}
-            <div id="confirm-map" style={{ height: '200px', width: '100%' }} />
+            {/* Mini Map - Google Maps Static or Leaflet fallback */}
+            {import.meta.env.VITE_GOOGLE_MAPS_KEY ? (
+              <img
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${pendingGps.latitude},${pendingGps.longitude}&zoom=17&size=600x200&maptype=hybrid&markers=color:red%7C${pendingGps.latitude},${pendingGps.longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}`}
+                alt="Localização" className="w-full" style={{ height: 200, objectFit: 'cover' }}
+              />
+            ) : (
+              <div id="confirm-map" style={{ height: '200px', width: '100%' }} />
+            )}
 
             {/* Info */}
             <div className="px-6 py-4 space-y-3">

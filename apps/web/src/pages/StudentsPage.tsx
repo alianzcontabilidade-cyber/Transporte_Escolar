@@ -10,6 +10,7 @@ import { printStudentQRCodes } from '../lib/qrcode';
 import StudentDocumentsModal from '../components/StudentDocumentsModal';
 import { QuickActionButton } from '../components/EntitySummaries';
 import QuickAddModal from '../components/QuickAddModal';
+import GoogleMapPicker from '../components/GoogleMapPicker';
 
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
@@ -46,7 +47,7 @@ const emptyForm = {
   certidaoTipo:'nascimento', certidaoNumero:'', certidaoFolha:'', certidaoLivro:'', certidaoData:'', certidaoCartorio:'',
   // Endereco
   address:'', addressNumber:'', addressComplement:'', neighborhood:'', cep:'', city:'', state:'', zone:'urbana',
-  phone:'', cellPhone:'',
+  phone:'', cellPhone:'', latitude:'', longitude:'',
   // Transporte
   needsTransport:false, transportType:'', transportDistance:'',
   // Programas sociais
@@ -202,6 +203,8 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
       guardian2Phone: s.emergencyContact2Phone || s.guardian2Phone || '',
       guardian2Relation: s.emergencyContact2Relation || s.guardian2Relation || '',
       birthDate: s.birthDate ? (typeof s.birthDate === 'string' ? s.birthDate.split('T')[0] : new Date(s.birthDate).toISOString().split('T')[0]) : '',
+      latitude: s.latitude ? String(s.latitude) : '',
+      longitude: s.longitude ? String(s.longitude) : '',
     });
     setEditId(s.id); setTab('dados'); setFormErr(''); setShowModal(true); setHistoryEntries([]); setHistoryForm(null); loadHistory(s.id);
   };
@@ -408,6 +411,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
       addressComplement:form.addressComplement||undefined, neighborhood:form.neighborhood||undefined,
       cep:form.cep||undefined, city:form.city||undefined, state:form.state||undefined, zone:form.zone||undefined,
       phone:form.phone||undefined, cellPhone:form.cellPhone||undefined,
+      latitude:form.latitude?parseFloat(form.latitude):undefined, longitude:form.longitude?parseFloat(form.longitude):undefined,
       // Transporte
       needsTransport:form.needsTransport||false, transportType:form.transportType||undefined, transportDistance:form.transportDistance||undefined,
       // Programas sociais
@@ -961,6 +965,17 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
               <div><label className="label">Telefone</label><input className="input" value={form.phone} onChange={e=>setForm((f:any)=>({...f,phone:maskPhone(e.target.value)}))} placeholder="(00) 0000-0000" maxLength={15}/></div>
               <div><label className="label">Celular</label><input className="input" value={form.cellPhone} onChange={e=>setForm((f:any)=>({...f,cellPhone:maskPhone(e.target.value)}))} placeholder="(00) 00000-0000" maxLength={15}/></div>
             </div></div>
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+              <p className="text-xs font-semibold text-green-700 mb-3 uppercase flex items-center gap-1"><MapPin size={12}/> Localização no Mapa</p>
+              <GoogleMapPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onLocationChange={(lat, lng) => setForm((f: any) => ({ ...f, latitude: lat, longitude: lng }))}
+                height={220}
+                placeholder="Pesquise o endereço do aluno..."
+                showGpsButton={true}
+              />
+            </div>
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl"><p className="text-xs font-semibold text-green-700 mb-3 uppercase">Transporte Escolar</p><div className="grid grid-cols-3 gap-3">
               <div><label className="label">Necessita transporte?</label><select className="input" value={form.needsTransport?'sim':'nao'} onChange={e=>setForm((f:any)=>({...f,needsTransport:e.target.value==='sim'}))}><option value="nao">Nao</option><option value="sim">Sim</option></select></div>
               {form.needsTransport&&<><div><label className="label">Tipo</label><input className="input" value={form.transportType} onChange={setField('transportType')} placeholder="Ônibus, Van..."/></div>

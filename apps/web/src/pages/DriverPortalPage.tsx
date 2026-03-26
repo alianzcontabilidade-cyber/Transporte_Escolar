@@ -247,6 +247,23 @@ export default function DriverPortalPage() {
           </div>
         )}
 
+        {/* Botão Navegar - abre Google Maps com a rota */}
+        {stops.length > 0 && (
+          <button onClick={() => {
+            const validStops = stops.filter((s: any) => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0);
+            if (validStops.length === 0) return;
+            // Primeiro ponto = origem, último = destino, intermediários = waypoints
+            const origin = validStops[0];
+            const dest = validStops[validStops.length - 1];
+            const waypoints = validStops.slice(1, -1).map((s: any) => parseFloat(String(s.latitude)).toFixed(6) + ',' + parseFloat(String(s.longitude)).toFixed(6)).join('|');
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${parseFloat(String(origin.latitude)).toFixed(6)},${parseFloat(String(origin.longitude)).toFixed(6)}&destination=${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}${waypoints ? '&waypoints=' + waypoints : ''}&travelmode=driving`;
+            window.open(url, '_blank');
+          }} className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base py-4 rounded-2xl shadow-md flex items-center justify-center gap-3 transition-all">
+            <Navigation size={22} />
+            NAVEGAR PELA ROTA
+          </button>
+        )}
+
         {/* Module Grid */}
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -497,6 +514,12 @@ function RouteView({ stops }: { stops: any[] }) {
             {stop.address && <p className="text-sm text-gray-500 mt-0.5">{stop.address}</p>}
             {stop.latitude && <p className="text-xs text-gray-400 mt-0.5">{parseFloat(String(stop.latitude)).toFixed(5)}, {parseFloat(String(stop.longitude)).toFixed(5)}</p>}
             <p className="text-xs text-gray-400 mt-1">{stop.students?.length || 0} aluno(s)</p>
+            {stop.latitude && (
+              <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${parseFloat(String(stop.latitude)).toFixed(6)},${parseFloat(String(stop.longitude)).toFixed(6)}&travelmode=driving`, '_blank')}
+                className="mt-2 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium active:bg-blue-100">
+                <Navigation size={12} /> Navegar até aqui
+              </button>
+            )}
           </div>
           {stop.arrived && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Visitada</span>}
         </div>

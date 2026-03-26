@@ -380,7 +380,7 @@ export default function FloatingChat() {
         </div>
         {aiMessages.length <= 1 && <div className="px-3 pb-2 flex flex-wrap gap-1">{SUGGESTIONS.map(s => (<button key={s} onClick={() => sendAI(s)} className="text-[10px] bg-accent-50 text-accent-700 px-2 py-1 rounded-full hover:bg-accent-100">{s}</button>))}</div>}
         <div className="p-2.5 border-t border-gray-200 dark:border-gray-700 flex gap-2 flex-shrink-0">
-          <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAI()} placeholder="Digite sua dúvida..." spellCheck autoCorrect="on" autoCapitalize="sentences" lang="pt-BR" className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-xs outline-none focus:ring-2 focus:ring-accent-400" />
+          <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAI()} placeholder="Digite sua dúvida..." autoCapitalize="sentences" className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-xs outline-none focus:ring-2 focus:ring-accent-400" />
           <button onClick={() => sendAI()} disabled={!aiInput.trim()} className="w-8 h-8 bg-accent-500 hover:bg-accent-600 text-white rounded-full flex items-center justify-center disabled:opacity-40"><Send size={14} /></button>
         </div>
       </div>
@@ -444,7 +444,7 @@ export default function FloatingChat() {
           <div ref={chatEndRef} />
         </div>
         <div className="p-2.5 border-t border-gray-200 dark:border-gray-700 flex gap-2 flex-shrink-0">
-          <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Digite uma mensagem..." spellCheck autoCorrect="on" autoCapitalize="sentences" lang="pt-BR" className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-400" />
+          <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Digite uma mensagem..." autoCapitalize="sentences" className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-400" />
           <button onClick={sendChat} disabled={!chatInput.trim()} className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center disabled:opacity-40"><Send size={14} /></button>
         </div>
       </div>

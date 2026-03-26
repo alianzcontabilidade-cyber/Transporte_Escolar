@@ -9,7 +9,7 @@ import { buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 
-const COLORS = ['#10b981','#ef4444','#f97316','#3b82f6','#8b5cf6'];
+const COLORS = ['#10b981','#ef4444','#0369A1','#3b82f6','#7C3AED'];
 
 export default function ReportsPage() {
   const { user } = useAuth();

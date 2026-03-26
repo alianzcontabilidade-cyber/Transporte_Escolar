@@ -44,14 +44,14 @@ const MODULE_ICONS: Record<string, any> = {
 };
 
 const MODULE_COLORS: Record<string, string> = {
-  'PAINEL': '#2DB5B0',
-  'GESTÃO ESCOLAR': '#6366f1',
-  'ENSINO E APRENDIZAGEM': '#8b5cf6',
-  'FROTA E ROTAS': '#f97316',
-  'GESTÃO E RECURSOS': '#0ea5e9',
+  'PAINEL': '#059669',
+  'GESTÃO ESCOLAR': '#1E40AF',
+  'ENSINO E APRENDIZAGEM': '#7C3AED',
+  'FROTA E ROTAS': '#0369A1',
+  'GESTÃO E RECURSOS': '#0F766E',
   'CENTRAL DE CONTROLE': '#64748b',
-  'MOTORISTA': '#f97316',
-  'MEU PAINEL': '#2DB5B0',
+  'MOTORISTA': '#0369A1',
+  'MEU PAINEL': '#059669',
 };
 
 export default function Layout() {
@@ -145,8 +145,8 @@ export default function Layout() {
 
   // Search index with codes, module, and description
   const allPages = [
-    { code: '001', to: '/', text: 'Painel Inicial', module: 'Painel Central', desc: 'Tela inicial com módulos do sistema', tags: 'home modulos painel inicio', color: '#2DB5B0' },
-    { code: '002', to: '/dashboard', text: 'Dashboard', module: 'Painel Central', desc: 'KPIs, gráficos e alertas do município', tags: 'painel kpi grafico estatistica', color: '#2DB5B0' },
+    { code: '001', to: '/', text: 'Painel Inicial', module: 'Painel Central', desc: 'Tela inicial com módulos do sistema', tags: 'home modulos painel inicio', color: '#059669' },
+    { code: '002', to: '/dashboard', text: 'Dashboard', module: 'Painel Central', desc: 'KPIs, gráficos e alertas do município', tags: 'painel kpi grafico estatistica', color: '#059669' },
     // Secretaria
     { code: '101', to: '/escolas', text: 'Escolas', module: 'Gestão Escolar', desc: 'Cadastro de unidades escolares, INEP, horários', tags: 'escola unidade inep cadastro horario', color: '#1E40AF' },
     { code: '102', to: '/alunos', text: 'Alunos', module: 'Gestão Escolar', desc: 'Cadastro, saúde, responsáveis, documentos', tags: 'aluno estudante cadastro saude responsavel', color: '#1E40AF' },

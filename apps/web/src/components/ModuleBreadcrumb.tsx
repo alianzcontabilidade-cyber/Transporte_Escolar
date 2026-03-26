@@ -103,12 +103,12 @@ export default function ModuleBreadcrumb() {
   if (!info) return null;
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3 px-1">
-      <Link to="/modulos" className="hover:text-gray-600 transition-colors">Módulos</Link>
+    <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-3 px-1">
+      <Link to="/modulos" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Módulos</Link>
       <ChevronRight size={10} />
-      <Link to={`/modulos?m=${info.module}`} className="hover:text-gray-600 transition-colors">{info.moduleLabel}</Link>
+      <Link to={`/modulos?m=${info.module}`} className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{info.moduleLabel}</Link>
       <ChevronRight size={10} />
-      <span className="text-gray-600 font-medium">{info.label}</span>
+      <span className="text-gray-600 dark:text-gray-300 font-medium">{info.label}</span>
     </div>
   );
 }

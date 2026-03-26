@@ -122,7 +122,7 @@ export function QuickNavButton({
   label,
   count,
   onClick,
-  color = '#2DB5B0',
+  color = '#059669',
 }: QuickNavButtonProps) {
   return (
     <button
@@ -180,7 +180,7 @@ export function EntityBadge({ icon: Icon, label, onClick }: EntityBadgeProps) {
         border: '1px solid #2DB5B030',
       }}
     >
-      <Icon size={12} style={{ color: '#2DB5B0' }} />
+      <Icon size={12} style={{ color: '#059669' }} />
       <span className="truncate max-w-[160px]">{label}</span>
     </button>
   );

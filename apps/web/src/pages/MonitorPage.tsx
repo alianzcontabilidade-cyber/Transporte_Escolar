@@ -108,7 +108,7 @@ function LiveMap({ trips, locations, selectedTrip, fullscreen }: any) {
 
           // Draw route line
           if (coords.length >= 2) {
-            L.polyline(coords, { color: '#6366f1', weight: 3, opacity: 0.7, dashArray: '8 4' }).addTo(mapInstanceRef.current);
+            L.polyline(coords, { color: '#1E40AF', weight: 3, opacity: 0.7, dashArray: '8 4' }).addTo(mapInstanceRef.current);
             mapInstanceRef.current.fitBounds(coords, { padding: [50, 50] });
           }
         }).catch(() => {});

@@ -67,7 +67,7 @@ export default function AIRoutesPage() {
   const routeMapInstanceRef = useRef<any>(null);
 
   // Route colors for different routes
-  const ROUTE_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+  const ROUTE_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#7C3AED', '#ec4899', '#06b6d4', '#84cc16'];
 
   // Render route map when genResult changes
   useEffect(() => {

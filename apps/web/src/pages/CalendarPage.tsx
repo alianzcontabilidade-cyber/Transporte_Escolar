@@ -6,7 +6,7 @@ import { Calendar, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, 
 import { getHolidays } from '../lib/cnpjCep';
 
 const EVENT_TYPES: any = { aula:'Dia Letivo', feriado:'Feriado', recesso:'Recesso', reuniao:'Reunião', conselho:'Conselho', prova:'Avaliação', evento:'Evento', outro:'Outro' };
-const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#f97316', reuniao:'#6366f1', conselho:'#8b5cf6', prova:'#0ea5e9', evento:'#2DB5B0', outro:'#64748b' };
+const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#0369A1', reuniao:'#1E40AF', conselho:'#7C3AED', prova:'#0F766E', evento:'#059669', outro:'#64748b' };
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 export default function CalendarPage() {
@@ -15,7 +15,7 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<any>({ title:'', startDate:'', endDate:'', eventType:'evento', color:'#2DB5B0', description:'' });
+  const [form, setForm] = useState<any>({ title:'', startDate:'', endDate:'', eventType:'evento', color:'#059669', description:'' });
   const [editId, setEditId] = useState<number|null>(null);
   const [selectedDay, setSelectedDay] = useState<any>(null);
   const [importing, setImporting] = useState(false);
@@ -87,7 +87,7 @@ export default function CalendarPage() {
 
   const openNew = (day?: number) => {
     const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
-    setForm({ title:'', startDate: dateStr, endDate:'', eventType:'evento', color:'#2DB5B0', description:'' });
+    setForm({ title:'', startDate: dateStr, endDate:'', eventType:'evento', color:'#059669', description:'' });
     setEditId(null);
     setShowModal(true);
   };
@@ -98,7 +98,7 @@ export default function CalendarPage() {
       startDate: event.startDate ? event.startDate.split('T')[0] : '',
       endDate: event.endDate ? event.endDate.split('T')[0] : '',
       eventType: event.eventType || 'evento',
-      color: event.color || '#2DB5B0',
+      color: event.color || '#059669',
       description: event.description || '',
     });
     setEditId(event.id);

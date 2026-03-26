@@ -46,7 +46,7 @@ function LiveMap({ driverLocation, stops }: any) {
       mapInstanceRef.current = map;
       if (stops) {
         stops.forEach((stop: any, i: number) => {
-          const color = stop.arrived ? '#22c55e' : stop.isStudentStop ? '#f97316' : '#9ca3af';
+          const color = stop.arrived ? '#22c55e' : stop.isStudentStop ? '#0369A1' : '#9ca3af';
           const icon = L.divIcon({
             html: `<div style="background:${color};color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${stop.arrived ? '✓' : i + 1}</div>`,
             className: '', iconSize: [24, 24], iconAnchor: [12, 12]

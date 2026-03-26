@@ -91,7 +91,7 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
   },
   transporte: {
     title: 'Frota e Rotas', desc: 'Rotas, veículos, motoristas e monitoramento GPS',
-    color: '#D97706', gradient: 'from-[#D97706] to-[#B45309]', icon: Bus,
+    color: '#0369A1', gradient: 'from-[#0369A1] to-[#075985]', icon: Bus,
     items: [
       { to: '/rotas', text: 'Rotas', desc: 'Gestão de rotas de transporte' },
       { to: '/veiculos', text: 'Veículos', desc: 'Frota de ônibus e vans' },

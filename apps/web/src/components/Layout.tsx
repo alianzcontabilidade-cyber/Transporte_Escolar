@@ -172,18 +172,18 @@ export default function Layout() {
     { code: '208', to: '/calendario', text: 'Calendário Escolar', module: 'Ensino e Aprendizagem', desc: 'Eventos, feriados e datas importantes', tags: 'calendario feriado evento recesso reuniao', color: '#7C3AED' },
     { code: '209', to: '/educacenso', text: 'EDUCACENSO', module: 'Ensino e Aprendizagem', desc: 'Exportação para o Censo Escolar', tags: 'censo escolar inep exportar educacenso', color: '#7C3AED' },
     // Transporte
-    { code: '301', to: '/rotas', text: 'Rotas', module: 'Frota e Rotas', desc: 'Rotas, paradas e itinerários', tags: 'rota parada itinerario trajeto viagem', color: '#D97706' },
-    { code: '302', to: '/veiculos', text: 'Veículos', module: 'Frota e Rotas', desc: 'Frota, documentos e manutenção', tags: 'veiculo onibus frota placa documento', color: '#D97706' },
-    { code: '303', to: '/motoristas', text: 'Motoristas', module: 'Frota e Rotas', desc: 'Motoristas, CNH e vinculação', tags: 'motorista cnh habilitacao condutor', color: '#D97706' },
-    { code: '304', to: '/monitores', text: 'Monitores', module: 'Frota e Rotas', desc: 'Auxiliares do transporte escolar', tags: 'monitor auxiliar acompanhante', color: '#D97706' },
-    { code: '305', to: '/monitor', text: 'Monitoramento', module: 'Frota e Rotas', desc: 'Viagens em tempo real no mapa', tags: 'monitorar viagem tempo real mapa ao vivo', color: '#D97706' },
-    { code: '306', to: '/mapa-tempo-real', text: 'Mapa Tempo Real', module: 'Frota e Rotas', desc: 'GPS de todos os ônibus no mapa', tags: 'mapa gps localizar onibus posicao', color: '#D97706' },
-    { code: '307', to: '/rastreamento', text: 'Rastreamento GPS', module: 'Frota e Rotas', desc: 'Transmissão de posição do motorista', tags: 'gps rastrear posicao transmitir motorista', color: '#D97706' },
-    { code: '308', to: '/frequência', text: 'Frequência Transporte', module: 'Frota e Rotas', desc: 'Embarque e desembarque de alunos', tags: 'embarque desembarque qr code presenca', color: '#D97706' },
-    { code: '309', to: '/portal-responsavel', text: 'Portal Responsável', module: 'Frota e Rotas', desc: 'Acompanhamento pelos pais', tags: 'pai mae responsavel filho acompanhar', color: '#D97706' },
-    { code: '316', to: '/portal-motorista', text: 'Portal Motorista', module: 'Frota e Rotas', desc: 'Portal mobile do motorista com viagem e GPS', tags: 'motorista portal viagem gps embarque veiculo', color: '#D97706' },
-    { code: '317', to: '/portal-monitor', text: 'Portal Monitor', module: 'Frota e Rotas', desc: 'Portal mobile do monitor com checklist e QR', tags: 'monitor portal checklist qr scanner chamada', color: '#D97706' },
-    { code: '310', to: '/relatorio-transporte', text: 'Relatório Transporte', module: 'Frota e Rotas', desc: 'Relatório de viagens e frota', tags: 'relatorio viagem frota transporte', color: '#D97706' },
+    { code: '301', to: '/rotas', text: 'Rotas', module: 'Frota e Rotas', desc: 'Rotas, paradas e itinerários', tags: 'rota parada itinerario trajeto viagem', color: '#0369A1' },
+    { code: '302', to: '/veiculos', text: 'Veículos', module: 'Frota e Rotas', desc: 'Frota, documentos e manutenção', tags: 'veiculo onibus frota placa documento', color: '#0369A1' },
+    { code: '303', to: '/motoristas', text: 'Motoristas', module: 'Frota e Rotas', desc: 'Motoristas, CNH e vinculação', tags: 'motorista cnh habilitacao condutor', color: '#0369A1' },
+    { code: '304', to: '/monitores', text: 'Monitores', module: 'Frota e Rotas', desc: 'Auxiliares do transporte escolar', tags: 'monitor auxiliar acompanhante', color: '#0369A1' },
+    { code: '305', to: '/monitor', text: 'Monitoramento', module: 'Frota e Rotas', desc: 'Viagens em tempo real no mapa', tags: 'monitorar viagem tempo real mapa ao vivo', color: '#0369A1' },
+    { code: '306', to: '/mapa-tempo-real', text: 'Mapa Tempo Real', module: 'Frota e Rotas', desc: 'GPS de todos os ônibus no mapa', tags: 'mapa gps localizar onibus posicao', color: '#0369A1' },
+    { code: '307', to: '/rastreamento', text: 'Rastreamento GPS', module: 'Frota e Rotas', desc: 'Transmissão de posição do motorista', tags: 'gps rastrear posicao transmitir motorista', color: '#0369A1' },
+    { code: '308', to: '/frequência', text: 'Frequência Transporte', module: 'Frota e Rotas', desc: 'Embarque e desembarque de alunos', tags: 'embarque desembarque qr code presenca', color: '#0369A1' },
+    { code: '309', to: '/portal-responsavel', text: 'Portal Responsável', module: 'Frota e Rotas', desc: 'Acompanhamento pelos pais', tags: 'pai mae responsavel filho acompanhar', color: '#0369A1' },
+    { code: '316', to: '/portal-motorista', text: 'Portal Motorista', module: 'Frota e Rotas', desc: 'Portal mobile do motorista com viagem e GPS', tags: 'motorista portal viagem gps embarque veiculo', color: '#0369A1' },
+    { code: '317', to: '/portal-monitor', text: 'Portal Monitor', module: 'Frota e Rotas', desc: 'Portal mobile do monitor com checklist e QR', tags: 'monitor portal checklist qr scanner chamada', color: '#0369A1' },
+    { code: '310', to: '/relatorio-transporte', text: 'Relatório Transporte', module: 'Frota e Rotas', desc: 'Relatório de viagens e frota', tags: 'relatorio viagem frota transporte', color: '#0369A1' },
     // Administrativo
     { code: '401', to: '/recursos-humanos', text: 'Recursos Humanos', module: 'Gestão e Recursos', desc: 'Cargos, lotações e avaliações', tags: 'rh cargo lotacao avaliacao servidor funcionario', color: '#0F766E' },
     { code: '402', to: '/financeiro', text: 'Financeiro', module: 'Gestão e Recursos', desc: 'Contas, receitas e despesas', tags: 'financeiro conta receita despesa pdde banco', color: '#0F766E' },
@@ -214,7 +214,7 @@ export default function Layout() {
     { code: '509', to: '/gestao-documentos', text: 'Gestão de Documentos', module: 'Central de Controle', desc: 'Documentos gerados, assinaturas eletrônicas e verificação', tags: 'documento assinatura eletronica verificacao hash pdf qr code', color: '#64748b' },
     { code: '510', to: '/risco-evasao', text: 'Risco de Evasão', module: 'Central de Controle', desc: 'Análise de risco de evasão escolar via IA', tags: 'risco evasao abandono aluno ia inteligencia artificial frequência nota', color: '#64748b' },
     { code: '412', to: '/estoque-merenda', text: 'Estoque da Merenda', module: 'Gestão e Recursos', desc: 'Controle de entrada e saída de alimentos', tags: 'estoque merenda alimento entrada saida controle', color: '#0F766E' },
-    { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#D97706' },
+    { code: '311', to: '/vistoria-veiculos', text: 'Vistoria de Veículos', module: 'Frota e Rotas', desc: 'Checklist de inspeção veicular', tags: 'vistoria inspecao veiculo checklist seguranca', color: '#0369A1' },
     { code: '413', to: '/protocolo', text: 'Protocolo', module: 'Gestão e Recursos', desc: 'Requerimentos, solicitações e documentos', tags: 'protocolo requerimento solicitacao documento ticket', color: '#0F766E' },
     { code: '414', to: '/eventos', text: 'Gestão de Eventos', module: 'Gestão e Recursos', desc: 'Festas, feiras, formaturas, excursões', tags: 'evento festa feira formatura excursao jogos palestra', color: '#0F766E' },
     { code: '415', to: '/mural', text: 'Mural Informativo', module: 'Gestão e Recursos', desc: 'Avisos, comunicados e informativos', tags: 'mural aviso comunicado informativo diario boletim', color: '#0F766E' },
@@ -222,21 +222,21 @@ export default function Layout() {
     { code: '212', to: '/relatorio-individual', text: 'Relatório Individual', module: 'Ensino e Aprendizagem', desc: 'Relatório individual do aluno conforme BNCC', tags: 'relatorio individual aluno bncc competencia desempenho', color: '#7C3AED' },
     { code: '213', to: '/quadro-rendimento', text: 'Quadro de Rendimento', module: 'Ensino e Aprendizagem', desc: 'Aprovados, retidos e transferidos por turma', tags: 'quadro rendimento aprovado retido transferido escola turma', color: '#7C3AED' },
     { code: '214', to: '/ata-resultados-finais', text: 'Ata de Resultados Finais', module: 'Ensino e Aprendizagem', desc: 'Documento oficial com resultados finais por turma', tags: 'ata resultado final oficial turma aprovado retido', color: '#7C3AED' },
-    { code: '312', to: '/alunos-transportados', text: 'Alunos Transportados', module: 'Frota e Rotas', desc: 'Relatório FNDE de alunos do transporte escolar', tags: 'aluno transportado fnde transporte escolar rural urbano rota', color: '#D97706' },
+    { code: '312', to: '/alunos-transportados', text: 'Alunos Transportados', module: 'Frota e Rotas', desc: 'Relatório FNDE de alunos do transporte escolar', tags: 'aluno transportado fnde transporte escolar rural urbano rota', color: '#0369A1' },
     { code: '215', to: '/baixo-rendimento', text: 'Baixo Rendimento', module: 'Ensino e Aprendizagem', desc: 'Alunos com média abaixo do mínimo', tags: 'baixo rendimento nota media reprovacao recuperacao', color: '#7C3AED' },
     { code: '216', to: '/diario-classe', text: 'Diário de Classe', module: 'Ensino e Aprendizagem', desc: 'Frequência diária por turma e mês', tags: 'diario classe frequência presenca falta mensal', color: '#7C3AED' },
-    { code: '313', to: '/quilometragem', text: 'Quilometragem', module: 'Frota e Rotas', desc: 'Km percorridos por veículo e rota', tags: 'quilometragem km veiculo rota viagem distancia', color: '#D97706' },
-    { code: '314', to: '/abastecimento', text: 'Abastecimento', module: 'Frota e Rotas', desc: 'Controle de combustível da frota', tags: 'abastecimento combustivel diesel gasolina litro posto', color: '#D97706' },
+    { code: '313', to: '/quilometragem', text: 'Quilometragem', module: 'Frota e Rotas', desc: 'Km percorridos por veículo e rota', tags: 'quilometragem km veiculo rota viagem distancia', color: '#0369A1' },
+    { code: '314', to: '/abastecimento', text: 'Abastecimento', module: 'Frota e Rotas', desc: 'Controle de combustível da frota', tags: 'abastecimento combustivel diesel gasolina litro posto', color: '#0369A1' },
     { code: '217', to: '/quadro-curricular', text: 'Quadro Curricular', module: 'Ensino e Aprendizagem', desc: 'Disciplinas e carga horária por turma', tags: 'quadro curricular disciplina carga horaria professor turma', color: '#7C3AED' },
     { code: '218', to: '/desempenho-disciplina', text: 'Desempenho por Disciplina', module: 'Ensino e Aprendizagem', desc: 'Média e aprovação por componente curricular', tags: 'desempenho disciplina media aprovacao reprovacao componente', color: '#7C3AED' },
-    { code: '315', to: '/relatorio-manutencoes', text: 'Manutenções', module: 'Frota e Rotas', desc: 'Histórico de manutenções da frota', tags: 'manutencao veiculo preventiva corretiva custo', color: '#D97706' },
+    { code: '315', to: '/relatorio-manutencoes', text: 'Manutenções', module: 'Frota e Rotas', desc: 'Histórico de manutenções da frota', tags: 'manutencao veiculo preventiva corretiva custo', color: '#0369A1' },
     { code: '417', to: '/relatorio-rh', text: 'Relatório RH', module: 'Gestão e Recursos', desc: 'Quadro de pessoal por cargo e departamento', tags: 'rh pessoal servidor cargo departamento vinculo', color: '#0F766E' },
     { code: '418', to: '/relatorio-patrimonio', text: 'Relatório Patrimônio', module: 'Gestão e Recursos', desc: 'Inventário de bens patrimoniais', tags: 'patrimonio bem inventario tombamento valor ativo', color: '#0F766E' },
     { code: '419', to: '/relatorio-educacenso', text: 'Relatório EDUCACENSO', module: 'Gestão e Recursos', desc: 'Dados consolidados para o Censo Escolar', tags: 'educacenso censo escolar inep aluno turma rural transporte', color: '#0F766E' },
-    { code: '316', to: '/fornecedores', text: 'Fornecedores', module: 'Frota e Rotas', desc: 'Mecanicas, postos de combustivel, seguradoras', tags: 'fornecedor mecanica posto seguradora autopeca borracharia', color: '#D97706' },
-    { code: '317', to: '/ordens-servico', text: 'Ordens de Serviço', module: 'Frota e Rotas', desc: 'OS de manutencao preventiva e corretiva', tags: 'ordem servico os manutencao veiculo mecanica reparo', color: '#D97706' },
-    { code: '318', to: '/garagens', text: 'Garagens', module: 'Frota e Rotas', desc: 'Locais de guarda e estacionamento da frota', tags: 'garagem estacionamento frota veiculo guarda local', color: '#D97706' },
-    { code: '319', to: '/coleta-gps', text: 'Coleta GPS Alunos', module: 'Frota e Rotas', desc: 'Marcar ponto GPS da residencia de cada aluno', tags: 'gps coleta ponto aluno mapa localizacao residencia coordenada', color: '#D97706' },
+    { code: '316', to: '/fornecedores', text: 'Fornecedores', module: 'Frota e Rotas', desc: 'Mecanicas, postos de combustivel, seguradoras', tags: 'fornecedor mecanica posto seguradora autopeca borracharia', color: '#0369A1' },
+    { code: '317', to: '/ordens-servico', text: 'Ordens de Serviço', module: 'Frota e Rotas', desc: 'OS de manutencao preventiva e corretiva', tags: 'ordem servico os manutencao veiculo mecanica reparo', color: '#0369A1' },
+    { code: '318', to: '/garagens', text: 'Garagens', module: 'Frota e Rotas', desc: 'Locais de guarda e estacionamento da frota', tags: 'garagem estacionamento frota veiculo guarda local', color: '#0369A1' },
+    { code: '319', to: '/coleta-gps', text: 'Coleta GPS Alunos', module: 'Frota e Rotas', desc: 'Marcar ponto GPS da residencia de cada aluno', tags: 'gps coleta ponto aluno mapa localizacao residencia coordenada', color: '#0369A1' },
   ];
 
   const searchResults = searchQuery.length >= 1
@@ -285,7 +285,7 @@ export default function Layout() {
       { to: '/quadro-curricular', icon: BookOpen, text: 'Quadro Curricular' },
       { to: '/desempenho-disciplina', icon: BarChart3, text: 'Desemp. Disciplina' },
     ]},
-    { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#D97706', items: [
+    { key: 'transporte', label: 'Frota e Rotas', icon: Bus, color: '#0369A1', items: [
       { to: '/rotas', icon: Route, text: 'Rotas' }, { to: '/veiculos', icon: Bus, text: 'Veículos' },
       { to: '/motoristas', icon: UserCheck, text: 'Motoristas' }, { to: '/monitores', icon: UserCheck, text: 'Monitores' },
       { to: '/monitor', icon: Navigation, text: 'Monitoramento' }, { to: '/mapa-tempo-real', icon: MapPinned, text: 'Mapa Tempo Real' },
@@ -464,10 +464,11 @@ export default function Layout() {
                 return (
                   <button key={mod.key}
                     onClick={() => { if (mod.to) { window.location.href = mod.to; } else { setActiveModule(mod.key); } setSidebarOpen(false); }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl text-center transition-all ${isActive ? 'ring-2 ring-white/40' : 'hover:bg-white/10'}`}
-                    style={{ backgroundColor: (mod.color || '#64748b') + '30' }}>
-                    <ModIcon size={20} style={{ color: mod.color }} />
-                    <span className="text-[11px] font-semibold text-white mt-1.5 leading-tight">{mod.label}</span>
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl text-center transition-all ${isActive ? 'bg-white/20 ring-2 ring-white/50' : 'bg-white/5 hover:bg-white/15'}`}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-1" style={{ backgroundColor: mod.color }}>
+                      <ModIcon size={18} className="text-white" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/90 leading-tight">{mod.label}</span>
                   </button>
                 );
               })}

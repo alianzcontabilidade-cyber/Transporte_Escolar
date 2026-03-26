@@ -8,7 +8,7 @@ import QuickAddModal from '../components/QuickAddModal';
 const SHIFTS = [{ v:'morning', l:'Manhã' },{ v:'afternoon', l:'Tarde' },{ v:'evening', l:'Noite' },{ v:'full_time', l:'Integral' }];
 const TYPES = [{ v:'pickup', l:'Ida' },{ v:'dropoff', l:'Volta' },{ v:'both', l:'Ida e Volta' }];
 
-function LeafletMap({ stops, onAddStop, readonly }: { stops: any[]; onAddStop: (s: any) => void; readonly?: boolean }) {
+function LeafletMap({ stops, onAddStop, readonly, students }: { stops: any[]; onAddStop: (s: any) => void; readonly?: boolean; students?: any[] }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInst = useRef<any>(null);
   const markers = useRef<any[]>([]);
@@ -26,10 +26,13 @@ function LeafletMap({ stops, onAddStop, readonly }: { stops: any[]; onAddStop: (
     const L=(window as any).L; if(!mapInst.current||!L) return;
     markers.current.forEach(m=>{try{m.remove();}catch(_){}});markers.current=[];
     const pts: number[][]=[];
-    (stops||[]).forEach((st:any,i:number)=>{ if(!st.lat||!st.lng)return; const la=parseFloat(st.lat),ln=parseFloat(st.lng); if(isNaN(la)||isNaN(ln))return; const icon=L.divIcon({html:`<div style="background:#f97316;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.25)">${i+1}</div>`,className:'',iconSize:[26,26],iconAnchor:[13,13]}); markers.current.push(L.marker([la,ln],{icon}).addTo(mapInst.current).bindPopup(`<b>${i+1}. ${st.name}</b>`)); pts.push([la,ln]); });
-    if(pts.length>1){const pl=L.polyline(pts,{color:'#f97316',weight:3,dashArray:'6 4'}).addTo(mapInst.current);markers.current.push(pl);mapInst.current.fitBounds(pl.getBounds(),{padding:[30,30]});}
+    // Paradas (marcadores numerados âmbar)
+    (stops||[]).forEach((st:any,i:number)=>{ if(!st.lat||!st.lng)return; const la=parseFloat(st.lat),ln=parseFloat(st.lng); if(isNaN(la)||isNaN(ln))return; const icon=L.divIcon({html:`<div style="background:#D97706;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.25)">${i+1}</div>`,className:'',iconSize:[26,26],iconAnchor:[13,13]}); markers.current.push(L.marker([la,ln],{icon}).addTo(mapInst.current).bindPopup(`<b>${i+1}. ${st.name}</b>`)); pts.push([la,ln]); });
+    // Alunos (marcadores verdes com nome)
+    (students||[]).forEach((s:any)=>{ const la=parseFloat(String(s.latitude||0)),ln=parseFloat(String(s.longitude||0)); if(!la||!ln||isNaN(la))return; const icon=L.divIcon({html:`<div style="background:#059669;color:#fff;padding:1px 5px;border-radius:10px;font-size:9px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);white-space:nowrap">${(s.name||'').split(' ')[0]}</div>`,className:'',iconAnchor:[15,8]}); markers.current.push(L.marker([la,ln],{icon}).addTo(mapInst.current).bindPopup(`<b>${s.name}</b><br><span style="font-size:11px">${s.address||''} ${s.grade||''}</span>`)); pts.push([la,ln]); });
+    if(pts.length>1){const pl=L.polyline(pts.slice(0,(stops||[]).filter((s:any)=>s.lat&&s.lng).length),{color:'#D97706',weight:3,dashArray:'6 4'}).addTo(mapInst.current);markers.current.push(pl);mapInst.current.fitBounds(L.latLngBounds(pts),{padding:[30,30]});}
     else if(pts.length===1)mapInst.current.setView(pts[0] as any,15);
-  }, [stops]);
+  }, [stops, students]);
   const doSearch = (q:string) => { setSrch(q); if(q.length<3){setSugg([]);return;} setBusy(true); fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&countrycodes=br&limit=6',{headers:{'Accept-Language':'pt-BR','User-Agent':'NetEscol/1.0'}}).then(r=>r.json()).then(d=>{setSugg(d);setBusy(false);}).catch(()=>{setSugg([]);setBusy(false);}); };
   const goTo = (pl:any) => { const L=(window as any).L; if(!mapInst.current||!L)return; const la=parseFloat(pl.lat),ln=parseFloat(pl.lon); mapInst.current.setView([la,ln],16); const icon=L.divIcon({html:'<div style="background:#3b82f6;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:14px;font-weight:bold">P</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]}); markers.current.push(L.marker([la,ln],{icon}).addTo(mapInst.current).bindPopup('<b>'+pl.display_name.split(',').slice(0,3).join(', ')+'</b>').openPopup()); setSrch(pl.display_name.split(',').slice(0,3).join(', ')); setSugg([]); };
   return (
@@ -65,6 +68,15 @@ export default function RoutesPage() {
   const { mutate: startTrip, loading: starting } = useMutation(api.trips.start);
   const { mutate: endTrip } = useMutation(api.trips.complete);
   const [search,setSearch]=useState('');
+  const [routeStudents, setRouteStudents] = useState<any[]>([]);
+
+  // Carregar alunos quando uma rota é selecionada
+  useEffect(() => {
+    if (!viewRoute) { setRouteStudents([]); return; }
+    const routeId = viewRoute.route?.id || viewRoute.id;
+    if (!routeId) return;
+    api.ai.routeStudents({ routeId }).then((r: any) => setRouteStudents(r?.students || [])).catch(() => setRouteStudents([]));
+  }, [viewRoute]);
   const [page,setPage]=useState(1);
   const PER_PAGE=20;
 
@@ -169,7 +181,7 @@ export default function RoutesPage() {
                 </div>
                 {(viewRoute?.route?.id===routeId||viewRoute?.id===routeId)&&(
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <LeafletMap stops={routeStops} onAddStop={()=>{}} readonly={true}/>
+                    <LeafletMap stops={routeStops} onAddStop={()=>{}} readonly={true} students={routeStudents}/>
                     <div className="mt-3"><h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm"><Navigation size={14}/> Paradas ({routeStops.length})</h4>{routeStops.map((s:any,i:number)=>(<div key={i} className="flex items-center gap-2 p-1.5 bg-gray-50 rounded-lg mb-1"><div className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">{i+1}</div><p className="text-sm">{s.name}</p>{s.latitude&&<p className="text-xs text-gray-400 ml-auto">{s.latitude}, {s.longitude}</p>}</div>))}</div>
                   </div>
                 )}
@@ -180,7 +192,7 @@ export default function RoutesPage() {
         </div>
         {totalPages>1&&(<div className="flex items-center justify-between mt-4"><p className="text-sm text-gray-500">Mostrando {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE,filtered.length)} de {filtered.length}</p><div className="flex gap-1"><button onClick={function(){setPage(1);}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<<'}</button><button onClick={function(){setPage(function(p){return Math.max(1,p-1);});}} disabled={page===1} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'<'}</button><span className="px-3 py-1.5 text-sm font-medium">{page}/{totalPages}</span><button onClick={function(){setPage(function(p){return Math.min(totalPages,p+1);});}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>'}</button><button onClick={function(){setPage(totalPages);}} disabled={page===totalPages} className="px-3 py-1.5 text-sm rounded-lg border hover:bg-gray-50 disabled:opacity-40">{'>>'}</button></div></div>)}
       </>) : (
-        <div className="card p-4"><p className="text-sm text-gray-500 mb-3 flex items-center gap-2"><Info size={14}/> Busque um endereco ou selecione uma rota</p><div className="flex gap-2 mb-4 flex-wrap">{allRoutes.map((r:any)=>{const rt=r.route||r;return(<button key={rt.id} onClick={()=>setViewRoute(r)} className={'px-3 py-1.5 rounded-lg text-sm transition-all '+((viewRoute?.route?.id||viewRoute?.id)===rt.id?'bg-primary-500 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{rt.name}</button>);})}</div><LeafletMap stops={viewRoute?.stops||[]} onAddStop={()=>{}} readonly={true}/></div>
+        <div className="card p-4"><p className="text-sm text-gray-500 mb-3 flex items-center gap-2"><Info size={14}/> Busque um endereco ou selecione uma rota</p><div className="flex gap-2 mb-4 flex-wrap">{allRoutes.map((r:any)=>{const rt=r.route||r;return(<button key={rt.id} onClick={()=>setViewRoute(r)} className={'px-3 py-1.5 rounded-lg text-sm transition-all '+((viewRoute?.route?.id||viewRoute?.id)===rt.id?'bg-primary-500 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{rt.name}</button>);})}</div><LeafletMap stops={viewRoute?.stops||[]} onAddStop={()=>{}} readonly={true} students={routeStudents}/></div>
       )}
 
       {/* Modal Iniciar Viagem */}

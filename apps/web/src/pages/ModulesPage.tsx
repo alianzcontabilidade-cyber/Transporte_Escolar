@@ -51,7 +51,7 @@ const ICON_MAP: Record<string, any> = {
 const MODULE_DATA: Record<string, { title: string; desc: string; color: string; gradient: string; icon: any; items: { to: string; text: string; desc: string }[] }> = {
   secretaria: {
     title: 'Gestão Escolar', desc: 'Escolas, alunos, matrículas, turmas e professores',
-    color: '#6366f1', gradient: 'from-[#6366f1] to-[#4f46e5]', icon: School,
+    color: '#1E40AF', gradient: 'from-[#1E40AF] to-[#1a389d]', icon: School,
     items: [
       { to: '/escolas', text: 'Escolas', desc: 'Cadastro e gestão de escolas' },
       { to: '/alunos', text: 'Alunos', desc: 'Cadastro completo de alunos' },
@@ -71,7 +71,7 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
   },
   pedagogico: {
     title: 'Ensino e Aprendizagem', desc: 'Diário escolar, notas, boletim e calendário',
-    color: '#8b5cf6', gradient: 'from-[#8b5cf6] to-[#7c3aed]', icon: GraduationCap,
+    color: '#7C3AED', gradient: 'from-[#7C3AED] to-[#6D28D9]', icon: GraduationCap,
     items: [
       { to: '/diario-escolar', text: 'Diário Escolar', desc: 'Registro diário de aulas' },
       { to: '/lancamento-notas', text: 'Lançar Notas', desc: 'Notas e avaliações' },
@@ -91,7 +91,7 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
   },
   transporte: {
     title: 'Frota e Rotas', desc: 'Rotas, veículos, motoristas e monitoramento GPS',
-    color: '#f97316', gradient: 'from-[#f97316] to-[#ea580c]', icon: Bus,
+    color: '#D97706', gradient: 'from-[#D97706] to-[#B45309]', icon: Bus,
     items: [
       { to: '/rotas', text: 'Rotas', desc: 'Gestão de rotas de transporte' },
       { to: '/veiculos', text: 'Veículos', desc: 'Frota de ônibus e vans' },
@@ -113,7 +113,7 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
   },
   administrativo: {
     title: 'Gestão e Recursos', desc: 'RH, financeiro, contratos, merenda e patrimônio',
-    color: '#0ea5e9', gradient: 'from-[#0ea5e9] to-[#0284c7]', icon: Briefcase,
+    color: '#0F766E', gradient: 'from-[#0F766E] to-[#0D6460]', icon: Briefcase,
     items: [
       { to: '/recursos-humanos', text: 'RH', desc: 'Quadro de pessoal' },
       { to: '/financeiro', text: 'Financeiro', desc: 'Receitas e despesas' },
@@ -132,7 +132,7 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
   },
   controle: {
     title: 'Central de Controle', desc: 'Configurações, segurança e administração',
-    color: '#64748b', gradient: 'from-[#64748b] to-[#475569]', icon: Settings,
+    color: '#475569', gradient: 'from-[#475569] to-[#334155]', icon: Settings,
     items: [
       { to: '/cadastro-prefeitura', text: 'Prefeitura', desc: 'Dados do município' },
       { to: '/configuracoes', text: 'Configurações', desc: 'Preferências do sistema' },
@@ -152,12 +152,12 @@ const MODULE_DATA: Record<string, { title: string; desc: string; color: string; 
 };
 
 const MAIN_MODULES = [
-  { key: 'dashboard', to: '/dashboard', icon: LayoutDashboard, title: 'Painel Central', desc: 'Indicadores e gráficos', color: '#2DB5B0', gradient: 'from-[#2DB5B0] to-[#249a96]' },
-  { key: 'secretaria', to: '/modulos?m=secretaria', icon: School, title: 'Gestão Escolar', desc: 'Escolas, alunos e matrículas', color: '#6366f1', gradient: 'from-[#6366f1] to-[#4f46e5]' },
-  { key: 'pedagogico', to: '/modulos?m=pedagogico', icon: GraduationCap, title: 'Ensino e Aprendizagem', desc: 'Notas, boletim e calendário', color: '#8b5cf6', gradient: 'from-[#8b5cf6] to-[#7c3aed]' },
-  { key: 'transporte', to: '/modulos?m=transporte', icon: Bus, title: 'Frota e Rotas', desc: 'Transporte e GPS', color: '#f97316', gradient: 'from-[#f97316] to-[#ea580c]' },
-  { key: 'administrativo', to: '/modulos?m=administrativo', icon: Briefcase, title: 'Gestão e Recursos', desc: 'RH, financeiro e mais', color: '#0ea5e9', gradient: 'from-[#0ea5e9] to-[#0284c7]' },
-  { key: 'controle', to: '/modulos?m=controle', icon: Settings, title: 'Central de Controle', desc: 'Configurações e segurança', color: '#64748b', gradient: 'from-[#64748b] to-[#475569]' },
+  { key: 'dashboard', to: '/dashboard', icon: LayoutDashboard, title: 'Painel Central', desc: 'Indicadores e gráficos', color: '#059669', gradient: 'from-[#059669] to-[#047857]' },
+  { key: 'secretaria', to: '/modulos?m=secretaria', icon: School, title: 'Gestão Escolar', desc: 'Escolas, alunos e matrículas', color: '#1E40AF', gradient: 'from-[#1E40AF] to-[#1a389d]' },
+  { key: 'pedagogico', to: '/modulos?m=pedagogico', icon: GraduationCap, title: 'Ensino e Aprendizagem', desc: 'Notas, boletim e calendário', color: '#7C3AED', gradient: 'from-[#7C3AED] to-[#6D28D9]' },
+  { key: 'transporte', to: '/modulos?m=transporte', icon: Bus, title: 'Frota e Rotas', desc: 'Transporte e GPS', color: '#D97706', gradient: 'from-[#D97706] to-[#B45309]' },
+  { key: 'administrativo', to: '/modulos?m=administrativo', icon: Briefcase, title: 'Gestão e Recursos', desc: 'RH, financeiro e mais', color: '#0F766E', gradient: 'from-[#0F766E] to-[#0D6460]' },
+  { key: 'controle', to: '/modulos?m=controle', icon: Settings, title: 'Central de Controle', desc: 'Configurações e segurança', color: '#475569', gradient: 'from-[#475569] to-[#334155]' },
 ];
 
 export default function ModulesPage() {

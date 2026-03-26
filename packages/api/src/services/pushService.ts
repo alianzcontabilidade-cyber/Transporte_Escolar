@@ -1,6 +1,7 @@
 // Firebase Cloud Messaging v2 - Push Notification Service
 // Uses Service Account for authentication
 import { db } from '../db/index';
+import { sql } from 'drizzle-orm';
 import { sign } from 'jsonwebtoken';
 
 const FCM_PROJECT_ID = process.env.FCM_PROJECT_ID || 'netescol';
@@ -64,10 +65,9 @@ export async function sendPushToUser(userId: number, payload: PushPayload) {
 
   try {
     // Buscar tokens do usuário
-    const [rows] = await (db as any).execute(
-      `SELECT id, token FROM push_tokens WHERE userId = ?`, [userId]
-    );
-    const tokens = (rows as any[]).filter(r => r.token);
+    const rows = await db.select({ id: sql<number>`id`, token: sql<string>`token` })
+      .from(sql`push_tokens`).where(sql`userId = ${userId}`);
+    const tokens = rows.filter(r => r.token);
 
     if (tokens.length === 0) {
       console.log(`[PUSH] No tokens for user ${userId}`);
@@ -113,7 +113,7 @@ export async function sendPushToUser(userId: number, payload: PushPayload) {
           console.log(`[PUSH] Error: ${errCode}`);
           // Token inválido - remover
           if (errCode === 'UNREGISTERED' || errCode === 'INVALID_ARGUMENT') {
-            await (db as any).execute(`DELETE FROM push_tokens WHERE id = ?`, [id]);
+            await db.execute(sql`DELETE FROM push_tokens WHERE id = ${id}`);
             console.log(`[PUSH] Removed invalid token`);
           }
         }

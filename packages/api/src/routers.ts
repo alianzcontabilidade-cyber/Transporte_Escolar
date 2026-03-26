@@ -7044,18 +7044,20 @@ export const appRouter = t.router({
       .mutation(async ({ ctx, input }) => {
         const userId = ctx.userId!;
         // Verificar se token já existe
-        const [existing] = await (db as any).execute(`SELECT id FROM push_tokens WHERE userId = ? AND token = ?`, [userId, input.token]);
-        if ((existing as any[]).length > 0) {
-          await (db as any).execute(`UPDATE push_tokens SET updatedAt = NOW() WHERE userId = ? AND token = ?`, [userId, input.token]);
+        const existing = await db.select({ id: sql<number>`id` })
+          .from(sql`push_tokens`)
+          .where(sql`userId = ${userId} AND token = ${input.token}`);
+        if (existing.length > 0) {
+          await db.execute(sql`UPDATE push_tokens SET updatedAt = NOW() WHERE userId = ${userId} AND token = ${input.token}`);
         } else {
-          await (db as any).execute(`INSERT INTO push_tokens (userId, token, platform) VALUES (?, ?, ?)`, [userId, input.token, input.platform]);
+          await db.execute(sql`INSERT INTO push_tokens (userId, token, platform) VALUES (${userId}, ${input.token}, ${input.platform})`);
         }
         return { success: true };
       }),
     removeToken: protectedProcedure
       .input(z.object({ token: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await (db as any).execute(`DELETE FROM push_tokens WHERE userId = ? AND token = ?`, [ctx.userId, input.token]);
+        await db.execute(sql`DELETE FROM push_tokens WHERE userId = ${ctx.userId} AND token = ${input.token}`);
         return { success: true };
       }),
   }),

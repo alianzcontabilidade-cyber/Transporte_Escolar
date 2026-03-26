@@ -16,6 +16,7 @@ import { useTheme } from '../lib/theme';
 import NotificationDropdown from './NotificationDropdown';
 import PageHeader from './PageHeader';
 // ChatWidget unificado no FloatingChat
+import ModuleBreadcrumb from './ModuleBreadcrumb';
 import { getFavorites as getFavoritesFunc, getHistory as getHistoryFunc } from './PageHeader';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -668,7 +669,10 @@ export default function Layout() {
               )}
             </div>
           ) : (
-            <Outlet />
+            <>
+              <ModuleBreadcrumb />
+              <Outlet />
+            </>
           )}
         </main>
         {/* Chat unificado no FloatingChat (App.tsx) */}

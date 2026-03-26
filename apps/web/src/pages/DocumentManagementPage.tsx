@@ -187,7 +187,7 @@ export default function DocumentManagementPage() {
             <div className="w-10 h-10 rounded-xl bg-accent-500 flex items-center justify-center">
               <FileCheck size={20} className="text-white" />
             </div>
-            Gestao de Documentos
+            Gestão de Documentos
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Documentos gerados, assinaturas eletronicas e verificacao

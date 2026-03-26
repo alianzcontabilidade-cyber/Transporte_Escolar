@@ -70,7 +70,7 @@ export default function StudentRiskPage() {
           <ShieldAlert size={20} className="text-red-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analise de Risco de Evasao</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Analise de Risco de Evasão</h1>
           <p className="text-gray-500 text-sm">Identificacao de alunos com risco de abandono escolar via IA</p>
         </div>
       </div>

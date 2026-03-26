@@ -148,7 +148,7 @@ export default function EnrollmentFormPage() {
       <div class="sig">Diretor(a)</div>
     </div>
 
-    <div class="footer">NetEscol - Sistema de Gestao Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
+    <div class="footer">NetEscol - Sistema de Gestão Escolar Municipal | Documento gerado em ${new Date().toLocaleString('pt-BR')}</div>
     </body></html>`;
 
     const w = window.open('', '_blank');

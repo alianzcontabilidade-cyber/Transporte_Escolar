@@ -10,11 +10,9 @@ export function requestNotificationPermission() {
 
 // Mostrar notificação local (web)
 export function showLocalNotification(title: string, body: string) {
-  // Notificação nativa do navegador
   if ('Notification' in window && Notification.permission === 'granted') {
     try { new Notification(title, { body, icon: '/bus.svg' }); } catch {}
   }
-  // Vibrar
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 
@@ -24,44 +22,75 @@ export async function initPushNotifications() {
   if (initialized) return;
   initialized = true;
 
-  const token = localStorage.getItem('token');
-  if (!token) return;
+  const authToken = localStorage.getItem('token');
+  if (!authToken) {
+    console.log('[PUSH] Sem token de auth, pulando');
+    return;
+  }
 
+  console.log('[PUSH] Iniciando registro...');
+
+  // Tentar Capacitor PushNotifications
   try {
-    const { Capacitor } = await import('@capacitor/core');
-    if (!Capacitor.isNativePlatform()) return;
+    const mod = await import('@capacitor/push-notifications');
+    const PushNotifications = mod.PushNotifications;
+    console.log('[PUSH] Plugin carregado');
 
-    const { PushNotifications } = await import('@capacitor/push-notifications');
+    // Solicitar permissão
+    let perm;
+    try {
+      perm = await PushNotifications.checkPermissions();
+      console.log('[PUSH] Permissão atual:', perm.receive);
+      if (perm.receive !== 'granted') {
+        perm = await PushNotifications.requestPermissions();
+        console.log('[PUSH] Permissão solicitada:', perm.receive);
+      }
+    } catch (e: any) {
+      console.log('[PUSH] Erro permissão:', e?.message);
+      return;
+    }
 
-    const permResult = await PushNotifications.requestPermissions();
-    if (permResult.receive !== 'granted') return;
+    if (perm.receive !== 'granted') {
+      console.log('[PUSH] Permissão negada');
+      return;
+    }
 
-    await PushNotifications.register();
-
-    await PushNotifications.addListener('registration', async (tokenData) => {
-      console.log('[PUSH] Token:', tokenData.value.substring(0, 20) + '...');
+    // Registrar listeners ANTES de chamar register()
+    PushNotifications.addListener('registration', async (token) => {
+      console.log('[PUSH] TOKEN RECEBIDO:', token.value);
       try {
-        await api.push.registerToken({ token: tokenData.value, platform: 'android' });
-        console.log('[PUSH] Token saved');
+        await api.push.registerToken({ token: token.value, platform: 'android' });
+        console.log('[PUSH] Token salvo no servidor!');
       } catch (e: any) {
-        console.error('[PUSH] Save error:', e?.message);
+        console.error('[PUSH] Erro ao salvar token:', e?.message);
       }
     });
 
-    await PushNotifications.addListener('registrationError', (err) => {
-      console.error('[PUSH] Reg error:', err);
+    PushNotifications.addListener('registrationError', (error) => {
+      console.error('[PUSH] ERRO DE REGISTRO:', JSON.stringify(error));
     });
 
-    await PushNotifications.addListener('pushNotificationReceived', (notif) => {
-      console.log('[PUSH] Foreground:', notif);
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('[PUSH] Notificação recebida (foreground):', JSON.stringify(notification));
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     });
 
-    await PushNotifications.addListener('pushNotificationActionPerformed', () => {
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      console.log('[PUSH] Ação na notificação:', JSON.stringify(action));
       window.location.href = '/';
     });
 
+    // Agora registrar
+    try {
+      await PushNotifications.register();
+      console.log('[PUSH] register() chamado com sucesso');
+    } catch (e: any) {
+      console.error('[PUSH] Erro no register():', e?.message);
+    }
+
   } catch (e: any) {
-    // Not on native platform
+    console.log('[PUSH] Plugin não disponível (web browser):', e?.message);
+    // No navegador web, usar Web Push API se disponível
+    requestNotificationPermission();
   }
 }

@@ -929,9 +929,16 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
               )}
             </div>
 
-            {/* Rota de transporte */}
+            {/* Rota de transporte - somente leitura (atribuída pela IA ou admin de rotas) */}
             <div className="col-span-3"><label className="label flex items-center gap-1"><Navigation size={13} className="text-primary-500"/> Rota de transporte</label>
-              <select className="input" value={form.routeId} onChange={setField('routeId')}><option value="">— Sem rota —</option>{allRoutes.map(function(rt:any){return <option key={(rt.route?.id || rt.id)} value={(rt.route?.id || rt.id)}>{(rt.route?.name || rt.name)}{(rt.route?.code || rt.code)?' ('+(rt.route?.code || rt.code)+')':''}</option>;})}</select>
+              <input className="input bg-gray-100 cursor-not-allowed" value={(() => {
+                if (form.routeId) {
+                  const rt = allRoutes.find((r: any) => String(r.route?.id || r.id) === String(form.routeId));
+                  return rt ? (rt.route?.name || rt.name) + (rt.route?.code || rt.code ? ' (' + (rt.route?.code || rt.code) + ')' : '') : 'Rota #' + form.routeId;
+                }
+                return editId ? ((() => { const s = (students as any[])?.find((s: any) => s.id === editId); return s?.routeName || 'Sem rota atribuída'; })()) : 'Sem rota atribuída';
+              })()} readOnly title="A rota é atribuída automaticamente pela IA de Rotas ou pelo administrador na gestão de rotas" />
+              <p className="text-[10px] text-gray-400 mt-1">Rota definida pela IA ou pela gestão de rotas. Para alterar, use IA Rotas ou Rotas.</p>
             </div>
           </div></>)}
 

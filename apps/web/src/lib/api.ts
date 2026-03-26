@@ -480,7 +480,9 @@ export const api = {
     studentsGpsStatus: (input: any) => call('ai.studentsGpsStatus', input, 'query'),
     updateStudentGps: (input: any) => call('ai.updateStudentGps', input, 'mutation'),
     suggestStopsDbscan: (input: any) => call('ai.suggestStopsDbscan', input, 'query'),
-    generateRoutes: (input: any) => call('ai.generateRoutes', input, 'mutation'),
+    simulateRoutes: (input: any) => call('ai.simulateRoutes', input, 'query'),
+    approveRoutes: (input: any) => call('ai.approveRoutes', input, 'mutation'),
+    routeStudents: (input: any) => call('ai.routeStudents', input, 'query'),
     studentRiskAnalysis: (input: any) => call('ai.studentRiskAnalysis', input, 'query'),
   },
 

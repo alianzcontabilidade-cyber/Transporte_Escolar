@@ -672,69 +672,41 @@ export default function AIRoutesPage() {
       {tab === 'generate' && (
         <>
           <div className="card mb-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><Truck size={14} /> Gerar Rotas Automaticamente</h3>
-            <p className="text-xs text-gray-500 mb-4">O sistema analisa os pontos GPS dos alunos e gera rotas otimizadas com cálculo de custo e tempo.</p>
+            <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><Truck size={14} /> Simular Rotas</h3>
+            <p className="text-xs text-gray-500 mb-4">Simule rotas otimizadas sem salvar. Após revisar, clique em "Aprovar" para criar as rotas no sistema.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="label">Escola</label>
-                <select className="input" value={genConfig.schoolId} onChange={e => {
-                  const s = (schoolsList || []).find((s: any) => s.id === Number(e.target.value));
-                  setGenConfig(c => ({ ...c, schoolId: e.target.value }));
-                }}>
+                <select className="input" value={genConfig.schoolId} onChange={e => setGenConfig(c => ({ ...c, schoolId: e.target.value }))}>
                   <option value="">Selecione a escola</option>
-                  {(schoolsList || []).map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
+                  {(schoolsList || []).map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="label">Garagem (partida)</label>
-                <select className="input" onChange={(e) => {
-                  const g = (garagesList || []).find((g: any) => g.id === Number(e.target.value));
-                  if (g) setGenConfig(c => ({ ...c, depotLat: String(g.latitude || ''), depotLng: String(g.longitude || '') }));
-                }}>
+                <select className="input" onChange={(e) => { const g = (garagesList || []).find((g: any) => g.id === Number(e.target.value)); if (g) setGenConfig(c => ({ ...c, depotLat: String(g.latitude || ''), depotLng: String(g.longitude || '') })); }}>
                   <option value="">Selecione</option>
-                  {(garagesList || []).filter((g: any) => g.latitude).map((g: any) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
+                  {(garagesList || []).filter((g: any) => g.latitude).map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
                 <div className="flex gap-2 mt-1">
                   <input type="text" placeholder="Lat" value={genConfig.depotLat} onChange={e => setGenConfig(c => ({ ...c, depotLat: e.target.value }))} className="input text-xs flex-1" />
                   <input type="text" placeholder="Lng" value={genConfig.depotLng} onChange={e => setGenConfig(c => ({ ...c, depotLng: e.target.value }))} className="input text-xs flex-1" />
                 </div>
               </div>
-              <div>
-                <label className="label">Capacidade veículo</label>
-                <input type="number" value={genConfig.maxCapacity} onChange={e => setGenConfig(c => ({ ...c, maxCapacity: Number(e.target.value) }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Dist. máx. rota (km)</label>
-                <input type="number" value={genConfig.maxDistanceKm} onChange={e => setGenConfig(c => ({ ...c, maxDistanceKm: Number(e.target.value) }))} className="input" />
-              </div>
+              <div><label className="label">Capacidade veículo</label><input type="number" value={genConfig.maxCapacity} onChange={e => setGenConfig(c => ({ ...c, maxCapacity: Number(e.target.value) }))} className="input" /></div>
+              <div><label className="label">Dist. máx. rota (km)</label><input type="number" value={genConfig.maxDistanceKm} onChange={e => setGenConfig(c => ({ ...c, maxDistanceKm: Number(e.target.value) }))} className="input" /></div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <label className="label">Velocidade média (km/h)</label>
-                <input type="number" value={genConfig.avgSpeedKmh} onChange={e => setGenConfig(c => ({ ...c, avgSpeedKmh: Number(e.target.value) }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Custo por km (R$)</label>
-                <input type="number" step="0.1" value={genConfig.costPerKm} onChange={e => setGenConfig(c => ({ ...c, costPerKm: Number(e.target.value) }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Custo motorista/hora (R$)</label>
-                <input type="number" value={genConfig.driverCostPerHour} onChange={e => setGenConfig(c => ({ ...c, driverCostPerHour: Number(e.target.value) }))} className="input" />
-              </div>
-              <div>
-                <label className="label">Prefixo das rotas</label>
-                <input type="text" value={genConfig.prefix} onChange={e => setGenConfig(c => ({ ...c, prefix: e.target.value }))} className="input" />
-              </div>
+              <div><label className="label">Velocidade média (km/h)</label><input type="number" value={genConfig.avgSpeedKmh} onChange={e => setGenConfig(c => ({ ...c, avgSpeedKmh: Number(e.target.value) }))} className="input" /></div>
+              <div><label className="label">Custo por km (R$)</label><input type="number" step="0.1" value={genConfig.costPerKm} onChange={e => setGenConfig(c => ({ ...c, costPerKm: Number(e.target.value) }))} className="input" /></div>
+              <div><label className="label">Custo motorista/hora (R$)</label><input type="number" value={genConfig.driverCostPerHour} onChange={e => setGenConfig(c => ({ ...c, driverCostPerHour: Number(e.target.value) }))} className="input" /></div>
+              <div><label className="label">Prefixo das rotas</label><input type="text" value={genConfig.prefix} onChange={e => setGenConfig(c => ({ ...c, prefix: e.target.value }))} className="input" /></div>
             </div>
             <button onClick={async () => {
               if (!genConfig.schoolId || !genConfig.depotLat) { showErrorToast('Selecione a escola e a garagem'); return; }
               setGenerating(true); setGenResult(null);
               try {
-                const result = await api.ai.generateRoutes({
+                const result = await api.ai.simulateRoutes({
                   municipalityId, schoolId: Number(genConfig.schoolId),
                   depotLat: parseFloat(genConfig.depotLat), depotLng: parseFloat(genConfig.depotLng),
                   maxCapacity: genConfig.maxCapacity, maxDistanceKm: genConfig.maxDistanceKm,
@@ -742,14 +714,12 @@ export default function AIRoutesPage() {
                   driverCostPerHour: genConfig.driverCostPerHour, prefix: genConfig.prefix,
                 });
                 setGenResult(result);
-                if (result.success) showSuccessToast(result.message);
-                else showErrorToast(result.message);
-              } catch (e: any) { showErrorToast(e.message || 'Erro ao gerar rotas'); }
+              } catch (e: any) { showErrorToast(e.message || 'Erro ao simular rotas'); }
               setGenerating(false);
             }} disabled={generating || !genConfig.schoolId || !genConfig.depotLat}
               className="btn-primary flex items-center gap-2 disabled:opacity-50">
-              {generating ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
-              {generating ? 'Gerando rotas...' : 'Gerar Rotas Automaticamente'}
+              {generating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+              {generating ? 'Simulando...' : 'Simular Rotas'}
             </button>
           </div>
 
@@ -765,73 +735,78 @@ export default function AIRoutesPage() {
 
           {genResult && genResult.success && (
             <>
-              {/* Dashboard resumo */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                <div className="card bg-blue-50 border-0 p-4">
-                  <Truck size={18} className="text-blue-600 mb-1" />
-                  <p className="text-2xl font-bold text-gray-900">{genResult.routes.length}</p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Rotas</p>
-                </div>
-                <div className="card bg-green-50 border-0 p-4">
-                  <Users size={18} className="text-green-600 mb-1" />
-                  <p className="text-2xl font-bold text-gray-900">{genResult.totalStudents}</p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Alunos</p>
-                </div>
-                <div className="card bg-amber-50 border-0 p-4">
-                  <Route size={18} className="text-amber-600 mb-1" />
-                  <p className="text-2xl font-bold text-gray-900">{genResult.routes.reduce((s: number, r: any) => s + r.distanceKm, 0).toFixed(1)}<span className="text-sm font-normal"> km</span></p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Distância Total</p>
-                </div>
-                <div className="card bg-purple-50 border-0 p-4">
-                  <Clock size={18} className="text-purple-600 mb-1" />
-                  <p className="text-2xl font-bold text-gray-900">{genResult.routes.reduce((s: number, r: any) => s + r.timeMinutes, 0)}<span className="text-sm font-normal"> min</span></p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Tempo Total</p>
-                </div>
-                <div className="card bg-red-50 border-0 p-4">
-                  <DollarSign size={18} className="text-red-600 mb-1" />
-                  <p className="text-2xl font-bold text-gray-900">R$ {genResult.routes.reduce((s: number, r: any) => s + r.monthlyCostTotal, 0).toLocaleString('pt-BR')}</p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Custo Mensal</p>
+              {/* Status: SIMULAÇÃO */}
+              <div className="card mb-4 bg-amber-50 border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle size={18} className="text-amber-600" />
+                    <div>
+                      <p className="font-semibold text-amber-800">Simulação - Nada foi salvo ainda</p>
+                      <p className="text-xs text-amber-600">Revise as rotas abaixo. Clique em "Aprovar e Criar Rotas" para salvar no sistema.</p>
+                    </div>
+                  </div>
+                  <button onClick={async () => {
+                    setGenerating(true);
+                    try {
+                      const result = await api.ai.approveRoutes({
+                        municipalityId, schoolId: Number(genConfig.schoolId),
+                        routes: genResult.routes.map((r: any) => ({
+                          name: r.name, code: r.code, distanceKm: r.distanceKm, timeMinutes: r.timeMinutes,
+                          monthlyCostFuel: r.monthlyCostFuel, monthlyCostDriver: r.monthlyCostDriver, costPerStudent: r.costPerStudent,
+                          stopPoints: r.stopPoints,
+                        })),
+                      });
+                      showSuccessToast(result.message);
+                      setGenResult({ ...genResult, approved: true });
+                    } catch (e: any) { showErrorToast(e.message || 'Erro ao aprovar'); }
+                    setGenerating(false);
+                  }} disabled={generating || genResult.approved}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors ${genResult.approved ? 'bg-green-500 text-white cursor-default' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
+                    {genResult.approved ? <><CheckCircle size={16} /> Rotas Aprovadas</> : generating ? <><Loader2 size={16} className="animate-spin" /> Aprovando...</> : <><Check size={16} /> Aprovar e Criar Rotas</>}
+                  </button>
                 </div>
               </div>
 
-              {/* Mapa com todas as rotas */}
+              {/* Dashboard resumo */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                <div className="card bg-blue-50 border-0 p-4"><Truck size={18} className="text-blue-600 mb-1" /><p className="text-2xl font-bold">{genResult.routes.length}</p><p className="text-[10px] text-gray-500 uppercase">Rotas</p></div>
+                <div className="card bg-green-50 border-0 p-4"><Users size={18} className="text-green-600 mb-1" /><p className="text-2xl font-bold">{genResult.totalStudents}</p><p className="text-[10px] text-gray-500 uppercase">Alunos</p></div>
+                <div className="card bg-amber-50 border-0 p-4"><Route size={18} className="text-amber-600 mb-1" /><p className="text-2xl font-bold">{genResult.routes.reduce((s: number, r: any) => s + r.distanceKm, 0).toFixed(1)} <span className="text-sm font-normal">km</span></p><p className="text-[10px] text-gray-500 uppercase">Distância</p></div>
+                <div className="card bg-purple-50 border-0 p-4"><Clock size={18} className="text-purple-600 mb-1" /><p className="text-2xl font-bold">{genResult.routes.reduce((s: number, r: any) => s + r.timeMinutes, 0)} <span className="text-sm font-normal">min</span></p><p className="text-[10px] text-gray-500 uppercase">Tempo</p></div>
+                <div className="card bg-red-50 border-0 p-4"><DollarSign size={18} className="text-red-600 mb-1" /><p className="text-2xl font-bold">R$ {genResult.routes.reduce((s: number, r: any) => s + r.monthlyCostTotal, 0).toLocaleString('pt-BR')}</p><p className="text-[10px] text-gray-500 uppercase">Custo/Mês</p></div>
+              </div>
+
+              {/* Mapa */}
               <div className="card mb-4 p-0 overflow-hidden">
                 <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-700 flex items-center gap-2"><MapPin size={14} /> Mapa das Rotas</span>
-                  <div className="flex items-center gap-2">
-                    <select className="input text-xs py-1 w-44" value={selectedRouteMap} onChange={e => setSelectedRouteMap(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-                      <option value="all">Todas as rotas</option>
-                      {genResult.routes.map((r: any, i: number) => <option key={i} value={i}>{r.code} - {r.stopCount || r.stops} paradas</option>)}
-                    </select>
-                  </div>
+                  <select className="input text-xs py-1 w-44" value={selectedRouteMap} onChange={e => setSelectedRouteMap(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
+                    <option value="all">Todas as rotas</option>
+                    {genResult.routes.map((r: any, i: number) => <option key={i} value={i}>{r.code} - {r.stopCount} paradas</option>)}
+                  </select>
                 </div>
                 <div className="flex flex-wrap gap-2 px-3 py-2 bg-white border-b">
                   <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="w-3 h-3 rounded-full bg-gray-700 inline-block" /> Garagem</span>
                   <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="w-3 h-3 rounded-full bg-red-600 inline-block" /> Escola</span>
                   {genResult.routes.map((r: any, i: number) => (
-                    <span key={i} className="flex items-center gap-1 text-[10px] text-gray-500">
-                      <span className="w-3 h-3 rounded-full inline-block" style={{ background: ROUTE_COLORS[i] || '#333' }} /> {r.code}
-                    </span>
+                    <span key={i} className="flex items-center gap-1 text-[10px] text-gray-500"><span className="w-3 h-3 rounded-full inline-block" style={{ background: ROUTE_COLORS[i] }} /> {r.code}</span>
                   ))}
                 </div>
                 <div ref={routeMapRef} style={{ height: 420 }} />
               </div>
 
-              {/* Cards das rotas */}
+              {/* Cards rotas */}
               <div className="space-y-3">
                 {genResult.routes.map((r: any, idx: number) => (
                   <div key={idx} className="card hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: ROUTE_COLORS[idx] + '20' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: ROUTE_COLORS[idx] + '20' }}>
                         <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: ROUTE_COLORS[idx] }}>{idx + 1}</div>
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-gray-800">{r.name}</p>
-                        <div className="flex gap-4 text-xs text-gray-500 mt-0.5">
-                          <span className="flex items-center gap-1"><MapPin size={10} /> {r.stopCount || r.stops} paradas</span>
-                          <span className="flex items-center gap-1"><Users size={10} /> {r.passengers} alunos</span>
-                          <span className="flex items-center gap-1"><Route size={10} /> {r.distanceKm.toFixed(1)} km</span>
-                          <span className="flex items-center gap-1"><Clock size={10} /> {r.timeMinutes} min</span>
+                        <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                          <span>{r.stopCount} paradas</span><span>{r.passengers} alunos</span><span>{r.distanceKm.toFixed(1)} km</span><span>{r.timeMinutes} min</span>
                         </div>
                       </div>
                       <div className="text-right">
@@ -841,42 +816,16 @@ export default function AIRoutesPage() {
                       <button onClick={() => setSelectedRouteMap(idx)} className="btn-secondary text-xs px-3 py-1.5">Ver no mapa</button>
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-4 gap-3">
-                      <div className="bg-blue-50 rounded-lg p-2 text-center">
-                        <Fuel size={14} className="text-blue-600 mx-auto mb-1" />
-                        <p className="text-xs text-blue-800 font-bold">R$ {r.monthlyCostFuel.toLocaleString('pt-BR')}</p>
-                        <p className="text-[10px] text-blue-500">Combustível</p>
-                      </div>
-                      <div className="bg-amber-50 rounded-lg p-2 text-center">
-                        <Users size={14} className="text-amber-600 mx-auto mb-1" />
-                        <p className="text-xs text-amber-800 font-bold">R$ {r.monthlyCostDriver.toLocaleString('pt-BR')}</p>
-                        <p className="text-[10px] text-amber-500">Motorista</p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-2 text-center">
-                        <DollarSign size={14} className="text-green-600 mx-auto mb-1" />
-                        <p className="text-xs text-green-800 font-bold">R$ {r.costPerStudent}</p>
-                        <p className="text-[10px] text-green-500">Por aluno</p>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-2 text-center">
-                        <Clock size={14} className="text-purple-600 mx-auto mb-1" />
-                        <p className="text-xs text-purple-800 font-bold">{r.timeMinutes} min</p>
-                        <p className="text-[10px] text-purple-500">Percurso</p>
-                      </div>
+                      <div className="bg-blue-50 rounded-lg p-2 text-center"><Fuel size={14} className="text-blue-600 mx-auto mb-1" /><p className="text-xs text-blue-800 font-bold">R$ {r.monthlyCostFuel.toLocaleString('pt-BR')}</p><p className="text-[10px] text-blue-500">Combustível</p></div>
+                      <div className="bg-amber-50 rounded-lg p-2 text-center"><Users size={14} className="text-amber-600 mx-auto mb-1" /><p className="text-xs text-amber-800 font-bold">R$ {r.monthlyCostDriver.toLocaleString('pt-BR')}</p><p className="text-[10px] text-amber-500">Motorista</p></div>
+                      <div className="bg-green-50 rounded-lg p-2 text-center"><DollarSign size={14} className="text-green-600 mx-auto mb-1" /><p className="text-xs text-green-800 font-bold">R$ {r.costPerStudent}</p><p className="text-[10px] text-green-500">Por aluno</p></div>
+                      <div className="bg-purple-50 rounded-lg p-2 text-center"><Clock size={14} className="text-purple-600 mx-auto mb-1" /><p className="text-xs text-purple-800 font-bold">{r.timeMinutes} min</p><p className="text-[10px] text-purple-500">Percurso</p></div>
                     </div>
-                    {/* Lista de paradas da rota */}
-                    {r.stopPoints && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs font-semibold text-gray-500 mb-2">Sequência de paradas:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">🏠 Garagem</span>
-                          {r.stopPoints.map((s: any) => (
-                            <span key={s.order} className="text-[10px] px-2 py-0.5 rounded-full font-medium text-white" style={{ background: ROUTE_COLORS[idx] }}>
-                              {s.order}. {s.name.split(' ')[0]}
-                            </span>
-                          ))}
-                          <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">🏫 Escola</span>
-                        </div>
-                      </div>
-                    )}
+                    {r.stopPoints && <div className="mt-3 pt-3 border-t border-gray-100"><p className="text-xs font-semibold text-gray-500 mb-2">Sequência:</p><div className="flex flex-wrap gap-1.5">
+                      <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">🏠 Garagem</span>
+                      {r.stopPoints.map((s: any) => <span key={s.order} className="text-[10px] px-2 py-0.5 rounded-full font-medium text-white" style={{ background: ROUTE_COLORS[idx] }}>{s.order}. {s.name.split(' ')[0]}</span>)}
+                      <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">🏫 Escola</span>
+                    </div></div>}
                   </div>
                 ))}
               </div>
@@ -885,10 +834,7 @@ export default function AIRoutesPage() {
 
           {genResult && !genResult.success && (
             <div className="card bg-yellow-50 border-yellow-200">
-              <div className="flex items-center gap-2 text-yellow-700">
-                <AlertTriangle size={16} />
-                <p className="text-sm">{genResult.message}</p>
-              </div>
+              <div className="flex items-center gap-2 text-yellow-700"><AlertTriangle size={16} /><p className="text-sm">{genResult.message}</p></div>
             </div>
           )}
         </>

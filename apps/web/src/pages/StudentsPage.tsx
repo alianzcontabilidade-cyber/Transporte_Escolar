@@ -12,9 +12,30 @@ import { QuickActionButton } from '../components/EntitySummaries';
 import QuickAddModal from '../components/QuickAddModal';
 import GoogleMapPicker from '../components/GoogleMapPicker';
 
+function compressImage(file: File, maxSize: number = 200): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+      else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 function PhotoUpload({ value, onChange }: any) {
   const ref = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) { const compressed = await compressImage(f); onChange(compressed); }
+  };
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-20 h-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary-400 transition-colors" onClick={() => ref.current?.click()}>
@@ -25,8 +46,8 @@ function PhotoUpload({ value, onChange }: any) {
         <span className="text-gray-300">|</span>
         <button type="button" onClick={() => cameraRef.current?.click()} className="text-xs text-accent-500 hover:underline">Câmera</button>
       </div>
-      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={function(e) { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = function(ev) { onChange(ev.target?.result); }; rd.readAsDataURL(f); } }}/>
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={function(e) { const f = e.target.files?.[0]; if (f) { const rd = new FileReader(); rd.onload = function(ev) { onChange(ev.target?.result); }; rd.readAsDataURL(f); } }}/>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile}/>
     </div>
   );
 }

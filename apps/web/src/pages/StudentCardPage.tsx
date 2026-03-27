@@ -108,6 +108,7 @@ export default function StudentCardPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [selSchool, setSelSchool] = useState('');
+  const [selClass, setSelClass] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [search, setSearch] = useState('');
@@ -123,10 +124,13 @@ export default function StudentCardPage() {
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
 
   const allSchools = (schoolsData as any) || [];
-  const allStudents = ((studentsData as any) || []).filter((s: any) => {
+  const allStudentsRaw = (studentsData as any) || [];
+  const availableClasses = [...new Set(allStudentsRaw.filter((s: any) => !selSchool || String(s.schoolId) === selSchool).map((s: any) => s.classRoom).filter(Boolean))].sort();
+  const allStudents = allStudentsRaw.filter((s: any) => {
     const matchSchool = !selSchool || String(s.schoolId) === selSchool;
+    const matchClass = !selClass || s.classRoom === selClass;
     const matchSearch = !search || s.name?.toLowerCase().includes(search.toLowerCase()) || (s.enrollment || '').includes(search);
-    return matchSchool && matchSearch;
+    return matchSchool && matchClass && matchSearch;
   });
 
   // Imprimir com assinatura manual (linha impressa)
@@ -246,12 +250,16 @@ export default function StudentCardPage() {
 
       <ReportSignatureSelector selected={selectedSigs} onChange={setSelectedSigs} />
 
-      <div className="flex gap-3 mb-5">
-        <select className="input w-56" value={selSchool} onChange={e => setSelSchool(e.target.value)}>
+      <div className="flex flex-wrap gap-3 mb-5">
+        <select className="input w-52" value={selSchool} onChange={e => { setSelSchool(e.target.value); setSelClass(''); }}>
           <option value="">Todas as escolas</option>
           {allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <div className="relative flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar por nome ou matricula..." value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <select className="input w-44" value={selClass} onChange={e => setSelClass(e.target.value)}>
+          <option value="">Todas as turmas</option>
+          {availableClasses.map((c: string) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <div className="relative flex-1 min-w-[200px]"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar por nome ou matricula..." value={search} onChange={e => setSearch(e.target.value)} /></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -13,6 +13,8 @@ export default function EnrollmentFormPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
   const [search, setSearch] = useState('');
+  const [filterSchool, setFilterSchool] = useState('');
+  const [filterClass, setFilterClass] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
   const [munReport, setMunReport] = useState<any>(null);
   const [selStudent, setSelStudent] = useState<any>(null);
@@ -24,7 +26,14 @@ export default function EnrollmentFormPage() {
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);
   const { data: munData } = useQuery(() => api.municipalities.getById({ id: mid }), [mid]);
 
-  const allStudents = ((studentsData as any) || []).filter((s: any) => !search || s.name?.toLowerCase().includes(search.toLowerCase()) || (s.enrollment || '').includes(search));
+  const allStudentsRaw = (studentsData as any) || [];
+  const availableClasses = [...new Set(allStudentsRaw.filter((s: any) => !filterSchool || String(s.schoolId) === filterSchool).map((s: any) => s.classRoom).filter(Boolean))].sort();
+  const allStudents = allStudentsRaw.filter((s: any) => {
+    const matchSearch = !search || s.name?.toLowerCase().includes(search.toLowerCase()) || (s.enrollment || '').includes(search);
+    const matchSchool = !filterSchool || String(s.schoolId) === filterSchool;
+    const matchClass = !filterClass || s.classRoom === filterClass;
+    return matchSearch && matchSchool && matchClass;
+  });
   const allSchools = (schoolsData as any) || [];
   const mun = munData as any;
   const getSchool = (id: number) => allSchools.find((s: any) => s.id === id);
@@ -71,6 +80,11 @@ export default function EnrollmentFormPage() {
     <div style="text-align:center;font-size:10px;color:#666;margin-bottom:15px">Ano Letivo: ${new Date().getFullYear()}</div>
 
     <div class="title">1. DADOS DO ALUNO</div>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="width:70px;height:85px;border:1px solid #ccc;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#f3f4f6">
+        ${s.photoUrl ? '<img src="' + s.photoUrl + '" style="width:100%;height:100%;object-fit:cover"/>' : '<span style="font-size:28px;color:#999">' + (s.name?.[0] || '?') + '</span>'}
+      </div>
+      <div style="flex:1">
     <div class="grid grid-2">
       ${line('Nome completo', s.name)}
       ${line('Data de nascimento', fmtDate(s.birthDate))}
@@ -89,6 +103,7 @@ export default function EnrollmentFormPage() {
       <b>Sexo:</b> <span class="checkbox"><span class="checkbox-box"></span> Masculino</span> <span class="checkbox"><span class="checkbox-box"></span> Feminino</span>
       &nbsp;&nbsp;<b>Cor/Ra\ca:</b> <span class="checkbox"><span class="checkbox-box"></span> Branca</span> <span class="checkbox"><span class="checkbox-box"></span> Parda</span> <span class="checkbox"><span class="checkbox-box"></span> Preta</span> <span class="checkbox"><span class="checkbox-box"></span> Amarela</span> <span class="checkbox"><span class="checkbox-box"></span> Ind\igena</span>
     </div>
+    </div></div>
 
     <div class="title">2. ENDERE\CO</div>
     <div class="grid grid-2">
@@ -194,11 +209,13 @@ export default function EnrollmentFormPage() {
 
       <div className="grid grid-cols-3 gap-6">
         <div>
+          <select className="input mb-2 text-sm" value={filterSchool} onChange={e => { setFilterSchool(e.target.value); setFilterClass(''); }}><option value="">Todas as escolas</option>{allSchools.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+          <select className="input mb-2 text-sm" value={filterClass} onChange={e => setFilterClass(e.target.value)}><option value="">Todas as turmas</option>{availableClasses.map((c: string) => <option key={c} value={c}>{c}</option>)}</select>
           <div className="relative mb-3"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input className="input pl-9" placeholder="Buscar aluno..." value={search} onChange={e => setSearch(e.target.value)} /></div>
           <div className="space-y-1 max-h-[65vh] overflow-y-auto">
             {allStudents.slice(0, 50).map((s: any) => (
               <button key={s.id} onClick={() => setSelStudent(s)} className={`w-full text-left p-3 rounded-xl transition-all flex items-center gap-3 ${selStudent?.id === s.id ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-gray-50 border border-transparent'}`}>
-                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700 flex-shrink-0">{s.name?.[0]}</div>
+                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700 flex-shrink-0 overflow-hidden">{s.photoUrl ? <img src={s.photoUrl} className="w-full h-full object-cover" /> : s.name?.[0]}</div>
                 <div className="min-w-0"><p className="text-sm font-medium truncate">{s.name}</p>{s.enrollment && <p className="text-xs text-gray-400">Mat. {s.enrollment}</p>}</div>
               </button>
             ))}
@@ -208,7 +225,7 @@ export default function EnrollmentFormPage() {
           {selStudent ? (
             <div className="card">
               <div className="flex items-center gap-4 mb-4 pb-4 border-b">
-                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-700">{selStudent.name?.[0]}</div>
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-700 overflow-hidden">{selStudent.photoUrl ? <img src={selStudent.photoUrl} className="w-full h-full object-cover" /> : selStudent.name?.[0]}</div>
                 <div><h2 className="text-lg font-bold text-gray-900">{selStudent.name}</h2><p className="text-sm text-gray-500">{selStudent.enrollment ? 'Mat. ' + selStudent.enrollment : ''} · {selStudent.grade || ''} · {getSchool(selStudent.schoolId)?.name || ''}</p></div>
               </div>
               <p className="text-sm text-gray-600 mb-4">Clique em <b>"Imprimir Preenchida"</b> para imprimir a ficha com os dados deste aluno, ou <b>"Imprimir em Branco"</b> para um formulario vazio. Use <b>"Exportar"</b> para outros formatos.</p>

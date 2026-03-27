@@ -145,9 +145,9 @@ export default function MonitorPortalPage() {
   const hasTripActive = !!activeTrip?.trip?.id;
   const tripId = activeTrip?.trip?.id || activeTrip?.id;
 
-  // All students flat list
+  // All students flat list (inclui stopId e stopName para registro de embarque)
   const allStudents = stops.flatMap((s: any) =>
-    (s.students || []).map((st: any) => ({ ...st, stopName: s.name }))
+    (s.students || []).map((st: any) => ({ ...st, stopId: s.id, stopName: s.name }))
   );
 
   if (view !== 'home') {
@@ -173,16 +173,16 @@ export default function MonitorPortalPage() {
             <ChecklistView
               stops={stops}
               tripId={tripId}
-              onBoard={(sId: number) => boardMut.mutate({ studentId: sId, tripId }, { onSuccess: loadData })}
-              onDrop={(sId: number) => dropMut.mutate({ studentId: sId, tripId }, { onSuccess: loadData })}
-              onAbsent={(sId: number) => absentMut.mutate({ studentId: sId, tripId }, { onSuccess: loadData })}
+              onBoard={(sId: number, stopId: number) => boardMut.mutate({ studentId: sId, tripId, stopId }, { onSuccess: loadData })}
+              onDrop={(sId: number, stopId: number) => dropMut.mutate({ studentId: sId, tripId, stopId }, { onSuccess: loadData })}
+              onAbsent={(sId: number, stopId: number) => absentMut.mutate({ studentId: sId, tripId, stopId }, { onSuccess: loadData })}
             />
           )}
           {view === 'scanner' && (
             <ScannerView
               tripId={tripId}
               allStudents={allStudents}
-              onBoard={(sId: number) => boardMut.mutate({ studentId: sId, tripId }, { onSuccess: loadData })}
+              onBoard={(sId: number, stopId: number) => boardMut.mutate({ studentId: sId, tripId, stopId }, { onSuccess: loadData })}
               onRefresh={loadData}
             />
           )}
@@ -356,11 +356,11 @@ function ChecklistView({ stops, tripId, onBoard, onDrop, onAbsent }: any) {
                       </p>
                     </div>
                     <div className="flex gap-1.5">
-                      <button onClick={() => onBoard(st.id)} title="Embarcar"
+                      <button onClick={() => onBoard(st.id, stop.id)} title="Embarcar"
                         className={`w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform ${st.status === 'boarded' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600'}`}>
                         <CheckCircle size={20} />
                       </button>
-                      <button onClick={() => onAbsent(st.id)} title="Ausente"
+                      <button onClick={() => onAbsent(st.id, stop.id)} title="Ausente"
                         className={`w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-transform ${st.status === 'absent' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`}>
                         <XCircle size={20} />
                       </button>
@@ -482,10 +482,10 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
       if (tripId) {
         try {
           if (scanMode === 'embarque') {
-            await onBoard(student.id);
+            await onBoard(student.id, student.stopId);
             setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
           } else {
-            await dropMut.mutate({ studentId: student.id, tripId });
+            await dropMut.mutate({ studentId: student.id, tripId, stopId: student.stopId });
             setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
           }
           playBeep(true);

@@ -115,7 +115,6 @@ export default function StudentCardPage() {
 
   // Gerar PDF com assinatura eletrônica (via /api/pdf/generate)
   const openSignModal = (students: any[]) => {
-    if (selectedSigs.length === 0) { showInfoToast('Selecione ao menos um assinante'); return; }
     setSignTarget(students);
     setSignPassword('');
     setShowSignModal(true);
@@ -125,9 +124,11 @@ export default function StudentCardPage() {
     if (!signPassword.trim()) return;
     setSigning(true);
     try {
-      const html = buildCardHTML(signTarget, allSchools, munReport?.municipality, munReport?.secretaria, selectedSigs, 'electronic');
+      // HTML sem assinatura manual - o backend injeta o bloco eletrônico
+      const html = buildCardHTML(signTarget, allSchools, munReport?.municipality, munReport?.secretaria);
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/pdf/generate', {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/pdf/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -138,7 +139,6 @@ export default function StudentCardPage() {
           docTitle: `Carteirinha Estudantil - ${signTarget.length} aluno(s)`,
           signAfterGenerate: true,
           signerPassword: signPassword,
-          signatures: selectedSigs.map(s => ({ signerName: s.name, signerRole: s.role, signerCpf: s.cpf, signerDecree: s.decree })),
         }),
       });
 
@@ -189,9 +189,8 @@ export default function StudentCardPage() {
         </div>
         {allStudents.length > 0 && (
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => printManual(allStudents)} className="btn-secondary flex items-center gap-2 text-sm"><PenTool size={14} /> Assinatura Manual</button>
-            <button onClick={() => openSignModal(allStudents)} className="btn-primary flex items-center gap-2 text-sm"><Lock size={14} /> Assinatura Eletronica</button>
             <button onClick={() => printManual(allStudents)} className="btn-secondary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button>
+            <button onClick={() => openSignModal(allStudents)} className="btn-primary flex items-center gap-2 text-sm"><Lock size={14} /> PDF Assinado</button>
             <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14} /> Exportar</button>
           </div>
         )}
@@ -266,9 +265,7 @@ export default function StudentCardPage() {
             <form onSubmit={e => { e.preventDefault(); generateSignedPDF(); }} className="p-5 space-y-4">
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-200">
                 <p className="text-xs text-blue-700"><strong>Assinante:</strong> {user?.name} ({user?.email})</p>
-                {selectedSigs.map((sig, i) => (
-                  <p key={i} className="text-xs text-blue-600 mt-1">{sig.name} - {sig.role}{sig.decree ? ` (${sig.decree})` : ''}</p>
-                ))}
+                <p className="text-[10px] text-blue-500 mt-1">A assinatura eletronica sera vinculada ao seu usuario</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha de Confirmacao <span className="text-red-500">*</span></label>

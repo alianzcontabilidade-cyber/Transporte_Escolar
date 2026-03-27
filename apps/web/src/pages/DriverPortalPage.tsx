@@ -178,19 +178,20 @@ export default function DriverPortalPage() {
   async function handleCompleteTrip() {
     const tripId = activeTrip?.trip?.id || activeTrip?.id;
     if (!tripId) return;
-    await completeTripMut.mutate(
-      { tripId },
-      {
-        onSuccess: () => {
-          try { stopTracking(); } catch {}
-          setActiveTrip(null); setTripStartTime(null); setElapsed('00:00:00'); setGpsActive(false);
-          loadData();
-        },
-        onError: (err: string) => {
-          console.error('Erro ao finalizar:', err);
-        }
-      }
-    );
+    try {
+      await api.trips.complete({ tripId });
+      try { stopTracking(); } catch {}
+      setTripStartTime(null);
+      setElapsed('00:00:00');
+      setGpsActive(false);
+      // Aguardar antes de recarregar para evitar problemas de timing
+      setTimeout(() => {
+        setActiveTrip(null);
+        loadData();
+      }, 1000);
+    } catch (err: any) {
+      console.error('Erro ao finalizar:', err?.message);
+    }
   }
 
   // Board student

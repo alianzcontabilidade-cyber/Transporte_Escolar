@@ -36,12 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
           }
-        }).catch(() => {
-          // Token expirado ou inválido - fazer logout
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
+        }).catch((err: any) => {
+          // Só fazer logout se for erro de autenticação (401/403), não erro de rede
+          const msg = err?.message || '';
+          if (msg.includes('não autorizado') || msg.includes('UNAUTHORIZED') || msg.includes('401') || msg.includes('Token')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+          }
+          // Erros de rede/timeout: manter sessão local (usuário continua logado)
         });
       } catch {
         localStorage.removeItem('token');

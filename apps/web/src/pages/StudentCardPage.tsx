@@ -219,6 +219,7 @@ export default function StudentCardPage() {
 
   const handleExportClick = () => {
     const rows = allStudents.map((s: any) => ({
+      foto: s.photoUrl || '',
       nome: s.name || '--',
       matricula: s.enrollment || '--',
       serie: s.grade || '--',
@@ -226,7 +227,7 @@ export default function StudentCardPage() {
       turno: s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manhã',
       nascimento: s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '--',
     }));
-    const cols = ['Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Nascimento'];
+    const cols = ['Foto', 'Nome', 'Matricula', 'Serie', 'Turma', 'Turno', 'Nascimento'];
     const html = buildTableReportHTML('LISTA DE ALUNOS - CARTEIRINHA ESTUDANTIL', rows, cols, munReport, { orientation: 'landscape', signatories: selectedSigs });
     if (!html) { showInfoToast('Nenhum dado para exportar'); return; }
     setPgExportModal({ html, filename: 'carteirinha_estudantil' });

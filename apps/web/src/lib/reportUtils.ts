@@ -44,7 +44,13 @@ export function buildTableReportHTML(
   if (!data?.length) return '';
 
   const rows = data.map(row =>
-    '<tr>' + Object.values(row).map(v => '<td>' + (v ?? '--') + '</td>').join('') + '</tr>'
+    '<tr>' + Object.values(row).map(v => {
+      const val = v ?? '--';
+      if (typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http'))) {
+        return '<td style="text-align:center"><img src="' + val + '" style="width:35px;height:40px;object-fit:cover;border-radius:4px" /></td>';
+      }
+      return '<td>' + val + '</td>';
+    }).join('') + '</tr>'
   ).join('');
 
   const content = `

@@ -383,6 +383,11 @@ export function generateFichaMatricula(
 ) {
   const content = `
     <div class="section-title">DADOS PESSOAIS DO ALUNO</div>
+    <div style="display:flex;gap:15px;align-items:flex-start;margin-bottom:10px">
+      <div style="width:80px;height:100px;border:1px solid #ccc;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#f3f4f6">
+        ${student.photoUrl ? '<img src="' + student.photoUrl + '" style="width:100%;height:100%;object-fit:cover"/>' : '<span style="font-size:32px;color:#999">' + (student.name?.[0] || '?') + '</span>'}
+      </div>
+      <div style="flex:1">
     <div class="field-grid">
       ${field('Nome Completo', student.name)}
       ${field('Nº de Matrícula', student.enrollment)}
@@ -396,6 +401,7 @@ export function generateFichaMatricula(
       ${field('NIS (Número de Identificação Social)', student.nis)}
       ${field('Cartão Nacional de Saúde (SUS)', student.cartaoSus)}
     </div>
+    </div></div>
 
     <div class="section-title">CERTIDÃO DE NASCIMENTO</div>
     <div class="field-grid">

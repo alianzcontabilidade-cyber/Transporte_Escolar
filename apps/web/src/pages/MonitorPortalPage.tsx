@@ -182,7 +182,6 @@ export default function MonitorPortalPage() {
             <ScannerView
               tripId={tripId}
               allStudents={allStudents}
-              onBoard={(sId: number, stopId: number) => boardMut.mutate({ studentId: sId, tripId, stopId }, { onSuccess: loadData })}
               onRefresh={loadData}
             />
           )}
@@ -384,17 +383,16 @@ function ChecklistView({ stops, tripId, onBoard, onDrop, onAbsent }: any) {
   );
 }
 
-function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
+function ScannerView({ tripId, allStudents, onRefresh }: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [scanning, setScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
-  const [scanResult, setScanResult] = useState<{ student: any; status: string; message: string } | null>(null);
+  const [scannedStudent, setScannedStudent] = useState<any>(null);
   const [scanMode, setScanMode] = useState<'embarque' | 'desembarque'>('embarque');
   const [scanCount, setScanCount] = useState(0);
-  const [debugInfo, setDebugInfo] = useState('');
+  const [actionStatus, setActionStatus] = useState<{ type: string; message: string } | null>(null);
+  const [processing, setProcessing] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
-
-  const dropMut = useMutation(api.monitors.dropStudent);
 
   useEffect(() => {
     startCamera();
@@ -437,6 +435,7 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
   }
 
   function scanFrame() {
+    if (scannedStudent) { requestAnimationFrame(scanFrame); return; } // Pausar scan enquanto mostra aluno
     const video = videoRef.current;
     if (!video || video.readyState < 2) { requestAnimationFrame(scanFrame); return; }
     const canvas = document.createElement('canvas');
@@ -453,64 +452,68 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
     requestAnimationFrame(scanFrame);
   }
 
-  async function handleQRCode(data: string) {
+  function handleQRCode(data: string) {
     let enrollment = data;
     try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || parsed.name || data; } catch {}
 
-    // Debug visual
-    const dbg = `QR="${enrollment}" | ${allStudents.length} alunos | matrículas: [${allStudents.map((s: any) => s.enrollment || s.id).join(',')}]`;
-    setDebugInfo(dbg);
-    console.log('[QR]', dbg);
+    const clean = enrollment.trim();
+    console.log('[QR] Lido:', clean, '| Alunos:', allStudents.length);
 
-    // Buscar aluno por: matrícula, ID, nome parcial, ou CPF
-    const cleanEnrollment = enrollment.trim();
     const student = allStudents.find((s: any) =>
-      s.enrollment === cleanEnrollment ||
-      s.id?.toString() === cleanEnrollment ||
-      String(s.id) === cleanEnrollment ||
-      (s.enrollment && cleanEnrollment.includes(s.enrollment)) ||
-      (s.enrollment && s.enrollment.includes(cleanEnrollment)) ||
-      (cleanEnrollment.length > 3 && s.name && s.name.toLowerCase().includes(cleanEnrollment.toLowerCase())) ||
-      (s.cpf && s.cpf.replace(/\D/g, '') === cleanEnrollment.replace(/\D/g, ''))
+      s.enrollment === clean ||
+      s.id?.toString() === clean ||
+      String(s.id) === clean ||
+      (s.enrollment && clean.includes(s.enrollment)) ||
+      (s.enrollment && s.enrollment.includes(clean))
     );
 
-    if (!student) {
-      console.log('[QR] Não encontrou. Dados lidos:', cleanEnrollment, '| Matrículas:', allStudents.map((s: any) => s.enrollment).join(', '));
-    }
-
     if (student) {
-      if (tripId && student.stopId) {
-        try {
-          if (scanMode === 'embarque') {
-            onBoard(student.id, student.stopId);
-            setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
-          } else {
-            dropMut.mutate({ studentId: student.id, tripId, stopId: student.stopId });
-            setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
-          }
-          playBeep(true);
-          if (navigator.vibrate) navigator.vibrate(200);
-          setScanCount(c => c + 1);
-          setTimeout(() => onRefresh(), 500);
-        } catch (err: any) {
-          setScanResult({ student, status: 'error', message: `Erro: ${err?.message || 'falha ao registrar'}` });
-          playBeep(false);
-        }
-      } else if (!tripId) {
-        setScanResult({ student, status: 'identified', message: `${student.name} - ${student.grade || ''} ${student.stopName || ''}` });
-        playBeep(true);
-        if (navigator.vibrate) navigator.vibrate(200);
-      } else {
-        setScanResult({ student, status: 'error', message: `${student.name} encontrado mas sem parada vinculada (stopId=${student.stopId})` });
-        playBeep(false);
-      }
+      playBeep(true);
+      if (navigator.vibrate) navigator.vibrate(200);
+      setScannedStudent(student);
+      setActionStatus(null);
     } else {
-      setScanResult({ student: null, status: 'not_found', message: `Aluno não encontrado (código: ${cleanEnrollment})` });
       playBeep(false);
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      setActionStatus({ type: 'error', message: `Aluno nao encontrado (codigo: ${clean})` });
+      setTimeout(() => { setActionStatus(null); setLastScanned(null); }, 3000);
     }
+  }
 
-    setTimeout(() => { setScanResult(null); setLastScanned(null); }, 3000);
+  async function confirmarAcao() {
+    if (!scannedStudent || !tripId || processing) return;
+    setProcessing(true);
+    try {
+      const payload = { studentId: scannedStudent.id, tripId, stopId: scannedStudent.stopId };
+      console.log('[QR] Enviando:', scanMode, JSON.stringify(payload));
+
+      if (scanMode === 'embarque') {
+        await api.monitors.boardStudent(payload);
+      } else {
+        await api.monitors.dropStudent(payload);
+      }
+
+      playBeep(true);
+      if (navigator.vibrate) navigator.vibrate([100, 100, 100]);
+      setScanCount(c => c + 1);
+      setActionStatus({ type: 'success', message: `${scannedStudent.name} - ${scanMode === 'embarque' ? 'EMBARCOU' : 'DESEMBARCOU'}!` });
+      setScannedStudent(null);
+      setLastScanned(null);
+      onRefresh();
+      setTimeout(() => setActionStatus(null), 3000);
+    } catch (err: any) {
+      const msg = err?.message || 'Erro desconhecido';
+      console.error('[QR] Erro ao confirmar:', msg);
+      setActionStatus({ type: 'error', message: msg.includes('CONFLICT') || msg.includes('embarcado') ? 'Aluno ja registrado nesta parada' : `Erro: ${msg}` });
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function cancelarScan() {
+    setScannedStudent(null);
+    setLastScanned(null);
+    setActionStatus(null);
   }
 
   return (
@@ -530,22 +533,14 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
       {/* Camera */}
       <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border-2 border-gray-300">
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        {/* Scan guide */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className={`w-56 h-56 border-3 rounded-2xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} style={{ borderWidth: 3 }}>
-            <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
-            <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
-            <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
-            <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
-          </div>
+          <div className="w-56 h-56 rounded-2xl" style={{ borderWidth: 3, borderColor: scanMode === 'embarque' ? '#4ade80' : '#60a5fa', borderStyle: 'solid' }} />
         </div>
-        {/* Contador */}
         <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">
-          {scanCount} lido(s)
+          {scanCount} registrado(s)
         </div>
-        {/* Modo label */}
         <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold text-white ${scanMode === 'embarque' ? 'bg-green-500' : 'bg-blue-500'}`}>
-          {scanMode === 'embarque' ? '↑ EMBARQUE' : '↓ DESEMBARQUE'}
+          {scanMode === 'embarque' ? 'EMBARQUE' : 'DESEMBARQUE'}
         </div>
         {!scanning && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
@@ -554,32 +549,57 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
         )}
       </div>
 
-      {/* Resultado do scan */}
-      {scanResult && (
-        <div className={`rounded-2xl p-4 flex items-center gap-3 border-2 ${
-          scanResult.status === 'boarded' ? 'bg-green-50 border-green-300' :
-          scanResult.status === 'dropped' ? 'bg-blue-50 border-blue-300' :
-          scanResult.status === 'identified' ? 'bg-indigo-50 border-indigo-300' :
-          'bg-red-50 border-red-300'
+      {/* Aluno escaneado - aguardando confirmacao */}
+      {scannedStudent && (
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-indigo-300 p-5">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {scannedStudent.photoUrl ? (
+                <img src={scannedStudent.photoUrl} className="w-16 h-16 rounded-full object-cover" />
+              ) : (
+                <User size={28} className="text-indigo-400" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-bold text-gray-900">{scannedStudent.name}</p>
+              <p className="text-sm text-gray-500">Mat: {scannedStudent.enrollment || scannedStudent.id}</p>
+              <p className="text-sm text-gray-500">{scannedStudent.grade || ''} {scannedStudent.stopName ? '• ' + scannedStudent.stopName : ''}</p>
+            </div>
+          </div>
+
+          {tripId ? (
+            <div className="flex gap-3">
+              <button onClick={cancelarScan}
+                className="flex-1 py-3 rounded-xl border-2 border-gray-300 text-gray-600 font-bold text-sm active:bg-gray-100">
+                Cancelar
+              </button>
+              <button onClick={confirmarAcao} disabled={processing}
+                className={`flex-1 py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 active:opacity-80 ${
+                  scanMode === 'embarque' ? 'bg-green-500' : 'bg-blue-500'
+                } ${processing ? 'opacity-50' : ''}`}>
+                {processing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                {processing ? 'Registrando...' : scanMode === 'embarque' ? 'CONFIRMAR EMBARQUE' : 'CONFIRMAR DESEMBARQUE'}
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm text-amber-600 mb-2">Nenhuma viagem ativa para registrar</p>
+              <button onClick={cancelarScan} className="py-2 px-6 rounded-xl border-2 border-gray-300 text-gray-600 font-bold text-sm">
+                Escanear outro
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Status da acao */}
+      {actionStatus && (
+        <div className={`rounded-2xl p-4 text-center border-2 ${
+          actionStatus.type === 'success' ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
         }`}>
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-            scanResult.status === 'boarded' ? 'bg-green-100' :
-            scanResult.status === 'dropped' ? 'bg-blue-100' :
-            scanResult.status === 'identified' ? 'bg-indigo-100' :
-            'bg-red-100'
-          }`}>
-            {scanResult.student?.photoUrl ? (
-              <img src={scanResult.student.photoUrl} className="w-12 h-12 rounded-full object-cover" />
-            ) : scanResult.status === 'not_found' ? (
-              <XCircle size={24} className="text-red-500" />
-            ) : (
-              <CheckCircle size={24} className={scanResult.status === 'boarded' ? 'text-green-500' : scanResult.status === 'identified' ? 'text-indigo-500' : 'text-blue-500'} />
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-gray-900">{scanResult.message}</p>
-            {scanResult.student?.grade && <p className="text-xs text-gray-500">{scanResult.student.grade} • {scanResult.student.stopName || ''}</p>}
-          </div>
+          <p className={`font-bold ${actionStatus.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+            {actionStatus.message}
+          </p>
         </div>
       )}
 
@@ -587,14 +607,14 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
       {allStudents.length === 0 && (
         <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-center">
           <p className="text-sm font-semibold text-amber-700">Nenhum aluno carregado</p>
-          <p className="text-xs text-amber-600">Verifique se a rota possui alunos vinculados às paradas.</p>
+          <p className="text-xs text-amber-600">Verifique se a rota possui alunos vinculados.</p>
         </div>
       )}
 
-      {/* Instrução */}
+      {/* Instrucao */}
       <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
         <p className="text-sm text-gray-600">
-          {scanning ? `Aponte a câmera para o QR Code • ${allStudents.length} aluno(s)${tripId ? ' • Viagem ativa' : ''}` : 'Iniciando câmera...'}
+          {scanning ? `Aponte a camera para o QR Code • ${allStudents.length} aluno(s)${tripId ? ' • Viagem ativa' : ''}` : 'Iniciando camera...'}
         </p>
       </div>
     </div>

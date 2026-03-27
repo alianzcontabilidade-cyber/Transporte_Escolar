@@ -45,32 +45,63 @@ export default function MonitorPortalPage() {
   async function loadData() {
     try {
       setLoading(true);
-      const trip = await api.monitors.myActiveTrip();
-      if (trip) {
+      console.log('[Monitor] Carregando dados...');
+
+      // 1. Verificar viagem ativa
+      let trip: any = null;
+      try {
+        trip = await api.monitors.myActiveTrip();
+        console.log('[Monitor] myActiveTrip:', trip ? `tripId=${trip.trip?.id}, stops=${trip.stops?.length}` : 'null');
+      } catch (err: any) {
+        console.error('[Monitor] Erro myActiveTrip:', err?.message);
+      }
+
+      if (trip && trip.stops?.length > 0) {
         setActiveTrip(trip);
         if (trip.trip?.startedAt) setTripStartTime(new Date(trip.trip.startedAt));
-      } else {
-        // Sem viagem ativa - buscar rotas disponíveis (mesmo do motorista)
-        try {
-          const available = await api.monitors.availableTrips();
-          if (available?.routes?.length > 0) {
-            const route = available.routes[0];
-            let routeStops: any[] = [];
-            try {
-              const stopsData = await api.ai.routeStudents({ routeId: route.id });
-              if (stopsData?.stops) {
-                routeStops = stopsData.stops.map((s: any) => ({
-                  ...s,
-                  students: (stopsData.students || []).filter((st: any) => st.stopId === s.id).map((st: any) => ({ ...st, status: 'pending' })),
-                }));
-              }
-            } catch {}
-            setActiveTrip({ route, vehicle: available.vehicle, stops: routeStops });
-          }
-        } catch {}
+        console.log('[Monitor] Viagem ativa carregada. Alunos:', trip.stops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
+        return;
       }
-    } catch { }
-    finally { setLoading(false); }
+
+      // 2. Buscar rotas disponíveis
+      console.log('[Monitor] Sem viagem ativa, buscando rotas...');
+      let available: any = null;
+      try {
+        available = await api.monitors.availableTrips();
+        console.log('[Monitor] availableTrips:', available?.routes?.length || 0, 'rotas');
+      } catch (err: any) {
+        console.error('[Monitor] Erro availableTrips:', err?.message);
+      }
+
+      if (available?.routes?.length > 0) {
+        const route = available.routes[0];
+        console.log('[Monitor] Rota:', route.name, 'id:', route.id);
+
+        // 3. Buscar paradas e alunos da rota
+        let routeStops: any[] = [];
+        try {
+          const stopsData = await api.ai.routeStudents({ routeId: route.id });
+          console.log('[Monitor] routeStudents:', stopsData?.stops?.length || 0, 'paradas,', stopsData?.students?.length || 0, 'alunos');
+          if (stopsData?.stops) {
+            routeStops = stopsData.stops.map((s: any) => ({
+              ...s,
+              students: (stopsData.students || []).filter((st: any) => st.stopId === s.id).map((st: any) => ({ ...st, status: 'pending' })),
+            }));
+          }
+        } catch (err: any) {
+          console.error('[Monitor] Erro routeStudents:', err?.message);
+        }
+        setActiveTrip({ route, vehicle: available.vehicle, stops: routeStops });
+        console.log('[Monitor] Dados carregados. Paradas:', routeStops.length, 'Alunos:', routeStops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
+      } else {
+        console.log('[Monitor] Nenhuma rota disponível');
+        setActiveTrip(null);
+      }
+    } catch (err: any) {
+      console.error('[Monitor] Erro geral loadData:', err?.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Navegação Google Maps com GPS atual
@@ -204,11 +235,24 @@ export default function MonitorPortalPage() {
               <span className="text-lg font-mono font-bold text-white">{elapsed}</span>
             </div>
           </div>
+        ) : activeTrip?.route ? (
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <Bus size={24} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-white truncate">{routeName}</p>
+                <p className="text-sm text-indigo-200">{stops.length} parada(s) • {allStudents.length} aluno(s)</p>
+              </div>
+            </div>
+            <p className="text-xs text-indigo-300 mt-2 text-center">Aguardando o motorista iniciar a viagem</p>
+          </div>
         ) : (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/10 text-center">
             <Bus size={32} className="mx-auto mb-2 opacity-50" />
-            <p className="text-indigo-200">Nenhuma viagem ativa no momento</p>
-            <p className="text-xs text-indigo-300 mt-1">Aguardando o motorista iniciar a viagem</p>
+            <p className="text-indigo-200">Nenhuma rota atribuída</p>
+            <p className="text-xs text-indigo-300 mt-1">Entre em contato com o administrador</p>
           </div>
         )}
       </div>
@@ -250,7 +294,7 @@ export default function MonitorPortalPage() {
         </div>
 
         {/* Quick stats */}
-        {hasTripActive && (
+        {hasTripActive ? (
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
               <p className="text-2xl font-bold text-green-600">{allStudents.filter((s: any) => s.status === 'boarded').length}</p>
@@ -261,8 +305,19 @@ export default function MonitorPortalPage() {
               <p className="text-xs text-gray-500">Ausentes</p>
             </div>
             <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
-              <p className="text-2xl font-bold text-gray-600">{allStudents.filter((s: any) => !s.status).length}</p>
+              <p className="text-2xl font-bold text-gray-600">{allStudents.filter((s: any) => !s.status || s.status === 'pending').length}</p>
               <p className="text-xs text-gray-500">Pendentes</p>
+            </div>
+          </div>
+        ) : allStudents.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
+              <p className="text-2xl font-bold text-primary-600">{stops.length}</p>
+              <p className="text-xs text-gray-500">Paradas</p>
+            </div>
+            <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
+              <p className="text-2xl font-bold text-primary-600">{allStudents.length}</p>
+              <p className="text-xs text-gray-500">Alunos</p>
             </div>
           </div>
         )}

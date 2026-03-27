@@ -102,6 +102,8 @@ export default function StudentsPage() {
   const [form, setForm] = useState<any>(emptyForm);
   const [tab, setTab] = useState<'dados'|'documentos'|'endereco'|'filiacao'|'saude'|'social'|'procedencia'|'historico'>('dados');
   const [search, setSearch] = useState('');
+  const [filterSchool, setFilterSchool] = useState('');
+  const [filterClass, setFilterClass] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [formErr, setFormErr] = useState('');
   const [inviteStudent, setInviteStudent] = useState<any>(null);
@@ -138,7 +140,14 @@ export default function StudentsPage() {
   const allStudents = (students as any)||[];
   const allRoutes = (routes as any)||[];
   const allSchools = (schoolsData as any)||[];
-  const filtered = allStudents.filter(function(s: any) { const q = search.toLowerCase(); return s.name?.toLowerCase().includes(q)||(s.enrollment||'').includes(q)||(s.grade||'').toLowerCase().includes(q); });
+  const availableClasses = [...new Set(allStudents.filter((s: any) => !filterSchool || String(s.schoolId) === filterSchool).map((s: any) => s.classRoom).filter(Boolean))].sort();
+  const filtered = allStudents.filter(function(s: any) {
+    const q = search.toLowerCase();
+    const matchSearch = !q || s.name?.toLowerCase().includes(q)||(s.enrollment||'').includes(q)||(s.grade||'').toLowerCase().includes(q);
+    const matchSchool = !filterSchool || String(s.schoolId) === filterSchool;
+    const matchClass = !filterClass || s.classRoom === filterClass;
+    return matchSearch && matchSchool && matchClass;
+  });
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
@@ -539,10 +548,20 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{allStudents.length} aluno(s)</p></div>
+        <div><h1 className="text-2xl font-bold text-gray-900">Alunos</h1><p className="text-gray-500">{filtered.length !== allStudents.length ? filtered.length + ' de ' + allStudents.length + ' aluno(s)' : allStudents.length + ' aluno(s)'}</p></div>
         <div className="flex gap-2"><button onClick={function(){printStudentQRCodes(allStudents, window.location.origin);}} className="btn-secondary flex items-center gap-2"><QrCode size={16}/> QR Codes</button><button onClick={exportStudentsCSV} className="btn-secondary flex items-center gap-2"><Download size={16}/> Exportar</button><button onClick={function(){setShowImport(true);setCsvData([]);setImportResult('');setFileHeaders([]);setColumnMapping({});setRawDataRows([]);setImportSchoolId(allSchools.length>0?String(allSchools[0].id):'');}} className="btn-secondary flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={openNew} className="btn-primary flex items-center gap-2"><Plus size={16}/> Novo Aluno</button></div>
       </div>
-      <div className="relative mb-4"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou turma..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
+      <div className="flex flex-wrap gap-3 mb-4">
+        <select className="input w-52" value={filterSchool} onChange={function(e){setFilterSchool(e.target.value);setFilterClass('');setPage(1);}}>
+          <option value="">Todas as escolas</option>
+          {allSchools.map(function(s:any){return <option key={s.id} value={s.id}>{s.name}</option>;})}
+        </select>
+        <select className="input w-44" value={filterClass} onChange={function(e){setFilterClass(e.target.value);setPage(1);}}>
+          <option value="">Todas as turmas</option>
+          {availableClasses.map(function(c:string){return <option key={c} value={c}>{c}</option>;})}
+        </select>
+        <div className="relative flex-1 min-w-[200px]"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input className="input pl-9" placeholder="Buscar por nome, matrícula ou série..." value={search} onChange={function(e){setSearch(e.target.value);setPage(1);}}/></div>
+      </div>
       <div className="grid gap-3">
         {paginated.map(function(s: any) { return (
           <div key={s.id} className="card flex items-center gap-4 hover:border-primary-200 transition-colors">

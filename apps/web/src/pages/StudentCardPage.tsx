@@ -30,41 +30,56 @@ export default function StudentCardPage() {
   });
 
   const printCards = (students: any[]) => {
+    const mun = munReport?.municipality;
+    const sec = munReport?.secretaria;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carteirinhas - NetEscol</title>
     <style>
       body{font-family:Arial,sans-serif;padding:10px;margin:0}
       .cards{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
-      .card{width:380px;height:220px;border:2px solid #1B3A5C;border-radius:12px;padding:15px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
-      .card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #2DB5B0}
-      .card-header h3{color:#1B3A5C;font-size:13px;margin:0}
-      .card-header .school{font-size:9px;color:#666;margin:0}
-      .card-body{display:flex;gap:10px}
-      .photo{width:65px;height:80px;background:#ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#999;border:1px solid #ccc;flex-shrink:0}
-      .photo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
-      .info{flex:1;font-size:10px;line-height:1.5}
+      .card{width:400px;height:255px;border:2px solid #1B3A5C;border-radius:12px;padding:12px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
+      .card-inst{display:flex;align-items:center;gap:6px;margin-bottom:4px;padding-bottom:4px;border-bottom:1.5px solid #ccc}
+      .card-inst img{width:32px;height:32px;object-fit:contain}
+      .card-inst .inst-text{flex:1;text-align:center;line-height:1.15}
+      .card-inst .inst-text p{margin:0;font-size:7.5px;color:#444}
+      .card-inst .inst-text .mun{font-size:8px;font-weight:bold;color:#1B3A5C;text-transform:uppercase}
+      .card-inst .inst-text .sec{font-size:7px;color:#555}
+      .card-inst .inst-text .sch{font-size:7.5px;color:#333;font-weight:600}
+      .card-title{text-align:center;font-size:11px;font-weight:bold;color:#1B3A5C;margin:3px 0;padding-bottom:3px;border-bottom:2px solid #2DB5B0;letter-spacing:1px}
+      .card-body{display:flex;gap:8px;margin-top:5px}
+      .photo{width:60px;height:75px;background:#ddd;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#999;border:1px solid #ccc;flex-shrink:0}
+      .photo img{width:100%;height:100%;object-fit:cover;border-radius:6px}
+      .info{flex:1;font-size:9.5px;line-height:1.55}
       .info b{color:#1B3A5C}
-      .qr{width:75px;height:75px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-      .qr img{width:70px;height:70px}
-      .card-footer{position:absolute;bottom:6px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:center;font-size:8px;color:#999}
-      .logo{font-weight:bold;color:#2DB5B0;font-size:11px}
+      .qr{width:65px;height:65px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+      .qr img{width:60px;height:60px}
+      .card-footer{position:absolute;bottom:5px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:#999}
       @media print{body{padding:0}.cards{gap:10px}}
     </style></head><body>
     <div class="cards">${students.map(s => {
       const school = allSchools.find((sc: any) => sc.id === s.schoolId);
       return `<div class="card">
-        <div class="card-header"><div><h3>CARTEIRA ESTUDANTIL</h3><p class="school">${school?.name || ''}</p></div><span class="logo">NetEscol</span></div>
+        <div class="card-inst">
+          ${mun?.logoUrl ? '<img src="' + mun.logoUrl + '" alt="Brasao"/>' : ''}
+          <div class="inst-text">
+            ${mun?.state ? '<p>ESTADO DO ' + mun.state.toUpperCase() + '</p>' : ''}
+            <p class="mun">${mun?.name || 'Prefeitura Municipal'}</p>
+            ${sec?.name ? '<p class="sec">' + sec.name + '</p>' : ''}
+            <p class="sch">${school?.name || ''}</p>
+          </div>
+        </div>
+        <div class="card-title">CARTEIRA ESTUDANTIL</div>
         <div class="card-body">
           <div class="photo">${s.photoUrl ? '<img src="' + s.photoUrl + '"/>' : s.name?.[0] || '?'}</div>
           <div class="info">
             <p><b>Nome:</b> ${s.name}</p>
             <p><b>Matr\u00edcula:</b> ${s.enrollment || '\u2014'}</p>
             <p><b>S\u00e9rie:</b> ${s.grade || '\u2014'} | <b>Turma:</b> ${s.classRoom || '\u2014'}</p>
-            <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : 'Manh\u00e3'}</p>
+            <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manh\u00e3'}</p>
             <p><b>Nascimento:</b> ${s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '\u2014'}</p>
           </div>
-          <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 70)}" alt="QR"/></div>
+          <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 60)}" alt="QR"/></div>
         </div>
-        <div class="card-footer"><span>Validade: ${new Date().getFullYear()}</span><span>Mat: ${s.enrollment || s.id}</span></div>
+        <div class="card-footer"><span>Validade: Ano Letivo ${new Date().getFullYear()}</span><span>Mat: ${s.enrollment || s.id}</span></div>
       </div>`;
     }).join('')}</div></body></html>`;
     const w = window.open('', '_blank');
@@ -105,10 +120,16 @@ export default function StudentCardPage() {
           const school = allSchools.find((sc: any) => sc.id === s.schoolId);
           return (
             <div key={s.id} className="rounded-xl border-2 border-primary-500 p-4 bg-gradient-to-br from-[#f0f4f8] to-[#e6f7f6] relative cursor-pointer hover:shadow-lg transition-shadow" onClick={() => printCards([s])}>
-              <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-accent-500">
-                <div><p className="text-xs font-bold text-primary-500 uppercase">Carteira Estudantil</p><p className="text-[10px] text-gray-500">{school?.name || ''}</p></div>
-                <span className="text-xs font-bold text-accent-500">NetEscol</span>
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-300">
+                {munReport?.municipality?.logoUrl && <img src={munReport.municipality.logoUrl} className="w-7 h-7 object-contain" alt="" />}
+                <div className="flex-1 text-center leading-tight">
+                  {munReport?.municipality?.state && <p className="text-[7px] text-gray-500">ESTADO DO {munReport.municipality.state.toUpperCase()}</p>}
+                  <p className="text-[8px] font-bold text-primary-700 uppercase">{munReport?.municipality?.name || 'Prefeitura'}</p>
+                  {munReport?.secretaria?.name && <p className="text-[7px] text-gray-500">{munReport.secretaria.name}</p>}
+                  <p className="text-[8px] font-semibold text-gray-700">{school?.name || ''}</p>
+                </div>
               </div>
+              <p className="text-[10px] font-bold text-primary-600 uppercase text-center mb-2 pb-1 border-b-2 border-accent-500 tracking-wider">Carteira Estudantil</p>
               <div className="flex gap-3">
                 <div className="w-16 h-20 rounded-lg bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-400 flex-shrink-0 overflow-hidden">
                   {s.photoUrl ? <img src={s.photoUrl} className="w-full h-full object-cover" /> : s.name?.[0]}
@@ -121,8 +142,8 @@ export default function StudentCardPage() {
                 </div>
               </div>
               <div className="flex justify-between mt-2 text-[10px] text-gray-400">
-                <span>Validade: {new Date().getFullYear()}</span>
-                <span>ID: {s.id}</span>
+                <span>Ano Letivo {new Date().getFullYear()}</span>
+                <span>Mat: {s.enrollment || s.id}</span>
               </div>
             </div>
           );

@@ -1284,11 +1284,24 @@ export const studentsRouter = t.router({
         resolvedRouteName = rt?.name || undefined;
       }
 
+      // Auto-gerar matrícula com ano letivo se não fornecida
+      let finalEnrollment = rest.enrollment;
+      if (!finalEnrollment) {
+        const year = new Date().getFullYear();
+        const [lastStudent] = await db.select({ enrollment: students.enrollment })
+          .from(students)
+          .where(and(eq(students.municipalityId, municipalityId), like(students.enrollment, `${year}%`)))
+          .orderBy(sql`CAST(SUBSTRING(enrollment, 5) AS UNSIGNED) DESC`)
+          .limit(1);
+        const lastSeq = lastStudent?.enrollment ? parseInt(lastStudent.enrollment.substring(4)) || 0 : 0;
+        finalEnrollment = `${year}${String(lastSeq + 1).padStart(4, '0')}`;
+      }
+
       const [student] = await db.insert(students).values({
         municipalityId,
         schoolId: finalSchoolId,
         name: rest.name,
-        enrollment: rest.enrollment || undefined,
+        enrollment: finalEnrollment,
         grade: rest.grade || undefined,
         classRoom: rest.classRoom || className || undefined,
         shift: rest.shift || undefined,

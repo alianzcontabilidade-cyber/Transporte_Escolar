@@ -10,7 +10,7 @@ import {
   Camera, Loader2, ChevronRight, Circle, LogOut
 } from 'lucide-react';
 
-type View = 'home' | 'checklist' | 'scanner' | 'contacts' | 'chat';
+type View = 'home' | 'checklist' | 'scanner' | 'contacts' | 'chat' | 'route' | 'students';
 
 export default function MonitorPortalPage() {
   const { user, logout } = useAuth();
@@ -29,11 +29,11 @@ export default function MonitorPortalPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Elapsed timer
+  // Elapsed timer (com proteção contra negativos)
   useEffect(() => {
-    if (!tripStartTime) return;
+    if (!tripStartTime || isNaN(tripStartTime.getTime())) return;
     const iv = setInterval(() => {
-      const diff = Math.floor((Date.now() - tripStartTime.getTime()) / 1000);
+      const diff = Math.max(0, Math.floor((Date.now() - tripStartTime.getTime()) / 1000));
       const h = String(Math.floor(diff / 3600)).padStart(2, '0');
       const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
       const s = String(diff % 60).padStart(2, '0');
@@ -49,9 +49,50 @@ export default function MonitorPortalPage() {
       if (trip) {
         setActiveTrip(trip);
         if (trip.trip?.startedAt) setTripStartTime(new Date(trip.trip.startedAt));
+      } else {
+        // Sem viagem ativa - buscar rotas disponíveis (mesmo do motorista)
+        try {
+          const available = await api.monitors.availableTrips();
+          if (available?.routes?.length > 0) {
+            const route = available.routes[0];
+            let routeStops: any[] = [];
+            try {
+              const stopsData = await api.ai.routeStudents({ routeId: route.id });
+              if (stopsData?.stops) {
+                routeStops = stopsData.stops.map((s: any) => ({
+                  ...s,
+                  students: (stopsData.students || []).filter((st: any) => st.stopId === s.id).map((st: any) => ({ ...st, status: 'pending' })),
+                }));
+              }
+            } catch {}
+            setActiveTrip({ route, vehicle: available.vehicle, stops: routeStops });
+          }
+        } catch {}
       }
     } catch { }
     finally { setLoading(false); }
+  }
+
+  // Navegação Google Maps com GPS atual
+  function openRouteNavigation() {
+    const validStops = stops.filter((s: any) => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0);
+    if (validStops.length === 0) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const origin = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+          const dest = validStops[validStops.length - 1];
+          const destStr = `${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}`;
+          const waypoints = validStops.slice(0, -1).map((s: any) => `${parseFloat(String(s.latitude)).toFixed(6)},${parseFloat(String(s.longitude)).toFixed(6)}`).join('|');
+          window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destStr}${waypoints ? '&waypoints=' + waypoints : ''}&travelmode=driving`, '_blank');
+        },
+        () => {
+          const origin = validStops[0]; const dest = validStops[validStops.length - 1];
+          window.open(`https://www.google.com/maps/dir/?api=1&origin=${parseFloat(String(origin.latitude)).toFixed(6)},${parseFloat(String(origin.longitude)).toFixed(6)}&destination=${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}&travelmode=driving`, '_blank');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
   }
 
   // Board / drop / absent mutations
@@ -89,8 +130,10 @@ export default function MonitorPortalPage() {
           <h2 className="text-lg font-bold text-gray-900">
             {view === 'checklist' && 'Lista de Chamada'}
             {view === 'scanner' && 'Escanear QR Code'}
-            {view === 'contacts' && 'Contatos dos Responsaveis'}
+            {view === 'contacts' && 'Contatos dos Responsáveis'}
             {view === 'chat' && 'Mensagens'}
+            {view === 'route' && 'Paradas da Rota'}
+            {view === 'students' && 'Alunos da Rota'}
           </h2>
         </div>
 
@@ -114,6 +157,8 @@ export default function MonitorPortalPage() {
           )}
           {view === 'contacts' && <ContactsView students={allStudents} />}
           {view === 'chat' && <ChatView />}
+          {view === 'route' && <MonitorRouteView stops={stops} />}
+          {view === 'students' && <MonitorStudentsView stops={stops} />}
         </div>
       </div>
     );
@@ -170,11 +215,22 @@ export default function MonitorPortalPage() {
 
       <div className="px-5 -mt-4 space-y-4">
         {/* Module Grid */}
+        {/* Botão Navegar */}
+        {stops.length > 0 && (
+          <button onClick={openRouteNavigation}
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base py-4 rounded-2xl shadow-md flex items-center justify-center gap-3 transition-all">
+            <MapPin size={22} />
+            NAVEGAR PELA ROTA
+          </button>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           {[
+            { key: 'route' as View, icon: MapPin, label: 'Rota', desc: 'Mapa e paradas', color: 'bg-sky-500' },
+            { key: 'students' as View, icon: Users, label: 'Alunos', desc: 'Alunos por parada', color: 'bg-amber-500' },
             { key: 'checklist' as View, icon: ClipboardCheck, label: 'Checklist', desc: 'Lista de chamada', color: 'bg-green-500' },
             { key: 'scanner' as View, icon: QrCode, label: 'QR Scanner', desc: 'Escanear carteirinha', color: 'bg-blue-500' },
-            { key: 'contacts' as View, icon: Users, label: 'Contatos', desc: 'Pais e responsaveis', color: 'bg-purple-500' },
+            { key: 'contacts' as View, icon: Users, label: 'Contatos', desc: 'Pais e responsáveis', color: 'bg-purple-500' },
             { key: 'chat' as View, icon: MessageCircle, label: 'Chat', desc: 'Mensagens', color: 'bg-indigo-500' },
           ].map(mod => (
             <button
@@ -433,6 +489,133 @@ function ChatView() {
       <MessageCircle size={40} className="mx-auto mb-3 opacity-50" />
       <p className="font-medium">Chat</p>
       <p className="text-sm mt-1">Utilize o chat flutuante no canto inferior direito da tela.</p>
+    </div>
+  );
+}
+
+// ==================== ROTA COM MAPA ====================
+function MonitorRouteView({ stops }: { stops: any[] }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || stops.length === 0) return;
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L || !mapRef.current) return;
+      if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null; }
+      const map = L.map(mapRef.current, { zoomControl: true }).setView([-10.76, -48.90], 13);
+      const sa = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const hl = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      const st = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+      sa.addTo(map); hl.addTo(map);
+      L.control.layers({ 'Ruas': st, 'Satélite': sa }, {}, { position: 'topright', collapsed: true }).addTo(map);
+      const pts: any[] = [];
+      stops.forEach((s: any, i: number) => {
+        const la = parseFloat(String(s.latitude || 0)), ln = parseFloat(String(s.longitude || 0));
+        if (!la || !ln) return;
+        const icon = L.divIcon({ html: '<div style="background:#059669;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3)">' + (i + 1) + '</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+        L.marker([la, ln], { icon }).addTo(map).bindPopup('<b>' + (i + 1) + '. ' + s.name + '</b><br><span style="font-size:11px">' + (s.students?.length || 0) + ' aluno(s)</span>');
+        pts.push([la, ln]);
+      });
+      if (pts.length > 1) { L.polyline(pts, { color: '#059669', weight: 4, opacity: 0.8 }).addTo(map); map.fitBounds(pts, { padding: [30, 30] }); }
+      else if (pts.length === 1) map.setView(pts[0], 15);
+      mapInstRef.current = map;
+      setTimeout(() => map.invalidateSize(), 200);
+    };
+    if ((window as any).L) setTimeout(initMap, 100);
+    else {
+      if (!document.getElementById('leaflet-css-mon')) { const lk = document.createElement('link'); lk.id = 'leaflet-css-mon'; lk.rel = 'stylesheet'; lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk); }
+      if (!document.getElementById('leaflet-js-mon')) { const sc = document.createElement('script'); sc.id = 'leaflet-js-mon'; sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = () => setTimeout(initMap, 200); document.head.appendChild(sc); }
+      else { const p = setInterval(() => { if ((window as any).L) { clearInterval(p); initMap(); } }, 200); setTimeout(() => clearInterval(p), 5000); }
+    }
+    return () => { if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current = null; } };
+  }, [stops]);
+
+  return (
+    <div className="space-y-3">
+      {stops.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b flex items-center gap-2">
+            <MapPin size={14} className="text-accent-600" />
+            <span className="text-sm font-semibold text-gray-700">Mapa da Rota</span>
+            <span className="ml-auto text-xs text-gray-400">{stops.length} parada(s)</span>
+          </div>
+          <div ref={mapRef} style={{ height: 300 }} />
+        </div>
+      )}
+      {stops.map((stop: any, idx: number) => (
+        <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border flex items-start gap-3">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 bg-accent-500 text-white rounded-full flex items-center justify-center text-sm font-bold">{idx + 1}</div>
+            {idx < stops.length - 1 && <div className="w-0.5 h-8 bg-gray-200 mt-1" />}
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-gray-900">{stop.name}</p>
+            {stop.latitude && <p className="text-xs text-gray-400 mt-0.5">{parseFloat(String(stop.latitude)).toFixed(5)}, {parseFloat(String(stop.longitude)).toFixed(5)}</p>}
+            <p className="text-xs text-gray-400 mt-1">{stop.students?.length || 0} aluno(s)</p>
+            {stop.latitude && (
+              <button onClick={() => {
+                const destLat = parseFloat(String(stop.latitude)).toFixed(6);
+                const destLng = parseFloat(String(stop.longitude)).toFixed(6);
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => window.open(`https://www.google.com/maps/dir/?api=1&origin=${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}&destination=${destLat},${destLng}&travelmode=driving`, '_blank'),
+                    () => window.open(`https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`, '_blank'),
+                    { enableHighAccuracy: true, timeout: 8000 }
+                  );
+                }
+              }} className="mt-2 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium active:bg-blue-100">
+                <MapPin size={12} /> Navegar até aqui
+              </button>
+            )}
+          </div>
+          {stop.arrived && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Visitada</span>}
+        </div>
+      ))}
+      {stops.length === 0 && <div className="text-center py-12 text-gray-400"><MapPin size={40} className="mx-auto mb-3 opacity-50" /><p>Nenhuma parada cadastrada</p></div>}
+    </div>
+  );
+}
+
+// ==================== ALUNOS POR PARADA ====================
+function MonitorStudentsView({ stops }: { stops: any[] }) {
+  return (
+    <div className="space-y-4">
+      {stops.map((stop: any, idx: number) => (
+        <div key={idx} className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b flex items-center gap-2">
+            <div className="w-6 h-6 bg-accent-500 text-white rounded-full flex items-center justify-center text-xs font-bold">{idx + 1}</div>
+            <p className="font-semibold text-gray-700">{stop.name}</p>
+            <span className="ml-auto text-xs text-gray-400">{stop.students?.length || 0} aluno(s)</span>
+          </div>
+          {stop.students?.length > 0 ? (
+            <div className="divide-y">
+              {stop.students.map((st: any) => (
+                <div key={st.id} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    {st.photoUrl ? <img src={st.photoUrl} className="w-10 h-10 rounded-full object-cover" /> : <User size={18} className="text-gray-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{st.name}</p>
+                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                      {st.grade && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{st.grade}</span>}
+                      {st.hasSpecialNeeds && <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">PCD</span>}
+                    </div>
+                  </div>
+                  {st.status === 'boarded' && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Embarcou</span>}
+                  {st.status === 'dropped' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">Desembarcou</span>}
+                  {st.status === 'absent' && <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Ausente</span>}
+                  {(st.status === 'pending' || !st.status) && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-medium">Pendente</span>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-4 text-center text-sm text-gray-400">Nenhum aluno nesta parada</div>
+          )}
+        </div>
+      ))}
+      {stops.length === 0 && <div className="text-center py-12 text-gray-400"><Users size={40} className="mx-auto mb-3 opacity-50" /><p>Nenhuma rota atribuída</p></div>}
     </div>
   );
 }

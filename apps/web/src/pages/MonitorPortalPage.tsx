@@ -434,10 +434,20 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     } catch {}
   }
 
+  function pauseCamera() {
+    if (videoRef.current) videoRef.current.pause();
+  }
+
+  function resumeCamera() {
+    if (videoRef.current) {
+      videoRef.current.play();
+      requestAnimationFrame(scanFrame);
+    }
+  }
+
   function scanFrame() {
-    if (scannedStudent) { requestAnimationFrame(scanFrame); return; } // Pausar scan enquanto mostra aluno
     const video = videoRef.current;
-    if (!video || video.readyState < 2) { requestAnimationFrame(scanFrame); return; }
+    if (!video || video.paused || video.readyState < 2) { return; }
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -448,6 +458,7 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     if (code && code.data && code.data !== lastScanned) {
       handleQRCode(code.data);
       setLastScanned(code.data);
+      return; // Para de escanear - câmera congela
     }
     requestAnimationFrame(scanFrame);
   }
@@ -468,6 +479,7 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     );
 
     if (student) {
+      pauseCamera(); // Congela a imagem da câmera
       playBeep(true);
       if (navigator.vibrate) navigator.vibrate(200);
       setScannedStudent(student);
@@ -499,12 +511,17 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
       setActionStatus({ type: 'success', message: `${scannedStudent.name} - ${scanMode === 'embarque' ? 'EMBARCOU' : 'DESEMBARCOU'}!` });
       setScannedStudent(null);
       setLastScanned(null);
+      resumeCamera(); // Retoma câmera para próximo aluno
       onRefresh();
       setTimeout(() => setActionStatus(null), 3000);
     } catch (err: any) {
       const msg = err?.message || 'Erro desconhecido';
       console.error('[QR] Erro ao confirmar:', msg);
       setActionStatus({ type: 'error', message: msg.includes('CONFLICT') || msg.includes('embarcado') ? 'Aluno ja registrado nesta parada' : `Erro: ${msg}` });
+      setScannedStudent(null);
+      setLastScanned(null);
+      resumeCamera();
+      setTimeout(() => setActionStatus(null), 4000);
     } finally {
       setProcessing(false);
     }
@@ -514,6 +531,7 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     setScannedStudent(null);
     setLastScanned(null);
     setActionStatus(null);
+    resumeCamera(); // Retoma câmera
   }
 
   return (
@@ -539,8 +557,10 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
         <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">
           {scanCount} registrado(s)
         </div>
-        <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold text-white ${scanMode === 'embarque' ? 'bg-green-500' : 'bg-blue-500'}`}>
-          {scanMode === 'embarque' ? 'EMBARQUE' : 'DESEMBARQUE'}
+        <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold text-white ${
+          scannedStudent ? 'bg-indigo-600' : scanMode === 'embarque' ? 'bg-green-500' : 'bg-blue-500'
+        }`}>
+          {scannedStudent ? 'QR CAPTURADO' : scanMode === 'embarque' ? 'EMBARQUE' : 'DESEMBARQUE'}
         </div>
         {!scanning && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">

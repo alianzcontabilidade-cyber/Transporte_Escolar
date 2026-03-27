@@ -68,8 +68,8 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
     .photo img{width:100%;height:100%;object-fit:cover;border-radius:6px}
     .info{flex:1;font-size:9px;line-height:1.6}
     .info b{color:#1B3A5C}
-    .qr{width:65px;height:65px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .qr img{width:60px;height:60px}
+    .qr{width:80px;flex-shrink:0;display:flex;align-items:stretch;justify-content:center}
+    .qr img{width:80px;height:80px;object-fit:contain}
     @media print{body{padding:0}.cards{gap:10px}}
   </style></head><body>
   <div class="cards">${students.map(s => {
@@ -97,7 +97,7 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
           <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manh\u00e3'}</p>
           <p><b>Nascimento:</b> ${s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '\u2014'}</p>
         </div>
-        <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 60)}" alt="QR"/></div>
+        <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 100)}" alt="QR"/></div>
       </div>
       ${sigHTML}
     </div>`;

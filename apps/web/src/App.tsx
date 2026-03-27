@@ -7,6 +7,7 @@ import LoadingOverlay from './components/LoadingOverlay';
 import { LoadingProvider } from './lib/loadingContext';
 import { initPushNotifications } from './lib/pushNotifications';
 import { RefreshCw } from 'lucide-react';
+import Onboarding from './components/Onboarding';
 
 // Paginas criticas (carregamento imediato)
 import LoginPage from './pages/LoginPage';
@@ -138,10 +139,18 @@ function HomeRedirect() {
 export default function App() {
   const { user } = useAuth();
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Inicializar push notifications quando o usuário está logado
+  // Inicializar push notifications e verificar primeiro acesso
   useEffect(() => {
-    if (user) initPushNotifications();
+    if (user) {
+      initPushNotifications();
+      // Verificar se é primeiro acesso
+      const onboardingKey = `netescol_onboarding_${user.id}`;
+      if (!localStorage.getItem(onboardingKey)) {
+        setShowOnboarding(true);
+      }
+    }
   }, [user]);
 
   // Detectar atualizações do Service Worker
@@ -305,6 +314,16 @@ export default function App() {
     </Routes>
     </Suspense>
     {user && <FloatingChat />}
+    {user && showOnboarding && (
+      <Onboarding
+        role={user.role}
+        userName={user.name?.split(' ')[0] || ''}
+        onComplete={() => {
+          localStorage.setItem(`netescol_onboarding_${user.id}`, 'done');
+          setShowOnboarding(false);
+        }}
+      />
+    )}
   </>
   </LoadingProvider>
   );

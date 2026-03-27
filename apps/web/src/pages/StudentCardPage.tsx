@@ -35,44 +35,48 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
       ).join('')}
     </div>` : '';
 
-  // Assinatura eletrônica inline (dentro de cada carteirinha)
+  // Assinatura eletrônica inline (QR de verificação à esquerda + texto)
   const eSigHTML = inlineSig ?
-    `<div style="margin-top:4px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;background:#f8f9fa;font-size:6.5px;color:#333;line-height:1.4">
-      <div>Assinado eletronicamente por <strong>${inlineSig.signerName}</strong>, <strong>${inlineSig.signerRole}</strong>${inlineSig.signerDecree ? ' (' + inlineSig.signerDecree + ')' : ''}${inlineSig.signerRegistration ? ', Mat. ' + inlineSig.signerRegistration : ''}, em ${inlineSig.dateStr}.</div>
-      <div style="color:#1B3A5C;margin-top:1px">Verificacao: <strong>${inlineSig.verificationCode}</strong> | <a href="${inlineSig.verifyUrl}" style="color:#2DB5B0">${inlineSig.verifyUrl}</a></div>
+    `<div style="margin-top:5px;padding:5px 8px;border:1px solid #ccc;border-radius:5px;background:#f8f9fa;display:flex;align-items:center;gap:8px">
+      <img src="${getQRCodeURL(inlineSig.verifyUrl, 50)}" style="width:42px;height:42px;flex-shrink:0" />
+      <div style="flex:1;font-size:7px;color:#333;line-height:1.45">
+        <div>Assinado eletronicamente por <strong>${inlineSig.signerName}</strong>, <strong>${inlineSig.signerRole}</strong>${inlineSig.signerDecree ? ' (' + inlineSig.signerDecree + ')' : ''}${inlineSig.signerRegistration ? ', Mat. ' + inlineSig.signerRegistration : ''}, em ${inlineSig.dateStr}.</div>
+        <div style="color:#1B3A5C;margin-top:2px">Codigo: <strong>${inlineSig.verificationCode}</strong></div>
+      </div>
     </div>` : '';
 
   const sigHTML = signatureType === 'electronic' ? eSigHTML : manualSigHTML;
   const hasAnySig = (signatureType === 'manual' && hasSigs) || (signatureType === 'electronic' && inlineSig);
-  const cardHeight = hasAnySig ? '290px' : '255px';
+  const cardHeight = hasAnySig ? '310px' : '265px';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carteirinhas - NetEscol</title>
   <style>
     body{font-family:Arial,sans-serif;padding:10px;margin:0}
     .cards{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
-    .card{width:400px;height:${cardHeight};border:2px solid #1B3A5C;border-radius:12px;padding:12px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
-    .card-inst{display:flex;align-items:center;gap:6px;margin-bottom:4px;padding-bottom:4px;border-bottom:1.5px solid #ccc}
-    .card-inst img{width:32px;height:32px;object-fit:contain}
-    .card-inst .inst-text{flex:1;text-align:center;line-height:1.15}
-    .card-inst .inst-text p{margin:0;font-size:7.5px;color:#444}
-    .card-inst .inst-text .mun{font-size:8px;font-weight:bold;color:#1B3A5C;text-transform:uppercase}
-    .card-inst .inst-text .sec{font-size:7px;color:#555}
-    .card-inst .inst-text .sch{font-size:7.5px;color:#333;font-weight:600}
+    .card{width:420px;height:${cardHeight};border:2px solid #1B3A5C;border-radius:12px;padding:12px;position:relative;page-break-inside:avoid;background:linear-gradient(135deg,#f0f4f8 0%,#e6f7f6 100%)}
+    .card-header{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;padding-bottom:4px;border-bottom:1.5px solid #ccc}
+    .card-header img{width:32px;height:32px;object-fit:contain}
+    .card-header .inst-text{flex:1;text-align:center;line-height:1.15}
+    .card-header .inst-text p{margin:0;font-size:7.5px;color:#444}
+    .card-header .inst-text .mun{font-size:8px;font-weight:bold;color:#1B3A5C;text-transform:uppercase}
+    .card-header .inst-text .sec{font-size:7px;color:#555}
+    .card-header .inst-text .sch{font-size:7.5px;color:#333;font-weight:600}
+    .card-header .validade{font-size:7px;color:#1B3A5C;font-weight:bold;background:#e6f7f6;border:1px solid #2DB5B0;border-radius:4px;padding:2px 6px;white-space:nowrap;flex-shrink:0}
     .card-title{text-align:center;font-size:11px;font-weight:bold;color:#1B3A5C;margin:3px 0;padding-bottom:3px;border-bottom:2px solid #2DB5B0;letter-spacing:1px}
     .card-body{display:flex;gap:8px;margin-top:5px}
-    .photo{width:60px;height:75px;background:#ddd;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#999;border:1px solid #ccc;flex-shrink:0}
+    .photo{width:65px;height:80px;background:#ddd;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#999;border:1px solid #ccc;flex-shrink:0}
     .photo img{width:100%;height:100%;object-fit:cover;border-radius:6px}
-    .info{flex:1;font-size:9.5px;line-height:1.55}
+    .info{flex:1;font-size:9px;line-height:1.6}
     .info b{color:#1B3A5C}
     .qr{width:65px;height:65px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
     .qr img{width:60px;height:60px}
-    .card-footer{position:absolute;bottom:5px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:#999}
     @media print{body{padding:0}.cards{gap:10px}}
   </style></head><body>
   <div class="cards">${students.map(s => {
     const school = allSchools.find((sc: any) => sc.id === s.schoolId);
+    const cpfMask = s.cpf ? s.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '';
     return `<div class="card">
-      <div class="card-inst">
+      <div class="card-header">
         ${mun?.logoUrl ? '<img src="' + mun.logoUrl + '" alt="Brasao"/>' : ''}
         <div class="inst-text">
           ${mun?.state ? '<p>ESTADO DO ' + mun.state.toUpperCase() + '</p>' : ''}
@@ -80,6 +84,7 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
           ${sec?.name ? '<p class="sec">' + sec.name + '</p>' : ''}
           <p class="sch">${school?.name || ''}</p>
         </div>
+        <div class="validade">${year}</div>
       </div>
       <div class="card-title">CARTEIRA ESTUDANTIL</div>
       <div class="card-body">
@@ -87,6 +92,7 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
         <div class="info">
           <p><b>Nome:</b> ${s.name}</p>
           <p><b>Matr\u00edcula:</b> ${s.enrollment || '\u2014'}</p>
+          <p><b>CPF:</b> ${cpfMask || '\u2014'} ${s.rg ? ' | <b>RG:</b> ' + s.rg : ''}</p>
           <p><b>S\u00e9rie:</b> ${s.grade || '\u2014'} | <b>Turma:</b> ${s.classRoom || '\u2014'}</p>
           <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manh\u00e3'}</p>
           <p><b>Nascimento:</b> ${s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '\u2014'}</p>
@@ -94,7 +100,6 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
         <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 60)}" alt="QR"/></div>
       </div>
       ${sigHTML}
-      <div class="card-footer"><span>Validade: ${year}</span></div>
     </div>`;
   }).join('')}</div></body></html>`;
 }

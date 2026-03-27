@@ -472,6 +472,14 @@ export const api = {
     listByDocument: (input: any) => call('documentSignatures.listByDocument', input, 'query'),
     verifySignature: (input: any) => call('documentSignatures.verifySignature', input, 'query'),
   },
+  declarations: {
+    types: (input: any) => call('declarations.types', input, 'query'),
+    createType: (input: any) => call('declarations.createType', input, 'mutation'),
+    updateType: (input: any) => call('declarations.updateType', input, 'mutation'),
+    request: (input: any) => call('declarations.request', input, 'mutation'),
+    listRequests: (input: any) => call('declarations.listRequests', input, 'query'),
+    respond: (input: any) => call('declarations.respond', input, 'mutation'),
+  },
 
   ai: {
     analyzeRoutes: (input: any) => call('ai.analyzeRoutes', input, 'query'),

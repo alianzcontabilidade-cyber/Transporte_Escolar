@@ -1716,6 +1716,43 @@ export const chatMessages = mysqlTable("chat_messages", {
 });
 
 // ============================================
+// TABELA: TIPOS DE DECLARAÇÕES
+// ============================================
+export const declarationTypes = mysqlTable("declaration_types", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  template: text("template"),
+  autoGenerate: boolean("autoGenerate").default(false),
+  signerId: int("signerId").references(() => users.id),
+  signerName: varchar("signerName", { length: 255 }),
+  signerRole: varchar("signerRole", { length: 255 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ============================================
+// TABELA: SOLICITAÇÕES DE DECLARAÇÕES
+// ============================================
+export const declarationRequests = mysqlTable("declaration_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  declarationTypeId: int("declarationTypeId").notNull().references(() => declarationTypes.id),
+  studentId: int("studentId").notNull().references(() => students.id),
+  requestedById: int("requestedById").notNull().references(() => users.id),
+  requestCode: varchar("requestCode", { length: 20 }).notNull(),
+  status: mysqlEnum("status", ["pending", "processing", "ready", "rejected", "cancelled"]).default("pending").notNull(),
+  notes: text("notes"),
+  responseNotes: text("responseNotes"),
+  documentId: int("documentId"),
+  respondedById: int("respondedById").references(() => users.id),
+  respondedAt: timestamp("respondedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// ============================================
 // TABELA: VISTORIAS DE VEÍCULOS
 // ============================================
 export const vehicleInspections = mysqlTable("vehicle_inspections", {

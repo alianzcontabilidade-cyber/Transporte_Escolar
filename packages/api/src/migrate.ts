@@ -390,6 +390,46 @@ async function migrate() {
     try { await conn.execute(`ALTER TABLE chat_messages ADD COLUMN deliveredAt TIMESTAMP NULL`); }
     catch { /* already exists */ }
 
+    // Tipos de declarações
+    try { await conn.execute(`CREATE TABLE IF NOT EXISTS declaration_types (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      municipalityId INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      template TEXT,
+      autoGenerate BOOLEAN DEFAULT FALSE,
+      signerId INT,
+      signerName VARCHAR(255),
+      signerRole VARCHAR(255),
+      isActive BOOLEAN DEFAULT TRUE NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+      FOREIGN KEY (signerId) REFERENCES users(id)
+    )`); } catch { /* already exists */ }
+
+    // Solicitações de declarações
+    try { await conn.execute(`CREATE TABLE IF NOT EXISTS declaration_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      municipalityId INT NOT NULL,
+      declarationTypeId INT NOT NULL,
+      studentId INT NOT NULL,
+      requestedById INT NOT NULL,
+      requestCode VARCHAR(20) NOT NULL,
+      status ENUM('pending','processing','ready','rejected','cancelled') DEFAULT 'pending' NOT NULL,
+      notes TEXT,
+      responseNotes TEXT,
+      documentId INT,
+      respondedById INT,
+      respondedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+      FOREIGN KEY (declarationTypeId) REFERENCES declaration_types(id),
+      FOREIGN KEY (studentId) REFERENCES students(id),
+      FOREIGN KEY (requestedById) REFERENCES users(id),
+      FOREIGN KEY (respondedById) REFERENCES users(id)
+    )`); } catch { /* already exists */ }
+
     console.log('Migration complete');
 
   } catch (err: any) {

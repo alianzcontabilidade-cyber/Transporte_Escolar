@@ -18,7 +18,8 @@ import {
   documents, documentSignatures,
   chatConversations, chatMessages,
   classSchedules, bulletins, protocols,
-  suppliers, serviceOrders, garages
+  suppliers, serviceOrders, garages,
+  declarationTypes, declarationRequests
 } from './db/schema';
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
@@ -7112,6 +7113,137 @@ const backupRouter = t.router({
 });
 
 // ============================================
+// ROUTER: DECLARAÇÕES
+// ============================================
+export const declarationsRouter = t.router({
+  // Listar tipos de declarações disponíveis
+  types: protectedProcedure
+    .input(z.object({ municipalityId: z.number() }))
+    .query(async ({ input }) => {
+      return db.select().from(declarationTypes)
+        .where(and(eq(declarationTypes.municipalityId, input.municipalityId), eq(declarationTypes.isActive, true)))
+        .orderBy(declarationTypes.name);
+    }),
+
+  // Criar tipo de declaração (admin)
+  createType: adminProcedure
+    .input(z.object({
+      municipalityId: z.number(), name: z.string().min(2), description: z.string().optional(),
+      template: z.string().optional(), autoGenerate: z.boolean().optional(),
+      signerId: z.number().optional(), signerName: z.string().optional(), signerRole: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const [r] = await db.insert(declarationTypes).values(input as any).$returningId();
+      return { success: true, id: r.id };
+    }),
+
+  // Atualizar tipo (admin)
+  updateType: adminProcedure
+    .input(z.object({
+      id: z.number(), name: z.string().optional(), description: z.string().optional(),
+      template: z.string().optional(), autoGenerate: z.boolean().optional(),
+      signerId: z.number().optional(), signerName: z.string().optional(), signerRole: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.update(declarationTypes).set(data as any).where(eq(declarationTypes.id, id));
+      return { success: true };
+    }),
+
+  // Solicitar declaração (pai/responsável)
+  request: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), declarationTypeId: z.number(), studentId: z.number(), notes: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const year = new Date().getFullYear();
+      const [last] = await db.select({ requestCode: declarationRequests.requestCode })
+        .from(declarationRequests)
+        .where(like(declarationRequests.requestCode, `DCL-${year}-%`))
+        .orderBy(sql`CAST(SUBSTRING(requestCode, ${String(year).length + 5}) AS UNSIGNED) DESC`)
+        .limit(1);
+      const lastSeq = last?.requestCode ? parseInt(last.requestCode.split('-').pop() || '0') : 0;
+      const requestCode = `DCL-${year}-${String(lastSeq + 1).padStart(4, '0')}`;
+
+      const [r] = await db.insert(declarationRequests).values({
+        municipalityId: input.municipalityId,
+        declarationTypeId: input.declarationTypeId,
+        studentId: input.studentId,
+        requestedById: ctx.userId!,
+        requestCode,
+        notes: input.notes || null,
+      } as any).$returningId();
+
+      return { success: true, id: r.id, requestCode };
+    }),
+
+  // Listar solicitações (admin vê todas, pai vê as dele)
+  listRequests: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), status: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const isAdmin = ['super_admin', 'municipal_admin', 'secretary'].includes(ctx.role || '');
+      const conditions: any[] = [eq(declarationRequests.municipalityId, input.municipalityId)];
+      if (!isAdmin) conditions.push(eq(declarationRequests.requestedById, ctx.userId!));
+      if (input.status) conditions.push(eq(declarationRequests.status, input.status as any));
+
+      const requests = await db.select({
+        id: declarationRequests.id,
+        requestCode: declarationRequests.requestCode,
+        status: declarationRequests.status,
+        notes: declarationRequests.notes,
+        responseNotes: declarationRequests.responseNotes,
+        documentId: declarationRequests.documentId,
+        createdAt: declarationRequests.createdAt,
+        respondedAt: declarationRequests.respondedAt,
+        studentName: students.name,
+        studentEnrollment: students.enrollment,
+        typeName: declarationTypes.name,
+        requestedByName: users.name,
+      })
+        .from(declarationRequests)
+        .innerJoin(students, eq(declarationRequests.studentId, students.id))
+        .innerJoin(declarationTypes, eq(declarationRequests.declarationTypeId, declarationTypes.id))
+        .innerJoin(users, eq(declarationRequests.requestedById, users.id))
+        .where(and(...conditions))
+        .orderBy(desc(declarationRequests.createdAt));
+      return requests;
+    }),
+
+  // Responder solicitação (admin)
+  respond: adminProcedure
+    .input(z.object({ id: z.number(), status: z.enum(['processing', 'ready', 'rejected']), responseNotes: z.string().optional(), documentId: z.number().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await db.update(declarationRequests).set({
+        ...data as any,
+        respondedById: ctx.userId!,
+        respondedAt: new Date(),
+      }).where(eq(declarationRequests.id, id));
+
+      // Notificar o pai
+      const [req] = await db.select({
+        requestedById: declarationRequests.requestedById,
+        requestCode: declarationRequests.requestCode,
+        typeName: declarationTypes.name,
+      }).from(declarationRequests)
+        .innerJoin(declarationTypes, eq(declarationRequests.declarationTypeId, declarationTypes.id))
+        .where(eq(declarationRequests.id, id)).limit(1);
+
+      if (req) {
+        const statusText = input.status === 'ready' ? 'esta pronta' : input.status === 'rejected' ? 'foi recusada' : 'esta em processamento';
+        await db.insert(notifications).values({
+          userId: req.requestedById,
+          municipalityId: ctx.municipalityId!,
+          type: 'declaration',
+          title: `Declaracao ${statusText}`,
+          body: `Sua solicitacao ${req.requestCode} (${req.typeName}) ${statusText}.`,
+        } as any);
+        emitToUser(req.requestedById, 'notification', { type: 'declaration' });
+      }
+      return { success: true };
+    }),
+});
+
+// ============================================
 // MAIN ROUTER
 // ============================================
 export const appRouter = t.router({
@@ -7183,6 +7315,8 @@ export const appRouter = t.router({
   // Documentos e Assinaturas Eletrônicas
   documents: documentsRouter,
   documentSignatures: documentSignaturesRouter,
+  // Declarações
+  declarations: declarationsRouter,
   // IA e Otimização
   ai: aiRouter,
   // Chat em tempo real

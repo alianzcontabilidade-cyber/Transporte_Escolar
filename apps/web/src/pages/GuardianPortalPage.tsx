@@ -562,7 +562,7 @@ export default function GuardianPortalPage() {
             <p className="text-sm text-gray-500 mb-4">Informe a matricula escolar do aluno para vincula-lo ao seu perfil.</p>
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Matricula do Aluno</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Matrícula do Aluno</label>
                 <input type="text" value={addEnrollment} onChange={e => setAddEnrollment(e.target.value)}
                   placeholder="Ex: 2024001" className="w-full border rounded-lg px-3 py-2.5 text-sm" />
               </div>
@@ -750,7 +750,7 @@ function FrequenciaView({ student, onBack }: { student: any; onBack: () => void 
     <>
       <BackButton onClick={onBack} />
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-        <Clock size={20} className="text-green-500" /> Frequencia Escolar
+        <Clock size={20} className="text-green-500" /> Frequência Escolar
       </h2>
 
       {attendance && attendance.totalDays > 0 ? (
@@ -799,7 +799,7 @@ function FrequenciaView({ student, onBack }: { student: any; onBack: () => void 
           {/* Monthly breakdown */}
           {attendance.monthly?.length > 0 && (
             <div className="card">
-              <h3 className="font-semibold text-gray-700 mb-3 text-sm">Frequencia mensal</h3>
+              <h3 className="font-semibold text-gray-700 mb-3 text-sm">Frequência mensal</h3>
               <div className="space-y-2">
                 {attendance.monthly.map((m: any) => {
                   const monthNames: Record<string, string> = {
@@ -921,7 +921,7 @@ function OcorrenciasView({ student, onBack }: { student: any; onBack: () => void
     <>
       <BackButton onClick={onBack} />
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-        <AlertTriangle size={20} className="text-orange-500" /> Ocorrencias
+        <AlertTriangle size={20} className="text-orange-500" /> Ocorrências
       </h2>
 
       {occurrences.length > 0 ? (
@@ -1011,7 +1011,7 @@ function CalendarioView({ student, onBack }: { student: any; onBack: () => void 
     <>
       <BackButton onClick={onBack} />
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-        <Calendar size={20} className="text-teal-500" /> Calendario Escolar
+        <Calendar size={20} className="text-teal-500" /> Calendário Escolar
       </h2>
 
       {/* Month navigation */}
@@ -1216,32 +1216,136 @@ function MensagensView({ onBack }: { onBack: () => void }) {
 // DECLARACOES VIEW
 // =============================================
 function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void }) {
+  const { user } = useAuth();
+  const mid = user?.municipalityId || 0;
+  const [types, setTypes] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [successCode, setSuccessCode] = useState('');
+
+  useEffect(() => { loadData(); }, []);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const [t, r] = await Promise.all([
+        api.declarations.types({ municipalityId: mid }),
+        api.declarations.listRequests({ municipalityId: mid }),
+      ]);
+      setTypes(t || []);
+      setRequests((r || []).filter((req: any) => req.studentName === student.name));
+    } catch {}
+    finally { setLoading(false); }
+  }
+
+  async function handleRequest() {
+    if (!selectedType) return;
+    setSubmitting(true);
+    try {
+      const result = await api.declarations.request({
+        municipalityId: mid,
+        declarationTypeId: parseInt(selectedType),
+        studentId: student.id,
+        notes: notes || undefined,
+      });
+      setSuccessCode(result.requestCode);
+      setSelectedType('');
+      setNotes('');
+      loadData();
+    } catch {}
+    finally { setSubmitting(false); }
+  }
+
+  const statusLabel: any = { pending: 'Pendente', processing: 'Em Processamento', ready: 'Pronta', rejected: 'Recusada', cancelled: 'Cancelada' };
+  const statusColor: any = { pending: 'bg-amber-100 text-amber-700', processing: 'bg-blue-100 text-blue-700', ready: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-500' };
+
+  if (loading) return <><BackButton onClick={onBack} /><div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-400" /></div></>;
+
   return (
     <>
       <BackButton onClick={onBack} />
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-        <FileText size={20} className="text-gray-500" /> Declaracoes
+        <FileText size={20} className="text-gray-500" /> Declarações
       </h2>
 
-      <div className="card">
-        <div className="text-center py-6">
-          <FileText size={40} className="text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-700 mb-2">Solicitar Declaracoes</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Para solicitar declarações de matricula, frequência ou transferência, entre em contato com a secretaria da escola.
-          </p>
+      {/* Sucesso */}
+      {successCode && (
+        <div className="card mb-4 p-4 bg-green-50 border-green-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle size={20} className="text-green-600" />
+            <div>
+              <p className="font-semibold text-green-800 text-sm">Solicitação enviada!</p>
+              <p className="text-xs text-green-600">Código: <strong>{successCode}</strong> — Acompanhe o status abaixo.</p>
+            </div>
+          </div>
+          <button onClick={() => setSuccessCode('')} className="text-xs text-green-500 mt-2 hover:underline">Fechar</button>
         </div>
+      )}
 
-        <div className="border-t pt-4">
-          <h4 className="font-medium text-sm text-gray-700 mb-2">Dados do aluno</h4>
-          <div className="space-y-1.5 text-sm text-gray-600">
-            <p><strong>Nome:</strong> {student.name}</p>
-            {student.enrollment && <p><strong>Matricula:</strong> {student.enrollment}</p>}
-            {student.grade && <p><strong>Serie:</strong> {student.grade}</p>}
-            {student.schoolName && <p><strong>Escola:</strong> {student.schoolName}</p>}
+      {/* Dados do aluno */}
+      <div className="card mb-4 p-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+            <User size={18} className="text-primary-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
+            <p className="text-xs text-gray-500">{student.enrollment ? 'Mat. ' + student.enrollment + ' • ' : ''}{student.grade || ''} • {student.schoolName || ''}</p>
           </div>
         </div>
       </div>
+
+      {/* Solicitar nova */}
+      {types.length > 0 && (
+        <div className="card mb-4 p-4">
+          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Nova Solicitação</h3>
+          <select className="input mb-3" value={selectedType} onChange={e => setSelectedType(e.target.value)}>
+            <option value="">Selecione o tipo de declaração</option>
+            {types.map((t: any) => <option key={t.id} value={t.id}>{t.name}{t.description ? ' - ' + t.description : ''}</option>)}
+          </select>
+          <textarea className="input mb-3" rows={2} placeholder="Observações (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
+          <button onClick={handleRequest} disabled={!selectedType || submitting}
+            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+            {submitting ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><FileText size={14} /> Solicitar Declaração</>}
+          </button>
+        </div>
+      )}
+
+      {types.length === 0 && (
+        <div className="card mb-4 p-4 text-center">
+          <FileText size={32} className="text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Nenhum tipo de declaração disponível no momento.</p>
+          <p className="text-xs text-gray-400 mt-1">A secretaria precisa cadastrar os tipos de declarações.</p>
+        </div>
+      )}
+
+      {/* Minhas solicitações */}
+      <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><History size={14} /> Minhas Solicitações</h3>
+      {requests.length > 0 ? (
+        <div className="space-y-2">
+          {requests.map((r: any) => (
+            <div key={r.id} className="card p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-semibold text-gray-800 text-sm">{r.typeName}</p>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[r.status] || 'bg-gray-100 text-gray-500'}`}>
+                  {statusLabel[r.status] || r.status}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">Código: <strong>{r.requestCode}</strong></p>
+              <p className="text-[10px] text-gray-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+              {r.responseNotes && <p className="text-xs text-gray-600 mt-1 bg-gray-50 rounded p-2">Resposta: {r.responseNotes}</p>}
+              {r.status === 'ready' && <p className="text-xs text-green-600 mt-1 font-medium">Documento disponível para retirada</p>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card p-4 text-center text-gray-400">
+          <p className="text-sm">Nenhuma solicitação realizada</p>
+        </div>
+      )}
     </>
   );
 }

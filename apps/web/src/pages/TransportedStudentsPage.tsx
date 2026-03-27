@@ -113,6 +113,17 @@ export default function TransportedStudentsPage() {
     );
   };
 
+  // Exportação CSV formato FNDE
+  const exportFNDE = () => {
+    if (!transportData.length) { showInfoToast('Nenhum dado'); return; }
+    const headers = ['Nome', 'CPF', 'Data Nascimento', 'Matrícula', 'Escola', 'Série', 'Turno', 'Zona', 'Tipo Transporte', 'Distância (km)', 'Rota', 'Endereço'];
+    const rows = transportData.map(d => [d.name, d.cpf, d.birthDate, d.enrollment, d.school, d.grade, d.shift, d.zone, d.transportType, d.distance, d.route, d.address]);
+    const csv = [headers.join(';'), ...rows.map(r => r.map(v => '"' + (v || '') + '"').join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `alunos_transportados_fnde_${new Date().getFullYear()}.csv`; a.click();
+    showSuccessToast('Planilha FNDE exportada!');
+  };
+
   const handlePrint = () => { const html = buildReportHTML(); if (html) printReportHTML(html); };
   const handleExportClick = () => {
     if (!transportData.length) { showInfoToast('Nenhum dado disponível'); return; }
@@ -131,8 +142,9 @@ export default function TransportedStudentsPage() {
         </div>
         {transportData.length > 0 && (
           <div className="flex items-center gap-2">
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2"><Printer size={16} /> Imprimir</button>
-            <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2"><Download size={16} /> Exportar</button>
+            <button onClick={exportFNDE} className="btn-primary flex items-center gap-2 text-sm"><Download size={14} /> Planilha FNDE</button>
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2 text-sm"><Printer size={14} /> Imprimir</button>
+            <button onClick={handleExportClick} className="btn-secondary flex items-center gap-2 text-sm"><Download size={14} /> Exportar</button>
           </div>
         )}
       </div>

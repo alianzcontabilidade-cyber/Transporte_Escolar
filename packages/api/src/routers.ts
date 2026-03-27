@@ -2872,7 +2872,6 @@ export const monitorsRouter = t.router({
 
   // Obter viagens disponíveis para iniciar
   availableTrips: protectedProcedure.query(async ({ ctx }) => {
-    console.log('[availableTrips] userId:', ctx.userId, 'role:', ctx.role, 'munId:', ctx.municipalityId);
     // Buscar como motorista
     const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
     if (driver) {
@@ -2886,7 +2885,6 @@ export const monitorsRouter = t.router({
 
     // Buscar como monitor (pela routeName na monitor_staff)
     const [monitor] = await db.select().from(monitorStaff).where(eq(monitorStaff.userId, ctx.userId!)).limit(1);
-    console.log('[availableTrips] monitor found:', !!monitor, 'routeName:', monitor?.routeName || 'null');
     if (monitor && monitor.routeName) {
       const assignedRoutes = await db.select().from(routes)
         .where(and(eq(routes.name, monitor.routeName), eq(routes.isActive, true)));

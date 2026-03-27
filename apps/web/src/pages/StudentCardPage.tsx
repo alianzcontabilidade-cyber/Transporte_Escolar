@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery, showInfoToast, showErrorToast, showSuccessToast } from '../lib/hooks';
 import { api } from '../lib/api';
-import { CreditCard, Printer, Search, Users, Download, Lock, Loader2, PenTool } from 'lucide-react';
+import { CreditCard, Printer, Search, Users, Download, Lock, Loader2, PenTool, X } from 'lucide-react';
 import { getMunicipalityReport, buildTableReportHTML } from '../lib/reportUtils';
 import ExportModal, { handleExport } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
@@ -10,16 +10,22 @@ import { getQRCodeURL } from '../lib/qrcode';
 
 function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, signatories?: Signatory[], signatureType?: 'manual' | 'electronic') {
   const year = new Date().getFullYear();
-  // Assinatura manual: linha com nome/cargo (impresso). Eletrônica: bloco injetado pelo backend no PDF.
-  const sigHTML = signatories && signatories.length > 0 && signatureType === 'manual' ? signatories.map(sig =>
-    `<div style="text-align:center;margin-top:4px">
-      <div style="border-top:1px solid #666;width:55%;margin:0 auto;padding-top:2px;font-size:7px;color:#333">
-        <span>${sig.name}</span><br/><span style="color:#777">${sig.role}${sig.decree ? ' - ' + sig.decree : ''}</span>
-      </div>
-    </div>`
-  ).join('') : '';
+  // Assinatura manual: linha com nome/cargo. Eletrônica: bloco injetado pelo backend.
+  const hasSigs = signatories && signatories.length > 0;
+  const sigHTML = hasSigs && signatureType === 'manual' ?
+    `<div style="display:flex;justify-content:center;gap:20px;margin-top:6px;padding-top:4px">
+      ${signatories.map(sig =>
+        `<div style="text-align:center;flex:1;max-width:45%">
+          <div style="border-top:1px solid #666;padding-top:3px;font-size:7px;color:#333">
+            <span style="font-weight:bold">${sig.name}</span><br/>
+            <span style="color:#777;font-size:6.5px">${sig.role}${sig.decree ? ' - ' + sig.decree : ''}</span>
+          </div>
+        </div>`
+      ).join('')}
+    </div>` : '';
 
-  const cardHeight = signatories && signatories.length > 0 ? '280px' : '255px';
+  const sigCount = hasSigs ? signatories.length : 0;
+  const cardHeight = sigCount > 0 && signatureType === 'manual' ? (sigCount > 1 ? '285px' : '275px') : '255px';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carteirinhas - NetEscol</title>
   <style>
@@ -248,33 +254,36 @@ export default function StudentCardPage() {
 
       {/* Modal de assinatura eletrônica */}
       {showSignModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="p-5 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-semibold flex items-center gap-2"><Lock size={18} className="text-accent-500" /> Assinatura Eletronica</h3>
-              <p className="text-sm text-gray-500 mt-1">Carteirinha(s) de {signTarget.length} aluno(s)</p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSignModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2"><Lock size={18} className="text-accent-500" /> Assinatura Eletronica</h3>
+                <p className="text-sm text-gray-500 mt-1">{signTarget.length === 1 ? signTarget[0].name : `${signTarget.length} carteirinha(s)`}</p>
+              </div>
+              <button onClick={() => setShowSignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={20} /></button>
             </div>
-            <div className="p-5 space-y-4">
+            <form onSubmit={e => { e.preventDefault(); generateSignedPDF(); }} className="p-5 space-y-4">
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-200">
                 <p className="text-xs text-blue-700"><strong>Assinante:</strong> {user?.name} ({user?.email})</p>
                 {selectedSigs.map((sig, i) => (
-                  <p key={i} className="text-xs text-blue-600 mt-1">{sig.name} - {sig.role}</p>
+                  <p key={i} className="text-xs text-blue-600 mt-1">{sig.name} - {sig.role}{sig.decree ? ` (${sig.decree})` : ''}</p>
                 ))}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha de Confirmacao <span className="text-red-500">*</span></label>
-                <input type="password" value={signPassword} onChange={e => setSignPassword(e.target.value)} placeholder="Digite sua senha" className="input" autoFocus />
+                <input type="password" id="signPasswordInput" value={signPassword} onChange={e => setSignPassword(e.target.value)} placeholder="Digite sua senha para assinar" className="input w-full" autoComplete="off" ref={el => { if (el) setTimeout(() => el.focus(), 100); }} />
               </div>
               <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 border border-yellow-200">
                 <p className="text-xs text-yellow-800 leading-relaxed"><strong>Aviso Legal:</strong> Ao assinar, voce confirma a autenticidade das carteirinhas conforme MP 2.200-2/2001 e Lei 14.063/2020. O documento tera codigo de verificacao unico e QR Code para validacao publica.</p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowSignModal(false)} className="btn-secondary flex-1">Cancelar</button>
-                <button onClick={generateSignedPDF} disabled={signing || !signPassword.trim()} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
+                <button type="button" onClick={() => setShowSignModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" disabled={signing || !signPassword.trim()} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
                   {signing ? <><Loader2 size={16} className="animate-spin" /> Assinando...</> : <><Lock size={16} /> Assinar {signTarget.length > 1 ? `(${signTarget.length})` : ''}</>}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}

@@ -10,16 +10,12 @@ import { getQRCodeURL } from '../lib/qrcode';
 
 function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, signatories?: Signatory[], signatureType?: 'manual' | 'electronic') {
   const year = new Date().getFullYear();
-  const sigHTML = signatories && signatories.length > 0 ? signatories.map(sig =>
+  // Assinatura manual: linha com nome/cargo (impresso). Eletrônica: bloco injetado pelo backend no PDF.
+  const sigHTML = signatories && signatories.length > 0 && signatureType === 'manual' ? signatories.map(sig =>
     `<div style="text-align:center;margin-top:4px">
-      ${signatureType === 'manual'
-        ? `<div style="border-top:1px solid #666;width:55%;margin:0 auto;padding-top:2px;font-size:7px;color:#333">
-            <span>${sig.name}</span><br/><span style="color:#777">${sig.role}${sig.decree ? ' - ' + sig.decree : ''}</span>
-          </div>`
-        : `<div style="font-size:7px;color:#1B3A5C;border:1px dashed #2DB5B0;border-radius:4px;padding:2px 6px;display:inline-block">
-            Assinado eletronicamente por ${sig.name}
-          </div>`
-      }
+      <div style="border-top:1px solid #666;width:55%;margin:0 auto;padding-top:2px;font-size:7px;color:#333">
+        <span>${sig.name}</span><br/><span style="color:#777">${sig.role}${sig.decree ? ' - ' + sig.decree : ''}</span>
+      </div>
     </div>`
   ).join('') : '';
 
@@ -136,7 +132,7 @@ export default function StudentCardPage() {
           docTitle: `Carteirinha Estudantil - ${signTarget.length} aluno(s)`,
           signAfterGenerate: true,
           signerPassword: signPassword,
-          signatures: selectedSigs.map(s => ({ name: s.name, role: s.role, cpf: s.cpf, decree: s.decree })),
+          signatures: selectedSigs.map(s => ({ signerName: s.name, signerRole: s.role, signerCpf: s.cpf, signerDecree: s.decree })),
         }),
       });
 

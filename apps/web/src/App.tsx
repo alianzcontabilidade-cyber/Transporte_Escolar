@@ -83,6 +83,7 @@ const ReportCenterPage = lazy(() => import('./pages/ReportCenterPage'));
 const EnrollmentFormPage = lazy(() => import('./pages/EnrollmentFormPage'));
 const MunicipalitySettingsPage = lazy(() => import('./pages/MunicipalitySettingsPage'));
 const FormConfigPage = lazy(() => import('./pages/FormConfigPage'));
+const DeclarationsAdminPage = lazy(() => import('./pages/DeclarationsAdminPage'));
 const IndividualReportPage = lazy(() => import('./pages/IndividualReportPage'));
 const SchoolPerformancePage = lazy(() => import('./pages/SchoolPerformancePage'));
 const FinalResultsPage = lazy(() => import('./pages/FinalResultsPage'));
@@ -284,6 +285,7 @@ export default function App() {
         <Route path="relatorio-educacenso" element={<Guard roles={ADMIN_SEC}><EducacensoReportPage /></Guard>} />
         <Route path="cadastro-prefeitura" element={<Guard roles={ADMIN}><MunicipalitySettingsPage /></Guard>} />
         <Route path="config-formularios" element={<Guard roles={['super_admin']}><FormConfigPage /></Guard>} />
+        <Route path="declaracoes-admin" element={<Guard roles={ADMIN}><DeclarationsAdminPage /></Guard>} />
         <Route path="gestao-documentos" element={<Guard roles={ADMIN}><DocumentManagementPage /></Guard>} />
         <Route path="risco-evasao" element={<Guard roles={ADMIN_SEC}><StudentRiskPage /></Guard>} />
         <Route path="sobre" element={<Guard roles={ALL_USERS}><SystemInfoPage /></Guard>} />

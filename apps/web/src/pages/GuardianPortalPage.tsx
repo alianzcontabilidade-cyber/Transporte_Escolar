@@ -13,7 +13,7 @@ import {
   RefreshCw, CheckCircle, Bell, History, ChevronRight, X, LogOut
 } from 'lucide-react';
 
-type PortalView = 'home' | 'boletim' | 'frequência' | 'parecer' | 'ocorrências' | 'calendario' | 'merenda' | 'mensagens' | 'declarações' | 'transporte' | 'vincular';
+type PortalView = 'home' | 'boletim' | 'frequência' | 'parecer' | 'ocorrências' | 'calendario' | 'merenda' | 'mensagens' | 'declarações' | 'transporte' | 'vincular' | 'notificacoes';
 
 // =============================================
 // LIVE MAP (from GuardianPage)
@@ -361,10 +361,11 @@ export default function GuardianPortalPage() {
 
           {/* Unread notifications alert */}
           {unreadCount > 0 && (
-            <div className="card mb-4 p-3 bg-orange-50 border-orange-200 flex items-center gap-3">
+            <button onClick={() => setView('notificacoes')} className="w-full card mb-4 p-3 bg-orange-50 border-orange-200 flex items-center gap-3 hover:bg-orange-100 transition-colors text-left">
               <Bell size={18} className="text-orange-500" />
-              <p className="text-orange-700 text-sm flex-1">Você tem <strong>{unreadCount}</strong> notificacao(oes) não lida(s)</p>
-            </div>
+              <p className="text-orange-700 text-sm flex-1">Voce tem <strong>{unreadCount}</strong> notificacao(oes) nao lida(s)</p>
+              <ChevronRight size={16} className="text-orange-400" />
+            </button>
           )}
 
           {/* Module Grid */}
@@ -421,7 +422,9 @@ export default function GuardianPortalPage() {
           {/* Últimas notificações */}
           {notifs.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5"><History size={14} /> Últimas Atividades</h3>
+              <button onClick={() => setView('notificacoes')} className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5 hover:text-primary-600 transition-colors">
+                <History size={14} /> Ultimas Atividades <ChevronRight size={12} className="ml-auto text-gray-400" />
+              </button>
               <div className="space-y-2">
                 {notifs.slice(0, 5).map((n: any) => (
                   <div key={n.id} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-sm ${n.isRead ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'}`}>
@@ -494,6 +497,60 @@ export default function GuardianPortalPage() {
           onRefresh={() => loadActiveTrip(currentStudent.id)}
           onBack={goHome}
         />
+      )}
+
+      {/* ========== NOTIFICACOES VIEW ========== */}
+      {view === 'notificacoes' && (
+        <div>
+          <BackButton onClick={goHome} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"><Bell size={20} /> Notificacoes</h2>
+            {unreadCount > 0 && (
+              <button onClick={async () => { await api.notifications.markAllAsRead(); loadNotifications(); }}
+                className="text-xs text-primary-600 hover:underline font-medium">Marcar todas como lidas</button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {notifs.map((n: any) => (
+              <button key={n.id} onClick={async () => { if (!n.isRead) { await api.notifications.markAsRead({ id: n.id }); loadNotifications(); } }}
+                className={`w-full flex items-start gap-2.5 p-3 rounded-xl border text-sm text-left transition-colors ${n.isRead ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  n.type === 'student_boarded' ? 'bg-green-100 text-green-600' :
+                  n.type === 'student_dropped' ? 'bg-blue-100 text-blue-600' :
+                  n.type === 'student_absent' ? 'bg-red-100 text-red-600' :
+                  n.type === 'trip_started' ? 'bg-amber-100 text-amber-600' :
+                  n.type === 'trip_completed' ? 'bg-green-100 text-green-600' :
+                  n.type === 'trip_cancelled' ? 'bg-red-100 text-red-600' :
+                  n.type?.includes('chat') ? 'bg-indigo-100 text-indigo-600' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {n.type === 'student_boarded' ? <CheckCircle size={15} /> :
+                   n.type === 'student_dropped' ? <MapPin size={15} /> :
+                   n.type === 'student_absent' ? <AlertTriangle size={15} /> :
+                   n.type === 'trip_started' ? <Bus size={15} /> :
+                   n.type === 'trip_completed' ? <CheckCircle size={15} /> :
+                   n.type === 'trip_cancelled' ? <X size={15} /> :
+                   n.type?.includes('chat') ? <MessageCircle size={15} /> :
+                   <Bell size={15} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-800 dark:text-gray-200 text-xs">{n.title}</p>
+                    {!n.isRead && <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{n.body}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                </div>
+              </button>
+            ))}
+            {notifs.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <Bell size={40} className="mx-auto mb-3 opacity-50" />
+                <p>Nenhuma notificacao</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ========== VINCULAR VIEW ========== */}

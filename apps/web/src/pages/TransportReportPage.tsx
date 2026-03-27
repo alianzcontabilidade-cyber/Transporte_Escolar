@@ -93,6 +93,125 @@ export default function TransportReportPage() {
     setPgExportModal({ html, filename: 'relatorio_transporte' });
   };
 
+  // Relatório detalhado por rota (com mapa)
+  const [generatingRouteReport, setGeneratingRouteReport] = useState(false);
+  const generateRouteReport = async (routeData: any) => {
+    setGeneratingRouteReport(true);
+    const rt = routeData.route || routeData;
+    const routeStops = routeData.stops || [];
+
+    // Carregar alunos da rota
+    let routeStudents: any[] = [];
+    try {
+      const data = await api.ai.routeStudents({ routeId: rt.id });
+      routeStudents = data?.students || [];
+    } catch {}
+
+    // Construir URL do mapa estático Google Maps
+    const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY || '';
+    let mapUrl = '';
+    if (googleKey && routeStops.length > 0) {
+      const validStops = routeStops.filter((s: any) => s.latitude || s.lat);
+      const markers = validStops.map((s: any, i: number) => {
+        const la = parseFloat(String(s.latitude || s.lat || 0));
+        const ln = parseFloat(String(s.longitude || s.lng || 0));
+        return `markers=color:green%7Clabel:${i + 1}%7C${la},${ln}`;
+      }).join('&');
+      const path = validStops.map((s: any) => {
+        const la = parseFloat(String(s.latitude || s.lat || 0));
+        const ln = parseFloat(String(s.longitude || s.lng || 0));
+        return `${la},${ln}`;
+      }).join('|');
+      mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=700x350&maptype=hybrid&${markers}&path=color:0x059669ff|weight:4|${path}&key=${googleKey}`;
+    }
+
+    // Custos
+    const fuel = parseFloat(String(rt.monthlyCostFuel || 0));
+    const driver = parseFloat(String(rt.monthlyCostDriver || 0));
+    const maint = parseFloat(String(rt.monthlyCostMaintenance || 0));
+    const monitor = parseFloat(String(rt.monthlyCostMonitor || 0));
+    const insurance = parseFloat(String(rt.monthlyCostInsurance || 0));
+    const totalCost = fuel + driver + maint + monitor + insurance;
+    const perStudent = parseFloat(String(rt.costPerStudent || 0));
+
+    // Gerar HTML
+    const munName = munReport?.municipality?.name || '';
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${rt.name}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:20px;color:#333}
+      h1{color:#1E40AF;font-size:18pt;border-bottom:3px solid #059669;padding-bottom:8px;margin-bottom:5px}
+      h2{color:#059669;font-size:14pt;margin-top:20px;margin-bottom:8px}
+      .header{text-align:center;margin-bottom:20px}
+      .header h3{color:#666;font-size:10pt;margin:2px 0}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:15px 0}
+      .info-box{background:#f0f7ff;border:1px solid #dbeafe;border-radius:8px;padding:12px;text-align:center}
+      .info-box .value{font-size:18pt;font-weight:bold;color:#1E40AF}
+      .info-box .label{font-size:9pt;color:#666;margin-top:4px}
+      .cost-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin:10px 0}
+      .cost-box{background:#f0fdf4;border:1px solid #d1fae5;border-radius:8px;padding:10px;text-align:center}
+      .cost-box .value{font-size:14pt;font-weight:bold;color:#059669}
+      .cost-box .label{font-size:8pt;color:#666;margin-top:3px}
+      table{width:100%;border-collapse:collapse;margin-top:10px;font-size:10pt}
+      th{background:#1E40AF;color:white;padding:8px;text-align:left}
+      td{border:1px solid #ddd;padding:6px}
+      tr:nth-child(even){background:#f8f9fa}
+      .map-container{text-align:center;margin:15px 0}
+      .map-container img{max-width:100%;border-radius:8px;border:2px solid #ddd}
+      .footer{margin-top:30px;text-align:center;font-size:8pt;color:#999;border-top:1px solid #ddd;padding-top:10px}
+      @media print{body{margin:10px}h1{font-size:14pt}}
+    </style></head><body>
+    <div class="header">
+      <h3>${munName}</h3>
+      <h1>RELATÓRIO DA ROTA: ${rt.name}</h1>
+      <h3>Código: ${rt.code || '--'} | Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</h3>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-box"><div class="value">${parseFloat(String(rt.totalDistanceKm || 0)).toFixed(1)} km</div><div class="label">Distância Total</div></div>
+      <div class="info-box"><div class="value">${rt.estimatedDuration || '--'} min</div><div class="label">Tempo Estimado</div></div>
+      <div class="info-box"><div class="value">${routeStops.length}</div><div class="label">Paradas</div></div>
+    </div>
+
+    ${mapUrl ? `<h2>Mapa da Rota</h2><div class="map-container"><img src="${mapUrl}" alt="Mapa da rota" /></div>` : ''}
+
+    <h2>Custos Mensais</h2>
+    <div class="cost-grid">
+      <div class="cost-box"><div class="value">R$ ${fuel.toLocaleString('pt-BR')}</div><div class="label">Combustível</div></div>
+      <div class="cost-box"><div class="value">R$ ${driver.toLocaleString('pt-BR')}</div><div class="label">Motorista</div></div>
+      <div class="cost-box"><div class="value">R$ ${totalCost.toLocaleString('pt-BR')}</div><div class="label">Total Mensal</div></div>
+      <div class="cost-box"><div class="value">R$ ${perStudent.toLocaleString('pt-BR')}</div><div class="label">Custo/Aluno</div></div>
+    </div>
+
+    <h2>Paradas (${routeStops.length})</h2>
+    <table>
+      <thead><tr><th>#</th><th>Nome da Parada</th><th>Coordenadas</th><th>Alunos</th></tr></thead>
+      <tbody>
+      ${routeStops.map((s: any, i: number) => {
+        const la = parseFloat(String(s.latitude || s.lat || 0));
+        const ln = parseFloat(String(s.longitude || s.lng || 0));
+        const stopStudents = routeStudents.filter((st: any) => st.stopId === s.id);
+        return `<tr><td style="text-align:center;font-weight:bold;color:#1E40AF">${i + 1}</td><td>${s.name}</td><td style="font-size:9pt;color:#888">${la.toFixed(5)}, ${ln.toFixed(5)}</td><td>${stopStudents.map((st: any) => st.name).join(', ') || '--'}</td></tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+
+    <h2>Alunos da Rota (${routeStudents.length})</h2>
+    <table>
+      <thead><tr><th>#</th><th>Nome do Aluno</th><th>Série</th><th>Endereço</th></tr></thead>
+      <tbody>
+      ${routeStudents.map((st: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td>${st.name}</td><td>${st.grade || '--'}</td><td>${st.address || '--'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      NetEscol - Sistema de Gestão Escolar Municipal | ${munName} | Documento gerado automaticamente
+    </div>
+    </body></html>`;
+
+    setPgExportModal({ html, filename: `rota_${rt.code || rt.id}_${rt.name.replace(/\s/g, '_')}` });
+    setGeneratingRouteReport(false);
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -130,6 +249,7 @@ export default function TransportReportPage() {
               <th className="text-right p-2.5 font-semibold text-gray-600 dark:text-gray-300">Motorista</th>
               <th className="text-right p-2.5 font-semibold text-gray-600 dark:text-gray-300">Total/Mês</th>
               <th className="text-right p-2.5 font-semibold text-gray-600 dark:text-gray-300">$/Aluno</th>
+              <th className="text-center p-2.5 font-semibold text-gray-600 dark:text-gray-300">Ação</th>
             </tr></thead>
             <tbody>{allRoutes.map((r: any) => {
               const rt = r.route || r;
@@ -146,6 +266,12 @@ export default function TransportReportPage() {
                   <td className="text-right p-2.5 text-amber-600">R$ {drv.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
                   <td className="text-right p-2.5 font-bold text-gray-800 dark:text-gray-200">R$ {total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
                   <td className="text-right p-2.5 text-green-600">R$ {parseFloat(String(rt.costPerStudent || 0)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
+                  <td className="text-center p-2.5">
+                    <button onClick={() => generateRouteReport(r)} disabled={generatingRouteReport}
+                      className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 font-medium">
+                      {generatingRouteReport ? '...' : 'PDF'}
+                    </button>
+                  </td>
                 </tr>
               );
             })}</tbody>
@@ -158,6 +284,7 @@ export default function TransportReportPage() {
               <td className="text-right p-2.5 text-amber-600">R$ {allRoutes.reduce((s: number, r: any) => s + parseFloat(String((r.route || r).monthlyCostDriver || 0)), 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
               <td className="text-right p-2.5">R$ {totalMonthlyCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
               <td className="text-right p-2.5 text-green-600">R$ {avgCostPerStudent.toFixed(0)}</td>
+              <td></td>
             </tr></tfoot>}
           </table>
           {!allRoutes.length && <p className="text-gray-400 text-sm text-center py-8">Nenhuma rota cadastrada</p>}

@@ -275,7 +275,7 @@ export default function GuardianPortalPage() {
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
                   s.id === currentStudent?.id ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {s.photo ? <img src={s.photo} alt="" className="w-full h-full rounded-full object-cover" /> : s.name?.charAt(0)}
+                  {(s.photoUrl || s.photo) ? <img src={s.photoUrl || s.photo} alt="" className="w-full h-full rounded-full object-cover" /> : s.name?.charAt(0)}
                 </div>
                 <div className="text-left">
                   <p className={`text-sm font-medium leading-tight ${s.id === currentStudent?.id ? 'text-primary-700' : 'text-gray-700'}`}>

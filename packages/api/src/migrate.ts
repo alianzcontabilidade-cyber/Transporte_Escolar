@@ -378,6 +378,14 @@ async function migrate() {
     try { await conn.execute(`ALTER TABLE drivers ADD COLUMN homeLongitude DECIMAL(11,8)`); }
     catch { /* already exists */ }
 
+    // Alterar colunas de foto para LONGTEXT (TEXT=65KB, insuficiente para Base64 de fotos)
+    try { await conn.execute(`ALTER TABLE students MODIFY COLUMN photoUrl LONGTEXT`); }
+    catch { /* ignore */ }
+    try { await conn.execute(`ALTER TABLE drivers MODIFY COLUMN photo LONGTEXT`); }
+    catch { /* ignore */ }
+    try { await conn.execute(`ALTER TABLE monitor_staff MODIFY COLUMN photoUrl LONGTEXT`); }
+    catch { /* ignore */ }
+
     console.log('Migration complete');
 
   } catch (err: any) {

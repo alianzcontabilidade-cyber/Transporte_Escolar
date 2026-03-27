@@ -526,7 +526,7 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
         {paginated.map(function(s: any) { return (
           <div key={s.id} className="card flex items-center gap-4 hover:border-primary-200 transition-colors">
             <div className="w-11 h-11 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center flex-shrink-0">
-              {s.photo?<img src={s.photo} alt={s.name} className="w-full h-full object-cover"/>:<span className="font-bold text-indigo-700">{s.name?.[0]}</span>}
+              {(s.photoUrl||s.photo)?<img src={s.photoUrl||s.photo} alt={s.name} className="w-full h-full object-cover"/>:<span className="font-bold text-indigo-700">{s.name?.[0]}</span>}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">

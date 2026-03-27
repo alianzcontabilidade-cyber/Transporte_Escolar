@@ -391,6 +391,7 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
   const [scanResult, setScanResult] = useState<{ student: any; status: string; message: string } | null>(null);
   const [scanMode, setScanMode] = useState<'embarque' | 'desembarque'>('embarque');
   const [scanCount, setScanCount] = useState(0);
+  const [debugInfo, setDebugInfo] = useState('');
   const streamRef = useRef<MediaStream | null>(null);
 
   const dropMut = useMutation(api.monitors.dropStudent);
@@ -456,10 +457,10 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
     let enrollment = data;
     try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || parsed.name || data; } catch {}
 
-    console.log('[QR] Lido:', enrollment, '| Alunos disponíveis:', allStudents.length, '| TripId:', tripId);
-    if (allStudents.length > 0) {
-      console.log('[QR] Primeiro aluno:', JSON.stringify({ id: allStudents[0].id, name: allStudents[0].name, enrollment: allStudents[0].enrollment }));
-    }
+    // Debug visual
+    const dbg = `QR="${enrollment}" | ${allStudents.length} alunos | matrículas: [${allStudents.map((s: any) => s.enrollment || s.id).join(',')}]`;
+    setDebugInfo(dbg);
+    console.log('[QR]', dbg);
 
     // Buscar aluno por: matrícula, ID, nome parcial, ou CPF
     const cleanEnrollment = enrollment.trim();
@@ -580,10 +581,17 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
         </div>
       )}
 
+      {/* Debug info */}
+      {debugInfo && (
+        <div className="bg-gray-100 rounded-xl p-2 border text-[10px] text-gray-500 font-mono break-all">
+          {debugInfo}
+        </div>
+      )}
+
       {/* Instrução */}
       <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
         <p className="text-sm text-gray-600">
-          {scanning ? `Aponte a câmera para o QR Code • Modo: ${scanMode === 'embarque' ? 'Embarque' : 'Desembarque'}` : 'Iniciando câmera...'}
+          {scanning ? `Aponte a câmera para o QR Code • ${allStudents.length} alunos carregados` : 'Iniciando câmera...'}
         </p>
       </div>
     </div>

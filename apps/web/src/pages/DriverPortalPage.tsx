@@ -98,14 +98,57 @@ export default function DriverPortalPage() {
     finally { setLoading(false); }
   }
 
+  // Abrir navegação Google Maps com GPS atual como origem
+  function openRouteNavigation(currentStops?: any[]) {
+    const stopsToUse = currentStops || stops;
+    const validStops = stopsToUse.filter((s: any) => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0);
+    if (validStops.length === 0) return;
+
+    // Capturar GPS atual do motorista
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const origin = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+          const dest = validStops[validStops.length - 1];
+          const destStr = `${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}`;
+          const waypoints = validStops.slice(0, -1).map((s: any) => `${parseFloat(String(s.latitude)).toFixed(6)},${parseFloat(String(s.longitude)).toFixed(6)}`).join('|');
+          const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destStr}${waypoints ? '&waypoints=' + waypoints : ''}&travelmode=driving`;
+          window.open(url, '_blank');
+        },
+        () => {
+          // GPS falhou - usar primeira parada como origem
+          const origin = validStops[0];
+          const dest = validStops[validStops.length - 1];
+          const originStr = `${parseFloat(String(origin.latitude)).toFixed(6)},${parseFloat(String(origin.longitude)).toFixed(6)}`;
+          const destStr = `${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}`;
+          const waypoints = validStops.slice(1, -1).map((s: any) => `${parseFloat(String(s.latitude)).toFixed(6)},${parseFloat(String(s.longitude)).toFixed(6)}`).join('|');
+          const url = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}${waypoints ? '&waypoints=' + waypoints : ''}&travelmode=driving`;
+          window.open(url, '_blank');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }
+
   // Start trip
   const startTripMut = useMutation(api.trips.start);
   async function handleStartTrip() {
     if (!activeTrip?.route?.id) return;
     const vId = activeTrip.vehicle?.id || activeTrip.vehicleId;
+    const currentStops = activeTrip?.stops || stops;
     await startTripMut.mutate(
       { routeId: activeTrip.route.id, driverId: driverId || 0, vehicleId: vId || 0, municipalityId: user?.municipalityId || 1 },
-      { onSuccess: () => { setTripStartTime(new Date()); startTracking(); loadData(); } }
+      {
+        onSuccess: () => {
+          setTripStartTime(new Date());
+          startTracking();
+          loadData();
+          // Abrir navegação automaticamente ao iniciar viagem
+          if (currentStops.length > 0) {
+            setTimeout(() => openRouteNavigation(currentStops), 1500);
+          }
+        }
+      }
     );
   }
 
@@ -258,18 +301,10 @@ export default function DriverPortalPage() {
           </div>
         )}
 
-        {/* Botão Navegar - abre Google Maps com a rota */}
+        {/* Botão Navegar - abre Google Maps com GPS atual como origem */}
         {stops.length > 0 && (
-          <button onClick={() => {
-            const validStops = stops.filter((s: any) => s.latitude && s.longitude && parseFloat(String(s.latitude)) !== 0);
-            if (validStops.length === 0) return;
-            // Primeiro ponto = origem, último = destino, intermediários = waypoints
-            const origin = validStops[0];
-            const dest = validStops[validStops.length - 1];
-            const waypoints = validStops.slice(1, -1).map((s: any) => parseFloat(String(s.latitude)).toFixed(6) + ',' + parseFloat(String(s.longitude)).toFixed(6)).join('|');
-            const url = `https://www.google.com/maps/dir/?api=1&origin=${parseFloat(String(origin.latitude)).toFixed(6)},${parseFloat(String(origin.longitude)).toFixed(6)}&destination=${parseFloat(String(dest.latitude)).toFixed(6)},${parseFloat(String(dest.longitude)).toFixed(6)}${waypoints ? '&waypoints=' + waypoints : ''}&travelmode=driving`;
-            window.open(url, '_blank');
-          }} className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base py-4 rounded-2xl shadow-md flex items-center justify-center gap-3 transition-all">
+          <button onClick={() => openRouteNavigation()}
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base py-4 rounded-2xl shadow-md flex items-center justify-center gap-3 transition-all">
             <Navigation size={22} />
             NAVEGAR PELA ROTA
           </button>
@@ -526,7 +561,19 @@ function RouteView({ stops }: { stops: any[] }) {
             {stop.latitude && <p className="text-xs text-gray-400 mt-0.5">{parseFloat(String(stop.latitude)).toFixed(5)}, {parseFloat(String(stop.longitude)).toFixed(5)}</p>}
             <p className="text-xs text-gray-400 mt-1">{stop.students?.length || 0} aluno(s)</p>
             {stop.latitude && (
-              <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${parseFloat(String(stop.latitude)).toFixed(6)},${parseFloat(String(stop.longitude)).toFixed(6)}&travelmode=driving`, '_blank')}
+              <button onClick={() => {
+                const destLat = parseFloat(String(stop.latitude)).toFixed(6);
+                const destLng = parseFloat(String(stop.longitude)).toFixed(6);
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => window.open(`https://www.google.com/maps/dir/?api=1&origin=${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}&destination=${destLat},${destLng}&travelmode=driving`, '_blank'),
+                    () => window.open(`https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`, '_blank'),
+                    { enableHighAccuracy: true, timeout: 8000 }
+                  );
+                } else {
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`, '_blank');
+                }
+              }}
                 className="mt-2 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium active:bg-blue-100">
                 <Navigation size={12} /> Navegar até aqui
               </button>

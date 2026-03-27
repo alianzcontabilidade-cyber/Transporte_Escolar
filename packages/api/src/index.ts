@@ -181,7 +181,7 @@ app.post('/api/pdf/generate', async (req, res) => {
       tokenData = jwtVerify(token, JWT) as any;
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
-    const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures } = req.body;
+    const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures, skipSignatureBlock } = req.body;
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();
@@ -234,8 +234,8 @@ app.post('/api/pdf/generate', async (req, res) => {
       htmlClean = htmlClean.replace(/<div class="report-footer-bar">[\s\S]*?<\/div>\s*<\/div>/, '');
     }
 
-    // DEPOIS: Injetar bloco de assinatura eletrônica
-    if (allSigners.length > 0) {
+    // DEPOIS: Injetar bloco de assinatura eletrônica (pular se skipSignatureBlock - ex: carteirinhas com assinatura inline)
+    if (allSigners.length > 0 && !skipSignatureBlock) {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const sigBlocksHtml = `

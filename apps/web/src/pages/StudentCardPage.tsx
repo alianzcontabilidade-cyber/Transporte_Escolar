@@ -35,19 +35,19 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
       ).join('')}
     </div>` : '';
 
-  // Assinatura eletrônica inline (QR de verificação à esquerda + texto)
+  // Assinatura eletrônica inline (QR de verificação à esquerda + texto - largura total)
   const eSigHTML = inlineSig ?
-    `<div style="margin-top:5px;padding:5px 8px;border:1px solid #ccc;border-radius:5px;background:#f8f9fa;display:flex;align-items:center;gap:8px">
-      <img src="${getQRCodeURL(inlineSig.verifyUrl, 50)}" style="width:42px;height:42px;flex-shrink:0" />
-      <div style="flex:1;font-size:7px;color:#333;line-height:1.45">
+    `<div style="margin-top:6px;padding:6px 10px;border:1.5px solid #1B3A5C;border-radius:6px;background:#f0f4f8;display:flex;align-items:center;gap:10px">
+      <img src="${getQRCodeURL(inlineSig.verifyUrl, 80)}" style="width:55px;height:55px;flex-shrink:0" />
+      <div style="flex:1;font-size:7.5px;color:#333;line-height:1.5">
         <div>Assinado eletronicamente por <strong>${inlineSig.signerName}</strong>, <strong>${inlineSig.signerRole}</strong>${inlineSig.signerDecree ? ' (' + inlineSig.signerDecree + ')' : ''}${inlineSig.signerRegistration ? ', Mat. ' + inlineSig.signerRegistration : ''}, em ${inlineSig.dateStr}.</div>
-        <div style="color:#1B3A5C;margin-top:2px">Codigo: <strong>${inlineSig.verificationCode}</strong></div>
+        <div style="color:#1B3A5C;margin-top:3px;font-size:8px">Codigo de verificacao: <strong>${inlineSig.verificationCode}</strong></div>
       </div>
     </div>` : '';
 
   const sigHTML = signatureType === 'electronic' ? eSigHTML : manualSigHTML;
   const hasAnySig = (signatureType === 'manual' && hasSigs) || (signatureType === 'electronic' && inlineSig);
-  const cardHeight = hasAnySig ? '310px' : '265px';
+  const cardHeight = hasAnySig ? '320px' : '265px';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carteirinhas - NetEscol</title>
   <style>
@@ -68,8 +68,8 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
     .photo img{width:100%;height:100%;object-fit:cover;border-radius:6px}
     .info{flex:1;font-size:9px;line-height:1.6}
     .info b{color:#1B3A5C}
-    .qr{width:80px;flex-shrink:0;display:flex;align-items:stretch;justify-content:center}
-    .qr img{width:80px;height:80px;object-fit:contain}
+    .qr{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .qr img{width:100%;height:100%;object-fit:contain}
     @media print{body{padding:0}.cards{gap:10px}}
   </style></head><body>
   <div class="cards">${students.map(s => {
@@ -97,7 +97,7 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
           <p><b>Turno:</b> ${s.shift === 'afternoon' ? 'Tarde' : s.shift === 'evening' ? 'Noite' : s.shift === 'full_time' ? 'Integral' : 'Manh\u00e3'}</p>
           <p><b>Nascimento:</b> ${s.birthDate ? new Date(s.birthDate).toLocaleDateString('pt-BR') : '\u2014'}</p>
         </div>
-        <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 100)}" alt="QR"/></div>
+        <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 150)}" style="width:95px;height:95px" alt="QR"/></div>
       </div>
       ${sigHTML}
     </div>`;
@@ -186,6 +186,7 @@ export default function StudentCardPage() {
           docTitle: `Carteirinha Estudantil - ${signTarget.length} aluno(s)`,
           signAfterGenerate: true,
           signerPassword: signPassword,
+          skipSignatureBlock: true,
         }),
       });
 

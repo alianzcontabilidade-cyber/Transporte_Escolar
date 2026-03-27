@@ -6426,6 +6426,8 @@ export const chatRouter = t.router({
         content: chatMessages.content,
         senderId: chatMessages.senderId,
         isRead: chatMessages.isRead,
+        readAt: chatMessages.readAt,
+        deliveredAt: chatMessages.deliveredAt,
         createdAt: chatMessages.createdAt,
       })
         .from(chatMessages)
@@ -6434,11 +6436,32 @@ export const chatRouter = t.router({
         .limit(input.limit);
 
       // Marcar como lidas as mensagens do outro usuario
+      const unreadFromOther = msgs.filter(m => !m.isRead && m.senderId !== userId);
+      if (unreadFromOther.length > 0) {
+        const now = new Date();
+        await db.update(chatMessages)
+          .set({ isRead: true, readAt: now, deliveredAt: sql`COALESCE(deliveredAt, ${now})` })
+          .where(and(
+            eq(chatMessages.conversationId, input.conversationId),
+            eq(chatMessages.isRead, false),
+            sql`${chatMessages.senderId} != ${userId}`
+          ));
+        // Notificar o remetente que suas mensagens foram lidas
+        const senderIds = [...new Set(unreadFromOther.map(m => m.senderId))];
+        senderIds.forEach(sid => {
+          emitToUser(sid, 'chat:messagesRead', {
+            conversationId: input.conversationId,
+            readAt: now.toISOString(),
+          });
+        });
+      }
+
+      // Marcar entrega para mensagens que ainda não foram entregues
       await db.update(chatMessages)
-        .set({ isRead: true, readAt: new Date() })
+        .set({ deliveredAt: sql`COALESCE(deliveredAt, NOW())` })
         .where(and(
           eq(chatMessages.conversationId, input.conversationId),
-          eq(chatMessages.isRead, false),
+          sql`deliveredAt IS NULL`,
           sql`${chatMessages.senderId} != ${userId}`
         ));
 
@@ -6500,7 +6523,7 @@ export const chatRouter = t.router({
 
       // Emitir via Socket.IO para o destinatário
       if (recipientId) {
-        emitToUser(recipientId, 'chat:newMessage', {
+        emitToUser(recipientId, 'chat:message', {
           conversationId: conv.id, messageId: msg.id, senderId: userId,
           senderName: sender?.name || 'Usuário', content: input.content,
           createdAt: new Date().toISOString(),
@@ -6574,13 +6597,33 @@ export const chatRouter = t.router({
     .input(z.object({ conversationId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.userId!;
-      await db.update(chatMessages)
-        .set({ isRead: true, readAt: new Date() })
+      const now = new Date();
+      // Buscar remetentes das mensagens não lidas antes de marcar
+      const unread = await db.select({ senderId: chatMessages.senderId })
+        .from(chatMessages)
         .where(and(
           eq(chatMessages.conversationId, input.conversationId),
           eq(chatMessages.isRead, false),
           sql`${chatMessages.senderId} != ${userId}`
         ));
+
+      await db.update(chatMessages)
+        .set({ isRead: true, readAt: now, deliveredAt: sql`COALESCE(deliveredAt, ${now})` })
+        .where(and(
+          eq(chatMessages.conversationId, input.conversationId),
+          eq(chatMessages.isRead, false),
+          sql`${chatMessages.senderId} != ${userId}`
+        ));
+
+      // Notificar remetentes que mensagens foram lidas
+      const senderIds = [...new Set(unread.map(m => m.senderId))];
+      senderIds.forEach(sid => {
+        emitToUser(sid, 'chat:messagesRead', {
+          conversationId: input.conversationId,
+          readAt: now.toISOString(),
+        });
+      });
+
       return { success: true };
     }),
 });

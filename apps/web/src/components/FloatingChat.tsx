@@ -239,8 +239,17 @@ export default function FloatingChat() {
         setTimeout(() => { if (toast.parentElement) { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); } }, 6000);
       }
     };
-    socket.on('chat:newMessage', handler);
-    return () => { socket.off('chat:newMessage', handler); };
+    socket.on('chat:message', handler);
+
+    // Listener para check marks de leitura
+    const handleRead = (data: any) => {
+      if (data.conversationId === activeConv) {
+        setChatMessages((prev: any[]) => prev.map((m: any) => m.senderId === user?.id ? { ...m, isRead: true, readAt: data.readAt } : m));
+      }
+    };
+    socket.on('chat:messagesRead', handleRead);
+
+    return () => { socket.off('chat:message', handler); socket.off('chat:messagesRead', handleRead); };
   }, [socket, panel, activeConv]);
 
   useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [aiMessages]);
@@ -437,7 +446,14 @@ export default function FloatingChat() {
             <div key={msg.id} className={`flex ${msg.senderId === user?.id ? 'justify-end' : ''}`}>
               <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${msg.senderId === user?.id ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-sm'}`}>
                 <p>{msg.content}</p>
-                <p className={`text-[10px] mt-0.5 ${msg.senderId === user?.id ? 'text-white/60' : 'text-gray-400'}`}>{new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className={`text-[10px] mt-0.5 ${msg.senderId === user?.id ? 'text-white/60' : 'text-gray-400'} flex items-center justify-end gap-1`}>
+                  {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {msg.senderId === user?.id && (
+                    <span className={msg.isRead ? 'text-blue-300' : 'opacity-70'}>
+                      {msg.isRead ? '✓✓' : msg.deliveredAt ? '✓✓' : '✓'}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           ))}

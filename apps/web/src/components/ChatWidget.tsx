@@ -9,6 +9,8 @@ interface ChatMessage {
   content: string;
   senderId: number;
   isRead: boolean;
+  readAt?: string | null;
+  deliveredAt?: string | null;
   createdAt: string;
 }
 
@@ -135,7 +137,16 @@ export default function ChatWidget() {
       }
     };
     socket.on('chat:message', handleMessage);
-    return () => { socket.off('chat:message', handleMessage); };
+
+    // Listener para check marks de leitura em tempo real
+    const handleRead = (data: any) => {
+      if (data.conversationId === currentConvo) {
+        setMessages(prev => prev.map(m => m.senderId === user?.id ? { ...m, isRead: true, readAt: data.readAt } : m));
+      }
+    };
+    socket.on('chat:messagesRead', handleRead);
+
+    return () => { socket.off('chat:message', handleMessage); socket.off('chat:messagesRead', handleRead); };
   }, [socket, currentConvo, view, loadConversations, loadUnread]);
 
   // Scroll to bottom when messages change
@@ -409,8 +420,13 @@ export default function ChatWidget() {
                           : 'bg-gray-100 text-gray-800 rounded-bl-md'
                       }`}>
                         <p className="break-words whitespace-pre-wrap">{msg.content}</p>
-                        <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'} text-right`}>
+                        <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'} text-right flex items-center justify-end gap-1`}>
                           {formatTime(msg.createdAt)}
+                          {isMine && (
+                            <span className={msg.isRead ? 'text-blue-300' : 'opacity-70'}>
+                              {msg.isRead ? '✓✓' : msg.deliveredAt ? '✓✓' : '✓'}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>

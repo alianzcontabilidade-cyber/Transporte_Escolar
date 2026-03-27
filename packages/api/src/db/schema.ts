@@ -1711,6 +1711,7 @@ export const chatMessages = mysqlTable("chat_messages", {
   content: text("content").notNull(),
   isRead: boolean("isRead").default(false),
   readAt: timestamp("readAt"),
+  deliveredAt: timestamp("deliveredAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

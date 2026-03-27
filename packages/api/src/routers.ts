@@ -2833,7 +2833,7 @@ export const monitorsRouter = t.router({
 
     const stopsWithStudents = await Promise.all(tripStops.map(async (stop) => {
       const stopStudentList = await db.select({
-        id: students.id, name: students.name, photoUrl: students.photoUrl,
+        id: students.id, name: students.name,
         hasSpecialNeeds: students.hasSpecialNeeds, grade: students.grade,
         enrollment: students.enrollment, cpf: students.cpf,
       })

@@ -7263,6 +7263,128 @@ export const declarationsRouter = t.router({
       }
       return { success: true };
     }),
+
+  // Gerar PDF de declaração com template preenchido
+  generatePdf: protectedProcedure
+    .input(z.object({ declarationTypeId: z.number(), studentId: z.number(), municipalityId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      // Buscar tipo de declaração
+      const [declType] = await db.select().from(declarationTypes)
+        .where(eq(declarationTypes.id, input.declarationTypeId)).limit(1);
+      if (!declType) throw new TRPCError({ code: 'NOT_FOUND', message: 'Tipo de declaração não encontrado' });
+      if (!declType.template) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este tipo não possui modelo/template configurado' });
+
+      // Buscar dados do aluno
+      const [student] = await db.select().from(students).where(eq(students.id, input.studentId)).limit(1);
+      if (!student) throw new TRPCError({ code: 'NOT_FOUND', message: 'Aluno não encontrado' });
+
+      // Buscar escola
+      const [school] = await db.select({ name: schools.name }).from(schools).where(eq(schools.id, student.schoolId)).limit(1);
+
+      // Buscar município
+      const [mun] = await db.select().from(municipalities).where(eq(municipalities.id, input.municipalityId)).limit(1);
+
+      // Buscar dados do assinante (se configurado)
+      let signerData: any = null;
+      if (declType.signerId) {
+        const [signer] = await db.select({
+          name: users.name, role: users.role, jobTitle: users.jobTitle,
+          cpf: users.cpf, decree: users.decree, registrationNumber: users.registrationNumber,
+        }).from(users).where(eq(users.id, declType.signerId)).limit(1);
+        if (signer) signerData = signer;
+      }
+
+      const now = new Date();
+      const dataAtual = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const anoLetivo = String(now.getFullYear());
+      const shift = student.shift === 'afternoon' ? 'Tarde' : student.shift === 'evening' ? 'Noite' : student.shift === 'full_time' ? 'Integral' : 'Manhã';
+      const cpfMask = student.cpf ? student.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '';
+      const nascimento = student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR') : '';
+
+      // Substituir variáveis no template
+      let htmlContent = declType.template
+        .replace(/\{aluno\}/gi, student.name || '')
+        .replace(/\{nome\}/gi, student.name || '')
+        .replace(/\{matricula\}/gi, student.enrollment || '')
+        .replace(/\{serie\}/gi, student.grade || '')
+        .replace(/\{turma\}/gi, student.classRoom || '')
+        .replace(/\{turno\}/gi, shift)
+        .replace(/\{escola\}/gi, school?.name || '')
+        .replace(/\{cpf\}/gi, cpfMask)
+        .replace(/\{rg\}/gi, student.rg || '')
+        .replace(/\{nascimento\}/gi, nascimento)
+        .replace(/\{endereco\}/gi, student.address || '')
+        .replace(/\{cidade\}/gi, student.city || mun?.city || '')
+        .replace(/\{estado\}/gi, student.state || mun?.state || '')
+        .replace(/\{municipio\}/gi, mun?.name || '')
+        .replace(/\{ano_letivo\}/gi, anoLetivo)
+        .replace(/\{data_atual\}/gi, dataAtual)
+        .replace(/\{data\}/gi, dataAtual)
+        .replace(/\{assinante_nome\}/gi, declType.signerName || signerData?.name || '')
+        .replace(/\{assinante_cargo\}/gi, declType.signerRole || signerData?.jobTitle || '');
+
+      // Montar HTML completo do documento
+      const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${declType.name}</title>
+      <style>
+        @page{size:A4;margin:20mm}
+        body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.8;color:#333;padding:20px}
+        .header{text-align:center;margin-bottom:30px;border-bottom:3px solid #1B3A5C;padding-bottom:15px}
+        .header img{width:50px;height:50px;object-fit:contain}
+        .header h1{font-size:12px;color:#1B3A5C;margin:5px 0;text-transform:uppercase}
+        .header h2{font-size:11px;color:#666;margin:2px 0}
+        .title{text-align:center;font-size:16px;font-weight:bold;color:#1B3A5C;margin:30px 0 20px;text-transform:uppercase;letter-spacing:2px}
+        .content{text-align:justify;margin:20px 0;font-size:13px;line-height:2}
+        .content p{text-indent:40px;margin:10px 0}
+        .signature{margin-top:60px;text-align:center}
+        .signature .line{border-top:1px solid #333;width:300px;margin:0 auto;padding-top:5px}
+        .signature .name{font-weight:bold;font-size:12px}
+        .signature .role{font-size:11px;color:#666}
+        .local-date{text-align:right;margin-top:40px;font-size:12px}
+      </style></head><body>
+      <div class="header">
+        ${mun?.logoUrl ? '<img src="' + mun.logoUrl + '" />' : ''}
+        ${mun?.state ? '<h2>ESTADO DO ' + mun.state.toUpperCase() + '</h2>' : ''}
+        <h1>${mun?.name || 'PREFEITURA MUNICIPAL'}</h1>
+        ${mun?.secretariaName ? '<h2>' + mun.secretariaName + '</h2>' : ''}
+        <h2>${school?.name || ''}</h2>
+      </div>
+      <div class="title">${declType.name}</div>
+      <div class="content">${htmlContent}</div>
+      <div class="local-date">${mun?.city || ''}, ${dataAtual}.</div>
+      <div class="signature">
+        <div class="line">
+          <div class="name">${declType.signerName || signerData?.name || ''}</div>
+          <div class="role">${declType.signerRole || signerData?.jobTitle || ''}</div>
+        </div>
+      </div>
+      </body></html>`;
+
+      return { html: fullHtml, title: declType.name, signerName: declType.signerName, signerRole: declType.signerRole };
+    }),
+
+  // Listar variáveis disponíveis para templates
+  templateVariables: protectedProcedure.query(() => {
+    return [
+      { var: '{aluno}', desc: 'Nome completo do aluno' },
+      { var: '{matricula}', desc: 'Número da matrícula' },
+      { var: '{serie}', desc: 'Série/Ano escolar' },
+      { var: '{turma}', desc: 'Turma' },
+      { var: '{turno}', desc: 'Turno (Manhã/Tarde/Noite)' },
+      { var: '{escola}', desc: 'Nome da escola' },
+      { var: '{cpf}', desc: 'CPF do aluno' },
+      { var: '{rg}', desc: 'RG do aluno' },
+      { var: '{nascimento}', desc: 'Data de nascimento' },
+      { var: '{endereco}', desc: 'Endereço do aluno' },
+      { var: '{cidade}', desc: 'Cidade' },
+      { var: '{estado}', desc: 'Estado' },
+      { var: '{municipio}', desc: 'Nome do município' },
+      { var: '{ano_letivo}', desc: 'Ano letivo atual' },
+      { var: '{data_atual}', desc: 'Data atual por extenso' },
+      { var: '{data}', desc: 'Data atual' },
+      { var: '{assinante_nome}', desc: 'Nome do assinante' },
+      { var: '{assinante_cargo}', desc: 'Cargo do assinante' },
+    ];
+  }),
 });
 
 // ============================================

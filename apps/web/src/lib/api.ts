@@ -480,6 +480,8 @@ export const api = {
     request: (input: any) => call('declarations.request', input, 'mutation'),
     listRequests: (input: any) => call('declarations.listRequests', input, 'query'),
     respond: (input: any) => call('declarations.respond', input, 'mutation'),
+    generatePdf: (input: any) => call('declarations.generatePdf', input, 'mutation'),
+    templateVariables: () => call('declarations.templateVariables', {}, 'query'),
   },
 
   ai: {

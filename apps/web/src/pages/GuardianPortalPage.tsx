@@ -1298,19 +1298,70 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
         </div>
       </div>
 
-      {/* Solicitar nova */}
+      {/* Declarações disponíveis */}
       {types.length > 0 && (
         <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Nova Solicitação</h3>
-          <select className="input mb-3" value={selectedType} onChange={e => setSelectedType(e.target.value)}>
-            <option value="">Selecione o tipo de declaração</option>
-            {types.map((t: any) => <option key={t.id} value={t.id}>{t.name}{t.description ? ' - ' + t.description : ''}</option>)}
-          </select>
-          <textarea className="input mb-3" rows={2} placeholder="Observações (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
-          <button onClick={handleRequest} disabled={!selectedType || submitting}
-            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
-            {submitting ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><FileText size={14} /> Solicitar Declaração</>}
-          </button>
+          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Declarações Disponíveis</h3>
+          <div className="space-y-2 mb-4">
+            {types.map((t: any) => {
+              const isAuto = t.autoGenerate && t.template;
+              return (
+                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border hover:border-primary-200 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isAuto ? 'bg-green-100' : 'bg-gray-100'}`}>
+                    <FileText size={14} className={isAuto ? 'text-green-600' : 'text-gray-500'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800">{t.name}</p>
+                    {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
+                    {isAuto && <p className="text-[10px] text-green-600 font-medium">Geração automática</p>}
+                  </div>
+                  {isAuto ? (
+                    <button onClick={async () => {
+                      setSubmitting(true);
+                      try {
+                        const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
+                        if (result?.html) {
+                          const token = localStorage.getItem('token');
+                          const res = await fetch(`${window.location.origin}/api/pdf/generate`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ html: result.html, orientation: 'portrait', docType: 'declaracao', docTitle: result.title }),
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a'); a.href = url; a.download = `${t.name.replace(/\s/g, '_')}_${student.name.split(' ')[0]}.pdf`; a.click();
+                            URL.revokeObjectURL(url);
+                            setSuccessCode('PDF gerado com sucesso!');
+                          }
+                        }
+                      } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha ao gerar')); }
+                      finally { setSubmitting(false); }
+                    }} disabled={submitting} className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 disabled:opacity-50 flex items-center gap-1">
+                      {submitting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Gerar PDF
+                    </button>
+                  ) : (
+                    <button onClick={() => { setSelectedType(String(t.id)); }} className="text-xs px-3 py-1.5 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 flex items-center gap-1">
+                      <FileText size={12} /> Solicitar
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Formulário de solicitação manual (quando não auto) */}
+          {selectedType && (() => { const t = types.find((t: any) => String(t.id) === selectedType); return t && !t.autoGenerate; })() && (
+            <div className="border-t pt-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Solicitar: {types.find((t: any) => String(t.id) === selectedType)?.name}</p>
+              <textarea className="input mb-3" rows={2} placeholder="Observações (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
+              <div className="flex gap-2">
+                <button onClick={() => setSelectedType('')} className="btn-secondary flex-1 text-sm">Cancelar</button>
+                <button onClick={handleRequest} disabled={submitting} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+                  {submitting ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><FileText size={14} /> Enviar Solicitação</>}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

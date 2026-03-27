@@ -79,7 +79,7 @@ export default function StudentCardPage() {
           </div>
           <div class="qr"><img src="${getQRCodeURL(s.enrollment || String(s.id), 60)}" alt="QR"/></div>
         </div>
-        <div class="card-footer"><span>Validade: Ano Letivo ${new Date().getFullYear()}</span><span>Mat: ${s.enrollment || s.id}</span></div>
+        <div class="card-footer"><span>Validade: ${new Date().getFullYear()}</span></div>
       </div>`;
     }).join('')}</div></body></html>`;
     const w = window.open('', '_blank');

@@ -477,25 +477,32 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
       console.log('[QR] Não encontrou. Dados lidos:', cleanEnrollment, '| Matrículas:', allStudents.map((s: any) => s.enrollment).join(', '));
     }
 
-    if (student && tripId) {
-      try {
-        if (scanMode === 'embarque') {
-          await onBoard(student.id);
-          setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
-        } else {
-          await dropMut.mutate({ studentId: student.id, tripId });
-          setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
+    if (student) {
+      if (tripId) {
+        try {
+          if (scanMode === 'embarque') {
+            await onBoard(student.id);
+            setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
+          } else {
+            await dropMut.mutate({ studentId: student.id, tripId });
+            setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
+          }
+          playBeep(true);
+          if (navigator.vibrate) navigator.vibrate(200);
+          setScanCount(c => c + 1);
+          onRefresh();
+        } catch {
+          setScanResult({ student, status: 'error', message: `Erro ao registrar ${student.name}` });
+          playBeep(false);
         }
+      } else {
+        // Sem viagem ativa - apenas identificar o aluno
+        setScanResult({ student, status: 'identified', message: `${student.name} - ${student.grade || ''} ${student.stopName || ''}` });
         playBeep(true);
         if (navigator.vibrate) navigator.vibrate(200);
-        setScanCount(c => c + 1);
-        onRefresh();
-      } catch {
-        setScanResult({ student, status: 'error', message: `Erro ao registrar ${student.name}` });
-        playBeep(false);
       }
     } else {
-      setScanResult({ student: null, status: 'not_found', message: 'Aluno não encontrado' });
+      setScanResult({ student: null, status: 'not_found', message: `Aluno não encontrado (código: ${cleanEnrollment})` });
       playBeep(false);
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     }
@@ -549,11 +556,13 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
         <div className={`rounded-2xl p-4 flex items-center gap-3 border-2 ${
           scanResult.status === 'boarded' ? 'bg-green-50 border-green-300' :
           scanResult.status === 'dropped' ? 'bg-blue-50 border-blue-300' :
+          scanResult.status === 'identified' ? 'bg-indigo-50 border-indigo-300' :
           'bg-red-50 border-red-300'
         }`}>
           <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
             scanResult.status === 'boarded' ? 'bg-green-100' :
             scanResult.status === 'dropped' ? 'bg-blue-100' :
+            scanResult.status === 'identified' ? 'bg-indigo-100' :
             'bg-red-100'
           }`}>
             {scanResult.student?.photoUrl ? (
@@ -561,7 +570,7 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
             ) : scanResult.status === 'not_found' ? (
               <XCircle size={24} className="text-red-500" />
             ) : (
-              <CheckCircle size={24} className={scanResult.status === 'boarded' ? 'text-green-500' : 'text-blue-500'} />
+              <CheckCircle size={24} className={scanResult.status === 'boarded' ? 'text-green-500' : scanResult.status === 'identified' ? 'text-indigo-500' : 'text-blue-500'} />
             )}
           </div>
           <div className="flex-1">

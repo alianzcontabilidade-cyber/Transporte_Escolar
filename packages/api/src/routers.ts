@@ -1284,7 +1284,7 @@ export const studentsRouter = t.router({
         resolvedRouteName = rt?.name || undefined;
       }
 
-      // Auto-gerar matrícula com ano letivo se não fornecida
+      // Auto-gerar matrícula com ano letivo se não fornecida (formato: 2026XXX)
       let finalEnrollment = rest.enrollment;
       if (!finalEnrollment) {
         const year = new Date().getFullYear();
@@ -1294,7 +1294,7 @@ export const studentsRouter = t.router({
           .orderBy(sql`CAST(SUBSTRING(enrollment, 5) AS UNSIGNED) DESC`)
           .limit(1);
         const lastSeq = lastStudent?.enrollment ? parseInt(lastStudent.enrollment.substring(4)) || 0 : 0;
-        finalEnrollment = `${year}${String(lastSeq + 1).padStart(4, '0')}`;
+        finalEnrollment = `${year}${String(lastSeq + 1).padStart(3, '0')}`;
       }
 
       const [student] = await db.insert(students).values({

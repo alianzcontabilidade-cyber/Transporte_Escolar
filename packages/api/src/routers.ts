@@ -513,6 +513,28 @@ export const authRouter = t.router({
       return { success: true, message: 'Senha alterada com sucesso!' };
     }),
 
+  // Verificar senha e retornar dados do assinante (para assinatura inline em carteirinhas)
+  verifyForSign: protectedProcedure
+    .input(z.object({ password: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [user] = await db.select({
+        id: users.id, name: users.name, cpf: users.cpf, passwordHash: users.passwordHash,
+        role: users.role, jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,
+        decree: users.decree,
+      }).from(users).where(eq(users.id, ctx.userId!)).limit(1);
+      if (!user || !user.passwordHash) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
+      const valid = await compare(input.password, user.passwordHash);
+      if (!valid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha incorreta' });
+      const roleMap: Record<string, string> = { super_admin: 'Administrador', municipal_admin: 'Administrador Municipal', secretary: 'Secretário(a) de Educação', school_admin: 'Diretor(a)' };
+      return {
+        signerName: user.name,
+        signerRole: user.jobTitle || roleMap[user.role] || user.role,
+        signerCpf: user.cpf,
+        signerDecree: user.decree,
+        signerRegistration: user.registrationNumber,
+      };
+    }),
+
   me: protectedProcedure.query(async ({ ctx }) => {
     const [user] = await db.select().from(users).where(eq(users.id, ctx.userId!)).limit(1);
     if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });

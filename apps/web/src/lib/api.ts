@@ -114,6 +114,7 @@ export const api = {
     resetPassword: (input: any) => call('auth.resetPassword', input, 'mutation'),
     changePassword: (input: any) => call('auth.changePassword', input, 'mutation'),
     me: () => call('auth.me', {}, 'query'),
+    verifyForSign: (input: any) => call('auth.verifyForSign', input, 'mutation'),
   },
   municipalities: {
     list: () => call('municipalities.list', {}, 'query'),

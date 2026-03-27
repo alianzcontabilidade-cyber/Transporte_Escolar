@@ -8,11 +8,22 @@ import ExportModal, { handleExport } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import { getQRCodeURL } from '../lib/qrcode';
 
-function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, signatories?: Signatory[], signatureType?: 'manual' | 'electronic') {
+interface InlineSignature {
+  signerName: string;
+  signerRole: string;
+  signerDecree?: string;
+  signerRegistration?: string;
+  dateStr: string;
+  verificationCode: string;
+  verifyUrl: string;
+}
+
+function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, signatories?: Signatory[], signatureType?: 'manual' | 'electronic', inlineSig?: InlineSignature) {
   const year = new Date().getFullYear();
-  // Assinatura manual: linha com nome/cargo. Eletrônica: bloco injetado pelo backend.
+
+  // Assinatura manual: linhas com nome/cargo
   const hasSigs = signatories && signatories.length > 0;
-  const sigHTML = hasSigs && signatureType === 'manual' ?
+  const manualSigHTML = hasSigs && signatureType === 'manual' ?
     `<div style="display:flex;justify-content:center;gap:20px;margin-top:6px;padding-top:4px">
       ${signatories.map(sig =>
         `<div style="text-align:center;flex:1;max-width:45%">
@@ -24,8 +35,16 @@ function buildCardHTML(students: any[], allSchools: any[], mun: any, sec: any, s
       ).join('')}
     </div>` : '';
 
-  const sigCount = hasSigs ? signatories.length : 0;
-  const cardHeight = sigCount > 0 && signatureType === 'manual' ? (sigCount > 1 ? '285px' : '275px') : '255px';
+  // Assinatura eletrônica inline (dentro de cada carteirinha)
+  const eSigHTML = inlineSig ?
+    `<div style="margin-top:4px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;background:#f8f9fa;font-size:6.5px;color:#333;line-height:1.4">
+      <div>Assinado eletronicamente por <strong>${inlineSig.signerName}</strong>, <strong>${inlineSig.signerRole}</strong>${inlineSig.signerDecree ? ' (' + inlineSig.signerDecree + ')' : ''}${inlineSig.signerRegistration ? ', Mat. ' + inlineSig.signerRegistration : ''}, em ${inlineSig.dateStr}.</div>
+      <div style="color:#1B3A5C;margin-top:1px">Verificacao: <strong>${inlineSig.verificationCode}</strong> | <a href="${inlineSig.verifyUrl}" style="color:#2DB5B0">${inlineSig.verifyUrl}</a></div>
+    </div>` : '';
+
+  const sigHTML = signatureType === 'electronic' ? eSigHTML : manualSigHTML;
+  const hasAnySig = (signatureType === 'manual' && hasSigs) || (signatureType === 'electronic' && inlineSig);
+  const cardHeight = hasAnySig ? '290px' : '255px';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carteirinhas - NetEscol</title>
   <style>
@@ -124,10 +143,33 @@ export default function StudentCardPage() {
     if (!signPassword.trim()) return;
     setSigning(true);
     try {
-      // HTML sem assinatura manual - o backend injeta o bloco eletrônico
-      const html = buildCardHTML(signTarget, allSchools, munReport?.municipality, munReport?.secretaria);
-      const token = localStorage.getItem('token');
+      // 1. Validar senha e obter dados do assinante
+      const signerData = await api.auth.verifyForSign({ password: signPassword });
+      if (!signerData?.signerName) throw new Error('Falha na verificacao da senha');
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const baseUrl = window.location.origin;
+
+      // Gerar código de verificação simples (o backend gera o oficial)
+      const tempCode = 'NE-' + now.getFullYear() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const verifyUrl = `${baseUrl}/verificar/${tempCode}`;
+
+      // 2. Gerar HTML com assinatura DENTRO de cada carteirinha
+      const inlineSig: InlineSignature = {
+        signerName: signerData.signerName,
+        signerRole: signerData.signerRole || '',
+        signerDecree: signerData.signerDecree,
+        signerRegistration: signerData.signerRegistration,
+        dateStr,
+        verificationCode: tempCode,
+        verifyUrl,
+      };
+
+      const html = buildCardHTML(signTarget, allSchools, munReport?.municipality, munReport?.secretaria, undefined, 'electronic', inlineSig);
+
+      // 3. Gerar PDF via backend (com signAfterGenerate para registrar no banco)
+      const token = localStorage.getItem('token');
       const res = await fetch(`${baseUrl}/api/pdf/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -147,16 +189,16 @@ export default function StudentCardPage() {
         throw new Error(err.error || 'Erro ao gerar PDF');
       }
 
-      const verificationCode = res.headers.get('X-Verification-Code') || '';
+      const officialCode = res.headers.get('X-Verification-Code') || tempCode;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `carteirinha_${verificationCode || 'assinada'}.pdf`;
+      a.download = `carteirinha_${officialCode}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
 
-      showSuccessToast(`Carteirinha(s) assinada(s) eletronicamente! Codigo: ${verificationCode}`);
+      showSuccessToast(`Carteirinha(s) assinada(s)! Codigo: ${officialCode}`);
       setShowSignModal(false);
     } catch (err: any) {
       showErrorToast(err.message || 'Erro ao assinar');

@@ -2798,7 +2798,19 @@ export const monitorsRouter = t.router({
         allActive = await db.select().from(trips)
           .where(eq(trips.status, 'started'));
       }
-      if (!monitor && !driver) return null;
+      if (!monitor && !driver) {
+        // Usuário com role monitor mas sem registro em monitor_staff
+        if (ctx.role === 'monitor' && ctx.municipalityId) {
+          const munRoutes = await db.select({ id: routes.id }).from(routes)
+            .where(and(eq(routes.municipalityId, ctx.municipalityId), eq(routes.isActive, true)));
+          const routeIds = munRoutes.map(r => r.id);
+          if (routeIds.length > 0) {
+            allActive = await db.select().from(trips)
+              .where(and(inArray(trips.routeId, routeIds), eq(trips.status, 'started')));
+          }
+        }
+        if (allActive.length === 0) return null;
+      }
     }
 
     // Se não há viagens ativas, retornar null
@@ -2884,13 +2896,26 @@ export const monitorsRouter = t.router({
           return { driver: null, vehicle: null, routes: likeRoutes };
         }
       }
-      return { driver: null, vehicle: null, routes: assignedRoutes };
+      if (assignedRoutes.length > 0) {
+        return { driver: null, vehicle: null, routes: assignedRoutes };
+      }
+      // routeName não bateu com nenhuma rota, buscar todas do município
+      const allRoutes = await db.select().from(routes)
+        .where(and(eq(routes.municipalityId, monitor.municipalityId), eq(routes.isActive, true)));
+      return { driver: null, vehicle: null, routes: allRoutes };
     }
 
     // Se é monitor mas não tem rota, buscar todas do município
     if (monitor) {
       const allRoutes = await db.select().from(routes)
         .where(and(eq(routes.municipalityId, monitor.municipalityId), eq(routes.isActive, true)));
+      return { driver: null, vehicle: null, routes: allRoutes };
+    }
+
+    // Se não está em monitor_staff mas tem role=monitor, buscar pelo município do user
+    if (ctx.role === 'monitor' && ctx.municipalityId) {
+      const allRoutes = await db.select().from(routes)
+        .where(and(eq(routes.municipalityId, ctx.municipalityId), eq(routes.isActive, true)));
       return { driver: null, vehicle: null, routes: allRoutes };
     }
 

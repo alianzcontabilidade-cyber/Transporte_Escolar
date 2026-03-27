@@ -479,28 +479,30 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
     }
 
     if (student) {
-      if (tripId) {
+      if (tripId && student.stopId) {
         try {
           if (scanMode === 'embarque') {
-            await onBoard(student.id, student.stopId);
+            onBoard(student.id, student.stopId);
             setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
           } else {
-            await dropMut.mutate({ studentId: student.id, tripId, stopId: student.stopId });
+            dropMut.mutate({ studentId: student.id, tripId, stopId: student.stopId });
             setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
           }
           playBeep(true);
           if (navigator.vibrate) navigator.vibrate(200);
           setScanCount(c => c + 1);
-          onRefresh();
-        } catch {
-          setScanResult({ student, status: 'error', message: `Erro ao registrar ${student.name}` });
+          setTimeout(() => onRefresh(), 500);
+        } catch (err: any) {
+          setScanResult({ student, status: 'error', message: `Erro: ${err?.message || 'falha ao registrar'}` });
           playBeep(false);
         }
-      } else {
-        // Sem viagem ativa - apenas identificar o aluno
+      } else if (!tripId) {
         setScanResult({ student, status: 'identified', message: `${student.name} - ${student.grade || ''} ${student.stopName || ''}` });
         playBeep(true);
         if (navigator.vibrate) navigator.vibrate(200);
+      } else {
+        setScanResult({ student, status: 'error', message: `${student.name} encontrado mas sem parada vinculada (stopId=${student.stopId})` });
+        playBeep(false);
       }
     } else {
       setScanResult({ student: null, status: 'not_found', message: `Aluno não encontrado (código: ${cleanEnrollment})` });
@@ -581,17 +583,18 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
         </div>
       )}
 
-      {/* Debug info */}
-      {debugInfo && (
-        <div className="bg-gray-100 rounded-xl p-2 border text-[10px] text-gray-500 font-mono break-all">
-          {debugInfo}
+      {/* Aviso se sem alunos carregados */}
+      {allStudents.length === 0 && (
+        <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-center">
+          <p className="text-sm font-semibold text-amber-700">Nenhum aluno carregado</p>
+          <p className="text-xs text-amber-600">Verifique se a rota possui alunos vinculados às paradas.</p>
         </div>
       )}
 
       {/* Instrução */}
       <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
         <p className="text-sm text-gray-600">
-          {scanning ? `Aponte a câmera para o QR Code • ${allStudents.length} alunos carregados` : 'Iniciando câmera...'}
+          {scanning ? `Aponte a câmera para o QR Code • ${allStudents.length} aluno(s)${tripId ? ' • Viagem ativa' : ''}` : 'Iniciando câmera...'}
         </p>
       </div>
     </div>

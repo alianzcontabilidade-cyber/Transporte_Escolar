@@ -254,9 +254,9 @@ export default function DriverPortalPage() {
 
         <div className="p-4 pb-24">
           {view === 'trip' && <TripView activeTrip={activeTrip} stops={stops} elapsed={elapsed} position={position}
-            onBoard={(sId: number, tId: number) => boardMut.mutate({ studentId: sId, tripId: tId }, { onSuccess: loadData })}
-            onDrop={(sId: number, tId: number) => dropMut.mutate({ studentId: sId, tripId: tId }, { onSuccess: loadData })}
-            onAbsent={(sId: number, tId: number) => absentMut.mutate({ studentId: sId, tripId: tId }, { onSuccess: loadData })}
+            onBoard={(sId: number, stopId: number) => boardMut.mutate({ studentId: sId, tripId: activeTrip?.trip?.id, stopId }, { onSuccess: loadData })}
+            onDrop={(sId: number, stopId: number) => dropMut.mutate({ studentId: sId, tripId: activeTrip?.trip?.id, stopId }, { onSuccess: loadData })}
+            onAbsent={(sId: number, stopId: number) => absentMut.mutate({ studentId: sId, tripId: activeTrip?.trip?.id, stopId }, { onSuccess: loadData })}
           />}
           {view === 'students' && <StudentsView stops={stops} />}
           {view === 'route' && <RouteView stops={stops} />}
@@ -553,10 +553,10 @@ function TripView({ activeTrip, stops, elapsed, position, onBoard, onDrop, onAbs
                   <p className="text-xs text-gray-500">{st.enrollment || ''}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <button onClick={() => onBoard(st.id, tripId)} className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center active:bg-green-200">
+                  <button onClick={() => onBoard(st.id, stops[currentStopIdx].id)} className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center active:bg-green-200">
                     <CheckCircle size={18} className="text-green-600" />
                   </button>
-                  <button onClick={() => onAbsent(st.id, tripId)} className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center active:bg-red-200">
+                  <button onClick={() => onAbsent(st.id, stops[currentStopIdx].id)} className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center active:bg-red-200">
                     <XCircle size={18} className="text-red-600" />
                   </button>
                 </div>

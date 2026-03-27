@@ -3,7 +3,7 @@ import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
 import { useSocket } from '../lib/socket';
 import { School, Users, MapPin, Truck, Bus, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, UserCheck, DollarSign, Route, Navigation } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const WEEK = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
@@ -141,6 +141,44 @@ export default function DashboardPage() {
   const studentsWithTransport = ((students as any) || []).filter((s: any) => s.needsTransport).length;
   const studentsWithGps = ((students as any) || []).filter((s: any) => s.latitude && s.longitude).length;
 
+  // Dados para gráfico de pizza: alunos por escola
+  const PIE_COLORS = ['#1E40AF', '#059669', '#7C3AED', '#0369A1', '#D97706', '#DC2626', '#0F766E', '#6366F1'];
+  const studentsBySchool = (() => {
+    const map: Record<string, number> = {};
+    ((students as any) || []).forEach((s: any) => {
+      const schoolName = s.school || s.schoolName || 'Sem escola';
+      map[schoolName] = (map[schoolName] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name: name.length > 20 ? name.substring(0, 20) + '...' : name, value }));
+  })();
+
+  // Dados para gráfico de barras: custo por rota
+  const costByRoute = allRoutes.map((r: any) => {
+    const rt = r.route || r;
+    const fuel = parseFloat(String(rt.monthlyCostFuel || 0));
+    const driver = parseFloat(String(rt.monthlyCostDriver || 0));
+    return {
+      name: (rt.code || rt.name || '').substring(0, 10),
+      combustivel: Math.round(fuel),
+      motorista: Math.round(driver),
+    };
+  }).filter((r: any) => r.combustivel > 0 || r.motorista > 0);
+
+  // Dados para gráfico: viagens por status
+  const tripsByStatus = (() => {
+    const all = (tripHistory as any) || [];
+    const completed = all.filter((t: any) => t.trip?.status === 'completed').length;
+    const cancelled = all.filter((t: any) => t.trip?.status === 'cancelled').length;
+    const interrupted = all.filter((t: any) => t.trip?.status === 'interrupted').length;
+    const started = all.filter((t: any) => t.trip?.status === 'started').length;
+    return [
+      { name: 'Concluídas', value: completed, color: '#059669' },
+      { name: 'Canceladas', value: cancelled, color: '#DC2626' },
+      { name: 'Interrompidas', value: interrupted, color: '#D97706' },
+      { name: 'Em andamento', value: started, color: '#0369A1' },
+    ].filter(d => d.value > 0);
+  })();
+
   const kpis = [
     { label: 'Escolas', value: nSchools, icon: School, color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600' },
     { label: 'Alunos', value: nStudents, icon: Users, color: 'bg-purple-500', light: 'bg-purple-50', text: 'text-purple-600' },
@@ -193,29 +231,78 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Gráficos - 2x2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Viagens da semana */}
         <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><Activity size={16}/> Viagens esta semana</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"><Activity size={16}/> Viagens esta semana</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={weekData}>
-              <XAxis dataKey="day" tick={{ fontSize: 12 }}/>
-              <YAxis tick={{ fontSize: 12 }}/>
+              <XAxis dataKey="day" tick={{ fontSize: 11 }}/>
+              <YAxis tick={{ fontSize: 11 }}/>
               <Tooltip/>
               <Bar dataKey="viagens" fill="#0369A1" radius={[4,4,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Alunos por escola (pizza) */}
         <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><TrendingUp size={16}/> Pontualidade (%)</h3>
-          <ResponsiveContainer width="100%" height={180}>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"><School size={16}/> Alunos por Escola</h3>
+          {studentsBySchool.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <PieChart>
+                <Pie data={studentsBySchool} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={9}>
+                  {studentsBySchool.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v: any) => [v + ' aluno(s)', '']} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-8 text-gray-400 text-sm">Sem dados</div>
+          )}
+        </div>
+
+        {/* Custo por rota (barras empilhadas) */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"><DollarSign size={16}/> Custo Mensal por Rota (R$)</h3>
+          {costByRoute.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={costByRoute}>
+                <XAxis dataKey="name" tick={{ fontSize: 10 }}/>
+                <YAxis tick={{ fontSize: 10 }}/>
+                <Tooltip formatter={(v: any) => ['R$ ' + v.toLocaleString('pt-BR'), '']} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="combustivel" name="Combustível" fill="#0369A1" stackId="a" radius={[0,0,0,0]}/>
+                <Bar dataKey="motorista" name="Motorista" fill="#059669" stackId="a" radius={[4,4,0,0]}/>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-8 text-gray-400 text-sm">Sem dados de custo</div>
+          )}
+        </div>
+
+        {/* Pontualidade + Status viagens */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"><TrendingUp size={16}/> Pontualidade (%)</h3>
+          <ResponsiveContainer width="100%" height={120}>
             <LineChart data={punctualityData}>
-              <XAxis dataKey="day" tick={{ fontSize: 12 }}/>
-              <YAxis domain={[70,100]} tick={{ fontSize: 12 }}/>
+              <XAxis dataKey="day" tick={{ fontSize: 11 }}/>
+              <YAxis domain={[70,100]} tick={{ fontSize: 11 }}/>
               <Tooltip/>
-              <Line type="monotone" dataKey="pct" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }}/>
+              <Line type="monotone" dataKey="pct" stroke="#059669" strokeWidth={2} dot={{ fill: '#059669' }}/>
             </LineChart>
           </ResponsiveContainer>
+          {tripsByStatus.length > 0 && (
+            <div className="flex gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              {tripsByStatus.map(s => (
+                <div key={s.name} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                  {s.name}: <span className="font-bold">{s.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

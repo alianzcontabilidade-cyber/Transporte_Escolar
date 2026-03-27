@@ -3,12 +3,13 @@ import { useAuth } from '../lib/auth';
 import { useQuery, useMutation } from '../lib/hooks';
 import { api } from '../lib/api';
 import { useGPSTracking, isGPSSupported } from '../lib/gps';
+import { saveOfflineData, loadOfflineData, syncPendingEmbarques, getPendingEmbarques, isOnline } from '../lib/offlineCache';
 import { useSocket } from '../lib/socket';
 import {
   Navigation, Play, Square, Users, Route, Clock, Bus, Fuel,
   MessageCircle, MapPin, CheckCircle, XCircle, ChevronRight,
   AlertTriangle, User, Phone, ArrowLeft, Calendar, Gauge,
-  FileText, Timer, Circle, Loader2, LogOut
+  FileText, Timer, Circle, Loader2, LogOut, RefreshCw
 } from 'lucide-react';
 
 type View = 'home' | 'trip' | 'students' | 'route' | 'history' | 'vehicle' | 'fuel' | 'chat';
@@ -58,15 +59,26 @@ export default function DriverPortalPage() {
     return () => clearInterval(iv);
   }, [tripStartTime]);
 
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [pendingSync, setPendingSync] = useState(0);
+
   async function loadData() {
     try {
       setLoading(true);
+      setOfflineMode(false);
+
+      // Sincronizar embarques pendentes
+      const synced = await syncPendingEmbarques(api);
+      if (synced > 0) console.log(`[OFFLINE] ${synced} embarques sincronizados`);
+      setPendingSync(getPendingEmbarques().length);
+
       // Verificar se tem viagem ativa
       const trip = await api.monitors.myActiveTrip();
       if (trip) {
         setActiveTrip(trip);
         if (trip.driverId) setDriverId(trip.driverId);
         if (trip.trip?.startedAt) setTripStartTime(new Date(trip.trip.startedAt));
+        saveOfflineData(trip, trip.driverId);
       } else {
         // Sem viagem ativa - buscar rotas disponíveis do motorista
         try {
@@ -74,7 +86,6 @@ export default function DriverPortalPage() {
           if (available?.driver?.id) setDriverId(available.driver.id);
           if (available?.routes?.length > 0) {
             const route = available.routes[0];
-            // Carregar paradas e alunos da rota
             let routeStops: any[] = [];
             try {
               const stopsData = await api.ai.routeStudents({ routeId: route.id });
@@ -85,16 +96,22 @@ export default function DriverPortalPage() {
                 }));
               }
             } catch {}
-            setActiveTrip({
-              route,
-              vehicle: available.vehicle,
-              driverId: available.driver.id,
-              stops: routeStops,
-            });
+            const tripData = { route, vehicle: available.vehicle, driverId: available.driver.id, stops: routeStops };
+            setActiveTrip(tripData);
+            saveOfflineData(tripData, available.driver.id);
           }
         } catch {}
       }
-    } catch { }
+    } catch {
+      // OFFLINE: carregar do cache
+      const cached = loadOfflineData();
+      if (cached) {
+        setActiveTrip(cached.activeTrip);
+        setDriverId(cached.driverId);
+        setOfflineMode(true);
+        setPendingSync(getPendingEmbarques().length);
+      }
+    }
     finally { setLoading(false); }
   }
 
@@ -272,6 +289,23 @@ export default function DriverPortalPage() {
             </button>
           </div>
         </div>
+
+        {/* Offline banner */}
+        {offlineMode && (
+          <div className="bg-amber-500/20 border border-amber-400/30 rounded-xl p-3 mb-3 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-300" />
+            <div className="flex-1">
+              <p className="text-amber-200 text-xs font-semibold">Modo Offline</p>
+              <p className="text-amber-300/70 text-[10px]">Dados carregados do cache. Embarques serão sincronizados quando voltar online.</p>
+            </div>
+          </div>
+        )}
+        {pendingSync > 0 && !offlineMode && (
+          <div className="bg-blue-500/20 border border-blue-400/30 rounded-xl p-2.5 mb-3 flex items-center gap-2">
+            <RefreshCw size={14} className="text-blue-300 animate-spin" />
+            <p className="text-blue-200 text-xs">{pendingSync} embarque(s) pendente(s) de sincronização</p>
+          </div>
+        )}
 
         {/* Route + Vehicle card */}
         <div className="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/10">

@@ -2823,6 +2823,7 @@ export const monitorsRouter = t.router({
       const stopStudentList = await db.select({
         id: students.id, name: students.name, photoUrl: students.photoUrl,
         hasSpecialNeeds: students.hasSpecialNeeds, grade: students.grade,
+        enrollment: students.enrollment, cpf: students.cpf,
       })
       .from(stopStudents)
       .innerJoin(students, eq(stopStudents.studentId, students.id))
@@ -2850,7 +2851,7 @@ export const monitorsRouter = t.router({
       trip: activeTrip,
       route,
       vehicle,
-      driverId: driver.id,
+      driverId: driver?.id || null,
       stops: stopsWithStudents,
       completedStops: stopLogs.length,
       totalStops: tripStops.length,
@@ -6170,7 +6171,7 @@ export const aiRouter = t.router({
         .from(stops).where(and(eq(stops.routeId, input.routeId), eq(stops.isActive, true))).orderBy(stops.orderIndex);
       const stopIds = routeStops.map(s => s.id);
       if (stopIds.length === 0) return { stops: [], students: [] };
-      const studs = await db.select({ id: students.id, name: students.name, latitude: students.latitude, longitude: students.longitude, address: students.address, grade: students.grade, stopId: stopStudents.stopId })
+      const studs = await db.select({ id: students.id, name: students.name, latitude: students.latitude, longitude: students.longitude, address: students.address, grade: students.grade, enrollment: students.enrollment, cpf: students.cpf, stopId: stopStudents.stopId })
         .from(stopStudents).innerJoin(students, eq(stopStudents.studentId, students.id))
         .where(inArray(stopStudents.stopId, stopIds));
       return {

@@ -399,9 +399,28 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
 
   async function handleQRCode(data: string) {
     let enrollment = data;
-    try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || data; } catch {}
+    try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || parsed.name || data; } catch {}
 
-    const student = allStudents.find((s: any) => s.enrollment === enrollment || s.id?.toString() === enrollment);
+    console.log('[QR] Lido:', enrollment, '| Alunos disponíveis:', allStudents.length, '| TripId:', tripId);
+    if (allStudents.length > 0) {
+      console.log('[QR] Primeiro aluno:', JSON.stringify({ id: allStudents[0].id, name: allStudents[0].name, enrollment: allStudents[0].enrollment }));
+    }
+
+    // Buscar aluno por: matrícula, ID, nome parcial, ou CPF
+    const cleanEnrollment = enrollment.trim();
+    const student = allStudents.find((s: any) =>
+      s.enrollment === cleanEnrollment ||
+      s.id?.toString() === cleanEnrollment ||
+      String(s.id) === cleanEnrollment ||
+      (s.enrollment && cleanEnrollment.includes(s.enrollment)) ||
+      (s.enrollment && s.enrollment.includes(cleanEnrollment)) ||
+      (cleanEnrollment.length > 3 && s.name && s.name.toLowerCase().includes(cleanEnrollment.toLowerCase())) ||
+      (s.cpf && s.cpf.replace(/\D/g, '') === cleanEnrollment.replace(/\D/g, ''))
+    );
+
+    if (!student) {
+      console.log('[QR] Não encontrou. Dados lidos:', cleanEnrollment, '| Matrículas:', allStudents.map((s: any) => s.enrollment).join(', '));
+    }
 
     if (student && tripId) {
       try {

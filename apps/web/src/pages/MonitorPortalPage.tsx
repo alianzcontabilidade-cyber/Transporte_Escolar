@@ -333,8 +333,12 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [scanning, setScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
-  const [scanResult, setScanResult] = useState<{ name: string; status: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ student: any; status: string; message: string } | null>(null);
+  const [scanMode, setScanMode] = useState<'embarque' | 'desembarque'>('embarque');
+  const [scanCount, setScanCount] = useState(0);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const dropMut = useMutation(api.monitors.dropStudent);
 
   useEffect(() => {
     startCamera();
@@ -362,6 +366,20 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
     streamRef.current = null;
   }
 
+  function playBeep(success: boolean) {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = success ? 1000 : 400;
+      osc.type = success ? 'sine' : 'square';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
+    } catch {}
+  }
+
   function scanFrame() {
     const video = videoRef.current;
     if (!video || video.readyState < 2) { requestAnimationFrame(scanFrame); return; }
@@ -380,38 +398,70 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
   }
 
   async function handleQRCode(data: string) {
-    // Parse: plain enrollment string or JSON {id, name, enrollment}
     let enrollment = data;
-    try {
-      const parsed = JSON.parse(data);
-      enrollment = parsed.enrollment || parsed.id?.toString() || data;
-    } catch { }
+    try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || data; } catch {}
 
-    // Find student
-    const student = allStudents.find((s: any) =>
-      s.enrollment === enrollment || s.id?.toString() === enrollment
-    );
+    const student = allStudents.find((s: any) => s.enrollment === enrollment || s.id?.toString() === enrollment);
 
     if (student && tripId) {
-      await onBoard(student.id);
-      setScanResult({ name: student.name, status: 'success' });
-      onRefresh();
+      try {
+        if (scanMode === 'embarque') {
+          await onBoard(student.id);
+          setScanResult({ student, status: 'boarded', message: `${student.name} embarcou!` });
+        } else {
+          await dropMut.mutate({ studentId: student.id, tripId });
+          setScanResult({ student, status: 'dropped', message: `${student.name} desembarcou!` });
+        }
+        playBeep(true);
+        if (navigator.vibrate) navigator.vibrate(200);
+        setScanCount(c => c + 1);
+        onRefresh();
+      } catch {
+        setScanResult({ student, status: 'error', message: `Erro ao registrar ${student.name}` });
+        playBeep(false);
+      }
     } else {
-      setScanResult({ name: enrollment, status: 'not_found' });
+      setScanResult({ student: null, status: 'not_found', message: 'Aluno não encontrado' });
+      playBeep(false);
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     }
 
-    // Clear result after 3 seconds
     setTimeout(() => { setScanResult(null); setLastScanned(null); }, 3000);
   }
 
   return (
     <div className="space-y-4">
+      {/* Modo: Embarque / Desembarque */}
+      <div className="flex rounded-2xl border-2 border-gray-200 overflow-hidden">
+        <button onClick={() => setScanMode('embarque')}
+          className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-all ${scanMode === 'embarque' ? 'bg-green-500 text-white' : 'bg-white text-gray-500'}`}>
+          <CheckCircle size={16} /> Embarque
+        </button>
+        <button onClick={() => setScanMode('desembarque')}
+          className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-all ${scanMode === 'desembarque' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+          <MapPin size={16} /> Desembarque
+        </button>
+      </div>
+
       {/* Camera */}
-      <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border">
+      <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border-2 border-gray-300">
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        {/* Scan guide overlay */}
+        {/* Scan guide */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-56 h-56 border-2 border-white/50 rounded-2xl" />
+          <div className={`w-56 h-56 border-3 rounded-2xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} style={{ borderWidth: 3 }}>
+            <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
+            <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
+            <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
+            <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl ${scanMode === 'embarque' ? 'border-green-400' : 'border-blue-400'}`} />
+          </div>
+        </div>
+        {/* Contador */}
+        <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold">
+          {scanCount} lido(s)
+        </div>
+        {/* Modo label */}
+        <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold text-white ${scanMode === 'embarque' ? 'bg-green-500' : 'bg-blue-500'}`}>
+          {scanMode === 'embarque' ? '↑ EMBARQUE' : '↓ DESEMBARQUE'}
         </div>
         {!scanning && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
@@ -420,24 +470,37 @@ function ScannerView({ tripId, allStudents, onBoard, onRefresh }: any) {
         )}
       </div>
 
-      {/* Scan result */}
+      {/* Resultado do scan */}
       {scanResult && (
-        <div className={`rounded-2xl p-4 flex items-center gap-3 ${scanResult.status === 'success' ? 'bg-green-100 border-2 border-green-300' : 'bg-red-100 border-2 border-red-300'}`}>
-          {scanResult.status === 'success' ? (
-            <CheckCircle size={24} className="text-green-600 flex-shrink-0" />
-          ) : (
-            <XCircle size={24} className="text-red-600 flex-shrink-0" />
-          )}
-          <div>
-            <p className="font-semibold">{scanResult.status === 'success' ? 'Embarque registrado!' : 'Aluno nao encontrado'}</p>
-            <p className="text-sm opacity-75">{scanResult.name}</p>
+        <div className={`rounded-2xl p-4 flex items-center gap-3 border-2 ${
+          scanResult.status === 'boarded' ? 'bg-green-50 border-green-300' :
+          scanResult.status === 'dropped' ? 'bg-blue-50 border-blue-300' :
+          'bg-red-50 border-red-300'
+        }`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+            scanResult.status === 'boarded' ? 'bg-green-100' :
+            scanResult.status === 'dropped' ? 'bg-blue-100' :
+            'bg-red-100'
+          }`}>
+            {scanResult.student?.photoUrl ? (
+              <img src={scanResult.student.photoUrl} className="w-12 h-12 rounded-full object-cover" />
+            ) : scanResult.status === 'not_found' ? (
+              <XCircle size={24} className="text-red-500" />
+            ) : (
+              <CheckCircle size={24} className={scanResult.status === 'boarded' ? 'text-green-500' : 'text-blue-500'} />
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-gray-900">{scanResult.message}</p>
+            {scanResult.student?.grade && <p className="text-xs text-gray-500">{scanResult.student.grade} • {scanResult.student.stopName || ''}</p>}
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm border">
-        <p className="text-sm text-gray-600 text-center">
-          {scanning ? 'Aponte a camera para o QR Code da carteirinha do aluno' : 'Iniciando camera...'}
+      {/* Instrução */}
+      <div className="bg-white rounded-2xl p-3 shadow-sm border text-center">
+        <p className="text-sm text-gray-600">
+          {scanning ? `Aponte a câmera para o QR Code • Modo: ${scanMode === 'embarque' ? 'Embarque' : 'Desembarque'}` : 'Iniciando câmera...'}
         </p>
       </div>
     </div>

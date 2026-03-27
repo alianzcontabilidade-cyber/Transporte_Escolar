@@ -2776,11 +2776,30 @@ export const monitorsRouter = t.router({
   myActiveTrip: protectedProcedure.query(async ({ ctx }) => {
     // Buscar se é motorista
     const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
-    if (!driver) return null;
 
-    // Buscar TODAS as viagens ativas deste motorista (pode haver mais de uma presa)
-    const allActive = await db.select().from(trips)
-      .where(and(eq(trips.driverId, driver.id), eq(trips.status, 'started')));
+    let allActive: any[] = [];
+
+    if (driver) {
+      // Motorista: buscar viagens ativas dele
+      allActive = await db.select().from(trips)
+        .where(and(eq(trips.driverId, driver.id), eq(trips.status, 'started')));
+    } else {
+      // Monitor: buscar viagens ativas da rota vinculada
+      const [monitor] = await db.select().from(monitorStaff).where(eq(monitorStaff.userId, ctx.userId!)).limit(1);
+      if (monitor && monitor.routeName) {
+        const [route] = await db.select().from(routes).where(and(eq(routes.name, monitor.routeName), eq(routes.isActive, true))).limit(1);
+        if (route) {
+          allActive = await db.select().from(trips)
+            .where(and(eq(trips.routeId, route.id), eq(trips.status, 'started')));
+        }
+      }
+      if (allActive.length === 0 && monitor) {
+        // Buscar qualquer viagem ativa do município
+        allActive = await db.select().from(trips)
+          .where(eq(trips.status, 'started'));
+      }
+      if (!monitor && !driver) return null;
+    }
 
     // Se não há viagens ativas, retornar null
     if (allActive.length === 0) return null;
@@ -2840,17 +2859,41 @@ export const monitorsRouter = t.router({
 
   // Obter viagens disponíveis para iniciar
   availableTrips: protectedProcedure.query(async ({ ctx }) => {
+    // Buscar como motorista
     const [driver] = await db.select().from(drivers).where(eq(drivers.userId, ctx.userId!)).limit(1);
-    if (!driver) return { driver: null, routes: [] };
+    if (driver) {
+      const assignedRoutes = await db.select().from(routes)
+        .where(and(eq(routes.defaultDriverId, driver.id), eq(routes.isActive, true)));
+      const [vehicle] = driver.vehicleId
+        ? await db.select().from(vehicles).where(eq(vehicles.id, driver.vehicleId)).limit(1)
+        : [null];
+      return { driver: { id: driver.id, vehicleId: driver.vehicleId }, vehicle, routes: assignedRoutes };
+    }
 
-    const assignedRoutes = await db.select().from(routes)
-      .where(and(eq(routes.defaultDriverId, driver.id), eq(routes.isActive, true)));
+    // Buscar como monitor (pela routeName na monitor_staff)
+    const [monitor] = await db.select().from(monitorStaff).where(eq(monitorStaff.userId, ctx.userId!)).limit(1);
+    if (monitor && monitor.routeName) {
+      const assignedRoutes = await db.select().from(routes)
+        .where(and(eq(routes.name, monitor.routeName), eq(routes.isActive, true)));
+      // Se não achou por nome exato, buscar por LIKE
+      if (assignedRoutes.length === 0) {
+        const likeRoutes = await db.select().from(routes)
+          .where(and(like(routes.name, `%${monitor.routeName}%`), eq(routes.isActive, true)));
+        if (likeRoutes.length > 0) {
+          return { driver: null, vehicle: null, routes: likeRoutes };
+        }
+      }
+      return { driver: null, vehicle: null, routes: assignedRoutes };
+    }
 
-    const [vehicle] = driver.vehicleId
-      ? await db.select().from(vehicles).where(eq(vehicles.id, driver.vehicleId)).limit(1)
-      : [null];
+    // Se é monitor mas não tem rota, buscar todas do município
+    if (monitor) {
+      const allRoutes = await db.select().from(routes)
+        .where(and(eq(routes.municipalityId, monitor.municipalityId), eq(routes.isActive, true)));
+      return { driver: null, vehicle: null, routes: allRoutes };
+    }
 
-    return { driver: { id: driver.id, vehicleId: driver.vehicleId }, vehicle, routes: assignedRoutes };
+    return { driver: null, routes: [] };
   }),
 
   // Registrar embarque de aluno

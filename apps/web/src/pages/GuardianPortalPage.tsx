@@ -374,10 +374,10 @@ export default function GuardianPortalPage() {
               { id: 'frequência' as PortalView, label: 'Frequência', icon: Clock, color: 'bg-green-500', badge: null },
               { id: 'parecer' as PortalView, label: 'Parecer', icon: ClipboardList, color: 'bg-purple-500', badge: null },
               { id: 'ocorrências' as PortalView, label: 'Ocorrências', icon: AlertTriangle, color: 'bg-orange-500', badge: null },
-              { id: 'calendario' as PortalView, label: 'Calendario', icon: Calendar, color: 'bg-teal-500', badge: null },
+              { id: 'calendario' as PortalView, label: 'Calendário', icon: Calendar, color: 'bg-teal-500', badge: null },
               { id: 'merenda' as PortalView, label: 'Merenda', icon: UtensilsCrossed, color: 'bg-pink-500', badge: null },
               { id: 'mensagens' as PortalView, label: 'Mensagens', icon: MessageCircle, color: 'bg-indigo-500', badge: unreadMsgCount > 0 ? unreadMsgCount : null },
-              { id: 'declarações' as PortalView, label: 'Declaracoes', icon: FileText, color: 'bg-gray-500', badge: null },
+              { id: 'declarações' as PortalView, label: 'Declarações', icon: FileText, color: 'bg-gray-500', badge: null },
               { id: 'transporte' as PortalView, label: 'Transporte', icon: Bus, color: 'bg-primary-500', badge: activeTrip ? 'AO VIVO' : null },
             ].map(mod => (
               <button key={mod.id} onClick={() => setView(mod.id)}
@@ -396,6 +396,60 @@ export default function GuardianPortalPage() {
               </button>
             ))}
           </div>
+
+          {/* Card do aluno selecionado */}
+          {currentStudent && (
+            <div className="mt-4 card p-4 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-200">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                  {currentStudent.photoUrl ? <img src={currentStudent.photoUrl} className="w-14 h-14 rounded-full object-cover" /> : <User size={24} className="text-primary-600" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{currentStudent.name}</p>
+                  <p className="text-xs text-gray-500">{currentStudent.grade || ''} {currentStudent.shift === 'morning' ? '• Manhã' : currentStudent.shift === 'afternoon' ? '• Tarde' : ''}</p>
+                  <p className="text-xs text-primary-600">{currentStudent.school || currentStudent.schoolName || ''}</p>
+                </div>
+                {currentStudent.routeName && (
+                  <div className="bg-primary-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <Bus size={10} /> {currentStudent.routeName.length > 15 ? currentStudent.routeName.substring(0, 15) + '...' : currentStudent.routeName}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Últimas notificações */}
+          {notifs.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5"><History size={14} /> Últimas Atividades</h3>
+              <div className="space-y-2">
+                {notifs.slice(0, 5).map((n: any) => (
+                  <div key={n.id} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-sm ${n.isRead ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      n.type === 'student_boarded' ? 'bg-green-100 text-green-600' :
+                      n.type === 'student_dropped' ? 'bg-blue-100 text-blue-600' :
+                      n.type === 'student_absent' ? 'bg-red-100 text-red-600' :
+                      n.type === 'trip_started' ? 'bg-amber-100 text-amber-600' :
+                      n.type === 'trip_completed' ? 'bg-green-100 text-green-600' :
+                      n.type === 'trip_cancelled' ? 'bg-red-100 text-red-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {n.type === 'student_boarded' ? <CheckCircle size={14} /> :
+                       n.type === 'student_dropped' ? <MapPin size={14} /> :
+                       n.type === 'student_absent' ? <AlertTriangle size={14} /> :
+                       n.type === 'trip_started' ? <Bus size={14} /> :
+                       <Bell size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 dark:text-gray-200 text-xs">{n.title}</p>
+                      <p className="text-[11px] text-gray-500 truncate">{n.body}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{n.createdAt ? new Date(n.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Vincular aluno button */}
           <button onClick={() => setView('vincular')}

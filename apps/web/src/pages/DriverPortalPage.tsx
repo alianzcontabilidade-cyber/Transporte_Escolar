@@ -152,6 +152,27 @@ export default function DriverPortalPage() {
     );
   }
 
+  // Cancel trip
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const cancelTripMut = useMutation(api.trips.cancelTrip);
+  async function handleCancelTrip() {
+    const tripId = activeTrip?.trip?.id || activeTrip?.id;
+    if (!tripId || !cancelReason) return;
+    await cancelTripMut.mutate(
+      { tripId, reason: cancelReason, status: 'cancelled' as any },
+      {
+        onSuccess: () => {
+          try { stopTracking(); } catch {}
+          setActiveTrip(null); setTripStartTime(null); setElapsed('00:00:00'); setGpsActive(false);
+          setShowCancelModal(false); setCancelReason('');
+          loadData();
+        },
+        onError: (err: string) => { console.error('Erro ao cancelar:', err); }
+      }
+    );
+  }
+
   // Complete trip
   const completeTripMut = useMutation(api.trips.complete);
   async function handleCompleteTrip() {
@@ -290,14 +311,23 @@ export default function DriverPortalPage() {
               </div>
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
             </div>
-            <button
-              onClick={handleCompleteTrip}
-              disabled={completeTripMut.loading}
-              className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold text-lg py-5 rounded-2xl shadow-lg shadow-red-500/30 flex items-center justify-center gap-3 transition-all disabled:opacity-50"
-            >
-              {completeTripMut.loading ? <Loader2 size={24} className="animate-spin" /> : <Square size={24} />}
-              FINALIZAR VIAGEM
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCompleteTrip}
+                disabled={completeTripMut.loading}
+                className="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold text-base py-4 rounded-2xl shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                {completeTripMut.loading ? <Loader2 size={20} className="animate-spin" /> : <Square size={20} />}
+                FINALIZAR
+              </button>
+              <button
+                onClick={() => setShowCancelModal(true)}
+                className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-sm px-4 py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all"
+              >
+                <AlertTriangle size={18} />
+                CANCELAR
+              </button>
+            </div>
           </div>
         )}
 
@@ -347,6 +377,66 @@ export default function DriverPortalPage() {
           </button>
         )}
       </div>
+
+      {/* Modal Cancelar Viagem */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-8 animate-slide-up">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
+                <AlertTriangle size={24} className="text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Cancelar Viagem</h3>
+                <p className="text-sm text-gray-500">Os pais serão notificados</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-3">Selecione o motivo do cancelamento:</p>
+
+            <div className="space-y-2 mb-4">
+              {[
+                'Problema mecânico no veículo',
+                'Falta de combustível',
+                'Condições climáticas adversas',
+                'Problema na via/estrada',
+                'Motorista indisponível',
+                'Veículo em manutenção',
+                'Outros',
+              ].map(reason => (
+                <button key={reason} onClick={() => setCancelReason(reason)}
+                  className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm transition-all ${cancelReason === reason ? 'border-amber-500 bg-amber-50 text-amber-800 font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {reason}
+                </button>
+              ))}
+            </div>
+
+            {cancelReason === 'Outros' && (
+              <input
+                type="text"
+                placeholder="Descreva o motivo..."
+                value={cancelReason === 'Outros' ? '' : cancelReason}
+                onChange={e => setCancelReason(e.target.value || 'Outros')}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm mb-4 focus:border-amber-500 outline-none"
+              />
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 font-bold text-gray-600 text-sm">
+                Voltar
+              </button>
+              <button onClick={handleCancelTrip}
+                disabled={!cancelReason || cancelTripMut.loading}
+                className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                {cancelTripMut.loading ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
+                Confirmar Cancelamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

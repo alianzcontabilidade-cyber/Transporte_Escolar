@@ -61,7 +61,7 @@ const corsOptions = {
     // Domínio do Railway (produção)
     if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
     // Domínios específicos do Railway
-    if (origin.includes('transporteescolar-production') || origin.includes('.up.railway.app')) return callback(null, true);
+    if (origin.includes('transporteescolar-production.up.railway.app')) return callback(null, true);
     // Capacitor (app mobile)
     if (origin === 'capacitor://localhost' || origin === 'https://localhost') return callback(null, true);
     // Desenvolvimento local (só em dev)
@@ -81,9 +81,22 @@ const io = new Server(httpServer, {
 // Compartilhar instância do Socket.IO com os routers
 setSocketIO(io);
 
+// Security headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self)');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
 // CORS
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
 
 // Request timeout (30 seconds)
 app.use((_req, res, next) => {
@@ -371,7 +384,7 @@ app.post('/api/pdf/generate', async (req, res) => {
   } catch (e: any) {
     console.error('Erro ao gerar PDF:', e.message);
     if (process.env.SENTRY_DSN) Sentry.captureException(e);
-    res.status(500).json({ error: 'Erro ao gerar PDF: ' + (e.message || 'desconhecido') });
+    res.status(500).json({ error: 'Erro ao gerar o documento PDF. Tente novamente.' });
   }
 });
 
@@ -482,7 +495,8 @@ io.on('connection', (socket) => {
   // Manter compatibilidade com emissões diretas do cliente
   socket.on('bus:location', (data: any) => {
     // Só emitir para o próprio município
-    const munId = socketUser.municipalityId || data.municipalityId;
+    // Usar APENAS o municipalityId do JWT, nunca do payload do cliente
+    const munId = socketUser.municipalityId;
     if (munId) {
       socket.to(`municipality:${munId}`).emit('bus:location', data);
     }

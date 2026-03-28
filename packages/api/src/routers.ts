@@ -371,23 +371,24 @@ export const authRouter = t.router({
       const isEmail = id.includes('@');
       const isCpf = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(id);
 
+      // Campos necessários para login (nunca retornar todos os campos)
+      const loginFields = { id: users.id, name: users.name, email: users.email, passwordHash: users.passwordHash, role: users.role, municipalityId: users.municipalityId, cpf: users.cpf, phone: users.phone, avatarUrl: users.avatarUrl, isActive: users.isActive };
+
       if (isEmail) {
-        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+        userList = await db.select(loginFields).from(users).where(eq(users.email, id)).limit(1);
       } else if (isCpf) {
-        // Buscar tanto com formatação quanto sem
         const cpfClean = id.replace(/[^\d]/g, '');
         const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        userList = await db.select().from(users)
+        userList = await db.select(loginFields).from(users)
           .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, id)))
           .limit(1);
       } else {
-        // Buscar por username, email ou nome
-        userList = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${id})`).limit(1);
+        userList = await db.select(loginFields).from(users).where(sql`LOWER(${users.username}) = LOWER(${id})`).limit(1);
         if (userList.length === 0) {
-          userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+          userList = await db.select(loginFields).from(users).where(eq(users.email, id)).limit(1);
         }
         if (userList.length === 0) {
-          userList = await db.select().from(users).where(sql`LOWER(${users.name}) = LOWER(${id})`).limit(1);
+          userList = await db.select(loginFields).from(users).where(sql`LOWER(${users.name}) = LOWER(${id})`).limit(1);
         }
       }
 
@@ -554,15 +555,19 @@ export const authRouter = t.router({
     return { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId };
   }),
 
-  // Resetar senha (admin)
+  // Resetar senha (admin) - verifica que target pertence ao mesmo município
   adminResetPassword: adminProcedure
     .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input }) => {
-      const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+    .mutation(async ({ ctx, input }) => {
+      const [user] = await db.select({ id: users.id, municipalityId: users.municipalityId, name: users.name }).from(users).where(eq(users.id, input.userId)).limit(1);
       if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      // Verificar que admin só reseta usuários do próprio município
+      if (ctx.role !== 'super_admin' && ctx.municipalityId && user.municipalityId !== ctx.municipalityId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem permissão para resetar senha de usuário de outro município' });
+      }
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
       let newPassword = '';
-      for (let i = 0; i < 8; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+      for (let i = 0; i < 10; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
       const passwordHash = await hash(newPassword, 12);
       await db.update(users).set({ passwordHash }).where(eq(users.id, input.userId));
       return { success: true, generatedPassword: newPassword };
@@ -719,7 +724,7 @@ export const municipalitiesRouter = t.router({
         ...munData,
         isActive: true,
       } as any).$returningId();
-      const passwordHash = await hash(adminPassword, 10);
+      const passwordHash = await hash(adminPassword, 12);
       await db.insert(users).values({
         name: adminName,
         email: adminEmail,
@@ -2254,7 +2259,7 @@ export const usersRouter = t.router({
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
       const { password, username, birthDate, ...rest } = input;
-      const passwordHash = await hash(password, 10);
+      const passwordHash = await hash(password, 12);
       try {
         const [result] = await db.insert(users).values({ ...rest, passwordHash });
         return { id: result.insertId, success: true };
@@ -2295,7 +2300,7 @@ export const usersRouter = t.router({
       const { id, password, username, birthDate, ...data } = input;
       const updateData: any = { ...data };
       if (password) {
-        updateData.passwordHash = await hash(password, 10);
+        updateData.passwordHash = await hash(password, 12);
       }
       Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
       if (Object.keys(updateData).length > 0) {

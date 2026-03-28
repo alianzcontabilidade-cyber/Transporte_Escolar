@@ -7312,8 +7312,9 @@ export const declarationsRouter = t.router({
       }
 
       const now = new Date();
-      const dataAtual = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-      const anoLetivo = String(now.getFullYear());
+      const brTZ: Intl.DateTimeFormatOptions = { timeZone: 'America/Sao_Paulo' };
+      const dataAtual = now.toLocaleDateString('pt-BR', { ...brTZ, day: '2-digit', month: 'long', year: 'numeric' });
+      const anoLetivo = String(now.toLocaleDateString('pt-BR', { ...brTZ, year: 'numeric' }));
       const shift = student.shift === 'afternoon' ? 'Tarde' : student.shift === 'evening' ? 'Noite' : student.shift === 'full_time' ? 'Integral' : 'Manhã';
       const cpfMask = student.cpf ? student.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '';
       const nascimento = student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR') : '';

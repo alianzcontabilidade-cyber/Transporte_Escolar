@@ -5,8 +5,9 @@ import { api } from '../lib/api';
 import { Calendar, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react';
 import { getHolidays } from '../lib/cnpjCep';
 
-const EVENT_TYPES: any = { aula:'Dia Letivo', feriado:'Feriado', recesso:'Recesso', reuniao:'Reunião', conselho:'Conselho', prova:'Avaliação', evento:'Evento', outro:'Outro' };
-const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#0369A1', reuniao:'#1E40AF', conselho:'#7C3AED', prova:'#0F766E', evento:'#059669', outro:'#64748b' };
+const EVENT_TYPES: any = { aula:'Dia Letivo', feriado:'Feriado', recesso:'Recesso', reuniao:'Reunião', conselho:'Conselho de Classe', prova:'Avaliação', evento:'Evento Escolar', formacao:'Formação', planejamento:'Planejamento', outro:'Outro' };
+const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#3b82f6', reuniao:'#1E40AF', conselho:'#7C3AED', prova:'#f59e0b', evento:'#059669', formacao:'#ec4899', planejamento:'#06b6d4', outro:'#64748b' };
+const EVENT_ICONS: any = { aula:'📗', feriado:'🔴', recesso:'🏖️', reuniao:'👥', conselho:'📋', prova:'📝', evento:'🎉', formacao:'📚', planejamento:'📐', outro:'📌' };
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 export default function CalendarPage() {
@@ -123,10 +124,13 @@ export default function CalendarPage() {
 
       {importMsg && <div className={`mb-4 p-3 rounded-lg text-sm ${importMsg.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{importMsg}</div>}
 
-      {/* Legenda */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      {/* Legenda Visual Law */}
+      <div className="flex flex-wrap gap-2 mb-4 p-3 bg-gray-50 rounded-xl border">
         {Object.entries(EVENT_TYPES).map(([k, v]) => (
-          <div key={k} className="flex items-center gap-1.5 text-xs"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: EVENT_COLORS[k] }} /><span className="text-gray-600">{v as string}</span></div>
+          <div key={k} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border" style={{ borderColor: EVENT_COLORS[k] + '60', backgroundColor: EVENT_COLORS[k] + '15' }}>
+            <span>{EVENT_ICONS[k]}</span>
+            <span style={{ color: EVENT_COLORS[k] }} className="font-medium">{v as string}</span>
+          </div>
         ))}
       </div>
 
@@ -157,8 +161,8 @@ export default function CalendarPage() {
                 <p className={`text-sm font-medium ${isToday ? 'text-accent-600' : 'text-gray-700'}`}>{day}</p>
                 <div className="space-y-0.5 mt-0.5">
                   {dayEvents.slice(0, 2).map((e: any) => (
-                    <div key={e.id} className="text-[10px] px-1 py-0.5 rounded truncate text-white" style={{ backgroundColor: EVENT_COLORS[e.eventType] || e.color || '#64748b' }}>
-                      {e.title}
+                    <div key={e.id} className="text-[10px] px-1 py-0.5 rounded truncate text-white flex items-center gap-0.5" style={{ backgroundColor: EVENT_COLORS[e.eventType] || e.color || '#64748b' }}>
+                      <span className="text-[8px]">{EVENT_ICONS[e.eventType] || '📌'}</span> {e.title}
                     </div>
                   ))}
                   {dayEvents.length > 2 && <p className="text-[10px] text-gray-400">+{dayEvents.length - 2} mais</p>}
@@ -173,13 +177,19 @@ export default function CalendarPage() {
       <div className="card">
         <h3 className="font-semibold text-gray-800 mb-3">Eventos de {MONTHS[currentMonth]}</h3>
         <div className="space-y-2">
-          {allEvents.filter((e: any) => { const d = new Date(e.startDate); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; }).map((e: any) => (
-            <div key={e.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: EVENT_COLORS[e.eventType] || e.color }} />
-              <div className="flex-1"><p className="text-sm font-medium text-gray-800">{e.title}</p><p className="text-xs text-gray-500">{new Date(e.startDate).toLocaleDateString('pt-BR')} {e.description ? '- ' + e.description : ''}</p></div>
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{EVENT_TYPES[e.eventType] || e.eventType}</span>
-              <button onClick={() => openEdit(e)} className="p-1 text-gray-400 hover:text-blue-500"><Pencil size={14} /></button>
-              <button onClick={() => confirmDelete(e)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+          {allEvents.filter((e: any) => { const d = new Date(e.startDate); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; }).sort((a: any, b: any) => a.startDate.localeCompare(b.startDate)).map((e: any) => (
+            <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 border-l-4 transition-colors" style={{ borderLeftColor: EVENT_COLORS[e.eventType] || e.color }}>
+              <div className="text-xl flex-shrink-0">{EVENT_ICONS[e.eventType] || '📌'}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">{e.title}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: EVENT_COLORS[e.eventType] + '20', color: EVENT_COLORS[e.eventType] }}>{EVENT_TYPES[e.eventType] || e.eventType}</span>
+                  <span className="text-xs text-gray-400">{new Date(e.startDate).toLocaleDateString('pt-BR')}{e.endDate && e.endDate !== e.startDate ? ' a ' + new Date(e.endDate).toLocaleDateString('pt-BR') : ''}</span>
+                </div>
+                {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
+              </div>
+              <button onClick={() => openEdit(e)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Pencil size={14} /></button>
+              <button onClick={() => confirmDelete(e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
             </div>
           ))}
           {!allEvents.filter((e: any) => { const d = new Date(e.startDate); return d.getMonth() === currentMonth; }).length && <p className="text-gray-400 text-sm text-center py-4">Nenhum evento neste mês</p>}
@@ -198,12 +208,15 @@ export default function CalendarPage() {
           </div>
           <div className="space-y-2">
             {selectedDay.events.map((e: any) => (
-              <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: EVENT_COLORS[e.eventType] || e.color }} />
+              <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl border-l-4" style={{ borderLeftColor: EVENT_COLORS[e.eventType] || e.color, backgroundColor: EVENT_COLORS[e.eventType] + '08' }}>
+                <div className="text-xl flex-shrink-0">{EVENT_ICONS[e.eventType] || '📌'}</div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">{e.title}</p>
-                  <p className="text-xs text-gray-500">{EVENT_TYPES[e.eventType] || e.eventType} {e.description ? '- ' + e.description : ''}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{new Date(e.startDate).toLocaleDateString('pt-BR')}{e.endDate ? ' ate ' + new Date(e.endDate).toLocaleDateString('pt-BR') : ''}</p>
+                  <p className="text-sm font-semibold text-gray-800">{e.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: EVENT_COLORS[e.eventType] + '20', color: EVENT_COLORS[e.eventType] }}>{EVENT_TYPES[e.eventType] || e.eventType}</span>
+                  </div>
+                  {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
+                  <p className="text-xs text-gray-400 mt-0.5">{new Date(e.startDate).toLocaleDateString('pt-BR')}{e.endDate ? ' até ' + new Date(e.endDate).toLocaleDateString('pt-BR') : ''}</p>
                 </div>
                 <button onClick={() => openEdit(e)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg" title="Editar"><Pencil size={14} /></button>
                 <button onClick={() => confirmDelete(e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Excluir"><Trash2 size={14} /></button>

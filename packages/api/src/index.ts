@@ -247,7 +247,8 @@ app.post('/api/pdf/generate', async (req, res) => {
     // DEPOIS: Injetar bloco de assinatura eletrônica (pular se skipSignatureBlock - ex: carteirinhas com assinatura inline)
     if (allSigners.length > 0 && !skipSignatureBlock) {
       const now = new Date();
-      const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const brOpts: Intl.DateTimeFormatOptions = { timeZone: 'America/Sao_Paulo' };
+      const dateStr = now.toLocaleDateString('pt-BR', brOpts) + ' ' + now.toLocaleTimeString('pt-BR', { ...brOpts, hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const sigBlocksHtml = `
         <div style="page-break-inside:avoid;margin-top:30px;border:1px solid #ccc;border-radius:4px;font-family:Arial,sans-serif;">
           <div style="background:#f0f4f8;padding:8px 12px;border-bottom:1px solid #ccc;text-align:center;">

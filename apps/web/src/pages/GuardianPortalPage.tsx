@@ -380,7 +380,7 @@ export default function GuardianPortalPage() {
               { id: 'ocorrências' as PortalView, label: 'Ocorrências', icon: AlertTriangle, color: 'bg-orange-500', badge: null },
               { id: 'calendario' as PortalView, label: 'Calendário', icon: Calendar, color: 'bg-teal-500', badge: null },
               { id: 'merenda' as PortalView, label: 'Merenda', icon: UtensilsCrossed, color: 'bg-pink-500', badge: null },
-              { id: 'mensagens' as PortalView, label: 'Mensagens', icon: MessageCircle, color: 'bg-indigo-500', badge: unreadMsgCount > 0 ? unreadMsgCount : null },
+              { id: 'mensagens' as PortalView, label: 'Chat', icon: MessageCircle, color: 'bg-indigo-500', badge: unreadMsgCount > 0 ? unreadMsgCount : null },
               { id: 'declarações' as PortalView, label: 'Declarações', icon: FileText, color: 'bg-gray-500', badge: null },
               { id: 'transporte' as PortalView, label: 'Transporte', icon: Bus, color: 'bg-primary-500', badge: activeTrip ? 'AO VIVO' : null },
             ].map(mod => (
@@ -484,7 +484,13 @@ export default function GuardianPortalPage() {
       {view === 'merenda' && currentStudent && <MerendaView student={currentStudent} onBack={goHome} />}
 
       {/* ========== MENSAGENS VIEW ========== */}
-      {view === 'mensagens' && <MensagensView onBack={goHome} />}
+      {view === 'mensagens' && (
+        <div>
+          <BackButton onClick={goHome} />
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4"><MessageCircle size={20} className="text-indigo-500" /> Chat</h2>
+          <ChatWidget />
+        </div>
+      )}
 
       {/* ========== DECLARACOES VIEW ========== */}
       {view === 'declarações' && currentStudent && <DeclaracoesView student={currentStudent} onBack={goHome} />}
@@ -1356,7 +1362,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
                           } catch { html = ''; }
                         } else if (genKey === 'historico') {
                           try {
-                            const history = await api.studentHistory.list({ studentId: student.id });
+                            const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid });
                             html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs);
                           } catch { html = ''; }
                         }

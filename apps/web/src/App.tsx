@@ -315,7 +315,7 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>
-    {user && <FloatingChat />}
+    {user && user.role !== 'parent' && <FloatingChat />}
     {user && showOnboarding && (
       <Onboarding
         role={user.role}

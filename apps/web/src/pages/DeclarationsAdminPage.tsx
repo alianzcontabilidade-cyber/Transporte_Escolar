@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { FileText, Plus, Pencil, Search, CheckCircle, Clock, X, Loader2, Eye, Code, Zap, Lock } from 'lucide-react';
@@ -29,6 +29,21 @@ export default function DeclarationsAdminPage() {
   const [templateVars, setTemplateVars] = useState<any[]>([]);
   const [showVars, setShowVars] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState('');
+  const templateRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertVar(v: string) {
+    const ta = templateRef.current;
+    if (ta) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const before = typeForm.template.substring(0, start);
+      const after = typeForm.template.substring(end);
+      setTypeForm(f => ({ ...f, template: before + v + after }));
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + v.length; ta.focus(); }, 0);
+    } else {
+      setTypeForm(f => ({ ...f, template: f.template + v }));
+    }
+  }
   const [users_, setUsers] = useState<any[]>([]);
 
   useEffect(() => { loadData(); }, [mid]);
@@ -308,7 +323,7 @@ export default function DeclarationsAdminPage() {
                     <p className="font-semibold text-blue-700 mb-1">Variáveis disponíveis (clique para inserir):</p>
                     <div className="flex flex-wrap gap-1">
                       {templateVars.map((v: any) => (
-                        <button key={v.var} type="button" onClick={() => setTypeForm(f => ({ ...f, template: f.template + v.var }))}
+                        <button key={v.var} type="button" onClick={() => insertVar(v.var)}
                           className="px-2 py-0.5 bg-white border border-blue-200 rounded text-blue-700 hover:bg-blue-100" title={v.desc}>
                           {v.var}
                         </button>
@@ -316,7 +331,7 @@ export default function DeclarationsAdminPage() {
                     </div>
                   </div>
                 )}
-                <textarea className="input font-mono text-xs" rows={8} value={typeForm.template} onChange={e => setTypeForm(f => ({ ...f, template: e.target.value }))}
+                <textarea ref={templateRef} className="input font-mono text-xs" rows={8} value={typeForm.template} onChange={e => setTypeForm(f => ({ ...f, template: e.target.value }))}
                   placeholder="<p>Declaramos que {aluno}, matrícula {matricula}, está matriculado no {serie}...</p>" />
               </div>
 

@@ -7391,12 +7391,12 @@ export const declarationsRouter = t.router({
       <div class="title">${declType.name}</div>
       <div class="content">${htmlContent}</div>
       <div class="local-date">${mun?.city || ''}, ${dataAtual}.</div>
-      <div class="signature">
+      ${declType.systemAutoSign ? '' : `<div class="signature">
         <div class="line">
           <div class="name">${declType.signerName || signerData?.name || ''}</div>
           <div class="role">${declType.signerRole || signerData?.jobTitle || ''}</div>
         </div>
-      </div>
+      </div>`}
       </body></html>`;
 
       return {

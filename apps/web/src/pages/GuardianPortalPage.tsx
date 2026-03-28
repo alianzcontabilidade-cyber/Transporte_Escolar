@@ -1324,12 +1324,27 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
         } catch {}
       } else if (genKey === 'historico') {
         try {
-          const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid });
-          // Transformar formato do studentHistory para o formato do generateHistoricoEscolar
+          const [history, rc] = await Promise.all([
+            api.studentHistory.list({ studentId: student.id, municipalityId: mid }),
+            api.guardians.studentReportCard({ studentId: student.id }).catch(() => null),
+          ]);
+          // Anos anteriores
           const histFormatted = (history || []).map((h: any) => ({
             year: h.year, grade: h.grade, school: h.schoolName,
             result: h.result || 'Aprovado',
           }));
+          // Ano atual com notas do boletim
+          if (rc?.subjects?.length > 0) {
+            const currentGrades = rc.subjects.map((s: any) => {
+              const bims = s.bimesters || {};
+              return { subject: s.subjectName, b1: bims['1']?.average || null, b2: bims['2']?.average || null, b3: bims['3']?.average || null, b4: bims['4']?.average || null, faltas: 0 };
+            });
+            histFormatted.push({
+              year: new Date().getFullYear(), grade: student.grade || 'A',
+              school: school?.name || student.schoolName || '', result: 'Cursando',
+              grades: currentGrades,
+            });
+          }
           html = generateHistoricoEscolar(student, histFormatted, school, mun, sec, sigs);
         } catch {}
       }

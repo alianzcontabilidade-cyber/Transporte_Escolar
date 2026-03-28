@@ -644,6 +644,80 @@ app.get('/api/seed-full', async (_req, res) => {
   }
 });
 
+// Limpar e recriar notas/frequencia (rapido)
+app.get('/api/seed-fix-grades', async (_req, res) => {
+  try {
+    const log: string[] = [];
+    const r = async (q: string) => { try { await (db as any).execute(sql.raw(q)); return true; } catch(e: any) { log.push('ERR:' + e.message?.substring(0,60)); return false; } };
+
+    // Limpar tudo
+    await r(`DELETE FROM student_grades`);
+    await r(`DELETE FROM daily_attendance`);
+    await r(`DELETE FROM assessments WHERE municipalityId=1`);
+    log.push('Limpeza OK');
+
+    // Buscar turmas e disciplinas
+    const [cls] = await (db as any).execute(sql.raw(`SELECT c.id, c.schoolId, c.name as turma, c.classShift as shift, cg.name as grade FROM classes c JOIN class_grades cg ON c.classGradeId=cg.id WHERE c.municipalityId=1`)) as any;
+    const [subj] = await (db as any).execute(sql.raw(`SELECT id FROM subjects WHERE municipalityId=1 LIMIT 8`)) as any;
+    log.push(cls?.length + ' turmas, ' + subj?.length + ' disciplinas');
+
+    // Avaliacoes em batch
+    const assValues: string[] = [];
+    for (const c of (cls || [])) for (const s of (subj || [])) for (const b of ['1','2','3','4']) {
+      assValues.push(`(${c.id}, ${s.id}, 'Prova ${b} Bim', 'prova', '${b}', 10, 1, true, 1)`);
+    }
+    if (assValues.length > 0) {
+      // Inserir em batches de 500
+      for (let i = 0; i < assValues.length; i += 500) {
+        const batch = assValues.slice(i, i + 500).join(',');
+        await r(`INSERT INTO assessments (classId, subjectId, name, assessmentType, bimester, maxScore, weight, isActive, municipalityId) VALUES ${batch}`);
+      }
+    }
+    const [allAss] = await (db as any).execute(sql.raw(`SELECT id, classId FROM assessments WHERE municipalityId=1`)) as any;
+    log.push(allAss?.length + ' avaliacoes criadas');
+
+    // Alunos com suas turmas (via enrollments)
+    const [enr] = await (db as any).execute(sql.raw(`SELECT studentId, classId FROM enrollments WHERE municipalityId=1 AND enrollmentStatus='active'`)) as any;
+    log.push(enr?.length + ' matriculas');
+
+    // Notas em batch
+    const gradeValues: string[] = [];
+    for (const e of (enr || [])) {
+      const classAss = (allAss || []).filter((a: any) => a.classId === e.classId);
+      for (const a of classAss) {
+        const score = (5.5 + Math.random() * 4.5).toFixed(1);
+        gradeValues.push(`(${e.studentId}, ${a.id}, ${score})`);
+      }
+    }
+    for (let i = 0; i < gradeValues.length; i += 500) {
+      const batch = gradeValues.slice(i, i + 500).join(',');
+      await r(`INSERT INTO student_grades (studentId, assessmentId, score) VALUES ${batch}`);
+    }
+    log.push(gradeValues.length + ' notas');
+
+    // Frequencia em batch
+    const attValues: string[] = [];
+    for (const e of (enr || [])) {
+      for (let i = 1; i <= 40; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        if (d.getDay() === 0 || d.getDay() === 6) continue;
+        const ds = d.toISOString().split('T')[0];
+        const st = Math.random() > 0.08 ? 'present' : 'absent';
+        attValues.push(`(${e.studentId}, ${e.classId}, '${ds}', '${st}')`);
+      }
+    }
+    for (let i = 0; i < attValues.length; i += 500) {
+      const batch = attValues.slice(i, i + 500).join(',');
+      await r(`INSERT IGNORE INTO daily_attendance (studentId, classId, date, attendanceStatus) VALUES ${batch}`);
+    }
+    log.push(attValues.length + ' frequencia');
+
+    res.json({ success: true, log });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/pdf/status', async (_req, res) => {
   const status = await isPuppeteerAvailable();
   res.json({ ...status, engine: 'puppeteer' });

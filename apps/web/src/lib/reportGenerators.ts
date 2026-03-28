@@ -164,6 +164,42 @@ export function generateDeclaracaoFrequencia(
 }
 
 // ==========================================
+// DECLARAÇÃO DE TRANSPORTE ESCOLAR
+// ==========================================
+export function generateDeclaracaoTransporte(
+  student: any, school: ReportSchool | undefined,
+  mun: ReportMunicipality, sec?: ReportSecretaria, sigs?: Signatory[]
+) {
+  const year = new Date().getFullYear();
+  const sexo = student.sex === 'M' ? 'o' : student.sex === 'F' ? 'a' : 'o(a)';
+  const matriculado = student.sex === 'M' ? 'matriculado' : student.sex === 'F' ? 'matriculada' : 'matriculado(a)';
+
+  const content = `
+    <p class="declaration-text">
+      Declaramos, para os devidos fins, que <b>${student.name || 'ALUNO(A)'}</b>,
+      inscrit${sexo} no CPF sob o nº <b>${student.cpf || '--'}</b>,
+      ${matriculado}(a) sob o nº <b>${student.enrollment || '--'}</b>,
+      no <b>${student.grade || '--'}</b>, turma <b>${student.classRoom || student.className || '--'}</b>,
+      turno <b>${shiftLabel(student.shift)}</b>,
+      da <b>${school?.name || 'ESCOLA'}</b>,
+      residente no endereço <b>${student.address || '--'}</b>,
+      utiliza o transporte escolar oferecido pelo Município de
+      <b>${mun?.name || mun?.city || 'MUNICÍPIO'}</b>
+      no ano letivo de <b>${year}</b>.
+    </p>
+    <p class="declaration-text">
+      Por ser verdade, firmamos a presente declaração.
+    </p>
+  `;
+
+  return generateReportHTML({
+    municipality: mun, secretaria: sec, school,
+    title: 'DECLARAÇÃO DE TRANSPORTE ESCOLAR',
+    content, signatories: sigs, fontFamily: 'serif', fontSize: 13,
+  });
+}
+
+// ==========================================
 // BOLETIM ESCOLAR
 // ==========================================
 export function generateBoletimEscolar(

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { notifyUser, usePWAInstall } from '../lib/pwa';
 import { requestNotificationPermission } from '../lib/pushNotifications';
 import ChatWidget from '../components/ChatWidget';
-import { generateDeclaracaoEscolaridade, generateDeclaracaoFrequencia, generateDeclaracaoTransferencia, generateFichaMatricula, generateBoletimEscolar, generateHistoricoEscolar } from '../lib/reportGenerators';
+import { generateDeclaracaoEscolaridade, generateDeclaracaoFrequencia, generateDeclaracaoTransferencia, generateDeclaracaoTransporte, generateFichaMatricula, generateBoletimEscolar, generateHistoricoEscolar } from '../lib/reportGenerators';
 import { getMunicipalityReport } from '../lib/reportUtils';
 import { loadSchoolData } from '../lib/reportTemplate';
 import {
@@ -1305,6 +1305,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
       else if (genKey === 'decl_frequencia') html = generateDeclaracaoFrequencia(student, school, mun, sec, sigs);
       else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
       else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
+      else if (genKey === 'decl_transporte') html = generateDeclaracaoTransporte(student, school, mun, sec, sigs);
       else if (genKey === 'boletim') {
         try {
           const rc = await api.guardians.studentReportCard({ studentId: student.id });

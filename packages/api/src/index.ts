@@ -416,6 +416,15 @@ app.get('/api/documents/verify/:code', async (req, res) => {
   }
 });
 
+// TEMPORARIO - resetar senha admin (remover após uso)
+app.get('/api/reset-admin-pwd-temp-x9k2', async (_req, res) => {
+  try {
+    const hash = '$2a$12$WXhX5t4nwPjpVMRcMOY00uz1Y8N/Rm5KIzgSzkKq0MKhUQJWaY6NG';
+    await (db as any).execute(sql.raw(`UPDATE users SET passwordHash='${hash}' WHERE email='ambrito@hotmail.com'`));
+    res.json({ success: true, message: 'Senha resetada' });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/pdf/status', async (_req, res) => {
   const status = await isPuppeteerAvailable();
   res.json({ ...status, engine: 'puppeteer' });

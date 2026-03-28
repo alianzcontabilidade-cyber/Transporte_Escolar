@@ -10,6 +10,31 @@ const EVENT_COLORS: any = { aula:'#22c55e', feriado:'#ef4444', recesso:'#3b82f6'
 const EVENT_ICONS: any = { aula:'📗', feriado:'🔴', recesso:'🏖️', reuniao:'👥', conselho:'📋', prova:'📝', evento:'🎉', formacao:'📚', planejamento:'📐', outro:'📌' };
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+// Emojis específicos por nome de feriado
+function getHolidayEmoji(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('natal')) return '🎄';
+  if (t.includes('ano novo') || t.includes('confraterniza')) return '🎆';
+  if (t.includes('carnaval')) return '🎭';
+  if (t.includes('páscoa') || t.includes('sexta-feira santa') || t.includes('sexta feira santa')) return '✝️';
+  if (t.includes('tiradentes')) return '⚔️';
+  if (t.includes('trabalho') || t.includes('trabalhador')) return '👷';
+  if (t.includes('corpus christi')) return '⛪';
+  if (t.includes('independ')) return '🇧🇷';
+  if (t.includes('aparecida') || t.includes('nossa senhora')) return '🙏';
+  if (t.includes('finados')) return '🕯️';
+  if (t.includes('proclama') || t.includes('república')) return '🏛️';
+  if (t.includes('professor')) return '👩‍🏫';
+  if (t.includes('estudante') || t.includes('aluno')) return '🎓';
+  if (t.includes('criança')) return '🧒';
+  if (t.includes('mãe') || t.includes('mae')) return '👩';
+  if (t.includes('pai')) return '👨';
+  if (t.includes('junina') || t.includes('são joão') || t.includes('sao joao')) return '🔥';
+  if (t.includes('aniversário') || t.includes('aniversario')) return '🎂';
+  if (t.includes('consciência negra') || t.includes('consciencia negra')) return '✊';
+  return '📅';
+}
+
 export default function CalendarPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
@@ -144,8 +169,8 @@ export default function CalendarPage() {
 
         {/* Dias da semana */}
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => (
-            <div key={d} className="text-center text-xs font-semibold text-gray-500 py-2">{d}</div>
+          {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d, i) => (
+            <div key={d} className={`text-center text-xs font-semibold py-2 rounded ${i === 0 || i === 6 ? 'bg-gray-100 text-gray-400' : 'text-gray-500'}`}>{d}</div>
           ))}
         </div>
 
@@ -155,16 +180,19 @@ export default function CalendarPage() {
           {days.map(day => {
             const dayEvents = getEventsForDay(day);
             const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
+            const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             return (
               <div key={day} onClick={() => { if (dayEvents.length === 0) { openNew(day); } else { setSelectedDay({ day, events: dayEvents }); } }}
-                className={`min-h-[70px] p-1.5 border rounded-lg cursor-pointer transition-all hover:bg-gray-50 ${isToday ? 'border-accent-500 bg-accent-50' : 'border-gray-100'}`}>
-                <p className={`text-sm font-medium ${isToday ? 'text-accent-600' : 'text-gray-700'}`}>{day}</p>
+                className={`min-h-[70px] p-1.5 border rounded-lg cursor-pointer transition-all hover:bg-gray-50 ${isToday ? 'border-accent-500 bg-accent-50' : isWeekend ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'}`}>
+                <p className={`text-sm font-medium ${isToday ? 'text-accent-600' : isWeekend ? 'text-gray-400' : 'text-gray-700'}`}>{day}</p>
                 <div className="space-y-0.5 mt-0.5">
-                  {dayEvents.slice(0, 2).map((e: any) => (
+                  {dayEvents.slice(0, 2).map((e: any) => {
+                    const emoji = e.eventType === 'feriado' ? getHolidayEmoji(e.title) : (EVENT_ICONS[e.eventType] || '📌');
+                    return (
                     <div key={e.id} className="text-[10px] px-1 py-0.5 rounded truncate text-white flex items-center gap-0.5" style={{ backgroundColor: EVENT_COLORS[e.eventType] || e.color || '#64748b' }}>
-                      <span className="text-[8px]">{EVENT_ICONS[e.eventType] || '📌'}</span> {e.title}
-                    </div>
-                  ))}
+                      <span className="text-[8px]">{emoji}</span> {e.title}
+                    </div>);})}
                   {dayEvents.length > 2 && <p className="text-[10px] text-gray-400">+{dayEvents.length - 2} mais</p>}
                 </div>
               </div>
@@ -179,7 +207,7 @@ export default function CalendarPage() {
         <div className="space-y-2">
           {allEvents.filter((e: any) => { const d = new Date(e.startDate); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; }).sort((a: any, b: any) => a.startDate.localeCompare(b.startDate)).map((e: any) => (
             <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 border-l-4 transition-colors" style={{ borderLeftColor: EVENT_COLORS[e.eventType] || e.color }}>
-              <div className="text-xl flex-shrink-0">{EVENT_ICONS[e.eventType] || '📌'}</div>
+              <div className="text-xl flex-shrink-0">{e.eventType === 'feriado' ? getHolidayEmoji(e.title) : (EVENT_ICONS[e.eventType] || '📌')}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">{e.title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -209,7 +237,7 @@ export default function CalendarPage() {
           <div className="space-y-2">
             {selectedDay.events.map((e: any) => (
               <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl border-l-4" style={{ borderLeftColor: EVENT_COLORS[e.eventType] || e.color, backgroundColor: EVENT_COLORS[e.eventType] + '08' }}>
-                <div className="text-xl flex-shrink-0">{EVENT_ICONS[e.eventType] || '📌'}</div>
+                <div className="text-xl flex-shrink-0">{e.eventType === 'feriado' ? getHolidayEmoji(e.title) : (EVENT_ICONS[e.eventType] || '📌')}</div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-800">{e.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">

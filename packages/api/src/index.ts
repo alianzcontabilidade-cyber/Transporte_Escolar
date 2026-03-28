@@ -437,16 +437,16 @@ app.get('/api/seed-academic', async (_req, res) => {
     const [subjRows] = await (db as any).execute(sql.raw(`SELECT id FROM subjects WHERE municipalityId=1`)) as any;
     log.push(subjRows?.length + ' disciplinas');
     for (const c of (clsRows||[])) for (const s of (subjRows||[])) await r(`INSERT IGNORE INTO class_subjects (classId, subjectId) VALUES (${c.id}, ${s.id})`);
-    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (c) await r(`INSERT IGNORE INTO enrollments (studentId, classId, municipalityId, schoolId, year, status) VALUES (${sid}, ${c.id}, 1, ${schId}, 2026, 'active')`); }
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (c) await r(`INSERT IGNORE INTO enrollments (studentId, classId, municipalityId, academicYearId, enrollmentStatus) VALUES (${sid}, ${c.id}, 1, ${ay?.id}, 'active')`); }
     log.push('matriculas ok');
-    for (const c of (clsRows||[])) for (const s of (subjRows||[])) for (const b of ['1','2','3','4']) await r(`INSERT IGNORE INTO assessments (classId, subjectId, name, type, bimester, maxScore, weight, isActive, municipalityId) VALUES (${c.id}, ${s.id}, 'Prova ${b}Bim', 'exam', '${b}', 10, 1, true, 1)`);
+    for (const c of (clsRows||[])) for (const s of (subjRows||[])) for (const b of ['1','2','3','4']) await r(`INSERT IGNORE INTO assessments (classId, subjectId, name, assessmentType, bimester, maxScore, weight, isActive, municipalityId) VALUES (${c.id}, ${s.id}, 'Prova ${b}Bim', 'prova', '${b}', 10, 1, true, 1)`);
     const [assRows] = await (db as any).execute(sql.raw(`SELECT id, classId FROM assessments WHERE municipalityId=1`)) as any;
     log.push(assRows?.length + ' avaliacoes');
     let gc = 0;
-    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (const a of (assRows||[]).filter((x: any) => x.classId === c.id)) { if (await r(`INSERT IGNORE INTO student_grades (studentId, assessmentId, score, municipalityId) VALUES (${sid}, ${a.id}, ${(6+Math.random()*4).toFixed(1)}, 1)`)) gc++; } }
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (const a of (assRows||[]).filter((x: any) => x.classId === c.id)) { if (await r(`INSERT IGNORE INTO student_grades (studentId, assessmentId, score) VALUES (${sid}, ${a.id}, ${(6+Math.random()*4).toFixed(1)})`)) gc++; } }
     log.push(gc + ' notas');
     let ac = 0;
-    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (let i=1;i<=30;i++) { const d=new Date();d.setDate(d.getDate()-i); if(d.getDay()===0||d.getDay()===6)continue; const ds=d.toISOString().split('T')[0]; if(await r(`INSERT IGNORE INTO daily_attendance (studentId, classId, municipalityId, date, status) VALUES (${sid}, ${c.id}, 1, '${ds}', '${Math.random()>0.1?'present':'absent'}')`)) ac++; } }
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (let i=1;i<=30;i++) { const d=new Date();d.setDate(d.getDate()-i); if(d.getDay()===0||d.getDay()===6)continue; const ds=d.toISOString().split('T')[0]; if(await r(`INSERT IGNORE INTO daily_attendance (studentId, classId, date, attendanceStatus) VALUES (${sid}, ${c.id}, '${ds}', '${Math.random()>0.1?'present':'absent'}')`)) ac++; } }
     log.push(ac + ' frequencia');
 
     res.json({ success: true, log });

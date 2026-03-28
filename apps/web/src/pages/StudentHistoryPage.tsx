@@ -7,13 +7,15 @@ import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/re
 import { generateHistoricoEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { useSearchParams } from 'react-router-dom';
 
 export default function StudentHistoryPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
-  const [selStudent, setSelStudent] = useState('');
+  const [selStudent, setSelStudent] = useState(searchParams.get('studentId') || '');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
   const [gradesMap, setGradesMap] = useState<Record<string, any[]>>({});

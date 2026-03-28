@@ -828,11 +828,11 @@ Apos abrir o link, adicione o app na tela inicial do celular para acesso rápido
             <div className="px-5 pb-3">
               <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Acesso Rápido</p>
               <div className="flex flex-wrap gap-2">
-                <QuickActionButton icon={FileText} label="Declarações" to="/declaracoes" />
-                <QuickActionButton icon={GraduationCap} label="Boletim" to="/boletim" />
-                <QuickActionButton icon={History} label="Histórico" to="/historico-escolar" />
-                <QuickActionButton icon={ClipboardList} label="Ficha" to="/ficha-aluno" />
-                <QuickActionButton icon={QrCode} label="Carteirinha" to="/carteirinha" />
+                <QuickActionButton icon={FileText} label="Declarações" to="/declaracoes" searchParams={{ studentId: String(viewStudent?.id) }} />
+                <QuickActionButton icon={GraduationCap} label="Boletim" to="/boletim" searchParams={{ studentId: String(viewStudent?.id) }} />
+                <QuickActionButton icon={History} label="Histórico" to="/historico-escolar" searchParams={{ studentId: String(viewStudent?.id) }} />
+                <QuickActionButton icon={ClipboardList} label="Ficha" to="/ficha-aluno" searchParams={{ studentId: String(viewStudent?.id) }} />
+                <QuickActionButton icon={QrCode} label="Carteirinha" to="/carteirinha" searchParams={{ studentId: String(viewStudent?.id) }} />
                 <QuickActionButton icon={FileUp} label="Documentos" to="/alunos" />
               </div>
             </div>

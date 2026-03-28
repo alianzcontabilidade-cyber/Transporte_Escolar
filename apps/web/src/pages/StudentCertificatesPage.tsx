@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useQuery } from '../lib/hooks';
 import { api } from '../lib/api';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, Search, Printer, GraduationCap, ArrowRightLeft, CalendarCheck, ClipboardList, Download } from 'lucide-react';
 import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/reportTemplate';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
@@ -18,6 +19,8 @@ const CERT_TYPES = [
 export default function StudentCertificatesPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [urlParams] = useSearchParams();
+  const urlStudentId = urlParams.get('studentId');
   const [search, setSearch] = useState('');
   const [selStudent, setSelStudent] = useState<any>(null);
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
@@ -28,6 +31,14 @@ export default function StudentCertificatesPage() {
 
   const allStudents = ((studentsData as any) || []).filter((s: any) => !search || s.name?.toLowerCase().includes(search.toLowerCase()) || (s.enrollment || '').includes(search));
   const allSchools = (schoolsData as any) || [];
+
+  // Auto-select student from URL param
+  useEffect(() => {
+    if (urlStudentId && studentsData && !selStudent) {
+      const s = ((studentsData as any) || []).find((s: any) => String(s.id) === urlStudentId);
+      if (s) setSelStudent(s);
+    }
+  }, [urlStudentId, studentsData]);
 
   // Load municipality data for report header
   useEffect(() => {

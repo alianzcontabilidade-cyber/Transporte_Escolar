@@ -8,10 +8,13 @@ import { loadSchoolData } from '../lib/reportTemplate';
 import { generateFichaMatricula } from '../lib/reportGenerators';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
+import { useSearchParams } from 'react-router-dom';
 
 export default function EnrollmentFormPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [urlParams] = useSearchParams();
+  const urlStudentId = urlParams.get('studentId');
   const [search, setSearch] = useState('');
   const [filterSchool, setFilterSchool] = useState('');
   const [filterClass, setFilterClass] = useState('');
@@ -21,6 +24,14 @@ export default function EnrollmentFormPage() {
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
 
   useEffect(() => { if (mid) getMunicipalityReport(mid, api).then(setMunReport).catch(() => {}); }, [mid]);
+
+  // Auto-select student from URL param
+  useEffect(() => {
+    if (urlStudentId && studentsData && !selStudent) {
+      const s = ((studentsData as any) || []).find((s: any) => String(s.id) === urlStudentId);
+      if (s) setSelStudent(s);
+    }
+  }, [urlStudentId, studentsData]);
 
   const { data: studentsData } = useQuery(() => api.students.list({ municipalityId: mid }), [mid]);
   const { data: schoolsData } = useQuery(() => api.schools.list({ municipalityId: mid }), [mid]);

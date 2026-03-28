@@ -7,13 +7,15 @@ import { loadMunicipalityData, loadSchoolData, printReportHTML } from '../lib/re
 import { generateBoletimEscolar } from '../lib/reportGenerators';
 import ReportSignatureSelector, { Signatory } from '../components/ReportSignatureSelector';
 import ExportModal, { handleExport, ExportFormat } from '../components/ExportModal';
+import { useSearchParams } from 'react-router-dom';
 
 export default function ReportCardPage() {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
+  const [urlParams] = useSearchParams();
   const [selClass, setSelClass] = useState('');
   const [pgExportModal, setPgExportModal] = useState<{html:string;filename:string}|null>(null);
-  const [selStudent, setSelStudent] = useState('');
+  const [selStudent, setSelStudent] = useState(urlParams.get('studentId') || '');
   const [selectedSigs, setSelectedSigs] = useState<Signatory[]>([]);
   const [munReport, setMunReport] = useState<any>(null);
 

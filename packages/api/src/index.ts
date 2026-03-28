@@ -16,7 +16,7 @@ import { generatePDF, isPuppeteerAvailable, generateVerificationCode, computePdf
 import { verify as jwtVerify } from 'jsonwebtoken';
 import { compare } from 'bcryptjs';
 import { createHash } from 'crypto';
-import { documents, documentSignatures, users, classes, subjects, classSubjects, enrollments, assessments, studentGrades, dailyAttendance } from './db/schema';
+import { documents, documentSignatures, users } from './db/schema';
 
 dotenv.config();
 

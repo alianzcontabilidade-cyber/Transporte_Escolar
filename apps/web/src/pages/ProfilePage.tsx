@@ -123,10 +123,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Dados profissionais (editaveis) */}
+        {/* Dados do perfil (editaveis) */}
         <div className="p-5">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
-            Dados Profissionais / Assinatura Eletronica
+            {profile?.role === 'parent' ? 'Configurações da Conta' : 'Dados Profissionais / Assinatura Eletrônica'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
@@ -137,14 +137,15 @@ export default function ProfilePage() {
                 type="text"
                 value={form.username}
                 onChange={e => setForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '') }))}
-                placeholder="Ex: ailton.brito"
+                placeholder="Ex: jose.pai"
                 className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent-400"
               />
               <p className="text-[10px] text-gray-400 mt-1">Use para fazer login sem precisar digitar o email completo</p>
             </div>
+            {profile?.role !== 'parent' && (<>
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                <Briefcase size={13} /> Cargo / Funcao
+                <Briefcase size={13} /> Cargo / Função
               </label>
               <input
                 type="text"
@@ -202,6 +203,7 @@ export default function ProfilePage() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
               />
             </div>
+            </>)}
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 <Phone size={13} /> Telefone

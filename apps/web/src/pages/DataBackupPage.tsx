@@ -17,10 +17,10 @@ const TABLE_GROUPS: TableGroup[] = [
     tables: [
       { key: 'schools', label: 'Escolas' },
       { key: 'students', label: 'Alunos' },
-      { key: 'guardians', label: 'Respons\u00e1veis' },
-      { key: 'enrollments', label: 'Matr\u00edculas' },
+      { key: 'guardians', label: 'Responsáveis' },
+      { key: 'enrollments', label: 'Matrículas' },
       { key: 'classes', label: 'Turmas' },
-      { key: 'classGrades', label: 'S\u00e9ries' },
+      { key: 'classGrades', label: 'Séries' },
       { key: 'subjects', label: 'Disciplinas' },
       { key: 'academicYears', label: 'Anos Letivos' },
       { key: 'teachers', label: 'Professores' },
@@ -31,11 +31,11 @@ const TABLE_GROUPS: TableGroup[] = [
     color: 'bg-orange-50 border-orange-200',
     tables: [
       { key: 'routes', label: 'Rotas' },
-      { key: 'vehicles', label: 'Ve\u00edculos' },
+      { key: 'vehicles', label: 'Veículos' },
       { key: 'drivers', label: 'Motoristas' },
       { key: 'monitorStaff', label: 'Monitores' },
-      { key: 'fuelRecords', label: 'Combust\u00edvel' },
-      { key: 'maintenanceRecords', label: 'Manuten\u00e7\u00e3o' },
+      { key: 'fuelRecords', label: 'Combustível' },
+      { key: 'maintenanceRecords', label: 'Manutenção' },
       { key: 'vehicleInspections', label: 'Vistorias' },
       { key: 'contracts', label: 'Contratos' },
     ],
@@ -46,32 +46,32 @@ const TABLE_GROUPS: TableGroup[] = [
     tables: [
       { key: 'positions', label: 'Cargos' },
       { key: 'departments', label: 'Departamentos' },
-      { key: 'staffAllocations', label: 'Aloca\u00e7\u00f5es' },
+      { key: 'staffAllocations', label: 'Alocações' },
       { key: 'financialAccounts', label: 'Contas' },
-      { key: 'financialTransactions', label: 'Transa\u00e7\u00f5es' },
+      { key: 'financialTransactions', label: 'Transações' },
     ],
   },
   {
     label: 'Operacional',
     color: 'bg-yellow-50 border-yellow-200',
     tables: [
-      { key: 'mealMenus', label: 'Card\u00e1pios' },
+      { key: 'mealMenus', label: 'Cardápios' },
       { key: 'libraryBooks', label: 'Biblioteca' },
-      { key: 'assets', label: 'Patrim\u00f4nio' },
+      { key: 'assets', label: 'Patrimônio' },
       { key: 'inventoryItems', label: 'Estoque' },
     ],
   },
   {
-    label: 'Comunica\u00e7\u00e3o e Docs',
+    label: 'Comunicação e Docs',
     color: 'bg-purple-50 border-purple-200',
     tables: [
       { key: 'messages', label: 'Mensagens' },
       { key: 'events', label: 'Eventos' },
       { key: 'documents', label: 'Documentos' },
-      { key: 'schoolCalendar', label: 'Calend\u00e1rio' },
+      { key: 'schoolCalendar', label: 'Calendário' },
       { key: 'bulletins', label: 'Mural' },
       { key: 'protocols', label: 'Protocolos' },
-      { key: 'quotations', label: 'Cota\u00e7\u00f5es' },
+      { key: 'quotations', label: 'Cotações' },
     ],
   },
 ];
@@ -159,12 +159,12 @@ export default function DataBackupPage() {
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR') + ' \u00e0s ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Cabe\u00e7alho */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
@@ -172,7 +172,7 @@ export default function DataBackupPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Backup de Dados</h1>
-            <p className="text-gray-500">Exporte seus dados em formato JSON para seguran\u00e7a</p>
+            <p className="text-gray-500">Exporte seus dados em formato JSON para segurança</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -229,7 +229,7 @@ export default function DataBackupPage() {
           <div className="flex items-center gap-3">
             <Clock size={24} className="text-purple-600" />
             <div>
-              <p className="text-sm text-purple-600 font-medium">\u00daltimo Backup</p>
+              <p className="text-sm text-purple-600 font-medium">Último Backup</p>
               <p className="text-lg font-bold text-purple-800">
                 {lastBackup ? formatDate(lastBackup) : 'Nenhum realizado'}
               </p>
@@ -250,7 +250,7 @@ export default function DataBackupPage() {
                 Selecionar Tudo
               </button>
               <button onClick={selectNone} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200">
-                Limpar Sele\u00e7\u00e3o
+                Limpar Seleção
               </button>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function DataBackupPage() {
         </div>
 
         {loadingStats ? (
-          <div className="text-center py-8 text-gray-400">Carregando estat\u00edsticas...</div>
+          <div className="text-center py-8 text-gray-400">Carregando estatísticas...</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             {TABLE_GROUPS.flatMap(g => g.tables).map(t => {
@@ -325,17 +325,17 @@ export default function DataBackupPage() {
         )}
       </div>
 
-      {/* Recomenda\u00e7\u00f5es */}
+      {/* Recomendações */}
       <div className="card bg-blue-50 border-blue-200 border">
         <h3 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-          <AlertTriangle size={16} /> Recomenda\u00e7\u00f5es de Backup
+          <AlertTriangle size={16} /> Recomendações de Backup
         </h3>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>Fa\u00e7a backup regularmente (pelo menos 1x por semana)</li>
+          <li>Faça backup regularmente (pelo menos 1x por semana)</li>
           <li>Guarde os arquivos em local seguro (nuvem ou HD externo)</li>
-          <li>O backup exporta todos os dados em formato JSON, leg\u00edvel e completo</li>
+          <li>O backup exporta todos os dados em formato JSON, legível e completo</li>
           <li>Use o filtro para selecionar apenas as tabelas desejadas</li>
-          <li>Para restaurar dados, entre em contato com o suporte t\u00e9cnico</li>
+          <li>Para restaurar dados, entre em contato com o suporte técnico</li>
         </ul>
       </div>
     </div>

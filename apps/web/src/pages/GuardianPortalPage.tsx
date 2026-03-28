@@ -267,6 +267,9 @@ export default function GuardianPortalPage() {
       {/* Child Selector (persists across views) */}
       {myStudents.length > 0 && view !== 'mensagens' && view !== 'vincular' && (
         <div className="mb-4">
+          {myStudents.length > 1 && view === 'home' && (
+            <p className="text-xs text-gray-400 mb-2 flex items-center gap-1"><User size={12} /> Selecione o aluno para ver as informações:</p>
+          )}
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
             {myStudents.map(s => (
               <button key={s.id} onClick={() => setSelectedStudent(s)}
@@ -488,7 +491,7 @@ export default function GuardianPortalPage() {
         <div>
           <BackButton onClick={goHome} />
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4"><MessageCircle size={20} className="text-indigo-500" /> Chat</h2>
-          <ChatWidget />
+          <ChatWidget embedded />
         </div>
       )}
 

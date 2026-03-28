@@ -41,10 +41,10 @@ const roleLabels: Record<string, string> = {
   monitor: 'Monitor',
 };
 
-export default function ChatWidget() {
+export default function ChatWidget({ embedded }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const { socket } = useSocket();
-  const [view, setView] = useState<ChatView>('closed');
+  const [view, setView] = useState<ChatView>(embedded ? 'list' : 'closed');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConvo, setCurrentConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -248,8 +248,8 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* FAB Button */}
-      {view === 'closed' && (
+      {/* FAB Button (hidden in embedded mode) */}
+      {view === 'closed' && !embedded && (
         <button
           onClick={openChat}
           className="fixed bottom-20 right-4 z-50 w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-700 transition-all hover:scale-105 active:scale-95"
@@ -266,7 +266,7 @@ export default function ChatWidget() {
 
       {/* Chat Panel */}
       {view !== 'closed' && (
-        <div className="fixed bottom-0 right-0 sm:bottom-4 sm:right-4 z-50 w-full sm:w-96 h-[85vh] sm:h-[520px] bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className={embedded ? 'w-full h-[60vh] bg-white rounded-2xl border border-gray-200 flex flex-col overflow-hidden' : 'fixed bottom-0 right-0 sm:bottom-4 sm:right-4 z-50 w-full sm:w-96 h-[85vh] sm:h-[520px] bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden'}>
           {/* Header */}
           <div className="bg-primary-600 text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
             {view === 'conversation' && (
@@ -298,9 +298,11 @@ export default function ChatWidget() {
               </button>
             )}
 
-            <button onClick={() => setView('closed')} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
-              <X size={18} />
-            </button>
+            {!embedded && (
+              <button onClick={() => setView('closed')} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           {/* Body */}

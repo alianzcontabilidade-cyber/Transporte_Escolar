@@ -51,20 +51,22 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,ht
   .split(',')
   .map(o => o.trim());
 
+const isProduction = process.env.NODE_ENV === 'production';
 const corsOptions = {
   origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Sem origin = mesma origem (frontend servido pelo mesmo servidor), mobile apps, curl
+    // Sem origin = mesma origem (frontend servido pelo mesmo servidor), mobile apps
     if (!origin) return callback(null, true);
     // Origens configuradas via variável de ambiente
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return callback(null, true);
     // Domínio do Railway (produção)
     if (process.env.RAILWAY_PUBLIC_DOMAIN && origin.includes(process.env.RAILWAY_PUBLIC_DOMAIN)) return callback(null, true);
-    // Domínios específicos do Railway (produção)
-    if (origin.includes('endearing-radiance-production') || origin.includes('transporteescolar-production')) return callback(null, true);
-    // Localhost para desenvolvimento e Capacitor (https://localhost)
-    if (origin.startsWith('http://localhost') || origin.startsWith('https://localhost') || origin.startsWith('http://127.0.0.1') || origin === 'capacitor://localhost') return callback(null, true);
+    // Domínios específicos do Railway
+    if (origin.includes('transporteescolar-production') || origin.includes('.up.railway.app')) return callback(null, true);
+    // Capacitor (app mobile)
+    if (origin === 'capacitor://localhost' || origin === 'https://localhost') return callback(null, true);
+    // Desenvolvimento local (só em dev)
+    if (!isProduction && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))) return callback(null, true);
     // Bloquear origens desconhecidas
-    console.warn(`CORS bloqueado para origem: ${origin}`);
     callback(new Error('Origem não permitida pelo CORS'));
   },
   credentials: true,
@@ -427,23 +429,50 @@ app.use('/api/trpc', trpcExpress.createExpressMiddleware({
   createContext,
 }));
 
+// Socket.IO - autenticação via JWT no handshake
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) return next(new Error('Token não fornecido'));
+  try {
+    const JWT = process.env.JWT_SECRET || '';
+    const decoded = jwtVerify(token as string, JWT) as any;
+    (socket as any).userId = decoded.userId;
+    (socket as any).municipalityId = decoded.municipalityId;
+    (socket as any).role = decoded.role;
+    next();
+  } catch {
+    next(new Error('Token inválido'));
+  }
+});
+
 // Socket.IO events
 io.on('connection', (socket) => {
-  // Socket conectado (sem log para reduzir ruído)
+  const socketUser = (socket as any);
+
+  // Entrar automaticamente na sala do município e do usuário
+  if (socketUser.municipalityId) socket.join(`municipality:${socketUser.municipalityId}`);
+  if (socketUser.userId) socket.join(`user:${socketUser.userId}`);
 
   socket.on('join:municipality', (municipalityId: number) => {
-    socket.join(`municipality:${municipalityId}`);
+    // Validar que só pode entrar na sala do próprio município
+    if (socketUser.role === 'super_admin' || socketUser.municipalityId === municipalityId) {
+      socket.join(`municipality:${municipalityId}`);
+    }
   });
 
-  // Chat: usuario entra na sala pessoal para receber mensagens diretas
   socket.on('join:user', (userId: number) => {
-    socket.join(`user:${userId}`);
+    // Só pode entrar na própria sala
+    if (socketUser.userId === userId) {
+      socket.join(`user:${userId}`);
+    }
   });
 
   // Manter compatibilidade com emissões diretas do cliente
   socket.on('bus:location', (data: any) => {
-    if (data.municipalityId) {
-      socket.to(`municipality:${data.municipalityId}`).emit('bus:location', data);
+    // Só emitir para o próprio município
+    const munId = socketUser.municipalityId || data.municipalityId;
+    if (munId) {
+      socket.to(`municipality:${munId}`).emit('bus:location', data);
     }
   });
 

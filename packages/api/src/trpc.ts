@@ -72,11 +72,23 @@ export const t = initTRPC.context<{ userId?: number; municipalityId?: number; ro
 
 export const publicProcedure = t.procedure;
 
-export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  if (!ctx.userId) {
+export const protectedProcedure = t.procedure.use(async (opts) => {
+  if (!opts.ctx.userId) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Não autenticado' });
   }
-  return next({ ctx });
+  // Validar isolamento de município via rawInput
+  try {
+    const raw = await (opts as any).getRawInput?.();
+    if (opts.ctx.role !== 'super_admin' && opts.ctx.municipalityId && raw && typeof raw === 'object' && 'municipalityId' in raw) {
+      if ((raw as any).municipalityId && (raw as any).municipalityId !== opts.ctx.municipalityId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este município' });
+      }
+    }
+  } catch (e: any) {
+    if (e instanceof TRPCError) throw e;
+    // getRawInput pode não existir em todas as versões - ignorar
+  }
+  return opts.next({ ctx: opts.ctx });
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {

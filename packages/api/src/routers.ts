@@ -7399,7 +7399,7 @@ export const declarationsRouter = t.router({
             <div class="mun">${mun?.name || 'PREFEITURA MUNICIPAL'}</div>
             ${mun?.cnpj ? '<div class="detail">CNPJ: ' + mun.cnpj + '</div>' : ''}
             ${mun?.secretariaName ? '<div class="sec">' + mun.secretariaName + '</div>' : ''}
-            ${mun?.secretarioCnpj ? '<div class="detail">CNPJ: ' + mun.secretarioCnpj + '</div>' : ''}
+            ${mun?.secretariaCnpj ? '<div class="detail">CNPJ: ' + mun.secretariaCnpj + '</div>' : ''}
           </td>
           <td class="school-cell">
             <div class="sch-name">${school?.name || ''}</div>

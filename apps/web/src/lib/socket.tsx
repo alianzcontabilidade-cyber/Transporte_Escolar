@@ -12,6 +12,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Use same origin in production (empty string), or VITE_API_URL for development
     const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const token = localStorage.getItem('token');
     const s = io(apiUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -19,6 +20,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       autoConnect: true,
+      auth: { token: token || '' },
     });
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));

@@ -1268,17 +1268,63 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
     if (!selectedType) return;
     setSubmitting(true);
     try {
+      // Para "outro", usar primeiro tipo manual como base ou criar nota descritiva
+      const typeId = selectedType === 'outro' ? (manualTypes[0]?.id || types[0]?.id) : parseInt(selectedType);
+      if (!typeId) { setSuccessCode('Erro: nenhum tipo disponível'); return; }
+      const finalNotes = selectedType === 'outro' ? `[OUTRO DOCUMENTO] ${notes}` : (notes || undefined);
       const result = await api.declarations.request({
         municipalityId: mid,
-        declarationTypeId: parseInt(selectedType),
+        declarationTypeId: typeId,
         studentId: student.id,
-        notes: notes || undefined,
+        notes: finalNotes,
       });
       setSuccessCode(result.requestCode);
       setSelectedType('');
       setNotes('');
       loadData();
     } catch {}
+    finally { setSubmitting(false); }
+  }
+
+  const autoTypes = types.filter((t: any) => t.autoGenerate);
+  const manualTypes = types.filter((t: any) => !t.autoGenerate);
+
+  async function generateAutoDoc(t: any) {
+    setSubmitting(true);
+    try {
+      let html = '';
+      const school = loadSchoolData(student.schoolId, schoolsData);
+      const mun = munReport?.municipality;
+      const sec = munReport?.secretaria;
+      const sigs = (t.systemAutoSign && t.signerId) ? [] : (t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : []);
+
+      const genKey = t.documentKey;
+      if (genKey === 'decl_escolaridade') html = generateDeclaracaoEscolaridade(student, school, mun, sec, sigs);
+      else if (genKey === 'decl_frequencia') html = generateDeclaracaoFrequencia(student, school, mun, sec, sigs);
+      else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
+      else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
+      else if (genKey === 'boletim') {
+        try { const grades = await api.studentGrades.reportCard({ studentId: student.id, municipalityId: mid }); html = generateBoletimEscolar(student, grades || [], school, mun, sec, sigs); } catch {}
+      } else if (genKey === 'historico') {
+        try { const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid }); html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs); } catch {}
+      }
+      if (!html && t.template) {
+        const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
+        html = result?.html || '';
+      }
+      if (html) {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${window.location.origin}/api/pdf/generate`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ html, orientation: 'portrait', docType: 'declaracao', docTitle: `${t.name} - ${student.name}`, systemAutoSignerId: t.systemAutoSign && t.signerId ? t.signerId : undefined, studentId: student.id }),
+        });
+        if (res.ok) {
+          const blob = await res.blob(); const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = `${t.name.replace(/\s/g, '_')}_${student.name.split(' ')[0]}.pdf`; a.click(); URL.revokeObjectURL(url);
+          setSuccessCode('PDF gerado com sucesso!');
+        } else { const err = await res.json().catch(() => ({})); setSuccessCode('Erro: ' + (err.error || 'falha')); }
+      } else { setSuccessCode('Erro: não foi possível gerar'); }
+    } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha')); }
     finally { setSubmitting(false); }
   }
 
@@ -1321,145 +1367,103 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
         </div>
       </div>
 
-      {/* Documentos disponíveis */}
-      {types.length > 0 && (
+      {/* ═══════ SEÇÃO 1: GERAR DOCUMENTO AUTOMÁTICO ═══════ */}
+      {autoTypes.length > 0 && (
         <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Documentos Disponíveis</h3>
-          <div className="space-y-2 mb-4">
-            {types.map((t: any) => {
-              const hasGenerator = t.documentKey && GENERATORS[t.documentKey?.replace('decl_', 'declaracao').replace('ficha_', 'ficha')] || (t.autoGenerate && t.template);
-              const isAuto = t.autoGenerate;
-              return (
-                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border hover:border-primary-200 transition-colors">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isAuto ? 'bg-green-100' : 'bg-gray-100'}`}>
-                    <FileText size={14} className={isAuto ? 'text-green-600' : 'text-gray-500'} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800">{t.name}</p>
-                    {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
-                  </div>
-                  {isAuto ? (
-                    <button onClick={async () => {
-                      setSubmitting(true);
-                      try {
-                        let html = '';
-                        const school = loadSchoolData(student.schoolId, schoolsData);
-                        const mun = munReport?.municipality;
-                        const sec = munReport?.secretaria;
-                        // Se assinatura eletrônica automática, não incluir assinatura manual (o backend injeta o bloco)
-                        const sigs = (t.systemAutoSign && t.signerId) ? [] : (t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : []);
-
-                        // Tentar usar função geradora do sistema
-                        const genKey = t.documentKey;
-                        if (genKey === 'decl_escolaridade') html = generateDeclaracaoEscolaridade(student, school, mun, sec, sigs);
-                        else if (genKey === 'decl_frequencia') html = generateDeclaracaoFrequencia(student, school, mun, sec, sigs);
-                        else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
-                        else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
-                        else if (genKey === 'boletim') {
-                          try {
-                            const grades = await api.studentGrades.reportCard({ studentId: student.id, municipalityId: mid });
-                            html = generateBoletimEscolar(student, grades || [], school, mun, sec, sigs);
-                          } catch { html = ''; }
-                        } else if (genKey === 'historico') {
-                          try {
-                            const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid });
-                            html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs);
-                          } catch { html = ''; }
-                        }
-
-                        // Fallback: template do banco
-                        if (!html && t.template) {
-                          const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
-                          html = result?.html || '';
-                        }
-
-                        if (html) {
-                          const token = localStorage.getItem('token');
-                          const res = await fetch(`${window.location.origin}/api/pdf/generate`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({
-                              html, orientation: 'portrait',
-                              docType: t.name.toLowerCase().includes('boletim') ? 'boletim' : 'declaracao',
-                              docTitle: `${t.name} - ${student.name}`,
-                              systemAutoSignerId: t.systemAutoSign && t.signerId ? t.signerId : undefined,
-                              studentId: student.id,
-                            }),
-                          });
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a'); a.href = url;
-                            a.download = `${t.name.replace(/\s/g, '_')}_${student.name.split(' ')[0]}.pdf`;
-                            a.click(); URL.revokeObjectURL(url);
-                            setSuccessCode('PDF gerado com sucesso!');
-                          } else {
-                            const err = await res.json().catch(() => ({}));
-                            setSuccessCode('Erro: ' + (err.error || 'falha ao gerar PDF'));
-                          }
-                        } else {
-                          setSuccessCode('Erro: não foi possível gerar o documento');
-                        }
-                      } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha')); }
-                      finally { setSubmitting(false); }
-                    }} disabled={submitting} className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 disabled:opacity-50 flex items-center gap-1">
-                      {submitting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Gerar PDF
-                    </button>
-                  ) : (
-                    <button onClick={() => { setSelectedType(String(t.id)); }} className="text-xs px-3 py-1.5 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 flex items-center gap-1">
-                      <FileText size={12} /> Solicitar
-                    </button>
-                  )}
+          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center"><Download size={12} className="text-green-600" /></div>
+            Gerar Documento Automático
+          </h3>
+          <p className="text-xs text-gray-400 mb-3">Clique para baixar o PDF na hora</p>
+          <div className="space-y-2">
+            {autoTypes.map((t: any) => (
+              <button key={t.id} disabled={submitting} onClick={() => generateAutoDoc(t)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-green-300 hover:bg-green-50 transition-colors text-left disabled:opacity-50">
+                <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <FileText size={16} className="text-green-600" />
                 </div>
-              );
-            })}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">{t.name}</p>
+                  {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1.5 rounded-lg flex-shrink-0">
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} PDF
+                </div>
+              </button>
+            ))}
           </div>
-
-          {/* Formulário de solicitação manual */}
-          {selectedType && (() => { const t = types.find((t: any) => String(t.id) === selectedType); return t && !t.autoGenerate; })() && (
-            <div className="border-t pt-3">
-              <p className="text-sm font-medium text-gray-700 mb-2">Solicitar: {types.find((t: any) => String(t.id) === selectedType)?.name}</p>
-              <textarea className="input mb-3" rows={2} placeholder="Observações (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
-              <div className="flex gap-2">
-                <button onClick={() => setSelectedType('')} className="btn-secondary flex-1 text-sm">Cancelar</button>
-                <button onClick={handleRequest} disabled={submitting} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-                  {submitting ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><FileText size={14} /> Enviar Solicitação</>}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
-      {types.length === 0 && (
-        <div className="card mb-4 p-4 text-center">
-          <FileText size={32} className="text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Nenhum tipo de declaração disponível no momento.</p>
-          <p className="text-xs text-gray-400 mt-1">A secretaria precisa cadastrar os tipos de declarações.</p>
-        </div>
-      )}
+      {/* ═══════ SEÇÃO 2: SOLICITAR DOCUMENTO ═══════ */}
+      <div className="card mb-4 p-4">
+        <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-primary-100 flex items-center justify-center"><FileText size={12} className="text-primary-600" /></div>
+          Solicitar Documento
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">Selecione o documento que precisa e envie sua solicitação</p>
 
-      {/* Minhas solicitações */}
-      <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><History size={14} /> Minhas Solicitações</h3>
-      {requests.length > 0 ? (
-        <div className="space-y-2">
-          {requests.map((r: any) => (
-            <div key={r.id} className="card p-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="font-semibold text-gray-800 text-sm">{r.typeName}</p>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[r.status] || 'bg-gray-100 text-gray-500'}`}>
-                  {statusLabel[r.status] || r.status}
-                </span>
+        {/* Opções com radio buttons */}
+        <div className="space-y-1.5 mb-3">
+          {manualTypes.map((t: any) => (
+            <label key={t.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedType === String(t.id) ? 'border-primary-300 bg-primary-50' : 'hover:bg-gray-50'}`}>
+              <input type="radio" name="docType" checked={selectedType === String(t.id)} onChange={() => setSelectedType(String(t.id))} className="w-4 h-4 text-primary-500" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-800">{t.name}</p>
+                {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
               </div>
-              <p className="text-xs text-gray-500">Código: <strong>{r.requestCode}</strong></p>
-              <p className="text-[10px] text-gray-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
-              {r.responseNotes && <p className="text-xs text-gray-600 mt-1 bg-gray-50 rounded p-2">Resposta: {r.responseNotes}</p>}
-              {r.status === 'ready' && <p className="text-xs text-green-600 mt-1 font-medium">Documento disponível para retirada</p>}
-            </div>
+            </label>
           ))}
+
+          {/* Opção "Outro" sempre disponível */}
+          <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedType === 'outro' ? 'border-primary-300 bg-primary-50' : 'hover:bg-gray-50'}`}>
+            <input type="radio" name="docType" checked={selectedType === 'outro'} onChange={() => setSelectedType('outro')} className="w-4 h-4 text-primary-500" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800">Outro documento</p>
+              <p className="text-[10px] text-gray-400">Especifique nas observações</p>
+            </div>
+          </label>
         </div>
-      ) : (
-        <div className="card p-4 text-center text-gray-400">
-          <p className="text-sm">Nenhuma solicitação realizada</p>
+
+        {/* Observações + botão enviar */}
+        {selectedType && (
+          <div className="border-t pt-3 space-y-3">
+            <textarea className="input" rows={2} placeholder={selectedType === 'outro' ? 'Descreva o documento que precisa...' : 'Observações (opcional)'} value={notes} onChange={e => setNotes(e.target.value)} />
+            <div className="flex gap-2">
+              <button onClick={() => { setSelectedType(''); setNotes(''); }} className="btn-secondary flex-1 text-sm">Cancelar</button>
+              <button onClick={() => {
+                if (selectedType === 'outro' && !notes.trim()) return;
+                handleRequest();
+              }} disabled={submitting || (selectedType === 'outro' && !notes.trim())} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+                {submitting ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><FileText size={14} /> Enviar Solicitação</>}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ═══════ SEÇÃO 3: MINHAS SOLICITAÇÕES ═══════ */}
+      {requests.length > 0 && (
+        <div className="card mb-4 p-4">
+          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center"><History size={12} className="text-amber-600" /></div>
+            Minhas Solicitações
+          </h3>
+          <div className="space-y-2">
+            {requests.map((r: any) => (
+              <div key={r.id} className={`p-3 rounded-xl border ${r.status === 'ready' ? 'border-green-200 bg-green-50' : r.status === 'rejected' ? 'border-red-200 bg-red-50' : 'border-gray-100'}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-medium text-gray-800 text-sm">{r.typeName}</p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[r.status] || 'bg-gray-100 text-gray-500'}`}>
+                    {statusLabel[r.status] || r.status}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">Código: <strong>{r.requestCode}</strong> • {r.createdAt ? new Date(r.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                {r.responseNotes && <p className="text-xs mt-1 p-2 rounded bg-white border text-gray-600">{r.responseNotes}</p>}
+                {r.status === 'ready' && <p className="text-xs text-green-700 mt-1 font-semibold flex items-center gap-1"><CheckCircle size={12} /> Documento disponível</p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

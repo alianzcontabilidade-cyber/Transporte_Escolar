@@ -7366,13 +7366,22 @@ export const declarationsRouter = t.router({
       // Montar HTML completo do documento
       const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${declType.name}</title>
       <style>
-        @page{size:A4;margin:20mm}
-        body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.8;color:#333;padding:20px}
-        .header{text-align:center;margin-bottom:30px;border-bottom:3px solid #1B3A5C;padding-bottom:15px}
-        .header img{width:50px;height:50px;object-fit:contain}
-        .header h1{font-size:12px;color:#1B3A5C;margin:5px 0;text-transform:uppercase}
-        .header h2{font-size:11px;color:#666;margin:2px 0}
-        .title{text-align:center;font-size:16px;font-weight:bold;color:#1B3A5C;margin:30px 0 20px;text-transform:uppercase;letter-spacing:2px}
+        @page{size:A4;margin:15mm 20mm}
+        body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.8;color:#333;padding:0}
+        .header-table{width:100%;border-collapse:collapse;margin-bottom:10px}
+        .header-table td{vertical-align:middle;padding:5px}
+        .logo-cell{width:60px;text-align:center}
+        .logo-cell img{width:55px;height:55px;object-fit:contain}
+        .info-cell{text-align:center}
+        .info-cell .estado{font-size:10px;color:#555;text-transform:uppercase}
+        .info-cell .mun{font-size:12px;font-weight:bold;color:#1B3A5C;text-transform:uppercase;margin:2px 0}
+        .info-cell .sec{font-size:10px;color:#555;text-transform:uppercase}
+        .info-cell .detail{font-size:9px;color:#888}
+        .school-cell{text-align:right;width:180px}
+        .school-cell .sch-name{font-size:10px;font-weight:bold;color:#333;text-transform:uppercase}
+        .school-cell .sch-detail{font-size:8px;color:#888}
+        .header-line{border-bottom:3px solid #1B3A5C;margin-bottom:20px}
+        .title{text-align:center;font-size:15px;font-weight:bold;color:#1B3A5C;margin:25px 0 20px;text-transform:uppercase;letter-spacing:2px;text-decoration:underline}
         .content{text-align:justify;margin:20px 0;font-size:13px;line-height:2}
         .content p{text-indent:40px;margin:10px 0}
         .signature{margin-top:60px;text-align:center}
@@ -7380,14 +7389,25 @@ export const declarationsRouter = t.router({
         .signature .name{font-weight:bold;font-size:12px}
         .signature .role{font-size:11px;color:#666}
         .local-date{text-align:right;margin-top:40px;font-size:12px}
+        .footer{margin-top:30px;padding-top:8px;border-top:1px solid #ddd;font-size:8px;color:#999;text-align:center;line-height:1.4}
       </style></head><body>
-      <div class="header">
-        ${mun?.logoUrl ? '<img src="' + mun.logoUrl + '" />' : ''}
-        ${mun?.state ? '<h2>ESTADO DO ' + mun.state.toUpperCase() + '</h2>' : ''}
-        <h1>${mun?.name || 'PREFEITURA MUNICIPAL'}</h1>
-        ${mun?.secretariaName ? '<h2>' + mun.secretariaName + '</h2>' : ''}
-        <h2>${school?.name || ''}</h2>
-      </div>
+      <table class="header-table">
+        <tr>
+          ${mun?.logoUrl ? '<td class="logo-cell"><img src="' + mun.logoUrl + '"/></td>' : ''}
+          <td class="info-cell">
+            ${mun?.state ? '<div class="estado">ESTADO DO ' + mun.state.toUpperCase() + '</div>' : ''}
+            <div class="mun">${mun?.name || 'PREFEITURA MUNICIPAL'}</div>
+            ${mun?.cnpj ? '<div class="detail">CNPJ: ' + mun.cnpj + '</div>' : ''}
+            ${mun?.secretariaName ? '<div class="sec">' + mun.secretariaName + '</div>' : ''}
+            ${mun?.secretarioCnpj ? '<div class="detail">CNPJ: ' + mun.secretarioCnpj + '</div>' : ''}
+          </td>
+          <td class="school-cell">
+            <div class="sch-name">${school?.name || ''}</div>
+            ${mun?.city ? '<div class="sch-detail">' + mun.city + '/' + (mun.state || 'TO') + '</div>' : ''}
+          </td>
+        </tr>
+      </table>
+      <div class="header-line"></div>
       <div class="title">${declType.name}</div>
       <div class="content">${htmlContent}</div>
       <div class="local-date">${mun?.city || ''}, ${dataAtual}.</div>
@@ -7397,6 +7417,11 @@ export const declarationsRouter = t.router({
           <div class="role">${declType.signerRole || signerData?.jobTitle || ''}</div>
         </div>
       </div>`}
+      <div class="footer">
+        ${mun?.name || ''} ${mun?.logradouro ? '- ' + [mun.logradouro, mun.numero, mun.bairro, mun.city, mun.state].filter(Boolean).join(', ') : ''}
+        ${mun?.phone ? ' | Fone: ' + mun.phone : ''}${mun?.email ? ' | ' + mun.email : ''}
+        ${mun?.secretariaName ? '<br>' + mun.secretariaName + (mun?.secretariaPhone ? ' | Fone: ' + mun.secretariaPhone : '') + (mun?.secretariaEmail ? ' | ' + mun.secretariaEmail : '') : ''}
+      </div>
       </body></html>`;
 
       return {

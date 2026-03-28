@@ -1307,7 +1307,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
       else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
       else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
       else if (genKey === 'boletim') {
-        try { const grades = await api.studentGrades.reportCard({ studentId: student.id, municipalityId: mid }); html = generateBoletimEscolar(student, grades || [], school, mun, sec, sigs); } catch {}
+        try { const rc = await api.guardians.studentReportCard({ studentId: student.id }); html = generateBoletimEscolar(student, rc?.subjects || [], school, mun, sec, sigs); } catch (e: any) { console.error('Boletim:', e.message); }
       } else if (genKey === 'historico') {
         try { const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid }); html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs); } catch {}
       }

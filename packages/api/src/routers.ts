@@ -2500,15 +2500,26 @@ export const guardiansRouter = t.router({
   // PORTAL DO RESPONSÁVEL - ENDPOINTS ACADÊMICOS
   // ============================================
 
-  // 1. Boletim do aluno
+  // 1. Boletim do aluno (classId opcional - busca automaticamente pela matrícula)
   studentReportCard: protectedProcedure
-    .input(z.object({ studentId: z.number(), classId: z.number() }))
+    .input(z.object({ studentId: z.number(), classId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       if (!await verifyGuardianAccess(ctx.userId!, input.studentId)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este aluno' });
 
+      // Buscar classId automaticamente se não fornecido
+      let classId = input.classId;
+      if (!classId) {
+        const [enrollment] = await db.select({ classId: enrollments.classId })
+          .from(enrollments)
+          .where(and(eq(enrollments.studentId, input.studentId), eq(enrollments.status, 'active')))
+          .orderBy(desc(enrollments.createdAt)).limit(1);
+        classId = enrollment?.classId;
+        if (!classId) return { subjects: [], summary: { average: 0, totalAssessments: 0 } };
+      }
+
       // Buscar avaliações da turma
       const classAssessments = await db.select().from(assessments)
-        .where(and(eq(assessments.classId, input.classId), eq(assessments.isActive, true)));
+        .where(and(eq(assessments.classId, classId), eq(assessments.isActive, true)));
 
       if (classAssessments.length === 0) return { subjects: [], summary: { average: 0, totalAssessments: 0 } };
 

@@ -11,13 +11,12 @@ import { appRouter } from './routers';
 import { createContext } from './middleware/context';
 import { setSocketIO } from './socketInstance';
 import { db } from './db/index';
-import { sql } from 'drizzle-orm';
+import { sql, eq, and, desc } from 'drizzle-orm';
 import { generatePDF, isPuppeteerAvailable, generateVerificationCode, computePdfHash, generateQRCodeDataURL, injectQRCodeIntoHTML } from './services/pdfService';
 import { verify as jwtVerify } from 'jsonwebtoken';
 import { compare } from 'bcryptjs';
 import { createHash } from 'crypto';
 import { documents, documentSignatures, users, classes, subjects, classSubjects, enrollments, assessments, studentGrades, dailyAttendance } from './db/schema';
-import { eq, and, desc } from 'drizzle-orm';
 
 dotenv.config();
 

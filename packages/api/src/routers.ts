@@ -30,6 +30,14 @@ import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents, cl
 import { sendPushToUser, notifyTripStarted, notifyTripCompleted, notifyTripCancelled, notifyTripInterrupted, notifyStudentBoarded, notifyStudentDropped, notifyStudentAbsent } from './services/pushService';
 import { verifyGuardianAccess } from './helpers';
 
+// Helper: validar que o municipalityId do input corresponde ao do JWT (exceto super_admin)
+function validateMunicipalityAccess(ctx: { municipalityId?: number; role?: string }, inputMunId: number) {
+  if (ctx.role === 'super_admin') return; // super admin acessa tudo
+  if (ctx.municipalityId && ctx.municipalityId !== inputMunId) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este município' });
+  }
+}
+
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║                    ROUTERS - TABLE OF CONTENTS                  ║
 // ╠══════════════════════════════════════════════════════════════════╣
@@ -455,8 +463,7 @@ export const authRouter = t.router({
       return {
         success: true,
         resetToken,
-        code, // Em produção, remover este campo e enviar por email/SMS
-        message: 'Código de recuperação gerado. Verifique suas notificações ou email.',
+        message: 'Código de recuperação gerado. Verifique suas notificações.',
         userHint: user.email ? user.email.replace(/(.)(.*)(@.*)/, '$1***$3') : undefined,
       };
     }),
@@ -1107,7 +1114,8 @@ export const studentsRouter = t.router({
 
   list: protectedProcedure
     .input(z.object({ municipalityId: z.number(), schoolId: z.number().optional() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      validateMunicipalityAccess(ctx, input.municipalityId);
       const conditions = [
         eq(students.municipalityId, input.municipalityId),
         eq(students.isActive, true),

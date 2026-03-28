@@ -45,13 +45,13 @@ export default function MonitorPortalPage() {
   async function loadData() {
     try {
       setLoading(true);
-      console.log('[Monitor] Carregando dados...');
+      // console.log('[Monitor] Carregando dados...');
 
       // 1. Verificar viagem ativa
       let trip: any = null;
       try {
         trip = await api.monitors.myActiveTrip();
-        console.log('[Monitor] myActiveTrip:', trip ? `tripId=${trip.trip?.id}, stops=${trip.stops?.length}` : 'null');
+        // console.log('[Monitor] myActiveTrip:', trip ? `tripId=${trip.trip?.id}, stops=${trip.stops?.length}` : 'null');
       } catch (err: any) {
         console.error('[Monitor] Erro myActiveTrip:', err?.message);
       }
@@ -59,29 +59,29 @@ export default function MonitorPortalPage() {
       if (trip && trip.stops?.length > 0) {
         setActiveTrip(trip);
         if (trip.trip?.startedAt) setTripStartTime(new Date(trip.trip.startedAt));
-        console.log('[Monitor] Viagem ativa carregada. Alunos:', trip.stops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
+        // console.log('[Monitor] Viagem ativa carregada. Alunos:', trip.stops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
         return;
       }
 
       // 2. Buscar rotas disponíveis
-      console.log('[Monitor] Sem viagem ativa, buscando rotas...');
+      // console.log('[Monitor] Sem viagem ativa, buscando rotas...');
       let available: any = null;
       try {
         available = await api.monitors.availableTrips();
-        console.log('[Monitor] availableTrips:', available?.routes?.length || 0, 'rotas');
+        // console.log('[Monitor] availableTrips:', available?.routes?.length || 0, 'rotas');
       } catch (err: any) {
         console.error('[Monitor] Erro availableTrips:', err?.message);
       }
 
       if (available?.routes?.length > 0) {
         const route = available.routes[0];
-        console.log('[Monitor] Rota:', route.name, 'id:', route.id);
+        // console.log('[Monitor] Rota:', route.name, 'id:', route.id);
 
         // 3. Buscar paradas e alunos da rota
         let routeStops: any[] = [];
         try {
           const stopsData = await api.ai.routeStudents({ routeId: route.id });
-          console.log('[Monitor] routeStudents:', stopsData?.stops?.length || 0, 'paradas,', stopsData?.students?.length || 0, 'alunos');
+          // console.log('[Monitor] routeStudents:', stopsData?.stops?.length || 0, 'paradas,', stopsData?.students?.length || 0, 'alunos');
           if (stopsData?.stops) {
             routeStops = stopsData.stops.map((s: any) => ({
               ...s,
@@ -92,9 +92,9 @@ export default function MonitorPortalPage() {
           console.error('[Monitor] Erro routeStudents:', err?.message);
         }
         setActiveTrip({ route, vehicle: available.vehicle, stops: routeStops });
-        console.log('[Monitor] Dados carregados. Paradas:', routeStops.length, 'Alunos:', routeStops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
+        // console.log('[Monitor] Dados carregados. Paradas:', routeStops.length, 'Alunos:', routeStops.reduce((t: number, s: any) => t + (s.students?.length || 0), 0));
       } else {
-        console.log('[Monitor] Nenhuma rota disponível');
+        // console.log('[Monitor] Nenhuma rota disponível');
         setActiveTrip(null);
       }
     } catch (err: any) {
@@ -468,7 +468,7 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     try { const parsed = JSON.parse(data); enrollment = parsed.enrollment || parsed.id?.toString() || parsed.name || data; } catch {}
 
     const clean = enrollment.trim();
-    console.log('[QR] Lido:', clean, '| Alunos:', allStudents.length);
+    // console.log('[QR] Lido:', clean, '| Alunos:', allStudents.length);
 
     const student = allStudents.find((s: any) =>
       s.enrollment === clean ||
@@ -497,7 +497,7 @@ function ScannerView({ tripId, allStudents, onRefresh }: any) {
     setProcessing(true);
     try {
       const payload = { studentId: scannedStudent.id, tripId, stopId: scannedStudent.stopId };
-      console.log('[QR] Enviando:', scanMode, JSON.stringify(payload));
+      // console.log('[QR] Enviando:', scanMode, JSON.stringify(payload));
 
       if (scanMode === 'embarque') {
         await api.monitors.boardStudent(payload);

@@ -15,6 +15,14 @@ const socketInstance_1 = require("./socketInstance");
 const routeOptimizer_1 = require("./services/routeOptimizer");
 const pushService_1 = require("./services/pushService");
 const helpers_1 = require("./helpers");
+// Helper: validar que o municipalityId do input corresponde ao do JWT (exceto super_admin)
+function validateMunicipalityAccess(ctx, inputMunId) {
+    if (ctx.role === 'super_admin')
+        return; // super admin acessa tudo
+    if (ctx.municipalityId && ctx.municipalityId !== inputMunId) {
+        throw new server_1.TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado a este município' });
+    }
+}
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║                    ROUTERS - TABLE OF CONTENTS                  ║
 // ╠══════════════════════════════════════════════════════════════════╣
@@ -391,8 +399,7 @@ exports.authRouter = trpc_1.t.router({
         return {
             success: true,
             resetToken,
-            code, // Em produção, remover este campo e enviar por email/SMS
-            message: 'Código de recuperação gerado. Verifique suas notificações ou email.',
+            message: 'Código de recuperação gerado. Verifique suas notificações.',
             userHint: user.email ? user.email.replace(/(.)(.*)(@.*)/, '$1***$3') : undefined,
         };
     }),
@@ -1019,7 +1026,8 @@ exports.studentsRouter = trpc_1.t.router({
     }),
     list: trpc_1.protectedProcedure
         .input(zod_1.z.object({ municipalityId: zod_1.z.number(), schoolId: zod_1.z.number().optional() }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        validateMunicipalityAccess(ctx, input.municipalityId);
         const conditions = [
             (0, drizzle_orm_1.eq)(schema_1.students.municipalityId, input.municipalityId),
             (0, drizzle_orm_1.eq)(schema_1.students.isActive, true),

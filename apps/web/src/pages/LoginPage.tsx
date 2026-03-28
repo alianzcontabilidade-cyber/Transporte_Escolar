@@ -17,7 +17,12 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await login({ identifier, password });
+      const result = await login({ identifier, password });
+      // Se precisa trocar senha no primeiro acesso
+      if (result.mustChangePassword) {
+        navigate('/trocar-senha-obrigatoria');
+        return;
+      }
       // Redirect based on role
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
       const role = savedUser?.role;

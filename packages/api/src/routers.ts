@@ -372,7 +372,7 @@ export const authRouter = t.router({
       const isCpf = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(id);
 
       // Campos necessários para login (nunca retornar todos os campos)
-      const loginFields = { id: users.id, name: users.name, email: users.email, passwordHash: users.passwordHash, role: users.role, municipalityId: users.municipalityId, cpf: users.cpf, phone: users.phone, avatarUrl: users.avatarUrl, isActive: users.isActive };
+      const loginFields = { id: users.id, name: users.name, email: users.email, passwordHash: users.passwordHash, role: users.role, municipalityId: users.municipalityId, cpf: users.cpf, phone: users.phone, avatarUrl: users.avatarUrl, isActive: users.isActive, mustChangePassword: users.mustChangePassword };
 
       if (isEmail) {
         userList = await db.select(loginFields).from(users).where(eq(users.email, id)).limit(1);
@@ -412,7 +412,8 @@ export const authRouter = t.router({
 
       return {
         token,
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId }
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, municipalityId: user.municipalityId },
+        mustChangePassword: user.mustChangePassword || false,
       };
     }),
 
@@ -522,7 +523,7 @@ export const authRouter = t.router({
 
       validatePasswordStrength(input.newPassword);
       const passwordHash = await hash(input.newPassword, 12);
-      await db.update(users).set({ passwordHash }).where(eq(users.id, ctx.userId!));
+      await db.update(users).set({ passwordHash, mustChangePassword: false }).where(eq(users.id, ctx.userId!));
 
       return { success: true, message: 'Senha alterada com sucesso!' };
     }),
@@ -569,7 +570,7 @@ export const authRouter = t.router({
       let newPassword = '';
       for (let i = 0; i < 10; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
       const passwordHash = await hash(newPassword, 12);
-      await db.update(users).set({ passwordHash }).where(eq(users.id, input.userId));
+      await db.update(users).set({ passwordHash, mustChangePassword: true }).where(eq(users.id, input.userId));
       return { success: true, generatedPassword: newPassword };
     }),
 });

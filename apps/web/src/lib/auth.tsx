@@ -62,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    // Retornar se precisa trocar senha
+    return { mustChangePassword: result.mustChangePassword || false };
   };
 
   const logout = () => {

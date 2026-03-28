@@ -144,6 +144,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }).notNull().unique(),
   username: varchar("username", { length: 50 }),
   passwordHash: varchar("passwordHash", { length: 255 }),
+  mustChangePassword: boolean("mustChangePassword").default(false),
   openId: varchar("openId", { length: 64 }).unique(), // OAuth
 
   // Perfil

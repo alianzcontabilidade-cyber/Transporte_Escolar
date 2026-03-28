@@ -614,24 +614,24 @@ export default function Layout() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        {/* Search Bar - azul com campo branco */}
+        <div className="hidden lg:flex items-center gap-3 px-6 py-2.5 bg-primary-600 dark:bg-primary-700">
           <div className="relative flex-1 max-w-2xl">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
               placeholder="Buscar por nome, código ou palavra-chave... (ex: 102, alunos, nota)"
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-[0.9375rem] outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 rounded-xl text-[0.9375rem] outline-none focus:ring-2 focus:ring-accent-400 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
             {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
           </div>
-          {searchQuery.length >= 1 && <span className="text-sm text-gray-400">{searchResults.length} resultado(s)</span>}
+          {searchQuery.length >= 1 && <span className="text-sm text-white/70">{searchResults.length} resultado(s)</span>}
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             <NotificationDropdown />
-            <Link to="/perfil" className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Meu Perfil">
-              <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-xs font-bold text-white">{user?.name?.charAt(0)}</div>
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium hidden xl:block">{user?.name?.split(' ').slice(0, 2).join(' ')}</span>
+            <Link to="/perfil" className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Meu Perfil">
+              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white">{user?.name?.charAt(0)}</div>
+              <span className="text-sm text-white font-medium hidden xl:block">{user?.name?.split(' ').slice(0, 2).join(' ')}</span>
             </Link>
-            <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Sair do sistema">
+            <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-red-300 hover:bg-white/10 transition-colors" title="Sair do sistema">
               <LogOut size={16} />
               <span className="text-sm font-medium hidden xl:block">Sair</span>
             </button>

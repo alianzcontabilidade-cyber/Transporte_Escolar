@@ -16,6 +16,7 @@ import ModulesPage from './pages/ModulesPage';
 
 // Lazy loading - carrega sob demanda quando o usuario navega
 const RecoverPasswordPage = lazy(() => import('./pages/RecoverPasswordPage'));
+const ForceChangePasswordPage = lazy(() => import('./pages/ForceChangePasswordPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const RoutesPage = lazy(() => import('./pages/RoutesPage'));
 const StudentsPage = lazy(() => import('./pages/StudentsPage'));
@@ -195,6 +196,7 @@ export default function App() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/recuperar-senha" element={user ? <Navigate to="/" replace /> : <RecoverPasswordPage />} />
+      <Route path="/trocar-senha-obrigatoria" element={user ? <ForceChangePasswordPage /> : <Navigate to="/login" replace />} />
       <Route path="/transparencia" element={<TransparencyPage />} />
       <Route path="/verificar/:code" element={<Suspense fallback={<PageLoader />}><DocumentVerifyPage /></Suspense>} />
 

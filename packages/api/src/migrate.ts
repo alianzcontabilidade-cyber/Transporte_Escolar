@@ -386,6 +386,10 @@ async function migrate() {
     try { await conn.execute(`ALTER TABLE monitor_staff MODIFY COLUMN photoUrl LONGTEXT`); }
     catch { /* ignore */ }
 
+    // Username para login
+    try { await conn.execute(`ALTER TABLE users ADD COLUMN username VARCHAR(50) UNIQUE`); }
+    catch { /* already exists */ }
+
     // Chat: coluna deliveredAt para confirmação de entrega
     try { await conn.execute(`ALTER TABLE chat_messages ADD COLUMN deliveredAt TIMESTAMP NULL`); }
     catch { /* already exists */ }

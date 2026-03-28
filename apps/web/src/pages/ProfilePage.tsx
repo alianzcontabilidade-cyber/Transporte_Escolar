@@ -8,6 +8,7 @@ export default function ProfilePage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [form, setForm] = useState({
+    username: '',
     jobTitle: '',
     registrationNumber: '',
     decree: '',
@@ -32,6 +33,7 @@ export default function ProfilePage() {
       const data = await api.users.getProfile();
       setProfile(data);
       setForm({
+        username: data?.username || '',
         jobTitle: data?.jobTitle || '',
         registrationNumber: data?.registrationNumber || '',
         decree: data?.decree || '',
@@ -127,6 +129,19 @@ export default function ProfilePage() {
             Dados Profissionais / Assinatura Eletronica
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <User size={13} /> Nome de Login
+              </label>
+              <input
+                type="text"
+                value={form.username}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '') }))}
+                placeholder="Ex: ailton.brito"
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent-400"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Use para fazer login sem precisar digitar o email completo</p>
+            </div>
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 <Briefcase size={13} /> Cargo / Funcao

@@ -379,10 +379,10 @@ export const authRouter = t.router({
           .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, id)))
           .limit(1);
       } else {
-        // Buscar por email, nome exato ou nome case-insensitive
-        userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
+        // Buscar por username, email ou nome
+        userList = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${id})`).limit(1);
         if (userList.length === 0) {
-          userList = await db.select().from(users).where(eq(users.name, id)).limit(1);
+          userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
         }
         if (userList.length === 0) {
           userList = await db.select().from(users).where(sql`LOWER(${users.name}) = LOWER(${id})`).limit(1);
@@ -2330,6 +2330,7 @@ export const usersRouter = t.router({
 
   updateProfile: protectedProcedure
     .input(z.object({
+      username: z.string().optional(),
       jobTitle: z.string().optional(),
       registrationNumber: z.string().optional(),
       decree: z.string().optional(),
@@ -2350,7 +2351,7 @@ export const usersRouter = t.router({
     .query(async ({ ctx }) => {
       const [user] = await db.select({
         id: users.id, name: users.name, email: users.email, phone: users.phone,
-        cpf: users.cpf, role: users.role,
+        cpf: users.cpf, role: users.role, username: users.username,
         jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,
         decree: users.decree, department: users.department, qualification: users.qualification,
       }).from(users).where(eq(users.id, ctx.userId!)).limit(1);

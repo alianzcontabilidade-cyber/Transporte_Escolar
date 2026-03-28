@@ -142,9 +142,10 @@ export const users = mysqlTable("users", {
   
   // Autenticação
   email: varchar("email", { length: 320 }).notNull().unique(),
+  username: varchar("username", { length: 50 }),
   passwordHash: varchar("passwordHash", { length: 255 }),
   openId: varchar("openId", { length: 64 }).unique(), // OAuth
-  
+
   // Perfil
   name: varchar("name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),

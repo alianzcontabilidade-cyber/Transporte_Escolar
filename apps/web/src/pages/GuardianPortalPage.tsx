@@ -1244,6 +1244,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
   const [selectedType, setSelectedType] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [successCode, setSuccessCode] = useState('');
   const [munReport, setMunReport] = useState<any>(null);
   const [schoolsData, setSchoolsData] = useState<any[]>([]);
@@ -1293,7 +1294,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
   const manualTypes = types.filter((t: any) => !t.autoGenerate);
 
   async function generateAutoDoc(t: any) {
-    setSubmitting(true);
+    setGeneratingId(t.id);
     try {
       let html = '';
       const school = loadSchoolData(student.schoolId, schoolsData);
@@ -1311,9 +1312,16 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
       } else if (genKey === 'historico') {
         try { const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid }); html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs); } catch {}
       }
-      if (!html && t.template) {
-        const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
-        html = result?.html || '';
+      // Fallback: tentar gerar via backend (template do banco)
+      if (!html) {
+        try {
+          const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
+          html = result?.html || '';
+        } catch {}
+      }
+      if (!html) {
+        setSuccessCode('Erro: documento sem modelo configurado. Solicite ao administrador.');
+        return;
       }
       if (html) {
         const token = localStorage.getItem('token');
@@ -1328,7 +1336,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
         } else { const err = await res.json().catch(() => ({})); setSuccessCode('Erro: ' + (err.error || 'falha')); }
       } else { setSuccessCode('Erro: não foi possível gerar'); }
     } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha')); }
-    finally { setSubmitting(false); }
+    finally { setGeneratingId(null); }
   }
 
   const statusLabel: any = { pending: 'Pendente', processing: 'Em Processamento', ready: 'Pronta', rejected: 'Recusada', cancelled: 'Cancelada' };
@@ -1380,7 +1388,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
           <p className="text-xs text-gray-400 mb-3">Clique para baixar o PDF na hora</p>
           <div className="space-y-2">
             {autoTypes.map((t: any) => (
-              <button key={t.id} disabled={submitting} onClick={() => generateAutoDoc(t)}
+              <button key={t.id} disabled={generatingId !== null} onClick={() => generateAutoDoc(t)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl border hover:border-green-300 hover:bg-green-50 transition-colors text-left disabled:opacity-50">
                 <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
                   <FileText size={16} className="text-green-600" />
@@ -1390,7 +1398,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
                   {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1.5 rounded-lg flex-shrink-0">
-                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} PDF
+                  {generatingId === t.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} {generatingId === t.id ? 'Gerando...' : 'PDF'}
                 </div>
               </button>
             ))}

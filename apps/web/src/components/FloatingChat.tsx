@@ -232,7 +232,10 @@ export default function FloatingChat() {
       if (data?.senderName && data?.content) {
         const toast = document.createElement('div');
         toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:350px;padding:14px 18px;background:#1E40AF;color:white;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.3);font-family:Arial,sans-serif;font-size:13px;cursor:pointer;transform:translateX(120%);transition:transform 0.3s ease';
-        toast.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px">' + (data.senderName?.charAt(0) || '?') + '</div><div><b style="display:block;margin-bottom:2px">' + data.senderName + '</b><span style="opacity:0.85;font-size:12px">' + (data.content.length > 60 ? data.content.substring(0, 60) + '...' : data.content) + '</span></div></div>';
+        const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safeName = esc(data.senderName || '');
+        const safeContent = esc(data.content?.length > 60 ? data.content.substring(0, 60) + '...' : data.content || '');
+        toast.innerHTML = '<div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px">' + esc(safeName.charAt(0) || '?') + '</div><div><b style="display:block;margin-bottom:2px">' + safeName + '</b><span style="opacity:0.85;font-size:12px">' + safeContent + '</span></div></div>';
         toast.onclick = () => { toast.remove(); setPanel('chat-list'); loadConversations(); };
         document.body.appendChild(toast);
         requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
@@ -326,7 +329,9 @@ export default function FloatingChat() {
     } catch {}
   };
 
-  const renderMarkdown = (t: string) => t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+  // Sanitizar HTML para prevenir XSS antes de renderizar markdown
+  const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const renderMarkdown = (t: string) => escapeHtml(t).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
 
   // ====== CLOSED: Single floating button ======
   if (panel === 'closed') {

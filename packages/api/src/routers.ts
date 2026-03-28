@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { t, publicProcedure, protectedProcedure, adminProcedure, superAdminProcedure, staffProcedure, academicProcedure, validateOptionalCPF, validateOptionalCNPJ, JWT_SECRET } from './trpc';
+import { t, publicProcedure, protectedProcedure, adminProcedure, superAdminProcedure, staffProcedure, academicProcedure, validateOptionalCPF, validateOptionalCNPJ, validatePasswordStrength, JWT_SECRET } from './trpc';
 import { z } from 'zod';
 import { db } from './db/index';
 import {
@@ -165,6 +165,7 @@ export const authRouter = t.router({
         email: input.adminEmail,
       }).$returningId();
 
+      validatePasswordStrength(input.adminPassword);
       const passwordHash = await hash(input.adminPassword, 12);
       const [user] = await db.insert(users).values({
         municipalityId: municipality.id,
@@ -235,7 +236,7 @@ export const authRouter = t.router({
     .input(z.object({
       name: z.string().min(3),
       email: z.string().email(),
-      password: z.string().min(6),
+      password: z.string().min(8),
       phone: z.string().optional(),
       cpf: z.string().optional(),
       studentEnrollment: z.string().min(1),
@@ -282,6 +283,7 @@ export const authRouter = t.router({
         }
 
         // Create new user
+        validatePasswordStrength(input.password);
         const passwordHash = await hash(input.password, 12);
         const [user] = await db.insert(users).values({
           municipalityId: student.municipalityId,
@@ -475,7 +477,7 @@ export const authRouter = t.router({
     .input(z.object({
       resetToken: z.string(),
       code: z.string().length(6),
-      newPassword: z.string().min(6),
+      newPassword: z.string().min(8),
     }))
     .mutation(async ({ input }) => {
       let decoded: any;
@@ -493,6 +495,7 @@ export const authRouter = t.router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Código incorreto.' });
       }
 
+      validatePasswordStrength(input.newPassword);
       const passwordHash = await hash(input.newPassword, 12);
       await db.update(users).set({ passwordHash }).where(eq(users.id, decoded.userId));
 
@@ -503,7 +506,7 @@ export const authRouter = t.router({
   changePassword: protectedProcedure
     .input(z.object({
       currentPassword: z.string(),
-      newPassword: z.string().min(6),
+      newPassword: z.string().min(8),
     }))
     .mutation(async ({ ctx, input }) => {
       const [user] = await db.select().from(users).where(eq(users.id, ctx.userId!)).limit(1);
@@ -516,6 +519,7 @@ export const authRouter = t.router({
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha atual incorreta' });
       }
 
+      validatePasswordStrength(input.newPassword);
       const passwordHash = await hash(input.newPassword, 12);
       await db.update(users).set({ passwordHash }).where(eq(users.id, ctx.userId!));
 
@@ -2241,7 +2245,7 @@ export const usersRouter = t.router({
       name: z.string(),
       email: z.string().email(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).default('secretary'),
-      password: z.string().min(6),
+      password: z.string().min(8),
       cpf: z.string().optional(),
       phone: z.string().optional(),
       username: z.string().optional(),
@@ -2274,7 +2278,7 @@ export const usersRouter = t.router({
       name: z.string().optional(),
       email: z.string().email().optional(),
       role: z.enum(['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'driver', 'monitor', 'parent']).optional(),
-      password: z.string().min(6).optional(),
+      password: z.string().min(8).optional(),
       cpf: z.string().optional(),
       phone: z.string().optional(),
       municipalityId: z.number().optional(),

@@ -210,7 +210,19 @@ app.post('/api/pdf/generate', async (req, res) => {
     }
 
     // Assinatura automática pré-autorizada (sem senha - configurado pelo admin)
+    // Validação: só admins ou sistema interno podem usar systemAutoSignerId
     if (systemAutoSignerId && !autoSignUser) {
+      const callerRole = tokenData.role;
+      const allowedRoles = ['super_admin', 'municipal_admin', 'secretary', 'school_admin', 'parent'];
+      if (!allowedRoles.includes(callerRole)) {
+        return res.status(403).json({ error: 'Sem permissão para assinatura automática' });
+      }
+      // Verificar que o signerId está configurado em um declaration_type ativo (não aceita IDs arbitrários)
+      const [validConfig] = await db.select({ id: sql`id` }).from(sql`declaration_types`)
+        .where(sql`signerId = ${systemAutoSignerId} AND isActive = true AND systemAutoSign = true`).limit(1);
+      if (!validConfig) {
+        return res.status(403).json({ error: 'Assinante não autorizado para assinatura automática' });
+      }
       const [signer] = await db.select({
         id: users.id, name: users.name, cpf: users.cpf,
         role: users.role, jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,

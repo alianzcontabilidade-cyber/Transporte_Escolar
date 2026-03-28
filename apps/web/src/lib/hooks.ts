@@ -18,7 +18,7 @@ export function showToast(message: string, type: 'error' | 'success' | 'info' = 
   toast.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;max-width:420px;padding:14px 20px;background:${colors[type]};color:white;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.3);font-family:Arial,sans-serif;font-size:14px;line-height:1.5;display:flex;align-items:flex-start;gap:10px;animation:slideIn 0.3s ease`;
   toast.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">${icons[type]}</svg>
-    <div style="flex:1"><b style="display:block;margin-bottom:2px">${titles[type]}</b><span style="opacity:0.9;font-size:13px">${message}</span></div>
+    <div style="flex:1"><b style="display:block;margin-bottom:2px">${titles[type]}</b><span style="opacity:0.9;font-size:13px">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span></div>
     <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;font-size:18px;padding:0 4px">&times;</button>
   `;
   if (!document.getElementById('toast-style')) {

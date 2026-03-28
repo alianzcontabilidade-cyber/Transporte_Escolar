@@ -35,6 +35,22 @@ export function validateCNPJ(cnpj: string): boolean {
   return true;
 }
 
+// Validação de senha forte: mínimo 8 chars, letras, números e caractere especial
+export function validatePasswordStrength(password: string): void {
+  if (password.length < 8) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'A senha deve ter no mínimo 8 caracteres.' });
+  }
+  if (!/[a-zA-Z]/.test(password)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'A senha deve conter pelo menos uma letra.' });
+  }
+  if (!/[0-9]/.test(password)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'A senha deve conter pelo menos um número.' });
+  }
+  if (!/[^a-zA-Z0-9]/.test(password)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'A senha deve conter pelo menos um caractere especial (@, #, $, !, etc.).' });
+  }
+}
+
 export function validateOptionalCPF(cpf?: string): void {
   if (!cpf) return;
   const digits = cpf.replace(/\D/g, '');

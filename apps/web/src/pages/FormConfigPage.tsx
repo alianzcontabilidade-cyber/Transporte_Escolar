@@ -28,13 +28,17 @@ const MODULES = [
   { key: 'transporte', label: 'Transporte' },
 ];
 
-const DEFAULT_TEMPLATES: Record<string, { name: string; template: string; module: string }> = {
-  'decl_matricula': { name: 'Declaração de Matrícula', module: 'gestao_escolar', template: '<p>Declaramos, para os devidos fins, que <strong>{aluno}</strong>, portador(a) do CPF nº <strong>{cpf}</strong>, nascido(a) em <strong>{nascimento}</strong>, encontra-se devidamente matriculado(a) nesta unidade escolar, sob o nº de matrícula <strong>{matricula}</strong>, cursando o <strong>{serie}</strong>, turma <strong>{turma}</strong>, no turno <strong>{turno}</strong>, no ano letivo de <strong>{ano_letivo}</strong>.</p><p>Declaramos, ainda, que o(a) referido(a) aluno(a) frequenta regularmente as aulas.</p><p>Por ser verdade, firmamos a presente declaração.</p>' },
-  'decl_frequencia': { name: 'Declaração de Frequência', module: 'gestao_escolar', template: '<p>Declaramos, para os devidos fins, que <strong>{aluno}</strong>, matriculado(a) sob o nº <strong>{matricula}</strong>, no <strong>{serie}</strong>, turma <strong>{turma}</strong>, turno <strong>{turno}</strong>, é aluno(a) regularmente frequente nesta unidade escolar no ano letivo de <strong>{ano_letivo}</strong>.</p><p>Por ser verdade, firmamos a presente declaração.</p>' },
-  'decl_transferencia': { name: 'Declaração de Transferência', module: 'gestao_escolar', template: '<p>Declaramos, para os devidos fins, que <strong>{aluno}</strong>, portador(a) do CPF nº <strong>{cpf}</strong>, nascido(a) em <strong>{nascimento}</strong>, esteve matriculado(a) nesta unidade escolar sob o nº <strong>{matricula}</strong>, no <strong>{serie}</strong>, turma <strong>{turma}</strong>, turno <strong>{turno}</strong>, no ano letivo de <strong>{ano_letivo}</strong>, sendo transferido(a) a pedido do responsável.</p>' },
-  'atestado_escolaridade': { name: 'Atestado de Escolaridade', module: 'gestao_escolar', template: '<p>Atestamos, para os devidos fins, que <strong>{aluno}</strong>, portador(a) do CPF nº <strong>{cpf}</strong>, nascido(a) em <strong>{nascimento}</strong>, é aluno(a) desta unidade escolar, estando matriculado(a) no <strong>{serie}</strong>, turma <strong>{turma}</strong>, turno <strong>{turno}</strong>, no ano letivo de <strong>{ano_letivo}</strong>.</p>' },
-  'decl_transporte': { name: 'Declaração de Transporte Escolar', module: 'transporte', template: '<p>Declaramos, para os devidos fins, que <strong>{aluno}</strong>, matriculado(a) sob o nº <strong>{matricula}</strong>, no <strong>{serie}</strong>, turma <strong>{turma}</strong>, turno <strong>{turno}</strong>, da <strong>{escola}</strong>, residente no endereço <strong>{endereco}</strong>, utiliza o transporte escolar oferecido pelo Município de <strong>{municipio}</strong> no ano letivo de <strong>{ano_letivo}</strong>.</p>' },
-};
+// Relatórios do sistema que podem ser disponibilizados para o pai
+// generatorKey mapeia para a função em reportGenerators.ts
+const SYSTEM_REPORTS: { key: string; name: string; module: string; generatorKey: string; needsGrades?: boolean; needsHistory?: boolean; needsFrequency?: boolean }[] = [
+  { key: 'decl_escolaridade', name: 'Declaração de Escolaridade', module: 'gestao_escolar', generatorKey: 'declaracaoEscolaridade' },
+  { key: 'decl_frequencia', name: 'Declaração de Frequência', module: 'gestao_escolar', generatorKey: 'declaracaoFrequencia', needsFrequency: true },
+  { key: 'decl_transferencia', name: 'Declaração de Transferência', module: 'gestao_escolar', generatorKey: 'declaracaoTransferencia' },
+  { key: 'ficha_matricula', name: 'Ficha de Matrícula', module: 'gestao_escolar', generatorKey: 'fichaMatricula' },
+  { key: 'boletim', name: 'Boletim Escolar', module: 'gestao_escolar', generatorKey: 'boletim', needsGrades: true },
+  { key: 'historico', name: 'Histórico Escolar', module: 'gestao_escolar', generatorKey: 'historico', needsHistory: true },
+  { key: 'decl_transporte', name: 'Declaração de Transporte Escolar', module: 'transporte', generatorKey: 'declaracaoTransporte' },
+];
 
 type FieldState = Record<string, boolean>;
 type MainTab = 'documentos' | 'campos';
@@ -105,9 +109,9 @@ export default function FormConfigPage() {
   const moduleDocTypes = docTypes.filter(d => (d.module || 'gestao_escolar') === activeModule);
 
   function openNewDoc(key?: string) {
-    const tpl = key && DEFAULT_TEMPLATES[key] ? DEFAULT_TEMPLATES[key] : null;
+    const sysReport = key ? SYSTEM_REPORTS.find(r => r.key === key) : null;
     setEditDoc(null);
-    setDocForm({ name: tpl?.name || '', description: '', template: tpl?.template || '', autoGenerate: true, availableToParents: true, systemAutoSign: true, signerName: '', signerRole: '', signerId: '', module: tpl?.module || activeModule, documentKey: key || '' });
+    setDocForm({ name: sysReport?.name || '', description: '', template: '', autoGenerate: true, availableToParents: true, systemAutoSign: true, signerName: '', signerRole: '', signerId: '', module: sysReport?.module || activeModule, documentKey: key || '', generatorKey: sysReport?.generatorKey || '' });
     setShowDocModal(true);
   }
 
@@ -136,8 +140,8 @@ export default function FormConfigPage() {
     setPreviewHtml(tpl.replace(/\{aluno\}/gi, 'JOÃO SILVA').replace(/\{matricula\}/gi, '2026001').replace(/\{serie\}/gi, '5º Ano').replace(/\{turma\}/gi, 'A').replace(/\{turno\}/gi, 'Manhã').replace(/\{escola\}/gi, 'Escola Exemplo').replace(/\{cpf\}/gi, '123.456.789-00').replace(/\{nascimento\}/gi, '15/03/2015').replace(/\{endereco\}/gi, 'Rua Principal, 123').replace(/\{municipio\}/gi, 'Fátima').replace(/\{ano_letivo\}/gi, String(new Date().getFullYear())).replace(/\{data_atual\}/gi, new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })).replace(/\{data\}/gi, new Date().toLocaleDateString('pt-BR')).replace(/\{assinante_nome\}/gi, docForm.signerName || 'Assinante').replace(/\{assinante_cargo\}/gi, docForm.signerRole || 'Cargo'));
   }
 
-  // Modelos não cadastrados ainda
-  const missingTemplates = Object.entries(DEFAULT_TEMPLATES).filter(([key, tpl]) => tpl.module === activeModule && !docTypes.find(d => d.documentKey === key));
+  // Relatórios do sistema não cadastrados ainda
+  const missingReports = SYSTEM_REPORTS.filter(r => r.module === activeModule && !docTypes.find((d: any) => d.documentKey === r.key));
 
   const curFields = FIELD_LABELS[activeFormTab] || {};
   const curState = configs[activeFormTab] || {};
@@ -181,13 +185,13 @@ export default function FormConfigPage() {
             ))}
           </div>
 
-          {/* Modelos prontos não cadastrados */}
-          {missingTemplates.length > 0 && (
+          {/* Relatórios do sistema não cadastrados */}
+          {missingReports.length > 0 && (
             <div className="card mb-4 p-4">
-              <p className="text-sm text-gray-600 mb-2 flex items-center gap-1"><Zap size={14} className="text-amber-500" /> Modelos prontos disponíveis:</p>
+              <p className="text-sm text-gray-600 mb-2 flex items-center gap-1"><Zap size={14} className="text-amber-500" /> Relatórios disponíveis para ativar:</p>
               <div className="flex flex-wrap gap-2">
-                {missingTemplates.map(([key, tpl]) => (
-                  <button key={key} onClick={() => openNewDoc(key)} className="text-xs px-3 py-1.5 rounded-lg border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100">{tpl.name}</button>
+                {missingReports.map(r => (
+                  <button key={r.key} onClick={() => openNewDoc(r.key)} className="text-xs px-3 py-1.5 rounded-lg border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100">{r.name}</button>
                 ))}
               </div>
             </div>

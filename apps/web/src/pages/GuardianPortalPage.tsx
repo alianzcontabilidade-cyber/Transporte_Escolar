@@ -5,6 +5,9 @@ import { api } from '../lib/api';
 import { notifyUser, usePWAInstall } from '../lib/pwa';
 import { requestNotificationPermission } from '../lib/pushNotifications';
 import ChatWidget from '../components/ChatWidget';
+import { generateDeclaracaoEscolaridade, generateDeclaracaoFrequencia, generateDeclaracaoTransferencia, generateFichaMatricula, generateBoletimEscolar, generateHistoricoEscolar } from '../lib/reportGenerators';
+import { getMunicipalityReport } from '../lib/reportUtils';
+import { loadSchoolData } from '../lib/reportTemplate';
 import {
   GraduationCap, Calendar, ClipboardList, AlertTriangle,
   UtensilsCrossed, MessageCircle, FileText, Bus, User,
@@ -1215,6 +1218,14 @@ function MensagensView({ onBack }: { onBack: () => void }) {
 // =============================================
 // DECLARACOES VIEW
 // =============================================
+// Mapeamento de generatorKey → função geradora
+const GENERATORS: Record<string, (student: any, school: any, mun: any, sec: any, sigs: any[]) => string> = {
+  declaracaoEscolaridade: generateDeclaracaoEscolaridade,
+  declaracaoFrequencia: (s, sch, m, sec, sigs) => generateDeclaracaoFrequencia(s, sch, m, sec, sigs),
+  declaracaoTransferencia: generateDeclaracaoTransferencia,
+  fichaMatricula: generateFichaMatricula,
+};
+
 function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void }) {
   const { user } = useAuth();
   const mid = user?.municipalityId || 0;
@@ -1225,18 +1236,24 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successCode, setSuccessCode] = useState('');
+  const [munReport, setMunReport] = useState<any>(null);
+  const [schoolsData, setSchoolsData] = useState<any[]>([]);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
     try {
-      const [t, r] = await Promise.all([
+      const [t, r, mr, sch] = await Promise.all([
         api.declarations.types({ municipalityId: mid, onlyParent: true }),
         api.declarations.listRequests({ municipalityId: mid }),
+        getMunicipalityReport(mid, api),
+        api.schools.list({ municipalityId: mid }),
       ]);
       setTypes(t || []);
       setRequests((r || []).filter((req: any) => req.studentName === student.name));
+      setMunReport(mr);
+      setSchoolsData(sch || []);
     } catch {}
     finally { setLoading(false); }
   }
@@ -1298,13 +1315,14 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
         </div>
       </div>
 
-      {/* Declarações disponíveis */}
+      {/* Documentos disponíveis */}
       {types.length > 0 && (
         <div className="card mb-4 p-4">
-          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Declarações Disponíveis</h3>
+          <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-1.5"><FileText size={14} /> Documentos Disponíveis</h3>
           <div className="space-y-2 mb-4">
             {types.map((t: any) => {
-              const isAuto = t.autoGenerate && t.template;
+              const hasGenerator = t.documentKey && GENERATORS[t.documentKey?.replace('decl_', 'declaracao').replace('ficha_', 'ficha')] || (t.autoGenerate && t.template);
+              const isAuto = t.autoGenerate;
               return (
                 <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border hover:border-primary-200 transition-colors">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isAuto ? 'bg-green-100' : 'bg-gray-100'}`}>
@@ -1313,28 +1331,68 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800">{t.name}</p>
                     {t.description && <p className="text-[10px] text-gray-400">{t.description}</p>}
-                    {isAuto && <p className="text-[10px] text-green-600 font-medium">Geração automática</p>}
                   </div>
                   {isAuto ? (
                     <button onClick={async () => {
                       setSubmitting(true);
                       try {
-                        const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
-                        if (result?.html) {
+                        let html = '';
+                        const school = loadSchoolData(student.schoolId, schoolsData);
+                        const mun = munReport?.municipality;
+                        const sec = munReport?.secretaria;
+                        const sigs = t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : [];
+
+                        // Tentar usar função geradora do sistema
+                        const genKey = t.documentKey;
+                        if (genKey === 'decl_escolaridade') html = generateDeclaracaoEscolaridade(student, school, mun, sec, sigs);
+                        else if (genKey === 'decl_frequencia') html = generateDeclaracaoFrequencia(student, school, mun, sec, sigs);
+                        else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
+                        else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
+                        else if (genKey === 'boletim') {
+                          try {
+                            const grades = await api.studentGrades.reportCard({ studentId: student.id, municipalityId: mid });
+                            html = generateBoletimEscolar(student, grades || [], school, mun, sec, sigs);
+                          } catch { html = ''; }
+                        } else if (genKey === 'historico') {
+                          try {
+                            const history = await api.studentHistory.list({ studentId: student.id });
+                            html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs);
+                          } catch { html = ''; }
+                        }
+
+                        // Fallback: template do banco
+                        if (!html && t.template) {
+                          const result = await api.declarations.generatePdf({ declarationTypeId: t.id, studentId: student.id, municipalityId: mid });
+                          html = result?.html || '';
+                        }
+
+                        if (html) {
                           const token = localStorage.getItem('token');
                           const res = await fetch(`${window.location.origin}/api/pdf/generate`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({ html: result.html, orientation: 'portrait', docType: 'declaracao', docTitle: result.title, systemAutoSignerId: result.systemAutoSignerId }),
+                            body: JSON.stringify({
+                              html, orientation: 'portrait',
+                              docType: t.name.toLowerCase().includes('boletim') ? 'boletim' : 'declaracao',
+                              docTitle: `${t.name} - ${student.name}`,
+                              systemAutoSignerId: t.systemAutoSign && t.signerId ? t.signerId : undefined,
+                              studentId: student.id,
+                            }),
                           });
                           if (res.ok) {
                             const blob = await res.blob();
                             const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a'); a.href = url; a.download = `${t.name.replace(/\s/g, '_')}_${student.name.split(' ')[0]}.pdf`; a.click();
-                            URL.revokeObjectURL(url);
+                            const a = document.createElement('a'); a.href = url;
+                            a.download = `${t.name.replace(/\s/g, '_')}_${student.name.split(' ')[0]}.pdf`;
+                            a.click(); URL.revokeObjectURL(url);
                             setSuccessCode('PDF gerado com sucesso!');
+                          } else {
+                            const err = await res.json().catch(() => ({}));
+                            setSuccessCode('Erro: ' + (err.error || 'falha ao gerar PDF'));
                           }
+                        } else {
+                          setSuccessCode('Erro: não foi possível gerar o documento');
                         }
-                      } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha ao gerar')); }
+                      } catch (err: any) { setSuccessCode('Erro: ' + (err.message || 'falha')); }
                       finally { setSubmitting(false); }
                     }} disabled={submitting} className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 disabled:opacity-50 flex items-center gap-1">
                       {submitting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Gerar PDF
@@ -1349,7 +1407,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
             })}
           </div>
 
-          {/* Formulário de solicitação manual (quando não auto) */}
+          {/* Formulário de solicitação manual */}
           {selectedType && (() => { const t = types.find((t: any) => String(t.id) === selectedType); return t && !t.autoGenerate; })() && (
             <div className="border-t pt-3">
               <p className="text-sm font-medium text-gray-700 mb-2">Solicitar: {types.find((t: any) => String(t.id) === selectedType)?.name}</p>

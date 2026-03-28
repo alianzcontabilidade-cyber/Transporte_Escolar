@@ -416,112 +416,35 @@ app.get('/api/documents/verify/:code', async (req, res) => {
   }
 });
 
-// Seed endpoint temporário para dados acadêmicos de teste
+// Seed endpoint - dados acadêmicos de teste (SQL puro)
 app.get('/api/seed-academic', async (_req, res) => {
   try {
-    const MUN_ID = 1;
-    const YEAR = 2026;
-    const studentsInfo = [
-      { id: 1, schoolId: 2, grade: '8º ANO' },
-      { id: 2, schoolId: 3, grade: '8º ANO' },
-      { id: 3, schoolId: 2, grade: '8º ANO' },
-    ];
-    const subjectNames = ['Língua Portuguesa', 'Matemática', 'Ciências', 'História', 'Geografia', 'Inglês', 'Educação Física', 'Artes'];
     const log: string[] = [];
+    const r = async (q: string) => { try { await (db as any).execute(sql.raw(q)); return true; } catch(e: any) { log.push('ERR: ' + e.message?.substring(0,80)); return false; } };
 
-    // Turmas
-    for (const sid of [2, 3]) {
-      const ex = await db.select().from(classes).where(and(eq(classes.schoolId, sid), eq(classes.grade, '8º ANO'), eq(classes.year, YEAR))).limit(1);
-      if (ex.length === 0) {
-        await db.insert(classes).values({ schoolId: sid, grade: '8º ANO', name: 'A', shift: 'morning', year: YEAR, municipalityId: MUN_ID } as any);
-        log.push(`Turma 8º ANO criada (escola ${sid})`);
-      }
-    }
-
-    const allClasses = await db.select().from(classes).where(and(eq(classes.municipalityId, MUN_ID), eq(classes.year, YEAR)));
-    log.push(`${allClasses.length} turma(s)`);
-
-    // Disciplinas
-    for (const name of subjectNames) {
-      const ex = await db.select().from(subjects).where(and(eq(subjects.name, name), eq(subjects.municipalityId, MUN_ID))).limit(1);
-      if (ex.length === 0) await db.insert(subjects).values({ name, municipalityId: MUN_ID } as any);
-    }
-    const allSubjects = await db.select().from(subjects).where(eq(subjects.municipalityId, MUN_ID));
-    log.push(`${allSubjects.length} disciplina(s)`);
-
-    // Vincular disciplinas
-    for (const cls of allClasses) {
-      for (const subj of allSubjects) {
-        try {
-          const ex = await db.select().from(classSubjects).where(and(eq(classSubjects.classId, cls.id), eq(classSubjects.subjectId, subj.id))).limit(1);
-          if (ex.length === 0) await db.insert(classSubjects).values({ classId: cls.id, subjectId: subj.id } as any);
-        } catch {}
-      }
-    }
-
-    // Matrículas
-    for (const s of studentsInfo) {
-      const cls = allClasses.find(c => c.schoolId === s.schoolId);
-      if (!cls) continue;
-      const ex = await db.select().from(enrollments).where(and(eq(enrollments.studentId, s.id), eq(enrollments.classId, cls.id))).limit(1);
-      if (ex.length === 0) {
-        await db.insert(enrollments).values({ studentId: s.id, classId: cls.id, municipalityId: MUN_ID, schoolId: s.schoolId, year: YEAR, status: 'active' } as any);
-        log.push(`Aluno ${s.id} matriculado`);
-      }
-    }
-
-    // Avaliações
-    let assCount = 0;
-    for (const cls of allClasses) {
-      for (const subj of allSubjects) {
-        for (let bim = 1; bim <= 4; bim++) {
-          const ex = await db.select().from(assessments).where(and(eq(assessments.classId, cls.id), eq(assessments.subjectId, subj.id), eq(assessments.bimester, bim))).limit(1);
-          if (ex.length === 0) {
-            await db.insert(assessments).values({ classId: cls.id, subjectId: subj.id, name: `Prova ${bim}º Bim`, type: 'exam', bimester: bim, maxScore: 10, weight: 1, isActive: true, municipalityId: MUN_ID } as any);
-            assCount++;
-          }
-        }
-      }
-    }
-    const allAss = await db.select().from(assessments).where(eq(assessments.municipalityId, MUN_ID));
-    log.push(`${allAss.length} avaliações (${assCount} novas)`);
-
-    // Notas
-    let gradeCount = 0;
-    for (const s of studentsInfo) {
-      const cls = allClasses.find(c => c.schoolId === s.schoolId);
-      if (!cls) continue;
-      const classAss = allAss.filter(a => a.classId === cls.id);
-      for (const ass of classAss) {
-        const ex = await db.select().from(studentGrades).where(and(eq(studentGrades.studentId, s.id), eq(studentGrades.assessmentId, ass.id))).limit(1);
-        if (ex.length === 0) {
-          const score = Math.round((60 + Math.random() * 40)) / 10;
-          await db.insert(studentGrades).values({ studentId: s.id, assessmentId: ass.id, score, municipalityId: MUN_ID } as any);
-          gradeCount++;
-        }
-      }
-    }
-    log.push(`${gradeCount} notas inseridas`);
-
-    // Frequência
-    let attCount = 0;
-    for (const s of studentsInfo) {
-      const cls = allClasses.find(c => c.schoolId === s.schoolId);
-      if (!cls) continue;
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        const dateStr = d.toISOString().split('T')[0];
-        try {
-          const ex = await db.select().from(dailyAttendance).where(and(eq(dailyAttendance.studentId, s.id), eq(dailyAttendance.date, dateStr as any))).limit(1);
-          if (ex.length === 0) {
-            await db.insert(dailyAttendance).values({ studentId: s.id, classId: cls.id, municipalityId: MUN_ID, date: dateStr, status: Math.random() > 0.1 ? 'present' : 'absent' } as any);
-            attCount++;
-          }
-        } catch {}
-      }
-    }
-    log.push(`${attCount} registros de frequência`);
+    await r(`INSERT IGNORE INTO academic_years (municipalityId, name, startDate, endDate, isCurrent) VALUES (1, '2026', '2026-02-03', '2026-12-20', true)`);
+    const [[ay]] = await (db as any).execute(sql.raw(`SELECT id FROM academic_years WHERE municipalityId=1 ORDER BY id DESC LIMIT 1`)) as any;
+    await r(`INSERT IGNORE INTO class_grades (municipalityId, name, level, orderIndex) VALUES (1, '8o Ano', 'fundamental2', 8)`);
+    const [[cg]] = await (db as any).execute(sql.raw(`SELECT id FROM class_grades WHERE municipalityId=1 ORDER BY id DESC LIMIT 1`)) as any;
+    log.push('ay=' + ay?.id + ' cg=' + cg?.id);
+    for (const sid of [2, 3]) await r(`INSERT IGNORE INTO classes (municipalityId, schoolId, academicYearId, classGradeId, name, classShift) VALUES (1, ${sid}, ${ay?.id}, ${cg?.id}, 'A', 'morning')`);
+    const [clsRows] = await (db as any).execute(sql.raw(`SELECT id, schoolId FROM classes WHERE municipalityId=1`)) as any;
+    log.push(clsRows?.length + ' turmas');
+    for (const n of ['Portugues','Matematica','Ciencias','Historia','Geografia','Ingles','Ed Fisica','Artes']) await r(`INSERT IGNORE INTO subjects (municipalityId, name) VALUES (1, '${n}')`);
+    const [subjRows] = await (db as any).execute(sql.raw(`SELECT id FROM subjects WHERE municipalityId=1`)) as any;
+    log.push(subjRows?.length + ' disciplinas');
+    for (const c of (clsRows||[])) for (const s of (subjRows||[])) await r(`INSERT IGNORE INTO class_subjects (classId, subjectId) VALUES (${c.id}, ${s.id})`);
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (c) await r(`INSERT IGNORE INTO enrollments (studentId, classId, municipalityId, schoolId, year, status) VALUES (${sid}, ${c.id}, 1, ${schId}, 2026, 'active')`); }
+    log.push('matriculas ok');
+    for (const c of (clsRows||[])) for (const s of (subjRows||[])) for (const b of ['1','2','3','4']) await r(`INSERT IGNORE INTO assessments (classId, subjectId, name, type, bimester, maxScore, weight, isActive, municipalityId) VALUES (${c.id}, ${s.id}, 'Prova ${b}Bim', 'exam', '${b}', 10, 1, true, 1)`);
+    const [assRows] = await (db as any).execute(sql.raw(`SELECT id, classId FROM assessments WHERE municipalityId=1`)) as any;
+    log.push(assRows?.length + ' avaliacoes');
+    let gc = 0;
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (const a of (assRows||[]).filter((x: any) => x.classId === c.id)) { if (await r(`INSERT IGNORE INTO student_grades (studentId, assessmentId, score, municipalityId) VALUES (${sid}, ${a.id}, ${(6+Math.random()*4).toFixed(1)}, 1)`)) gc++; } }
+    log.push(gc + ' notas');
+    let ac = 0;
+    for (const [sid, schId] of [[1,2],[2,3],[3,2]]) { const c = (clsRows||[]).find((x: any) => x.schoolId === schId); if (!c) continue; for (let i=1;i<=30;i++) { const d=new Date();d.setDate(d.getDate()-i); if(d.getDay()===0||d.getDay()===6)continue; const ds=d.toISOString().split('T')[0]; if(await r(`INSERT IGNORE INTO daily_attendance (studentId, classId, municipalityId, date, status) VALUES (${sid}, ${c.id}, 1, '${ds}', '${Math.random()>0.1?'present':'absent'}')`)) ac++; } }
+    log.push(ac + ' frequencia');
 
     res.json({ success: true, log });
   } catch (e: any) {

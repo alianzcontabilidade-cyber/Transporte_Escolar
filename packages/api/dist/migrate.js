@@ -419,6 +419,82 @@ async function migrate() {
             await conn.execute(`ALTER TABLE drivers ADD COLUMN homeLongitude DECIMAL(11,8)`);
         }
         catch { /* already exists */ }
+        // Alterar colunas de foto para LONGTEXT (TEXT=65KB, insuficiente para Base64 de fotos)
+        try {
+            await conn.execute(`ALTER TABLE students MODIFY COLUMN photoUrl LONGTEXT`);
+        }
+        catch { /* ignore */ }
+        try {
+            await conn.execute(`ALTER TABLE drivers MODIFY COLUMN photo LONGTEXT`);
+        }
+        catch { /* ignore */ }
+        try {
+            await conn.execute(`ALTER TABLE monitor_staff MODIFY COLUMN photoUrl LONGTEXT`);
+        }
+        catch { /* ignore */ }
+        // Chat: coluna deliveredAt para confirmação de entrega
+        try {
+            await conn.execute(`ALTER TABLE chat_messages ADD COLUMN deliveredAt TIMESTAMP NULL`);
+        }
+        catch { /* already exists */ }
+        // Tipos de declarações
+        try {
+            await conn.execute(`CREATE TABLE IF NOT EXISTS declaration_types (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      municipalityId INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      template TEXT,
+      autoGenerate BOOLEAN DEFAULT FALSE,
+      signerId INT,
+      signerName VARCHAR(255),
+      signerRole VARCHAR(255),
+      isActive BOOLEAN DEFAULT TRUE NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+      FOREIGN KEY (signerId) REFERENCES users(id)
+    )`);
+        }
+        catch { /* already exists */ }
+        // Novos campos para declaration_types (central de documentos)
+        const dtNewCols = [
+            "module VARCHAR(50) DEFAULT 'gestao_escolar'",
+            "documentKey VARCHAR(100)",
+            "availableToParents BOOLEAN DEFAULT FALSE",
+            "systemAutoSign BOOLEAN DEFAULT FALSE",
+            "sortOrder INT DEFAULT 0",
+        ];
+        for (const col of dtNewCols) {
+            try {
+                await conn.execute(`ALTER TABLE declaration_types ADD COLUMN ${col}`);
+            }
+            catch { /* already exists */ }
+        }
+        // Solicitações de declarações
+        try {
+            await conn.execute(`CREATE TABLE IF NOT EXISTS declaration_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      municipalityId INT NOT NULL,
+      declarationTypeId INT NOT NULL,
+      studentId INT NOT NULL,
+      requestedById INT NOT NULL,
+      requestCode VARCHAR(20) NOT NULL,
+      status ENUM('pending','processing','ready','rejected','cancelled') DEFAULT 'pending' NOT NULL,
+      notes TEXT,
+      responseNotes TEXT,
+      documentId INT,
+      respondedById INT,
+      respondedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (municipalityId) REFERENCES municipalities(id),
+      FOREIGN KEY (declarationTypeId) REFERENCES declaration_types(id),
+      FOREIGN KEY (studentId) REFERENCES students(id),
+      FOREIGN KEY (requestedById) REFERENCES users(id),
+      FOREIGN KEY (respondedById) REFERENCES users(id)
+    )`);
+        }
+        catch { /* already exists */ }
         console.log('Migration complete');
     }
     catch (err) {

@@ -576,9 +576,12 @@ export default function Layout() {
           <img src="/logo.png" alt="NetEscol" className="h-6 w-auto" />
           <div className="flex items-center gap-2">
             <NotificationDropdown />
-            <div className="w-7 h-7 rounded-full bg-accent-500 flex items-center justify-center text-xs font-bold text-white">
+            <Link to="/perfil" className="w-7 h-7 rounded-full bg-accent-500 flex items-center justify-center text-xs font-bold text-white">
               {user?.name?.charAt(0)}
-            </div>
+            </Link>
+            <button onClick={logout} className="p-1.5 rounded-lg text-white/60 hover:text-red-300 hover:bg-red-500/20 transition-colors" title="Sair">
+              <LogOut size={16} />
+            </button>
           </div>
         </header>
 
@@ -622,6 +625,17 @@ export default function Layout() {
             {searchQuery && <button onClick={() => { setSearchQuery(''); setSearchOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16} /></button>}
           </div>
           {searchQuery.length >= 1 && <span className="text-sm text-gray-400">{searchResults.length} resultado(s)</span>}
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            <NotificationDropdown />
+            <Link to="/perfil" className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Meu Perfil">
+              <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-xs font-bold text-white">{user?.name?.charAt(0)}</div>
+              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium hidden xl:block">{user?.name?.split(' ').slice(0, 2).join(' ')}</span>
+            </Link>
+            <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Sair do sistema">
+              <LogOut size={16} />
+              <span className="text-sm font-medium hidden xl:block">Sair</span>
+            </button>
+          </div>
         </div>
 
         {/* Page Header with code */}

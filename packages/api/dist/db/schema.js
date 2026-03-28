@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.departments = exports.positions = exports.lessonPlans = exports.studentGrades = exports.assessments = exports.dailyAttendance = exports.teachersRelations = exports.enrollmentsRelations = exports.classSubjectsRelations = exports.subjectsRelations = exports.classesRelations = exports.classGradesRelations = exports.academicYearsRelations = exports.teachers = exports.enrollments = exports.classSubjects = exports.subjects = exports.classes = exports.classGrades = exports.academicYears = exports.tripsRelations = exports.stopsRelations = exports.routesRelations = exports.studentsRelations = exports.driversRelations = exports.usersRelations = exports.schoolsRelations = exports.municipalitiesRelations = exports.maintenanceRecords = exports.fuelRecords = exports.contracts = exports.monitorStaff = exports.auditLogs = exports.systemSettings = exports.locationHistory = exports.notifications = exports.tripStudentLogs = exports.tripStopLogs = exports.trips = exports.stopStudents = exports.stops = exports.routes = exports.guardians = exports.students = exports.drivers = exports.vehicles = exports.users = exports.schools = exports.municipalityResponsibles = exports.municipalities = void 0;
-exports.pushTokens = exports.garages = exports.serviceOrders = exports.suppliers = exports.protocols = exports.bulletins = exports.classSchedules = exports.vehicleInspections = exports.chatMessages = exports.chatConversations = exports.classCouncilRecords = exports.quotationItems = exports.quotations = exports.events = exports.studentOccurrences = exports.formFieldConfigs = exports.documentSignatures = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
+exports.pushTokens = exports.garages = exports.serviceOrders = exports.suppliers = exports.protocols = exports.bulletins = exports.classSchedules = exports.vehicleInspections = exports.declarationRequests = exports.declarationTypes = exports.chatMessages = exports.chatConversations = exports.classCouncilRecords = exports.quotationItems = exports.quotations = exports.events = exports.studentOccurrences = exports.formFieldConfigs = exports.documentSignatures = exports.documents = exports.studentHistory = exports.waitingList = exports.messages = exports.studentDocuments = exports.schoolCalendar = exports.descriptiveReports = exports.inventoryMovements = exports.inventoryItems = exports.assets = exports.libraryLoans = exports.libraryBooks = exports.mealMenus = exports.financialTransactions = exports.financialAccounts = exports.staffEvaluations = exports.staffAllocations = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 // ============================================
@@ -1428,7 +1428,48 @@ exports.chatMessages = (0, mysql_core_1.mysqlTable)("chat_messages", {
     content: (0, mysql_core_1.text)("content").notNull(),
     isRead: (0, mysql_core_1.boolean)("isRead").default(false),
     readAt: (0, mysql_core_1.timestamp)("readAt"),
+    deliveredAt: (0, mysql_core_1.timestamp)("deliveredAt"),
     createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: TIPOS DE DECLARAÇÕES
+// ============================================
+exports.declarationTypes = (0, mysql_core_1.mysqlTable)("declaration_types", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    module: (0, mysql_core_1.varchar)("module", { length: 50 }).default("gestao_escolar"),
+    documentKey: (0, mysql_core_1.varchar)("documentKey", { length: 100 }),
+    name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    description: (0, mysql_core_1.text)("description"),
+    template: (0, mysql_core_1.text)("template"),
+    autoGenerate: (0, mysql_core_1.boolean)("autoGenerate").default(false),
+    availableToParents: (0, mysql_core_1.boolean)("availableToParents").default(false),
+    systemAutoSign: (0, mysql_core_1.boolean)("systemAutoSign").default(false),
+    signerId: (0, mysql_core_1.int)("signerId").references(() => exports.users.id),
+    signerName: (0, mysql_core_1.varchar)("signerName", { length: 255 }),
+    signerRole: (0, mysql_core_1.varchar)("signerRole", { length: 255 }),
+    isActive: (0, mysql_core_1.boolean)("isActive").default(true).notNull(),
+    sortOrder: (0, mysql_core_1.int)("sortOrder").default(0),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+});
+// ============================================
+// TABELA: SOLICITAÇÕES DE DECLARAÇÕES
+// ============================================
+exports.declarationRequests = (0, mysql_core_1.mysqlTable)("declaration_requests", {
+    id: (0, mysql_core_1.int)("id").autoincrement().primaryKey(),
+    municipalityId: (0, mysql_core_1.int)("municipalityId").notNull().references(() => exports.municipalities.id),
+    declarationTypeId: (0, mysql_core_1.int)("declarationTypeId").notNull().references(() => exports.declarationTypes.id),
+    studentId: (0, mysql_core_1.int)("studentId").notNull().references(() => exports.students.id),
+    requestedById: (0, mysql_core_1.int)("requestedById").notNull().references(() => exports.users.id),
+    requestCode: (0, mysql_core_1.varchar)("requestCode", { length: 20 }).notNull(),
+    status: (0, mysql_core_1.mysqlEnum)("status", ["pending", "processing", "ready", "rejected", "cancelled"]).default("pending").notNull(),
+    notes: (0, mysql_core_1.text)("notes"),
+    responseNotes: (0, mysql_core_1.text)("responseNotes"),
+    documentId: (0, mysql_core_1.int)("documentId"),
+    respondedById: (0, mysql_core_1.int)("respondedById").references(() => exports.users.id),
+    respondedAt: (0, mysql_core_1.timestamp)("respondedAt"),
+    createdAt: (0, mysql_core_1.timestamp)("createdAt").defaultNow().notNull(),
+    updatedAt: (0, mysql_core_1.timestamp)("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 // ============================================
 // TABELA: VISTORIAS DE VEÍCULOS

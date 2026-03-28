@@ -73,6 +73,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Timeout de inatividade — 30 minutos sem interação = logout automático
+  useEffect(() => {
+    if (!token) return;
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutos
+    let timer: ReturnType<typeof setTimeout>;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        logout();
+        window.location.href = '/login?reason=inactivity';
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+    events.forEach(e => window.addEventListener(e, resetTimer));
+    resetTimer(); // Iniciar timer
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [token]);
+
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>
       {children}

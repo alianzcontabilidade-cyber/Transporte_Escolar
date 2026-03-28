@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const inactivity = new URLSearchParams(window.location.search).get('reason') === 'inactivity';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,6 +110,12 @@ export default function LoginPage() {
               <p className="text-gray-500 mt-1">Acesse sua conta para continuar</p>
             </div>
 
+            {inactivity && !error && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-start gap-2">
+                <Shield size={16} className="mt-0.5 flex-shrink-0" />
+                <span>Sua sessão expirou por inatividade. Faça login novamente.</span>
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-start gap-2">
                 <Shield size={16} className="mt-0.5 flex-shrink-0" />

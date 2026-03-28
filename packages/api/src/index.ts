@@ -439,7 +439,8 @@ app.get('/api/documents/verify/:code', async (req, res) => {
       })),
     });
   } catch (e: any) {
-    res.status(500).json({ valid: false, message: 'Erro ao verificar: ' + e.message });
+    console.error('Erro ao verificar documento:', e.message);
+    res.status(500).json({ valid: false, message: 'Erro ao verificar documento. Tente novamente.' });
   }
 });
 
@@ -503,14 +504,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('stop:arrived', (data: any) => {
-    if (data.municipalityId) {
-      io.to(`municipality:${data.municipalityId}`).emit('stop:arrived', data);
+    const munId = socketUser.municipalityId;
+    if (munId) {
+      io.to(`municipality:${munId}`).emit('stop:arrived', data);
     }
   });
 
   socket.on('student:boarded', (data: any) => {
-    if (data.municipalityId) {
-      io.to(`municipality:${data.municipalityId}`).emit('student:boarded', data);
+    const munId = socketUser.municipalityId;
+    if (munId) {
+      io.to(`municipality:${munId}`).emit('student:boarded', data);
     }
   });
 

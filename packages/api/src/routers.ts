@@ -24,7 +24,7 @@ import {
 import { eq, and, or, desc, gte, lte, sql, inArray, like } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import { emitToMunicipality, emitToUser } from './socketInstance';
 import { haversineDistance, optimizeStopOrder, analyzeRoute, clusterStudents, clarkeWrightGrouping, dbscanCluster, twoOptImprove } from './services/routeOptimizer';
 import { sendPushToUser, notifyTripStarted, notifyTripCompleted, notifyTripCancelled, notifyTripInterrupted, notifyStudentBoarded, notifyStudentDropped, notifyStudentAbsent } from './services/pushService';
@@ -448,7 +448,7 @@ export const authRouter = t.router({
       }
 
       // Gerar código de 6 dígitos
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = String(randomInt(100000, 999999));
       // Gerar token JWT de curta duração (15 min) contendo userId e code
       const resetToken = sign(
         { userId: user.id, code, purpose: 'password_reset' },
@@ -464,12 +464,12 @@ export const authRouter = t.router({
         type: 'system',
       });
 
-      // Em produção, aqui enviaria email/SMS com o código
-      // Por enquanto, retorna o token para uso direto
+      // O código foi enviado como notificação. O resetToken é necessário para o próximo passo.
+      // O código NÃO está na resposta — só na notificação do sistema.
       return {
         success: true,
         resetToken,
-        message: 'Código de recuperação gerado. Verifique suas notificações.',
+        message: 'Código de recuperação enviado. Verifique suas notificações ou solicite ao administrador.',
         userHint: user.email ? user.email.replace(/(.)(.*)(@.*)/, '$1***$3') : undefined,
       };
     }),
@@ -568,7 +568,7 @@ export const authRouter = t.router({
       }
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
       let newPassword = '';
-      for (let i = 0; i < 10; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+      for (let i = 0; i < 10; i++) newPassword += chars.charAt(randomInt(0, chars.length));
       const passwordHash = await hash(newPassword, 12);
       await db.update(users).set({ passwordHash, mustChangePassword: true }).where(eq(users.id, input.userId));
       return { success: true, generatedPassword: newPassword };
@@ -2093,7 +2093,7 @@ export const driversRouter = t.router({
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
       const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@motorista.netescol.local');
-      const pwd = input.password || 'Trans@' + Math.floor(1000 + Math.random() * 9000);
+      const pwd = input.password || 'Trans@' + randomInt(10000, 99999);
       const passwordHash = await hash(pwd, 12);
 
       try {
@@ -4134,7 +4134,7 @@ export const teachersRouter = t.router({
     .mutation(async ({ input }) => {
       validateOptionalCPF(input.cpf);
       const email = input.email || (input.name.toLowerCase().replace(/\s+/g, '.') + '@professor.netescol.local');
-      const pwd = input.password || 'Prof@' + Math.floor(1000 + Math.random() * 9000);
+      const pwd = input.password || 'Prof@' + randomInt(10000, 99999);
       const passwordHash = await hash(pwd, 12);
 
       try {

@@ -75,12 +75,9 @@ export function validateOptionalCNPJ(cnpj?: string): void {
 
 // JWT Secret - OBRIGATÓRIO via variável de ambiente
 export const JWT_SECRET = process.env.JWT_SECRET || '';
-if (!JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('FATAL: JWT_SECRET não definido. Configure a variável de ambiente.');
-    process.exit(1);
-  }
-  console.warn('AVISO: JWT_SECRET não definido. Configure no arquivo .env');
+if (!JWT_SECRET || JWT_SECRET.length < 16) {
+  console.error('FATAL: JWT_SECRET não definido ou muito curto (mínimo 16 caracteres). Configure a variável de ambiente.');
+  process.exit(1);
 }
 
 // tRPC init

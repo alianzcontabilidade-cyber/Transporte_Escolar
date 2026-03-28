@@ -379,11 +379,13 @@ export const authRouter = t.router({
           .where(or(eq(users.cpf, cpfClean), eq(users.cpf, cpfFormatted), eq(users.cpf, id)))
           .limit(1);
       } else {
-        // Buscar por email (caso não tenha @, pode ser username-style)
+        // Buscar por email, nome exato ou nome case-insensitive
         userList = await db.select().from(users).where(eq(users.email, id)).limit(1);
-        // Se não achou por email, tenta por nome exato
         if (userList.length === 0) {
           userList = await db.select().from(users).where(eq(users.name, id)).limit(1);
+        }
+        if (userList.length === 0) {
+          userList = await db.select().from(users).where(sql`LOWER(${users.name}) = LOWER(${id})`).limit(1);
         }
       }
 

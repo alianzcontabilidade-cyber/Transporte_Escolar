@@ -1308,9 +1308,32 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
       else if (genKey === 'decl_transferencia') html = generateDeclaracaoTransferencia(student, school, mun, sec, sigs);
       else if (genKey === 'ficha_matricula') html = generateFichaMatricula(student, school, mun, sec, sigs);
       else if (genKey === 'boletim') {
-        try { const rc = await api.guardians.studentReportCard({ studentId: student.id }); html = generateBoletimEscolar(student, rc?.subjects || [], school, mun, sec, sigs); } catch (e: any) { console.error('Boletim:', e.message); }
+        try {
+          const rc = await api.guardians.studentReportCard({ studentId: student.id });
+          // Transformar formato do studentReportCard para o formato do generateBoletimEscolar
+          const grades = (rc?.subjects || []).map((s: any) => {
+            const bims = s.bimesters || {};
+            return {
+              subject: s.subjectName,
+              b1: bims['1']?.average || null,
+              b2: bims['2']?.average || null,
+              b3: bims['3']?.average || null,
+              b4: bims['4']?.average || null,
+              faltas: 0,
+            };
+          });
+          html = generateBoletimEscolar(student, grades, school, mun, sec, sigs);
+        } catch {}
       } else if (genKey === 'historico') {
-        try { const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid }); html = generateHistoricoEscolar(student, history || [], school, mun, sec, sigs); } catch {}
+        try {
+          const history = await api.studentHistory.list({ studentId: student.id, municipalityId: mid });
+          // Transformar formato do studentHistory para o formato do generateHistoricoEscolar
+          const histFormatted = (history || []).map((h: any) => ({
+            year: h.year, grade: h.grade, school: h.schoolName,
+            result: h.result || 'Aprovado',
+          }));
+          html = generateHistoricoEscolar(student, histFormatted, school, mun, sec, sigs);
+        } catch {}
       }
       // Fallback: tentar gerar via backend (template do banco)
       if (!html) {

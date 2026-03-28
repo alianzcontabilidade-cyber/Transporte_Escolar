@@ -331,9 +331,6 @@ export default function GuardianPortalPage() {
               </h1>
               <p className="text-gray-500 text-sm">Portal do Responsável - NetEscol</p>
             </div>
-            <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Sair">
-              <LogOut size={20} />
-            </button>
           </div>
 
           {/* Notification permission banner */}
@@ -1300,7 +1297,8 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
       const school = loadSchoolData(student.schoolId, schoolsData);
       const mun = munReport?.municipality;
       const sec = munReport?.secretaria;
-      const sigs = (t.systemAutoSign && t.signerId) ? [] : (t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : []);
+      // No portal do pai, nunca incluir assinatura manual - o bloco eletrônico é injetado pelo backend
+      const sigs: any[] = [];
 
       const genKey = t.documentKey;
       if (genKey === 'decl_escolaridade') html = generateDeclaracaoEscolaridade(student, school, mun, sec, sigs);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { Settings, Save, ToggleLeft, ToggleRight, CheckCircle, AlertCircle, FileText, Plus, Pencil, X, Loader2, Zap, Eye, Code, Users } from 'lucide-react';
@@ -67,6 +67,21 @@ export default function FormConfigPage() {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [templateVars, setTemplateVars] = useState<any[]>([]);
   const [showVars, setShowVars] = useState(false);
+  const templateRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertVar(v: string) {
+    const ta = templateRef.current;
+    if (ta) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const before = docForm.template.substring(0, start);
+      const after = docForm.template.substring(end);
+      setDocForm((f: any) => ({ ...f, template: before + v + after }));
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + v.length; ta.focus(); }, 0);
+    } else {
+      setDocForm((f: any) => ({ ...f, template: f.template + v }));
+    }
+  }
   const [previewHtml, setPreviewHtml] = useState('');
 
   useEffect(() => { loadAll(); }, [mid]);
@@ -318,12 +333,12 @@ export default function FormConfigPage() {
                   <div className="mb-2 p-2 bg-blue-50 rounded-xl border border-blue-200 text-xs">
                     <div className="flex flex-wrap gap-1">
                       {templateVars.map((v: any) => (
-                        <button key={v.var} type="button" onClick={() => setDocForm((f: any) => ({ ...f, template: f.template + v.var }))} className="px-2 py-0.5 bg-white border border-blue-200 rounded text-blue-700 hover:bg-blue-100" title={v.desc}>{v.var}</button>
+                        <button key={v.var} type="button" onClick={() => insertVar(v.var)} className="px-2 py-0.5 bg-white border border-blue-200 rounded text-blue-700 hover:bg-blue-100" title={v.desc}>{v.var}</button>
                       ))}
                     </div>
                   </div>
                 )}
-                <textarea className="input font-mono text-xs" rows={6} value={docForm.template} onChange={e => setDocForm((f: any) => ({ ...f, template: e.target.value }))} placeholder="<p>Declaramos que {aluno}...</p>" />
+                <textarea ref={templateRef} className="input font-mono text-xs" rows={6} value={docForm.template} onChange={e => setDocForm((f: any) => ({ ...f, template: e.target.value }))} placeholder="<p>Declaramos que {aluno}...</p>" />
               </div>
 
               {previewHtml && (

@@ -284,9 +284,6 @@ export default function DriverPortalPage() {
               <div className={`w-2 h-2 rounded-full ${gpsActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
               GPS {gpsActive ? 'Ativo' : 'Inativo'}
             </div>
-            <button onClick={() => { logout(); window.location.href = '/login'; }} className="p-2 text-white/60 hover:text-red-300 hover:bg-white/10 rounded-lg" title="Sair">
-              <LogOut size={20} />
-            </button>
           </div>
         </div>
 

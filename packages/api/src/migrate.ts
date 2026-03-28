@@ -407,6 +407,18 @@ async function migrate() {
       FOREIGN KEY (signerId) REFERENCES users(id)
     )`); } catch { /* already exists */ }
 
+    // Novos campos para declaration_types (central de documentos)
+    const dtNewCols = [
+      "module VARCHAR(50) DEFAULT 'gestao_escolar'",
+      "documentKey VARCHAR(100)",
+      "availableToParents BOOLEAN DEFAULT FALSE",
+      "systemAutoSign BOOLEAN DEFAULT FALSE",
+      "sortOrder INT DEFAULT 0",
+    ];
+    for (const col of dtNewCols) {
+      try { await conn.execute(`ALTER TABLE declaration_types ADD COLUMN ${col}`); } catch { /* already exists */ }
+    }
+
     // Solicitações de declarações
     try { await conn.execute(`CREATE TABLE IF NOT EXISTS declaration_requests (
       id INT AUTO_INCREMENT PRIMARY KEY,

@@ -475,6 +475,7 @@ export const api = {
   },
   declarations: {
     types: (input: any) => call('declarations.types', input, 'query'),
+    listAll: (input: any) => call('declarations.listAll', input, 'query'),
     createType: (input: any) => call('declarations.createType', input, 'mutation'),
     updateType: (input: any) => call('declarations.updateType', input, 'mutation'),
     request: (input: any) => call('declarations.request', input, 'mutation'),

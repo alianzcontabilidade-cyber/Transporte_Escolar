@@ -181,7 +181,7 @@ app.post('/api/pdf/generate', async (req, res) => {
       tokenData = jwtVerify(token, JWT) as any;
     } catch { return res.status(401).json({ error: 'Token inválido' }); }
 
-    const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures, skipSignatureBlock } = req.body;
+    const { html, orientation, filename, docType, docTitle, studentId, schoolId, signAfterGenerate, signerPassword, signatures, skipSignatureBlock, systemAutoSignerId } = req.body;
     if (!html) return res.status(400).json({ error: 'HTML é obrigatório' });
 
     const pdfStatus = await isPuppeteerAvailable();
@@ -206,6 +206,16 @@ app.post('/api/pdf/generate', async (req, res) => {
       const isValid = await compare(signerPassword, user.passwordHash);
       if (!isValid) return res.status(401).json({ error: 'Senha incorreta' });
       autoSignUser = user;
+    }
+
+    // Assinatura automática pré-autorizada (sem senha - configurado pelo admin)
+    if (systemAutoSignerId && !autoSignUser) {
+      const [signer] = await db.select({
+        id: users.id, name: users.name, cpf: users.cpf,
+        role: users.role, jobTitle: users.jobTitle, registrationNumber: users.registrationNumber,
+        decree: users.decree, department: users.department,
+      }).from(users).where(eq(users.id, systemAutoSignerId)).limit(1);
+      if (signer) autoSignUser = signer;
     }
 
     // Montar lista de assinantes (do request OU do usuário logado se signAfterGenerate)

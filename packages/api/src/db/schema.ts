@@ -1721,14 +1721,19 @@ export const chatMessages = mysqlTable("chat_messages", {
 export const declarationTypes = mysqlTable("declaration_types", {
   id: int("id").autoincrement().primaryKey(),
   municipalityId: int("municipalityId").notNull().references(() => municipalities.id),
+  module: varchar("module", { length: 50 }).default("gestao_escolar"),
+  documentKey: varchar("documentKey", { length: 100 }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   template: text("template"),
   autoGenerate: boolean("autoGenerate").default(false),
+  availableToParents: boolean("availableToParents").default(false),
+  systemAutoSign: boolean("systemAutoSign").default(false),
   signerId: int("signerId").references(() => users.id),
   signerName: varchar("signerName", { length: 255 }),
   signerRole: varchar("signerRole", { length: 255 }),
   isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

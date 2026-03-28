@@ -1232,7 +1232,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
     setLoading(true);
     try {
       const [t, r] = await Promise.all([
-        api.declarations.types({ municipalityId: mid }),
+        api.declarations.types({ municipalityId: mid, onlyParent: true }),
         api.declarations.listRequests({ municipalityId: mid }),
       ]);
       setTypes(t || []);
@@ -1324,7 +1324,7 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
                           const token = localStorage.getItem('token');
                           const res = await fetch(`${window.location.origin}/api/pdf/generate`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({ html: result.html, orientation: 'portrait', docType: 'declaracao', docTitle: result.title }),
+                            body: JSON.stringify({ html: result.html, orientation: 'portrait', docType: 'declaracao', docTitle: result.title, systemAutoSignerId: result.systemAutoSignerId }),
                           });
                           if (res.ok) {
                             const blob = await res.blob();

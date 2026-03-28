@@ -7140,11 +7140,23 @@ const backupRouter = t.router({
 export const declarationsRouter = t.router({
   // Listar tipos de declarações disponíveis
   types: protectedProcedure
+    .input(z.object({ municipalityId: z.number(), module: z.string().optional(), onlyParent: z.boolean().optional() }))
+    .query(async ({ input }) => {
+      const conditions: any[] = [eq(declarationTypes.municipalityId, input.municipalityId), eq(declarationTypes.isActive, true)];
+      if (input.module) conditions.push(eq(declarationTypes.module, input.module));
+      if (input.onlyParent) conditions.push(eq(declarationTypes.availableToParents, true));
+      return db.select().from(declarationTypes)
+        .where(and(...conditions))
+        .orderBy(declarationTypes.sortOrder, declarationTypes.name);
+    }),
+
+  // Listar todos (admin - incluindo inativos)
+  listAll: adminProcedure
     .input(z.object({ municipalityId: z.number() }))
     .query(async ({ input }) => {
       return db.select().from(declarationTypes)
-        .where(and(eq(declarationTypes.municipalityId, input.municipalityId), eq(declarationTypes.isActive, true)))
-        .orderBy(declarationTypes.name);
+        .where(eq(declarationTypes.municipalityId, input.municipalityId))
+        .orderBy(declarationTypes.module, declarationTypes.sortOrder, declarationTypes.name);
     }),
 
   // Criar tipo de declaração (admin)
@@ -7152,7 +7164,10 @@ export const declarationsRouter = t.router({
     .input(z.object({
       municipalityId: z.number(), name: z.string().min(2), description: z.string().optional(),
       template: z.string().optional(), autoGenerate: z.boolean().optional(),
+      module: z.string().optional(), documentKey: z.string().optional(),
+      availableToParents: z.boolean().optional(), systemAutoSign: z.boolean().optional(),
       signerId: z.number().optional(), signerName: z.string().optional(), signerRole: z.string().optional(),
+      sortOrder: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const [r] = await db.insert(declarationTypes).values(input as any).$returningId();
@@ -7164,8 +7179,10 @@ export const declarationsRouter = t.router({
     .input(z.object({
       id: z.number(), name: z.string().optional(), description: z.string().optional(),
       template: z.string().optional(), autoGenerate: z.boolean().optional(),
+      module: z.string().optional(), documentKey: z.string().optional(),
+      availableToParents: z.boolean().optional(), systemAutoSign: z.boolean().optional(),
       signerId: z.number().optional(), signerName: z.string().optional(), signerRole: z.string().optional(),
-      isActive: z.boolean().optional(),
+      isActive: z.boolean().optional(), sortOrder: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
@@ -7359,7 +7376,11 @@ export const declarationsRouter = t.router({
       </div>
       </body></html>`;
 
-      return { html: fullHtml, title: declType.name, signerName: declType.signerName, signerRole: declType.signerRole };
+      return {
+        html: fullHtml, title: declType.name,
+        signerName: declType.signerName, signerRole: declType.signerRole,
+        systemAutoSignerId: declType.systemAutoSign && declType.signerId ? declType.signerId : undefined,
+      };
     }),
 
   // Listar variáveis disponíveis para templates

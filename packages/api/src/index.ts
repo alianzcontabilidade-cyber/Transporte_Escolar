@@ -94,15 +94,6 @@ app.use((_req, res, next) => {
   next();
 });
 
-// TEMP: reset admin password (remover imediatamente após uso)
-app.get('/api/fix-pwd-temp-z8q', async (_req, res) => {
-  try {
-    await (db as any).execute(sql.raw(`UPDATE users SET passwordHash='$2a$12$T/cqLeWk9Rd0LVAKv0EeXOi9hBW1d5T6jXwlZ60oaoFRi2Ue6NRGy' WHERE email='ambrito@hotmail.com'`));
-    await (db as any).execute(sql.raw(`UPDATE users SET passwordHash='$2a$12$T/cqLeWk9Rd0LVAKv0EeXOi9hBW1d5T6jXwlZ60oaoFRi2Ue6NRGy' WHERE email='pai@teste.com'`));
-    res.json({ ok: true });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
-});
-
 // CORS
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '5mb' }));

@@ -1340,7 +1340,8 @@ function DeclaracoesView({ student, onBack }: { student: any; onBack: () => void
                         const school = loadSchoolData(student.schoolId, schoolsData);
                         const mun = munReport?.municipality;
                         const sec = munReport?.secretaria;
-                        const sigs = t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : [];
+                        // Se assinatura eletrônica automática, não incluir assinatura manual (o backend injeta o bloco)
+                        const sigs = (t.systemAutoSign && t.signerId) ? [] : (t.signerName ? [{ name: t.signerName, role: t.signerRole || '', cpf: '', decree: '' }] : []);
 
                         // Tentar usar função geradora do sistema
                         const genKey = t.documentKey;

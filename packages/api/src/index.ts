@@ -11,7 +11,7 @@ import { appRouter } from './routers';
 import { createContext } from './middleware/context';
 import { setSocketIO } from './socketInstance';
 import { db } from './db/index';
-import { sql, eq, and, desc } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { generatePDF, isPuppeteerAvailable, generateVerificationCode, computePdfHash, generateQRCodeDataURL, injectQRCodeIntoHTML } from './services/pdfService';
 import { verify as jwtVerify } from 'jsonwebtoken';
 import { compare } from 'bcryptjs';

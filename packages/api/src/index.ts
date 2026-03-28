@@ -17,7 +17,7 @@ import { verify as jwtVerify } from 'jsonwebtoken';
 import { compare } from 'bcryptjs';
 import { createHash } from 'crypto';
 import { documents, documentSignatures, users, classes, subjects, classSubjects, enrollments, assessments, studentGrades, dailyAttendance } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 
 dotenv.config();
 

@@ -469,16 +469,16 @@ export default function GuardianPortalPage() {
       )}
 
       {/* ========== BOLETIM VIEW ========== */}
-      {view === 'boletim' && currentStudent && <BoletimView student={currentStudent} onBack={goHome} />}
+      {view === 'boletim' && currentStudent && <BoletimView key={currentStudent.id} student={currentStudent} onBack={goHome} />}
 
       {/* ========== FREQUENCIA VIEW ========== */}
-      {view === 'frequência' && currentStudent && <FrequenciaView student={currentStudent} onBack={goHome} />}
+      {view === 'frequência' && currentStudent && <FrequenciaView key={currentStudent.id} student={currentStudent} onBack={goHome} />}
 
       {/* ========== PARECER VIEW ========== */}
-      {view === 'parecer' && currentStudent && <ParecerView student={currentStudent} onBack={goHome} />}
+      {view === 'parecer' && currentStudent && <ParecerView key={currentStudent.id} student={currentStudent} onBack={goHome} />}
 
       {/* ========== OCORRENCIAS VIEW ========== */}
-      {view === 'ocorrências' && currentStudent && <OcorrenciasView student={currentStudent} onBack={goHome} />}
+      {view === 'ocorrências' && currentStudent && <OcorrenciasView key={currentStudent.id} student={currentStudent} onBack={goHome} />}
 
       {/* ========== CALENDARIO VIEW ========== */}
       {view === 'calendario' && currentStudent && <CalendarioView student={currentStudent} onBack={goHome} />}
@@ -496,7 +496,7 @@ export default function GuardianPortalPage() {
       )}
 
       {/* ========== DECLARACOES VIEW ========== */}
-      {view === 'declarações' && currentStudent && <DeclaracoesView student={currentStudent} onBack={goHome} />}
+      {view === 'declarações' && currentStudent && <DeclaracoesView key={currentStudent.id} student={currentStudent} onBack={goHome} />}
 
       {/* ========== TRANSPORTE VIEW ========== */}
       {view === 'transporte' && currentStudent && (

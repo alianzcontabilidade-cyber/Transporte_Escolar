@@ -125,6 +125,9 @@ const apiLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
+// Test endpoint
+app.get('/api/test-seed', (_req, res) => { res.json({ ok: true, ts: Date.now() }); });
+
 // Aplicar rate limit por tipo de procedure tRPC
 app.use('/api/trpc/auth.login', loginLimiter);
 app.use('/api/trpc/auth.registerMunicipality', registerLimiter);
